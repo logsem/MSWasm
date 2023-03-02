@@ -1090,6 +1090,8 @@ Definition wellFormedState s f :=
 
 
 
+
+
 Local Lemma run_step_soundness_aux : forall fuel d s f es s' f' es',
     wellFormedState s f ->
     run_step_with_fuel fuel d (s, f, es)
@@ -2583,36 +2585,38 @@ Proof.
         by repeat econstructor.
 
       - (** [AI_basic (Testop v t)] **)
-        simpl.
+        simpl. explode_and_simplify; pattern_match; auto_frame.
         destruct v => //.
-        destruct (rev lconst) eqn:Hlconst => //.
         destruct v => //.
-        intro H'; inversion H'; subst.
+        inversion H2; subst.
         split; last by subst. exists ME_empty.
-         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
-        unfold lfilled, lfill.
-        rewrite v_to_e_is_const_list.
-        instantiate ( 2 := [:: _]) => //=. done. 
-        unfold lfilled, lfill.
-        rewrite v_to_e_is_const_list => /=.
-        instantiate (1 := [:: _ ;_]) => //=.
-        subst.
-        by repeat econstructor.
-                split; last by subst. exists ME_empty.
-         eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
+        rewrite - catA => //=.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
+        destruct v => //. inversion H2; subst. split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list.
+        instantiate ( 2 := [:: _]) => //=.
+        rewrite - catA => //=.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list => /=.
+        instantiate (1 := [:: _ ;_]) => //=.
+        subst.
+        by repeat econstructor.
+         destruct v => //. destruct v => //. destruct v => //. 
 
       - (** [AI_basic (Relop v2 v1 r)] **)
-        explode_and_simplify; pattern_match; auto_frame.
-                split; last by subst. exists ME_empty.
-         eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        simpl. explode_and_simplify; pattern_match; auto_frame.
+        split; last by subst. exists ME_empty.
+         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2626,8 +2630,9 @@ Proof.
         by repeat econstructor.
 
       - (** [AI_basic (Cvtop v c v0 o)] **)
-        explode_and_simplify; pattern_match; auto_frame.
-        eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        simpl. explode_and_simplify; pattern_match; auto_frame.
+        split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2636,7 +2641,8 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2645,7 +2651,8 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+                split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2654,7 +2661,8 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+                split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2663,7 +2671,8 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+                split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2678,10 +2687,11 @@ Proof.
       by pattern_match.
     }
     { (** [Invoke] **)
-      explode_and_simplify.
+      simpl. explode_and_simplify.
       - (** [Func_native] **)
         pattern_match; auto_frame.
-        eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2696,7 +2706,7 @@ Proof.
         by apply leq_subr.
 
         subst.
-        apply: r_invoke_native => //=; eauto.
+        apply: rm_silent; apply: r_invoke_native => //=; eauto.
         simplify_lists. by rewrite subKn. }
 (*      - (** [Func_host] **)
         destruct host_application_impl eqn:HHost; explode_and_simplify; try pattern_match; try frame_cat.
@@ -2715,8 +2725,8 @@ Proof.
     
     
     { (** [Label] **)
-      explode_and_simplify; try (pattern_match; auto_frame).
-      eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+      simpl. explode_and_simplify; try (pattern_match; auto_frame).
+      split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2725,7 +2735,8 @@ Proof.
         instantiate (1 := [:: _ ]) => //=.
         subst.
         by repeat econstructor.
-         eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        split; last by subst. exists ME_empty. 
+         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         done.
@@ -2739,10 +2750,11 @@ Proof.
       + destruct run_step_with_fuel as [[s'' f''] r] eqn: EH.
         destruct r as [|nd es''| |es'' |] => //.
         * (** [RS_break] **)
-          destruct nd => //. explode_and_simplify.
+          destruct nd => //. simpl. explode_and_simplify.
           destruct (n <= length es'') eqn:Hn => //.
           inversion H2 ; subst.
-          eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          split. exists ME_empty.
+          eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
           2:{ 
@@ -2760,12 +2772,14 @@ Proof.
           done.
           subst.
           eapply reduce_label_break => // ; by eauto.
+          apply rs_break_wellfounded in EH as (-> & -> & _). done.
              
         * (** [RS_normal] **)
           inversion H2 ; subst.
           (* We actually want to keep the frame here for later use in lfilled.*)
-          apply H in EH; last by lias.
-          eapply r_label.
+          apply H in EH as [??]; try by lias.
+          split; last done.
+          destruct H1 as [me EH]. exists me. eapply rm_label.
           - by eauto.
           - apply/lfilledP.
             eapply LfilledRec; first by apply v_to_e_is_const_list.
@@ -2776,8 +2790,10 @@ Proof.
             by apply lfilled0.
     }
     { (** [Local] **)
-      explode_and_simplify; try (pattern_match; auto_frame).
-       eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+      simpl. explode_and_simplify; try (pattern_match; auto_frame).
+      split; last by subst.
+      exists ME_empty.
+      eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
@@ -2786,7 +2802,8 @@ Proof.
         instantiate (1 := [:: _ ]) => //=.
         subst.
         by repeat econstructor.
-         eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+        split; last by subst. exists ME_empty.
+         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         done.
@@ -2800,8 +2817,10 @@ Proof.
         * (** [RS_return] **)
           explode_and_simplify.
            destruct (n <= length vs''') eqn:Hn => //.
-          inversion H2 ; subst.
-          eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+           inversion H2 ; subst.
+           split.
+           exists ME_empty.
+          eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
           2:{ 
@@ -2817,18 +2836,21 @@ Proof.
           repeat rewrite - catA.
           done.
           subst.
-          eapply reduce_label_return => //; by eauto. 
+          eapply reduce_label_return => //; by eauto.
+          apply rs_return_wellfounded in EH as (-> & -> & _) => //.
         * (** [RS_normal] **)
-          inversion H2 ; subst. auto_frame. apply H in EH; last by lias.
-          eapply (r_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
-        unfold lfilled, lfill.
-        rewrite v_to_e_is_const_list.
-        instantiate ( 2 := [:: _]) => //=.
-        unfold lfilled, lfill.
-        rewrite v_to_e_is_const_list => /=.
-        instantiate (1 := [:: _ ]) => //=.
-        subst.
-          by apply r_local.
+          inversion H2 ; subst. auto_frame. apply H in EH as [??]; try by lias.
+          split.
+          destruct H1 as [me EH]. exists me.
+          eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ]) => //=.
+          subst.
+          by apply rm_local.
     }
     { by pattern_match. } 
 Qed.

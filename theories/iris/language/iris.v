@@ -50,7 +50,7 @@ Canonical Structure val_eqType := Eval hnf in EqType val val_eqMixin.
 
 Definition state : Type := store_record * (list value) * instance.
 
-Definition observation := unit.
+Definition observation := memory_event.
 
 Definition of_val (v : val) : expr :=
   match v with
@@ -121,7 +121,7 @@ Definition val_not_val_combine (v1 : val) (v2 : ValNotVal) : ValNotVal :=
              end
   | trapV => match expr_of_val_not_val v2 with
               [] => Val trapV
-            | _ => NotVal (AI_trap :: expr_of_val_not_val v2)
+            | es => NotVal (AI_trap :: es)
             end
   | brV i vh =>
       Val (brV (vh_append vh (expr_of_val_not_val v2)))
@@ -183,7 +183,10 @@ Definition to_val (e : expr) : option val :=
 Definition prim_step (e : expr) (s : state) (os : list observation) (e' : expr) (s' : state) (fork_es' : list expr) : Prop :=
   let '(σ, locs, inst) := s in
   let '(σ', locs', inst') := s' in
-    reduce σ (Build_frame locs inst) e σ' (Build_frame locs' inst') e' /\ os = [] /\ fork_es' = [].
+  match os with 
+  | [:: me] => reduce σ (Build_frame locs inst) e me σ' (Build_frame locs' inst') e' /\ fork_es' = []
+  | _ => False
+  end.
 
   
 Lemma val_not_val_combine_app v1 v2 :
@@ -204,7 +207,7 @@ Proof.
   all : try by destruct l1 => //= ; rewrite - v_to_e_cat ; rewrite app_assoc.
 Qed.
 
-(* if we write val_not_val_combine_assoc v1 v2 as v1 + v2, this lemma is just plain
+(* if we write val_not_val_combine v1 v2 as v1 + v2, this lemma is just plain
    associativity : v1 + (v2 + x) = (v1 + v2) + x. Because of typing, the phrasing is
    a little more complicated *)
 Lemma val_not_val_combine_assoc v1 v2 x :
@@ -1552,15 +1555,16 @@ Proof.
   - unfold to_val => /= ; by rewrite merge_call_host flatten_simplify.
 Qed.
 
-Lemma val_head_stuck_reduce : ∀ locs1 s1 e1 locs2 s2 e2,
-    reduce locs1 s1 e1 locs2 s2 e2 ->
+Lemma val_head_stuck_reduce : ∀ locs1 s1 e1 me locs2 s2 e2,
+    reduce locs1 s1 e1 me locs2 s2 e2 ->
     to_val e1 = None.
 Proof.
-  move => locs1 s1 e1 locs2 s2 e2 HRed;try by to_val_None_prepend_const.
+  move => locs1 s1 e1 me locs2 s2 e2 HRed;try by to_val_None_prepend_const.
   induction HRed => //= ; subst; try by to_val_None_prepend_const.
   - inversion H; subst => //=;try by apply to_val_None_prepend_const;auto.
+    inversion H0; subst => //=; try by apply to_val_None_prepend_const;auto.
     + unfold to_val => /=.
-      apply const_list_to_val in H0 as [vs Htv].
+      apply const_list_to_val in H1 as [vs Htv].
       unfold to_val in Htv.
       destruct (merge_values_list _) => //.
       inversion Htv => //.
@@ -1570,13 +1574,13 @@ Proof.
       destruct i0 => //.
       destruct (vh_decrease lh0) eqn:Hdecr => //.
       assert (to_val LI = Some (brV lh0)) ; first by unfold to_val ; rewrite Hmerge.
-      apply of_to_val in H1.
-      unfold of_val in H1.
-      rewrite (vfill_decrease _ Hdecr) in H1.
+      apply of_to_val in H2.
+      unfold of_val in H2.
+      rewrite (vfill_decrease _ Hdecr) in H2.
       destruct (vfill_to_lfilled v [AI_basic (BI_br (S i0))]) as (Hk & Hfill).
-      rewrite H1 in Hfill.
+      rewrite H2 in Hfill.
       edestruct lfilled_first_values as (Habs1 & Habs2 & _).
-      exact H2.
+      exact H3.
       rewrite - (app_nil_l [_]) in Hfill.
       rewrite - cat_app in Hfill.
       exact Hfill.
@@ -1584,46 +1588,46 @@ Proof.
       inversion Habs1.
       subst.
       lia.
-      assert (to_val LI = Some (retV s0)) ; first by unfold to_val ; rewrite Hmerge.
-      apply of_to_val in H1. unfold of_val in H1. 
-      specialize (sfill_to_lfilled s0 [AI_basic BI_return]) as Hfill.
-      rewrite H1 in Hfill.
+      assert (to_val LI = Some (retV s)) ; first by unfold to_val ; rewrite Hmerge.
+      apply of_to_val in H2. unfold of_val in H2. 
+      specialize (sfill_to_lfilled s [AI_basic BI_return]) as Hfill.
+      rewrite H2 in Hfill.
       edestruct lfilled_first_values as (Habs & _ & _).
-      exact H2.
+      exact H3.
       rewrite - (app_nil_l [_]) in Hfill.
       rewrite - cat_app in Hfill.
       exact Hfill.
       all : try done.
-      assert (to_val LI = Some (callHostV f0 h l l0)) ;
+      assert (to_val LI = Some (callHostV f h l l0)) ;
         first by unfold to_val ; rewrite Hmerge.
-      apply of_to_val in H1. unfold of_val in H1.
+      apply of_to_val in H2. unfold of_val in H2.
       edestruct lfilled_llfill_first_values as [Habs _].
+      exact H3.
+      rewrite - (cat0s [_]) in H2.
       exact H2.
-      rewrite - (cat0s [_]) in H1.
-      exact H1.
       all : try done.
     + unfold to_val => /=.
-      apply const_list_to_val in H0 as [vs Htv].
+      apply const_list_to_val in H1 as [vs Htv].
       unfold to_val in Htv.
       destruct (merge_values_list _) => //.
       inversion Htv => //.
     + unfold to_val => /=.
       destruct (merge_values_list _) eqn:Hmerge => //.
       destruct v => //.
-      assert (to_val es = Some (callHostV f1 h l l0)) ;
+      assert (to_val es0 = Some (callHostV f0 h l l0)) ;
         first by unfold to_val ; rewrite Hmerge.
-      apply of_to_val in H1. unfold of_val in H1.
+      apply of_to_val in H2. unfold of_val in H2.
       edestruct lfilled_llfill_first_values as [Habs _].
+      exact H3.
+      rewrite - (cat0s [_]) in H2.
       exact H2.
-      rewrite - (cat0s [_]) in H1.
-      exact H1.
       all : try done.
     + destruct v => //.
       by destruct b => //=.
-    + move/lfilledP in H1.
-      inversion H1. subst es e.
+    + move/lfilledP in H2.
+      inversion H2. subst es0 es.
       apply to_val_not_trap_interweave;auto.
-      case: vs {H H1 H2 H4} H0 => //=.
+      case: vs {H H0 H2 H3 H5} H1 => //=.
       case: es' => //=.
       move => a l H. by right.
       move => a l H. by left.
@@ -1696,7 +1700,7 @@ Lemma val_head_stuck : forall e1 s1 κ e2 s2 efs,
   to_val e1 = None.
 Proof.
   rewrite /prim_step => e1 [[locs1 σ1] inst] κ e2 [[ locs2 σ2] inst'] efs.
-  move => [HRed _].
+  destruct κ => //. destruct κ => //. move => [HRed _].
   eapply val_head_stuck_reduce;eauto.
 Qed.
 

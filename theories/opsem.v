@@ -492,9 +492,9 @@ Definition reduce_tuple s_f_es me s'_f'_es' : Prop :=
   Inductive reduce_trans : store_record * frame * seq administrative_instruction -> seq memory_event -> store_record * frame * seq administrative_instruction -> Prop :=
   | reduce_trivial : forall status, reduce_trans status [::] status
   | reduce_step : forall status mes status' me status'',
-      reduce_trans status mes status' ->
-      reduce_tuple status' me status'' ->
-      reduce_trans status (mes ++ [::me]) status''
+      reduce_tuple status me status' ->
+      reduce_trans status' mes status'' ->
+      reduce_trans status (me :: mes) status''
   .
   
 (* Definition reduce_trans :

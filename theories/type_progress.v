@@ -1525,12 +1525,12 @@ Proof.
       unfold return_reduce in HEMT.
       destruct HEMT as [n [lh HLF]].
       eapply return_reduce_extract_vs in HLF; eauto.
-      instantiate (1 := ts2) in HLF.
+      (* instantiate (1 := ts2) in HLF. *)
       destruct HLF as [cs [lh' [HConst [HLF2 HLength]]]].
       repeat eexists.
       apply rm_silent, r_simple.
       eapply rs_return; eauto.
-      by [].
+(*      by []. *)
     }
     edestruct IHHType as [ | [ | ]]; eauto.
     {
@@ -1588,16 +1588,16 @@ Proof.
       right. 
       assert (LF : lfilled n lh [::AI_basic (BI_br (n+0))] es); first by rewrite addn0.
       eapply br_reduce_extract_vs in LF => //; eauto.
-      instantiate (1 := ts) in LF.
+      (* instantiate (1 := ts) in LF. *)
       destruct LF as [cs [lh' [HConst [HLF2 HLength]]]].
       rewrite addn0 in HLF2.
       repeat eexists.
       apply rm_silent, r_simple.
       eapply rs_br; eauto.
-      by [].
+(*      by []. *)
     }
     edestruct IHHType2; eauto.
-    { rewrite upd_label_overwrite. simpl. eauto. }
+(*    { rewrite upd_label_overwrite. simpl. eauto. } *)
     { unfold br_reduce in HEMF.
       move => n lh k HLF.
       assert (Inf : k < n.+1).

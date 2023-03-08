@@ -10,7 +10,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Require Import operations opsem interpreter_func properties stdpp_aux type_preservation.
+Require Import operations properties opsem interpreter_func properties stdpp_aux type_preservation.
 
 
   
@@ -1080,13 +1080,7 @@ Proof. admit. Admitted.
 Lemma binnat_lt : forall a b, BinNat.N.lt a b -> nat_of_bin a < nat_of_bin b.
 Proof. admit. Admitted.
 
-Definition wellFormedState s f :=
-  exists i j T A, 
-  sseg_ind s f.(f_inst) = Some i /\ 
-    List.nth_error s.(s_segs) i = Some T /\
-    sall_ind s f.(f_inst) = Some j /\
-    List.nth_error s.(s_alls) j = Some A /\
-    isSound T.(seg_data) A.
+
 
 
 
@@ -2851,15 +2845,19 @@ Proof.
           instantiate (1 := [:: _ ]) => //=.
           subst.
           by apply rm_local.
+          admit.
+          admit.
     }
     { by pattern_match. } 
-Qed.
+Admitted. 
 
 Theorem run_step_soundness : forall d s f es s' f' es',
+    wellFormedState s f ->
   run_step d (s, f, es) = (s', f', RS_normal es') ->
-  reduce s f es s' f' es'.
+  (exists me, reduce s f es me s' f' es') /\ wellFormedState s' f'.
 Proof.
-  move=> d s f es s' f' es'. by apply: run_step_soundness_aux.
+  move=> d s f es s' f' es'.
+  by apply: run_step_soundness_aux.
 Qed.
 
 

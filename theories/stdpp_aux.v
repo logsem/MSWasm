@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import list fin_maps gmap.
-Require Import list_extra properties.
+Require Import list_extra common operations.
 
 (* Additional lemmas to reduce friction among stdpp/ssreflect/coq*)
 

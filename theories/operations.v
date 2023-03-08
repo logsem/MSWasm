@@ -213,44 +213,7 @@ Lemma length_is_size {A} (l : list A) : length l = size l.
 Proof. done. Qed.
 
 
-Lemma salloc_sound T A a n nid T' A' :
-  isSound T.(seg_data) A -> salloc T A a n nid T' A' -> isSound T'.(seg_data) A'.
-Proof.
-  intros HSound Halloc.
-  inversion Halloc; subst.
-  unfold isSound => /=.
-  unfold isSound_aux => /=.
-  apply/andP. split.
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size.
-  rewrite size_takel.
-  rewrite List.repeat_length.
-  apply N.leb_le. lia.
-  rewrite - length_is_size.
-  lias.
-  unfold isSound, isSound_aux in HSound.
-  apply List.forallb_forall.
-  edestruct List.forallb_forall as [??].
-  intros x Hx.
-  apply (H4 HSound x) in Hx.
-  destruct x as [??].
-  destruct p as [??].
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size size_takel.
-  rewrite List.repeat_length.
-  rewrite length_is_size size_drop.
-  apply N.leb_le.
-  unfold segment_list.seg_length in Hx.
-  apply N.leb_le in Hx.
-  repeat rewrite Nnat.Nat2N.inj_add.
-  rewrite Nnat.Nat2N.inj_sub.
-  repeat rewrite Nnat.N2Nat.id. 
-  rewrite - length_is_size.
-  lia.
-  rewrite - length_is_size. lias.
-Qed.  
+
   
   
   
@@ -263,20 +226,6 @@ Inductive sfree : segment -> allocator -> N -> N -> segment -> allocator -> Prop
       find_and_remove nid A.(allocated) = Some (l, a, n) ->
       A' = {| allocated := l |} ->
       sfree T A a nid T A'.
-
-Lemma sfree_sound T A a nid T' A' :
-  isSound T.(seg_data) A -> sfree T A a nid T' A' -> isSound T'.(seg_data) A'.
-Proof.
-  intros HSound Hfree.
-  inversion Hfree; subst.
-  unfold isSound.
-  eapply find_and_remove_isSound => //.
-  exact HSound.
-  exact H.
-Qed.
-
-  
-
 
 
   

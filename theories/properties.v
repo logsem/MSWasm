@@ -1,9 +1,11 @@
 (** Miscellaneous properties about Wasm operations **)
 
-From Wasm Require Export datatypes_properties operations typing opsem common.
+From Wasm Require Export datatypes_properties operations typing opsem common stdpp_aux.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From StrongInduction Require Import StrongInduction.
-From Coq Require Import Bool Program.Equality.
+From Coq Require Import Bool BinNat Program.Equality.
+Require Import Lia.
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1391,3 +1393,746 @@ Proof.
   { intros. destruct ves => //. }
   { intros. apply: lfilled_not_nil. exact H1. exact H0. }
 Qed.
+
+
+
+
+
+(* nLemma s_segs_upd_s_seg s s' :
+  s_segs (upd_s_seg s s') = s'.
+Proof.
+  by destruct s.
+Qed.
+
+Lemma s_alls_upd_s_all s s' :
+  s_alls (upd_s_all s s') = s'.
+Proof.
+  by destruct s.
+Qed.
+
+Lemma s_alls_upd_s_seg s s' :
+  s_alls (upd_s_seg s s') = s_alls s.
+Proof.
+  by destruct s.
+Qed. *)
+
+
+Lemma same_length_is_Sound T T' A :
+  seg_length T = seg_length T' ->
+  isSound T A -> isSound T' A.
+Proof.
+  intros Hlen HS.
+  unfold isSound, isSound_aux.
+  unfold isSound, isSound_aux in HS.
+  apply List.forallb_forall.
+  intros [[??]?] Hx.
+  edestruct List.forallb_forall as [? _].
+  specialize (H HS (n, n0, n1) Hx) as H'.
+  simpl in H'.
+  rewrite Hlen in H' => //.
+Qed.
+
+ Lemma segstore_same_length_aux:
+  forall l h s s' k k',
+    BinNat.N.leb (BinNat.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat (k + length l))) (seg_length s) = true ->        
+      List.fold_left
+        (fun '(off, dat_o) (b : byte * btag) =>
+        (off + 1, match dat_o with
+           | Some dat =>
+               seg_update
+                 (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat off))
+                 b dat
+           | None => None
+       end)) l (k, Some s) = (k', Some s') ->
+  seg_length s = seg_length s'.
+Proof.
+  intro l; induction l => //=.
+  intros h s s' k k' Hlen H.
+  by inversion H.
+  intros h s s' k k' Hlen H.
+  unfold seg_update in H at 2.
+  replace (BinNat.N.ltb
+             (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat k))
+             (BinNat.N.of_nat (length (segl_data s)))) with true in H.
+  apply IHl in H.
+  rewrite - H.
+  unfold seg_length => /=.
+  repeat rewrite length_is_size.
+  rewrite size_cat => /=.
+  rewrite size_takel.
+  rewrite size_drop.
+  remember (BinNat.N.to_nat (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat k))) as x.
+  replace (x + 1)%coq_nat with x.+1; last lias.
+  rewrite subnSK.
+  rewrite subnKC.
+  done. subst.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. lias.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. lias.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. lias.
+  unfold seg_length => /=. repeat rewrite length_is_size.
+  rewrite size_cat => /=.
+  rewrite size_takel. rewrite size_drop.
+  remember (BinNat.N.to_nat (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat k))) as x.
+  replace (x + 1)%coq_nat with x.+1; last lias.
+  rewrite subnSK.
+  rewrite subnKC.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. apply BinNat.N.leb_le. lias.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. lias.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. lias.
+  unfold seg_length in Hlen. repeat rewrite length_is_size in Hlen.
+  apply BinNat.N.leb_le in Hlen. lias.
+  apply Logic.eq_sym, BinNat.N.ltb_lt.
+  apply BinNat.N.leb_le in Hlen.
+  unfold seg_length in Hlen. lias.
+Qed. 
+
+
+Lemma size_tagged_bytes_takefill a l b :
+  size (tagged_bytes_takefill a l b) = l.
+Proof.
+  generalize dependent b. induction l => //=.
+  intro b; destruct b => //=.
+  by rewrite IHl.
+  by rewrite IHl.
+Qed.
+  
+
+
+Lemma segstore_same_length s h l i s' :
+  segstore s h l i = Some s' -> operations.seg_length s = operations.seg_length s'.
+Proof.
+  unfold segstore.
+  destruct (BinNat.N.leb _ _) eqn:Hlen => //.
+  unfold write_segbytes.
+  unfold fold_lefti.
+  destruct (List.fold_left _ _ _) eqn:Hfl.
+  destruct o => //.
+  apply segstore_same_length_aux in Hfl.
+  intro H; inversion H; subst.
+  unfold operations.seg_length.
+  rewrite Hfl.
+  done.
+  rewrite length_is_size size_tagged_bytes_takefill.
+  replace (0 + i) with i; last lias.
+  exact Hlen.
+Qed.
+
+
+Lemma nth_error_update_other {A} l i {x:A} j:
+  i <> j ->
+  (* i < length l -> *) j < length l -> 
+  List.nth_error (update_list_at l i x) j = List.nth_error l j.
+Proof.
+  intros Hij Hj.
+  generalize dependent l. generalize dependent i.
+  induction j => //=; intros.
+  destruct l => //=.
+  destruct i => //=.
+  destruct l => //=.
+  destruct i => //=.
+  unfold update_list_at in IHj. simpl in IHj.
+  apply IHj. lias. simpl in Hj. lias.
+Qed.
+ 
+
+
+Lemma salloc_sound T A a n nid T' A' :
+  isSound T.(seg_data) A -> salloc T A a n nid T' A' -> isSound T'.(seg_data) A'.
+Proof.
+  intros HSound Halloc.
+  inversion Halloc; subst.
+  unfold isSound => /=.
+  unfold isSound_aux => /=.
+  apply/andP. split.
+  unfold segment_list.seg_length => /=.
+  repeat rewrite List.app_length.
+  rewrite length_is_size.
+  rewrite size_takel.
+  rewrite List.repeat_length.
+  apply BinNat.N.leb_le. lias.
+  rewrite - length_is_size.
+  lias.
+  unfold isSound, isSound_aux in HSound.
+  apply List.forallb_forall.
+  edestruct List.forallb_forall as [??].
+  intros x Hx.
+  apply (H4 HSound x) in Hx.
+  destruct x as [??].
+  destruct p as [??].
+  unfold segment_list.seg_length => /=.
+  repeat rewrite List.app_length.
+  rewrite length_is_size size_takel.
+  rewrite List.repeat_length.
+  rewrite length_is_size size_drop.
+  apply N.leb_le.
+  unfold segment_list.seg_length in Hx.
+  apply N.leb_le in Hx.
+  repeat rewrite Nnat.Nat2N.inj_add.
+  rewrite Nnat.Nat2N.inj_sub.
+  repeat rewrite Nnat.N2Nat.id. 
+  rewrite - length_is_size.
+  lia.
+  rewrite - length_is_size. lias.
+Qed.
+
+
+Lemma sfree_sound T A a nid T' A' :
+  isSound T.(seg_data) A -> sfree T A a nid T' A' -> isSound T'.(seg_data) A'.
+Proof.
+  intros HSound Hfree.
+  inversion Hfree; subst.
+  unfold isSound.
+  eapply find_and_remove_isSound => //.
+  exact HSound.
+  exact H.
+Qed.
+
+(*
+Lemma salloc_sound_local1 T A a n nid T' A' T0 :
+  isSound T0 A -> salloc T A a n nid T' A' -> isSound T0 A'.
+Proof.
+  intros HSound Halloc.
+  inversion Halloc; subst.
+  unfold isSound => /=.
+  unfold isSound_aux => /=.
+  unfold isSound, isSound_aux in HSound.
+  apply/andP. split; last done.
+  
+  unfold segment_list.seg_length => /=.
+  repeat rewrite List.app_length.
+  rewrite length_is_size.
+  rewrite size_takel.
+  rewrite List.repeat_length.
+  apply BinNat.N.leb_le. lias.
+  rewrite - length_is_size.
+  lias. 
+  unfold isSound, isSound_aux in HSound.
+  apply List.forallb_forall.
+  edestruct List.forallb_forall as [??].
+  intros x Hx.
+  apply (H4 HSound x) in Hx.
+  destruct x as [??].
+  destruct p as [??].
+  unfold segment_list.seg_length => /=.
+  repeat rewrite List.app_length.
+  rewrite length_is_size size_takel.
+  rewrite List.repeat_length.
+  rewrite length_is_size size_drop.
+  apply N.leb_le.
+  unfold segment_list.seg_length in Hx.
+  apply N.leb_le in Hx.
+  repeat rewrite Nnat.Nat2N.inj_add.
+  rewrite Nnat.Nat2N.inj_sub.
+  repeat rewrite Nnat.N2Nat.id. 
+  rewrite - length_is_size.
+  lia.
+  rewrite - length_is_size. lias.
+Qed. *)
+
+Lemma salloc_sound_local T A a n nid T' A' A0 :
+  isSound T.(seg_data) A0 -> salloc T A a n nid T' A' -> isSound T'.(seg_data) A0.
+Proof.
+  intros HSound Halloc.
+  inversion Halloc; subst.
+  unfold isSound => /=.
+  unfold isSound_aux => /=.
+(*  apply/andP. split.
+  unfold segment_list.seg_length => /=.
+  repeat rewrite List.app_length.
+  rewrite length_is_size.
+  rewrite size_takel.
+  rewrite List.repeat_length.
+  apply BinNat.N.leb_le. lias.
+  rewrite - length_is_size.
+  lias. *)
+  unfold isSound, isSound_aux in HSound.
+  apply List.forallb_forall.
+  edestruct List.forallb_forall as [??].
+  intros x Hx.
+  apply (H4 HSound x) in Hx.
+  destruct x as [??].
+  destruct p as [??].
+  unfold segment_list.seg_length => /=.
+  repeat rewrite List.app_length.
+  rewrite length_is_size size_takel.
+  rewrite List.repeat_length.
+  rewrite length_is_size size_drop.
+  apply N.leb_le.
+  unfold segment_list.seg_length in Hx.
+  apply N.leb_le in Hx.
+  repeat rewrite Nnat.Nat2N.inj_add.
+  rewrite Nnat.Nat2N.inj_sub.
+  repeat rewrite Nnat.N2Nat.id. 
+  rewrite - length_is_size.
+  lia.
+  rewrite - length_is_size. lias.
+Qed.
+  
+Lemma sfree_sound_local T A a nid T' A' A0 :
+  isSound T.(seg_data) A0 -> sfree T A a nid T' A' -> isSound T'.(seg_data) A0.
+Proof.
+  intros HSound Hfree.
+  inversion Hfree; subst.
+  done.
+Qed.
+
+Definition current_local_instance es :=
+  match es with
+  | AI_local n f es' :: q => Some f.(f_inst)
+  | _ => None
+  end.
+
+
+Definition wellFormedState s f :=
+  (exists i j T A, 
+      sseg_ind s f.(f_inst) = Some i /\ 
+        List.nth_error s.(s_segs) i = Some T /\
+        sall_ind s f.(f_inst) = Some j /\
+        List.nth_error s.(s_alls) j = Some A /\
+        isSound T.(seg_data) A).  (* /\
+    match current_local_instance es with
+    | Some i' =>
+        exists i j T A,
+        sseg_ind s i' = Some i /\ 
+          List.nth_error s.(s_segs) i = Some T /\
+          sall_ind s i' = Some j /\
+          List.nth_error s.(s_alls) j = Some A /\
+          isSound T.(seg_data) A
+    | None => True
+    end. *)
+
+
+
+
+(*
+Lemma reduce_preserves_wellformedness_local s f es me s' f' es' f0:
+  wellFormedState s f0 ->
+  reduce s f es me s' f' es' ->
+  wellFormedState s' f0.
+Proof.
+  intros HWF Hred.
+  induction Hred => //.
+  { inversion H; try by subst.
+    subst.
+    destruct HWF as (i' & j & T & A & HWF).
+    exists i', j, T, A. 
+    assert (s_alls s' = s_alls s /\ s_segs s' = s_segs s) as [Halls Hsegs].
+    destruct s; simpl.
+    unfold supdate_glob in H0.
+    unfold option_bind in H0.
+    destruct (sglob_ind _ _ _) => //.
+    unfold supdate_glob_s in H0.
+    simpl in H0.
+    unfold option_map in H0.
+    destruct (List.nth_error _ n) => //.
+    by inversion H0.
+    rewrite Halls Hsegs.
+    exact HWF. }
+  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
+(*    rewrite H0 in Hi'; inversion Hi'; subst.
+    rewrite H1 in HT; inversion HT; subst.
+    rewrite H2 in Hj'; inversion Hj'; subst.
+    rewrite H3 in HA'; inversion HA'; subst. *)
+    destruct (i == i') eqn:Hi.
+    apply b2p in Hi as ->.
+    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
+    rewrite s_alls_upd_s_seg.  *)
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H1.
+    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
+    eapply same_length_is_Sound; last exact HWF.
+    apply segstore_same_length in H9.
+    rewrite H1 in HT; inversion HT; subst.
+    done.
+    exists i', j', T, A'.
+    repeat split => //=.
+    rewrite nth_error_update_other. done.
+    intro Habs; subst. rewrite eq_refl in Hi. done.
+    rewrite nth_error_lookup in HT.
+    apply list.lookup_lt_Some in HT; lias.
+
+  }
+    { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
+(*    rewrite H0 in Hi'; inversion Hi'; subst.
+    rewrite H1 in HT; inversion HT; subst.
+    rewrite H2 in Hj'; inversion Hj'; subst.
+    rewrite H3 in HA'; inversion HA'; subst. *)
+    destruct (i == i') eqn:Hi.
+    apply b2p in Hi as ->.
+    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
+    rewrite s_alls_upd_s_seg.  *)
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H1.
+    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
+    eapply same_length_is_Sound; last exact HWF.
+    apply segstore_same_length in H10.
+    rewrite H1 in HT; inversion HT; subst.
+    done.
+    exists i', j', T, A'.
+    repeat split => //=.
+    rewrite nth_error_update_other. done.
+    intro Habs; subst. rewrite eq_refl in Hi. done.
+    rewrite nth_error_lookup in HT.
+    apply list.lookup_lt_Some in HT; lias.
+
+  }
+
+  { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
+    (* rewrite H in Hi'; inversion Hi'; subst.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H1 in Hj'; inversion Hj'; subst.
+    rewrite H2 in HA'; inversion HA'; subst. *)
+    destruct (i == i') eqn:Hi.
+    destruct (j == j') eqn:Hj.
+    apply b2p in Hi as ->.
+    apply b2p in Hj as ->.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. 
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H0.
+    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply salloc_sound.
+    exact HWF. exact H4.
+    apply b2p in Hi as ->.
+    rewrite H0 in HT; inversion HT; subst.
+    exists i', j', seg', A''.
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size size_takel => //.
+    rewrite nth_error_lookup in H0. apply list.lookup_lt_Some in H0.
+    by rewrite length_is_size in H0; lias.
+    rewrite nth_error_update_other. done.
+    intro Habs; subst; rewrite eq_refl in Hj => //.
+    rewrite nth_error_lookup in HA'. apply list.lookup_lt_Some in HA'. lias.
+    eapply salloc_sound_local.
+    exact HWF. exact H4.
+    destruct (j == j') eqn:Hj.
+    apply b2p in Hj as ->.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', T, A'.
+    repeat split => //=.
+    rewrite nth_error_update_other. done.
+    intro Habs; subst; rewrite eq_refl in Hi => //.
+    rewrite nth_error_lookup in HT.
+    apply list.lookup_lt_Some in HT. by rewrite length_is_size in HT; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply salloc_sound.
+    exact HWF. exact H4.
+
+
+  }
+    { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H in Hi'; inversion Hi'; subst.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H1 in Hj'; inversion Hj'; subst.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. 
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H0.
+    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply sfree_sound.
+    exact HWF. exact H3. }
+    by apply IHHred.
+  
+    
+    *)
+
+
+Lemma reduce_preserves_wellformedness s f es me s' f' es':
+  wellFormedState s f ->
+  reduce s f es me s' f' es' ->
+  wellFormedState s' f'.
+Proof.
+  intros HWF Hred.
+  induction Hred => //.
+  { inversion H; try by subst. 
+    subst.
+    destruct HWF as (i' & j & T & A & HWF).
+    exists i', j, T, A. rewrite H0. exact HWF.
+    subst.
+    destruct HWF as (i' & j & T & A & HWF).
+    exists i', j, T, A.
+    assert (s_alls s' = s_alls s /\ s_segs s' = s_segs s) as [Halls Hsegs].
+    destruct s; simpl.
+    unfold supdate_glob in H0.
+    unfold option_bind in H0.
+    destruct (sglob_ind _ _ _) => //.
+    unfold supdate_glob_s in H0.
+    simpl in H0.
+    unfold option_map in H0.
+    destruct (List.nth_error _ n) => //.
+    by inversion H0.
+    rewrite Halls Hsegs.
+    exact HWF. }
+  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H0 in Hi'; inversion Hi'; subst.
+    rewrite H1 in HT; inversion HT; subst.
+    rewrite H2 in Hj'; inversion Hj'; subst.
+    rewrite H3 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
+    rewrite s_alls_upd_s_seg.  *)
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H1.
+    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
+    eapply same_length_is_Sound; last exact HWF.
+    apply segstore_same_length in H9.
+    done. }
+  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H0 in Hi'; inversion Hi'; subst.
+    rewrite H1 in HT; inversion HT; subst.
+    rewrite H2 in Hj'; inversion Hj'; subst.
+    rewrite H3 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
+    rewrite s_alls_upd_s_seg.  *)
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H1.
+    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
+    eapply same_length_is_Sound; last exact HWF.
+    apply segstore_same_length in H10.
+    done. }  
+  { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H in Hi'; inversion Hi'; subst.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H1 in Hj'; inversion Hj'; subst.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. 
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H0.
+    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply salloc_sound.
+    exact HWF. exact H4. }
+    { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H in Hi'; inversion Hi'; subst.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H1 in Hj'; inversion Hj'; subst.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. 
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H0.
+    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply sfree_sound.
+    exact HWF. exact H3. }
+    by apply IHHred.
+  admit.
+Admitted.
+  
+    
+    
+(*
+
+Lemma reduce_preserves_wellformedness s f es me s' f' es':
+  wellFormedState s f es ->
+  reduce s f es me s' f' es' ->
+  wellFormedState s' f' es'.
+Proof.
+  intros HWF Hred.
+  induction Hred => //.
+  { inversion H; try by subst.
+    subst.
+    destruct HWF as (i' & j & T & A & HWF) .
+    exists i', j, T, A. rewrite H0. exact HWF.
+    subst.
+    destruct HWF as (i' & j & T & A & HWF).
+    exists i', j, T, A.
+    assert (s_alls s' = s_alls s /\ s_segs s' = s_segs s) as [Halls Hsegs].
+    destruct s; simpl.
+    unfold supdate_glob in H0.
+    unfold option_bind in H0.
+    destruct (sglob_ind _ _ _) => //.
+    unfold supdate_glob_s in H0.
+    simpl in H0.
+    unfold option_map in H0.
+    destruct (List.nth_error _ n) => //.
+    by inversion H0.
+    rewrite Halls Hsegs.
+    exact HWF. }
+  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H0 in Hi'; inversion Hi'; subst.
+    rewrite H1 in HT; inversion HT; subst.
+    rewrite H2 in Hj'; inversion Hj'; subst.
+    rewrite H3 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
+    rewrite s_alls_upd_s_seg.  *)
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H1.
+    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
+    eapply same_length_is_Sound; last exact HWF.
+    apply segstore_same_length in H9.
+    done. }
+  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H0 in Hi'; inversion Hi'; subst.
+    rewrite H1 in HT; inversion HT; subst.
+    rewrite H2 in Hj'; inversion Hj'; subst.
+    rewrite H3 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
+    rewrite s_alls_upd_s_seg.  *)
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H1.
+    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
+    eapply same_length_is_Sound; last exact HWF.
+    apply segstore_same_length in H10.
+    done. }  
+  { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H in Hi'; inversion Hi'; subst.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H1 in Hj'; inversion Hj'; subst.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. 
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H0.
+    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply salloc_sound.
+    exact HWF. exact H4. }
+    { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
+    rewrite H in Hi'; inversion Hi'; subst.
+    rewrite H0 in HT; inversion HT; subst.
+    rewrite H1 in Hj'; inversion Hj'; subst.
+    rewrite H2 in HA'; inversion HA'; subst.
+    exists i', j', seg', A'. 
+    repeat split => //=.
+    unfold update_list_at.
+    replace i' with (length (take i' (s_segs s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H0.
+    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
+    unfold update_list_at.
+    replace j' with (length (take j' (s_alls s))) at 3.
+    rewrite list_nth_prefix.
+    done.
+    rewrite length_is_size.
+    rewrite size_takel => //.
+    rewrite nth_error_lookup in H2.
+    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
+    eapply sfree_sound.
+    exact HWF. exact H3. }
+    by apply IHHred.
+  
+    
+    
+*)

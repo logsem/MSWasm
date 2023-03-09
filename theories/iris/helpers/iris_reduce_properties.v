@@ -14,13 +14,17 @@ Section reduce_properties.
 
   (* wasm opsem related *)
 
-  Lemma values_no_reduce s f vs s' f' es' :
-    reduce s f vs s' f' es' -> const_list vs -> False.
+  Lemma values_no_reduce s f vs me s' f' es' :
+    reduce s f vs me s' f' es' -> const_list vs -> False.
   Proof.
     intros H Hvs. induction H ; try by inversion Hvs ; unfold const_list in Hvs ;
                     rewrite forallb_app in Hvs ; move/andP in Hvs ;
                     destruct Hvs as [_ Hvs] ; inversion Hvs.
     { destruct H; try by inversion Hvs ;
+        unfold const_list in Hvs ; rewrite forallb_app in Hvs;
+        move/andP in Hvs ; destruct Hvs as [_ Hvs] ; 
+        inversion Hvs.
+       destruct H; try by inversion Hvs ;
         unfold const_list in Hvs ; rewrite forallb_app in Hvs;
         move/andP in Hvs ; destruct Hvs as [_ Hvs] ; 
         inversion Hvs.
@@ -70,6 +74,7 @@ Ltac no_reduce Heqes Hred :=
   let les' := fresh "les'" in
   let lh := fresh "lh" in
   let m := fresh "m" in
+  let me := fresh "me" in
   let n := fresh "n" in
   let n' := fresh "n" in
   let s := fresh "s" in
@@ -95,14 +100,18 @@ Ltac no_reduce Heqes Hred :=
      created at next step as simple as possible *)
   clear - (*host_function host function_closure store_record
                       host_instance*)
-                      Hred Heqes ;
-  induction Hred as [e e' s f H | | | | | a | a | a | | | | | | | | | | | | | | |
-                      s f es les s' f' es' les' k lh  Hred IHreduce H0 _ |
-    ]; (try by inversion Heqes) ; (try by found_intruse (AI_invoke a) Heqes Hxl1) ;
-  [ destruct H as [ | | | | | | | | | | | | | | 
+    Hred Heqes ;
+  induction Hred as [s f es s' f' es' H | | | | | | | | | | | s f es les me s' f' es' les' k lh Hred IHreduce H0 _ | ]
+(*  induction Hred as [e e' s f H | | | | | a | a | a | | | | | | | | | | | | | | |
+                      s f es les s' f' es' les' k lh  Hred IHreduce H0 _ | 
+    ] *) ; (try by inversion Heqes) ; (try by found_intruse (AI_invoke a) Heqes Hxl1) ;
+  [ destruct H as [ e e' s f H | | | | | a | a | a | | | | | | | | | | | | | | ] ;
+    (try by inversion Heqes) ; (try by found_intruse (AI_invoke a) Heqes Hxl1) ;
+                    
+    destruct H as [ | | | | | | | | | | | | | | 
                     vs es n' m t1s' t2s Hconst Hvs Ht1s Ht2s |
                     vs es n' m t1s' t2s Hconst Hvs Ht1s Ht2s |
-                  | | | | | | | | | | | | | 
+                  | | | | | | | | | | | | | | | | 
                     es' lh Htrap' H0 ]; (try by inversion Heqes) ;
     first found_intruse (AI_basic (BI_block (Tf t1s' t2s) es)) Heqes Hxl1 ;
     first found_intruse (AI_basic (BI_loop (Tf t1s' t2s) es)) Heqes Hxl1 ;
@@ -191,8 +200,8 @@ Section reduce_properties_lemmas.
 
   (* examples of usage of no_reduce. This first example is reused in other lemmas,
    the following ones may be removed if wanted *)
-  Lemma empty_no_reduce s f s' f' es' :
-    reduce s f [] s' f' es' -> False.
+  Lemma empty_no_reduce s f me s' f' es' :
+    reduce s f [] me s' f' es' -> False.
   Proof.
     intro Hred.
     remember [] as es in Hred.
@@ -203,8 +212,8 @@ Section reduce_properties_lemmas.
   Ltac empty_list_no_reduce :=
     exfalso ; eapply empty_no_reduce => //=.
 
-  Lemma test_no_reduce1 s f v s' f' es' :
-    reduce s f [AI_basic (BI_const v)] s' f' es' -> False.
+  Lemma test_no_reduce1 s f v me s' f' es' :
+    reduce s f [AI_basic (BI_const v)] me s' f' es' -> False.
   Proof.
     intro Hred.
     remember [AI_basic (BI_const v)] as es in Hred.
@@ -212,8 +221,8 @@ Section reduce_properties_lemmas.
     no_reduce Heqes Hred.
   Qed.
 
-  Lemma test_no_reduce_trap s f s' f' es' :
-    reduce s f [AI_trap] s' f' es' -> False.
+  Lemma test_no_reduce_trap s f me s' f' es' :
+    reduce s f [AI_trap] me s' f' es' -> False.
   Proof.
     intro Hred.
     remember [AI_trap] as es.
@@ -221,8 +230,8 @@ Section reduce_properties_lemmas.
     no_reduce Heqes Hred; subst => //.
   Qed.
 
-  Lemma test_no_reduce2 s f v1 v2 s' f' es' :
-    reduce s f [AI_basic (BI_const v1) ; AI_basic (BI_const v2)] s' f' es' -> False.
+  Lemma test_no_reduce2 s f v1 v2 me s' f' es' :
+    reduce s f [AI_basic (BI_const v1) ; AI_basic (BI_const v2)] me s' f' es' -> False.
   Proof.
     intro Hred.
     remember [AI_basic (BI_const v1) ; AI_basic (BI_const v2)] as es in Hred.
@@ -230,8 +239,8 @@ Section reduce_properties_lemmas.
     no_reduce Heqes Hred.
   Qed.
 
-  Lemma test_no_reduce3 s f v1 v2 v3 s' f' es' :
-    reduce s f [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ; AI_basic (BI_const v3)]
+  Lemma test_no_reduce3 s f v1 v2 v3 me s' f' es' :
+    reduce s f [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ; AI_basic (BI_const v3)] me
            s' f' es' -> False.
   Proof.
     intro Hred.
@@ -241,36 +250,36 @@ Section reduce_properties_lemmas.
     no_reduce Heqes Hred.
   Qed.
   
-  Lemma reduce_load_false s0 f s' f' es es' x0 x1 x2 x3 :
+  Lemma reduce_load_false s0 f s' f' es es' me x0 x1 x2 x3 :
     es = [AI_basic (BI_load x0 x1 x2 x3)] ->
-    reduce s0 f es s' f' es' -> False.
+    reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Heq Hred.
     apply Logic.eq_sym in Heq.
     no_reduce Heq Hred.
   Qed.
   
-  Lemma reduce_store_false s0 f s' f' es es' x0 x1 x2 x3 :
+  Lemma reduce_store_false s0 f s' f' es es' me x0 x1 x2 x3 :
     es = [AI_basic (BI_store x0 x1 x2 x3)] ->
-    reduce s0 f es s' f' es' -> False.
+    reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Heq Hred.
     apply Logic.eq_sym in Heq.
     no_reduce Heq Hred.
   Qed.
   
-  Lemma reduce_store_false_2 s0 f s' f' es es' x0 x1 x2 x3 v :
+  Lemma reduce_store_false_2 s0 f s' f' es es' me x0 x1 x2 x3 v :
     es = [AI_basic (BI_const v); AI_basic (BI_store x0 x1 x2 x3)] ->
-    reduce s0 f es s' f' es' -> False.
+    reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Heq Hred.
     apply Logic.eq_sym in Heq.
     no_reduce Heq Hred.
   Qed.
 
-  Lemma reduce_val_false s0 f s' f' es es' :
+  Lemma reduce_val_false s0 f s' f' me es es' :
     is_Some (iris.to_val es) ->
-    reduce s0 f es s' f' es' -> False.
+    reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Hsome Hred.
     apply val_head_stuck_reduce in Hred.
@@ -278,10 +287,10 @@ Section reduce_properties_lemmas.
     done.
   Qed.
 
-  Lemma reduce_br_false s f vs0 j es es0 s' f' es' :
+  Lemma reduce_br_false s f vs0 j es es0 me s' f' es' :
     const_list vs0 ->
     es = vs0 ++ [AI_basic (BI_br j)] ++ es0 ->
-    reduce s f es s' f' es' -> False.
+    reduce s f es me s' f' es' -> False.
   Proof.
     intros Heqes Hred.
     eapply reduce_val_false;eauto.
@@ -290,10 +299,10 @@ Section reduce_properties_lemmas.
     rewrite to_val_br_eq. auto.
   Qed.
 
-  Lemma reduce_ret_false s f vs0 es es0 s' f' es' :
+  Lemma reduce_ret_false s f vs0 es es0 me s' f' es' :
     const_list vs0 ->
     es = vs0 ++ [AI_basic BI_return] ++ es0 ->
-    reduce s f es s' f' es' -> False.
+    reduce s f es me s' f' es' -> False.
   Proof.
     intros Heqes Hred.
     eapply reduce_val_false;eauto.
@@ -319,7 +328,7 @@ Ltac intruse_among_values vs Hin Hvs :=
 
 (* attempts to prove that vs ++ [obj] entails false when list vs is shorter 
    than list t1s. Some subgoals may be left for user to prove *)
-Ltac not_enough_arguments s f vs obj t1s s' f' es' := 
+Ltac not_enough_arguments s f vs obj t1s me s' f' es' := 
   let Hxl1 := fresh "Hxl1" in
   let n := fresh "n" in
   let H := fresh "H" in
@@ -367,7 +376,7 @@ Ltac not_enough_arguments s f vs obj t1s s' f' es' :=
   let l1 := fresh "l" in
   let l3 := fresh "l" in
   cut (forall n, length vs < n ->
-            reduce s f (vs ++ [obj]) s' f' es'
+            reduce s f (vs ++ [obj]) me s' f' es'
             ->  const_list vs -> length vs < length t1s
             ->  False) ;
   [ intro H ; apply (H (S (length vs))) ; apply Nat.lt_succ_diag_r |] ;
@@ -377,16 +386,21 @@ Ltac not_enough_arguments s f vs obj t1s s' f' es' :=
   induction n as [| n IHn] ; [ intros es' vs Habs ; inversion Habs |] ;
   intros es' vs Hvs H Hconst Hlen ;
   remember (cat vs [obj]) as es eqn:Heqes ;
-  induction H as [e e' s f H | | | | | | | | | | | | | | | | | | | | | | 
+  induction H as [ s f es s' f' es' H | | | | | | | | | | |
+                   s f es les m s' f' es' les' k lh Hred IHreduce H0 _ | ] ;
+(*  induction H as [e e' s f H | | | | | | | | | | | | | | | | | | | | | | 
                       s f es les s' f' es' les' k lh Hred IHreduce H0 _ |
-    ]; (try by found_intruse obj Heqes Hxl1);
+    ]; *) (try by found_intruse obj Heqes Hxl1);
   ( try by apply app_inj_tail in Heqes ; destruct Heqes as [ _ Habs ] ;
     inversion Habs ) ;
   (try 
-     (destruct H as [ | | | | | | | | | | | | | | 
+     (destruct H as [ e e' s f H | | | | | | | | | | | | | | | | | | | | | ];
+      (try by found_intruse obj Heqes Hxl1);
+      (try by apply app_inj_tail in Heqes ; destruct Heqes as [ _ Habs ]; inversion Habs);
+       try (destruct H as [ | | | | | | | | | | | | | | 
                       vs' es n' m t1s' t2s' Hconst' Hvs' Ht1s' Ht2s' |
                       vs' es n' m t1s' t2s' Hconst' Hvs' Ht1s' Ht2s' |
-                    | | | | | | | | | | | | i v | 
+                    | | | | | | | | | | | | | | | i v | 
                       es' lh Htrap' H0 ]; try by found_intruse obj Heqes Hxl1 ;
       try by apply app_inj_tail in Heqes ; destruct Heqes as [ _ Habs ] ; inversion Habs ;
       try by apply app_inj_tail in Heqes ; destruct Heqes as [ Hvs0 Hbl ] ;
@@ -399,7 +413,7 @@ Ltac not_enough_arguments s f vs obj t1s s' f' es' :=
       apply app_inj_tail in Heqes ; destruct Heqes as [ _ Habs ] ; inversion Habs ;
       try by rewrite Heqes in H0 ; filled_trap H0 Hxl1 ; apply in_app_or in Hxl1 ;
       destruct Hxl1 as [Hxl1 | Hxl1] ; [ intruse_among_values vs Hxl1 Hconst |] ;
-      destruct Hxl1 as [Hxl1 | Hxl1] ; [inversion Hxl1 | exact Hxl1 ] 
+      destruct Hxl1 as [Hxl1 | Hxl1] ; [inversion Hxl1 | exact Hxl1 ] )
   )) ;
   (try (rewrite Heqes in H0 ;
         simple_filled H0 k lh l0 l n0 l1 l3 ;
@@ -460,13 +474,13 @@ Section reduce_properties_lemmas.
   Let to_val := iris.to_val.
 
   Lemma block_not_enough_arguments_no_reduce s f (vs : seq.seq administrative_instruction)
-        t1s t2s esb s' f' es'  :
-    reduce s f (vs ++ [AI_basic (BI_block (Tf t1s t2s) esb)]) s' f' es' ->
+        t1s t2s esb me s' f' es'  :
+    reduce s f (vs ++ [AI_basic (BI_block (Tf t1s t2s) esb)]) me s' f' es' ->
     const_list vs ->
     length vs < length t1s ->
     False.
   Proof.
-    not_enough_arguments s f vs (AI_basic (BI_block (Tf t1s t2s) esb)) t1s s' f' es'.
+    not_enough_arguments s f vs (AI_basic (BI_block (Tf t1s t2s) esb)) t1s me s' f' es'.
     - apply app_inj_tail in Heqes. destruct Heqes as [Hvs' Hbl].
       inversion Hbl as [[ Ht1s Ht2s Hes ]]. rewrite Hvs' in Hvs0.
       rewrite Hvs0 in Hlen. rewrite <- Ht1s0 in Hlen. rewrite Ht1s in Hlen. lia.
@@ -482,13 +496,13 @@ Section reduce_properties_lemmas.
 
   
   Lemma loop_not_enough_arguments_no_reduce s f (vs : seq.seq administrative_instruction)
-        t1s t2s esb s' f' es'  :
-    reduce s f (vs ++ [AI_basic (BI_loop (Tf t1s t2s) esb)]) s' f' es' ->
+        t1s t2s esb me s' f' es'  :
+    reduce s f (vs ++ [AI_basic (BI_loop (Tf t1s t2s) esb)]) me s' f' es' ->
     const_list vs ->
     length vs < length t1s ->
     False.
   Proof.
-    not_enough_arguments s f vs (AI_basic (BI_loop (Tf t1s t2s) esb)) t1s s' f'
+    not_enough_arguments s f vs (AI_basic (BI_loop (Tf t1s t2s) esb)) t1s me s' f'
                          es'.
     - apply app_inj_tail in Heqes. destruct Heqes as [Hvs' Hlp].
       inversion Hlp as [[ Ht1s Ht2s Hes ]].
@@ -512,15 +526,15 @@ Section reduce_properties_lemmas.
   Qed.
 
   Lemma invoke_not_enough_arguments_no_reduce_native
-        s f vs a0 s' f' es' i' t1s t2s ts es'' :
+        s f vs a0 me s' f' es' i' t1s t2s ts es'' :
     nth_error (s_funcs s) a0 = Some (FC_func_native i' (Tf t1s t2s) ts es'') ->
-    reduce s f (vs ++ [AI_invoke a0]) s' f' es' ->
+    reduce s f (vs ++ [AI_invoke a0]) me s' f' es' ->
     const_list vs ->
     length vs < length t1s ->
     False.
   Proof.
     intro Hs.
-  not_enough_arguments s f vs (AI_invoke a0) t1s s' f' es'.
+    not_enough_arguments s f vs (AI_invoke a0) t1s me s' f' es'.
   - assert ([v ; AI_basic (BI_tee_local i)] = [v] ++ [AI_basic (BI_tee_local i)]).
     trivial. rewrite H0 in Heqes ; apply app_inj_tail in Heqes.
     destruct Heqes as [_ Habs] ; inversion Habs.
@@ -573,15 +587,15 @@ Section reduce_properties_lemmas.
 
 
   Lemma invoke_not_enough_arguments_no_reduce_host
-        s f vs a0 s' f' es' t1s t2s h :
+        s f vs a0 me s' f' es' t1s t2s h :
     nth_error (s_funcs s) a0 = Some (FC_func_host (Tf t1s t2s) h) ->
-    reduce s f (vs ++ [AI_invoke a0]) s' f' es' ->
+    reduce s f (vs ++ [AI_invoke a0]) me s' f' es' ->
     const_list vs ->
     length vs < length t1s ->
     False.
   Proof.
     intro Hs.
-    not_enough_arguments s f vs (AI_invoke a0) t1s s' f' es'.
+    not_enough_arguments s f vs (AI_invoke a0) t1s me s' f' es'.
     - assert ([v ; AI_basic (BI_tee_local i)] = [v] ++ [AI_basic (BI_tee_local i)]).
       trivial. rewrite H0 in Heqes ; apply app_inj_tail in Heqes.
       destruct Heqes as [_ Habs] ; inversion Habs.
@@ -631,12 +645,12 @@ Section reduce_properties_lemmas.
 
   Lemma prim_step_obs_efs_empty es es' σ σ' obs efs:
     prim_step es σ obs es' σ' efs ->
-    (obs, efs) = ([], []).
+    exists me, (obs, efs) = ([me], []).
   Proof.
     unfold prim_step, iris.prim_step.
     destruct σ as [[[??]?]?].
     destruct σ' as [[[??]?]?].
-    by move => [_ [-> ->]].
+    destruct obs => //. destruct obs => //. by move => [_ ->]; eexists.
   Qed.
 
   Lemma append_reducible (es1 es2: list administrative_instruction) σ:
@@ -650,8 +664,11 @@ Section reduce_properties_lemmas.
     unfold iris.prim_step in * => //=.
     destruct σ as [[[hs ws] locs] inst].
     destruct σ' as [[[hs' ws'] locs'] inst'].
-    destruct HStep as [HStep [-> ->]].
-    repeat split => //.
+    unfold language.prim_step in HStep. unfold wasm_lang in HStep.
+    unfold prim_step in HStep.
+    unfold language.prim_step, wasm_lang, prim_step.
+    destruct κ => //. destruct κ => //. destruct HStep as [HStep ->].
+    split => //.
     by apply r_elimr.
   Qed.
 
@@ -663,11 +680,11 @@ Section reduce_properties_lemmas.
     move => a l IH _.
     unfold reducible => /=.
     unfold language.reducible.
-    exists [],[AI_trap],σ,[].
+    exists [ME_empty],[AI_trap],σ,[].
     simpl. unfold iris.prim_step.
     destruct σ as [[[hs ws] locs] inst].
     repeat split;auto.
-    constructor. econstructor. auto.
+    constructor. constructor. econstructor. auto.
     instantiate (1:=LH_base [] (a :: l)).
     unfold lfilled, lfill => //=.
   Qed.
@@ -680,11 +697,11 @@ Section reduce_properties_lemmas.
     move => H H'.
     unfold reducible => /=.
     unfold language.reducible.
-    exists [],[AI_trap],σ,[].
+    exists [ME_empty],[AI_trap],σ,[].
     simpl. unfold iris.prim_step.
     destruct σ as [[[hs ws] locs] inst].
     repeat split;auto.
-    constructor. econstructor.
+    constructor. constructor. econstructor.
     destruct es1;auto.
     intros Hcontr. inversion Hcontr.
     destruct es1 => //=.
@@ -693,14 +710,15 @@ Section reduce_properties_lemmas.
     by rewrite H'.
   Qed.
 
-  Lemma AI_trap_irreducible ws f ws' f' es':
-    reduce ws f [AI_trap] ws' f' es' ->
+  Lemma AI_trap_irreducible ws f me ws' f' es':
+    reduce ws f [AI_trap] me ws' f' es' ->
     False.
   Proof.
     move => HReduce.
     remember ([AI_trap]) as e.
     induction HReduce => //=; subst; try by do 2 destruct vcs => //=.
-    - subst. inversion H; subst; clear H => //; by do 3 destruct vs => //=.
+    - subst. inversion H; subst; clear H => //; try by do 2 destruct vcs => //=. 
+      inversion H0; subst; clear H0 => //; try by do 3 destruct vs => //=.
     - move/lfilledP in H.
       move/lfilledP in H0.
       inversion H => //; subst; clear H; last by do 3 destruct vs => //=.
@@ -710,14 +728,15 @@ Section reduce_properties_lemmas.
       by destruct es, es'0 => //.
   Qed.
     
-  Lemma AI_trap_reduce_det v ws f ws' f' es':
-    reduce ws f ([AI_basic (BI_const v); AI_trap]) ws' f' es' ->
+  Lemma AI_trap_reduce_det v ws f me ws' f' es':
+    reduce ws f ([AI_basic (BI_const v); AI_trap]) me ws' f' es' ->
     (ws', f', es') = (ws, f, [AI_trap]).
   Proof.
     move => HReduce.
     remember ([AI_basic (BI_const v); AI_trap]) as es0.
-    induction HReduce => //=; subst; try by do 3 destruct vcs => //=.
-    - inversion H; subst; clear H => //; by do 3 destruct vs => //=.
+    induction HReduce => //=; subst; try by do 2 destruct vcs => //=.
+    - inversion H; subst; clear H => //; try by do 2 destruct vcs => //=.
+      inversion H0; subst; clear H0 => //; by do 3 destruct vs => //=.
     - move/lfilledP in H.
       move/lfilledP in H0.
       inversion H => //; subst; clear H; last by do 3 destruct vs => //=.
@@ -751,9 +770,12 @@ Section reduce_properties_lemmas.
     destruct IHes1 as (? & ? & ? & ? & ?).
     exists x, (a :: x0), x1, x2.
     destruct σ as [[??]?] , x1 as [[??]?].
-    destruct H0 as (? & ? & ?).
+    unfold language.prim_step, wasm_lang, prim_step in H0.
+    unfold language.prim_step, wasm_lang, prim_step.
+    destruct x => //. destruct x => //.
+    destruct H0 as (? & ?).
     repeat split => //=.
-    eapply r_label ; last first.
+    eapply rm_label ; last first.
     instantiate (1 := x0).
     instantiate (1 := LH_base [a] []).
     instantiate (1 := 0).
@@ -769,15 +791,16 @@ Section reduce_properties_lemmas.
     intro ; apply AI_trap_reducible.
     destruct H as (? & ?& ? & ? & ?).
     destruct σ as [[??]?], x1 as [[??]?].
-    destruct H as (? & ? & ?).
+    destruct x => //. destruct x => //.
+    destruct H as (? & ?).
     intro ; subst.
     empty_list_no_reduce.
   Qed.
     
     
 
-  Lemma first_non_value_reduce s f es s' f' es' :
-    reduce s f es s' f' es' ->
+  Lemma first_non_value_reduce s f es me s' f' es' :
+    reduce s f es me s' f' es' ->
     exists vs e es'', const_list vs /\ (to_val [e] = None \/ e = AI_trap) /\ es = vs ++ e :: es''.
   Proof.
     intros Hes.
@@ -785,7 +808,7 @@ Section reduce_properties_lemmas.
     { destruct v. { apply to_val_const_list in Heqtv.
                     exfalso ; values_no_reduce. }
       apply to_val_trap_is_singleton in Heqtv. subst.
-      exfalso ; by apply (AI_trap_irreducible _ _ _ _ _ Hes).
+      exfalso ; by apply AI_trap_irreducible in Hes.
       { apply reduce_val_false in Hes;try done. }
       { apply reduce_val_false in Hes;try done. }
       { apply reduce_val_false in Hes; try  done. } 
@@ -793,26 +816,29 @@ Section reduce_properties_lemmas.
       by apply first_non_value.
   Qed.
 
-  Lemma trap_reduce_length s f es s' f' es' vs1 es2 :
-    lfilled 0 (LH_base vs1 es2) [AI_trap] es -> reduce s f es s' f' es' ->
+  Lemma trap_reduce_length s f es me s' f' es' vs1 es2 :
+    lfilled 0 (LH_base vs1 es2) [AI_trap] es -> reduce s f es me s' f' es' ->
     exists n1 n2, (n1 + (length es2 - n2) < length vs1 + length es2 ∧ n1 <= length vs1 ∧ n2 <= length es2) ∧
                lfilled 0 (LH_base (take n1 vs1) (drop n2 es2)) [AI_trap] es' /\ (s, f) = (s', f').
   Proof.
     intros Hfill%lfilled_Ind_Equivalent Hred.
     revert vs1 es2 Hfill.
     generalize dependent es.
-    induction 1;intros vs1 es2 Hfill;[|inversion Hfill;simplify_eq..].
-    all: try do 2 destruct vs1 =>//.
-    all: try do 3 destruct vs1 =>//.
+    induction 1;intros vs1 es2 Hfill ;[|inversion Hfill;simplify_eq..].
+    revert vs1 es2 Hfill.
+    generalize dependent es.
+    induction 1; intros vs1 es2 Hfill ;[|inversion Hfill; simplify_eq..].
+    all: try do 2 destruct vs1 => //.
+    all: try do 3 destruct vs1 => //.
     2: try by apply first_values in H11 as [?[? ?]];auto;[|apply v_to_e_is_const_list].
     { revert vs1 es2 Hfill.
       generalize dependent e.
-      induction 1;intros vs1 es2 Hfill;inversion Hfill;simplify_eq.
-      all: try do 2 destruct vs1 =>//.
-      all: try do 3 destruct vs1 =>//.
+      induction 1; intros vs1 es2 Hfill;inversion Hfill;simplify_eq.
+      all: try do 2 destruct vs1 => //.
+      all: try do 3 destruct vs1 => //.
       all: try by apply first_values in H5 as [?[? ?]];auto.
-      destruct vs1 =>//. do 2 destruct es2 =>//. by inversion H2;simplify_eq.
-      do 2 destruct vs1 =>//.
+      destruct vs1 => //. do 2 destruct es2 => //. by inversion H2;simplify_eq.
+      do 2 destruct vs1 => //.
       (* base case *)
       apply lfilled_Ind_Equivalent in H0.
       inversion H0;simplify_eq.
@@ -855,8 +881,8 @@ Section reduce_properties_lemmas.
       constructor. apply const_list_app;auto. }
   Qed.
 
-  Lemma trap_reduce s f es s' f' es' lh :
-    lfilled 0 lh [AI_trap] es -> reduce s f es s' f' es' ->
+  Lemma trap_reduce s f es me s' f' es' lh :
+    lfilled 0 lh [AI_trap] es -> reduce s f es me s' f' es' ->
     exists lh', lfilled 0 lh' [AI_trap] es' /\ (s, f) = (s', f').
   Proof.
     intros Hfill Hred.
@@ -874,13 +900,14 @@ Section reduce_properties_lemmas.
     intros Hfill [obs [e' [σ' [efs Hred]]]].
     unfold reducible, language.reducible.
     specialize (lfilled_swap e' Hfill) as [LI' HLI'].
-    exists [], LI', σ', [].
     destruct σ as [[[? ?] ?] ?].
-    destruct σ' as [[[? ?] ?] ?].
+    destruct σ' as [[[a b] c] d].
+    destruct obs => //. destruct obs => //. destruct Hred as [Hred ->].
+    eexists [o], LI', (_,_,_), [].
     rewrite /= /iris.prim_step in Hred.
-    destruct Hred as [Hred [-> ->]].
+ 
     split;auto.
-    by eapply r_label => //.
+    by eapply rm_label => //.
   Qed.
 
   Lemma local_frame_reducible n e s v i v' i' :
@@ -890,11 +917,12 @@ Section reduce_properties_lemmas.
     intros [obs [e' [σ' [efs Hred]]]].
     unfold reducible, language.reducible.
     destruct σ' as [[ ? ?] ?].
-    exists [], [AI_local n (Build_frame l i0) e'], (s0,v',i'), [].
+    destruct obs => //. destruct obs => //.
+    exists [o], [AI_local n (Build_frame l i0) e'], (s0,v',i'), [].
     rewrite /= /iris.prim_step in Hred.
-    destruct Hred as [Hred [-> ->]]. eauto.
+    destruct Hred as [Hred ->]. eauto.
     split;auto.
-    eapply r_local => //.
+    eapply rm_local => //.
   Qed.
 
   Lemma local_frame_lfilled_reducible j lh LI n e s v i v' i' :
@@ -908,30 +936,42 @@ Section reduce_properties_lemmas.
   Qed.
 
   
-  Lemma reduce_focus s f es s' f' es':
-    reduce s f es s' f' es' ->
+  Lemma reduce_focus s f es me s' f' es':
+    reduce s f es me s' f' es' ->
     (exists k lh vs e es'', const_list vs /\ (is_const e = false) /\
-                         reduce s f (vs ++ [e]) s' f' es''  /\
+                         reduce s f (vs ++ [e]) me s' f' es''  /\
                          lfilled k lh (vs ++ [e]) es /\ 
                          lfilled k lh es'' es')
     \/
       (exists k lh bef aft, const_list bef /\ (bef ++ aft <> []) /\
                          lfilled k lh (bef ++ [AI_trap] ++ aft) es /\
                          lfilled k lh [AI_trap] es' /\
-                         (s, f) = (s', f')).
+                         (s, f) = (s', f') /\
+                         me = ME_empty).
   Proof.
     intro Hred.
-    induction Hred ;
+    induction Hred;
       (try by left ; eexists 0, (LH_base [] []), [] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-       (try by rewrite app_nil_r) ; constructor ) ;  
+       (try by rewrite app_nil_r) ; econstructor ) ;  
       (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-       (try by rewrite app_nil_r) ; constructor) ; 
+       (try by rewrite app_nil_r) ; econstructor) ; 
       (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
                                                   AI_basic (BI_const _) ] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-       (try by rewrite app_nil_r) ; constructor ).
+       (try by rewrite app_nil_r) ; econstructor ).
+    induction H ;
+      (try by left ; eexists 0, (LH_base [] []), [] , _, _ ;
+       repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
+       (try by rewrite app_nil_r) ; econstructor; econstructor ) ;  
+      (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)] , _, _ ;
+       repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
+       (try by rewrite app_nil_r) ; econstructor; econstructor) ; 
+      (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
+                                                  AI_basic (BI_const _) ] , _, _ ;
+       repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
+       (try by rewrite app_nil_r) ; econstructor; econstructor ).
     { destruct H ;
         last (by right ; unfold lfilled, lfill in H0 ;
               destruct lh as [bef aft|] ; last (by false_assumption) ;
@@ -944,51 +984,53 @@ Section reduce_properties_lemmas.
               | unfold lfilled, lfill ; simpl ; subst ; rewrite app_nil_r]) ;
         (try by left ; eexists 0, (LH_base [] []), [] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ; 
-         (try by rewrite app_nil_r) ; constructor ;
+         (try by rewrite app_nil_r) ; constructor ; constructor ;
          ((by apply (rs_br _ H H0 H1)) +
             (by apply (rs_return _ H H0 H1)) +
             constructor)
         ) ;
         (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-         (try by rewrite app_nil_r) ; constructor ; constructor
-        ); 
+         (try by rewrite app_nil_r) ; constructor ; constructor ; econstructor
+        ) ;
         (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
                                                     AI_basic (BI_const _) ] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-         (try by rewrite app_nil_r) ; constructor ; constructor
+         (try by rewrite app_nil_r) ; constructor ; constructor ; econstructor 
         );
         (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
                                                     AI_basic (BI_const _) ;
                                                     AI_basic (BI_const _) ] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-         (try by rewrite app_nil_r) ; constructor ; constructor
-        ) ;
+         (try by rewrite app_nil_r) ; constructor ; constructor ; econstructor 
+        );
         left ; eexists 0, (LH_base [] []), _, _, _ ;
         repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
         (try by rewrite app_nil_r) ;
-        try  constructor.
+        try  constructor; try constructor.
+      
       apply (rs_block _ H H0 H1 H2). apply (rs_loop _ H H0 H1 H2).
       instantiate (1 := [v]) => //=. by rewrite H.
       instantiate (1 := AI_basic (BI_tee_local i)) => //=.
-      by constructor. by rewrite app_nil_r. }
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
+      by constructor. by rewrite app_nil_r.
+    }
+(*    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
     repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
+      (try by rewrite app_nil_r).
     apply (r_call_indirect_success H H0 H1).
     left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
     repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
       (try by rewrite app_nil_r). 
-    apply (r_call_indirect_failure1 H H0 H1).
+    apply (r_call_indirect_failure1 H H0 H1). *)
     left ; eexists 0, (LH_base [] []), _, _, _ ; repeat split ;
       (try unfold lfilled, lfill => //=) ; (try done) ; (try by rewrite app_nil_r).
     rewrite H1 ; by apply v_to_e_is_const_list. done.
-    apply (r_invoke_native _ H H0 H1 H2 H3 H4 H5 H6 H7 H8).
+    apply rm_silent, (r_invoke_native _ H H0 H1 H2 H3 H4 H5 H6 H7 H8).
     left ; eexists 0, (LH_base [] []), _, _, _ ; repeat split ;
     (try unfold lfilled, lfill => //=) ; (try done) ; (try by rewrite app_nil_r).
     rewrite H1 ; by apply v_to_e_is_const_list. done.
-    apply (r_invoke_host _ H H0 H1 H2 H3 H4).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
+    apply rm_silent, (r_invoke_host _ H H0 H1 H2 H3 H4).
+(*    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
     repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
       (try by rewrite app_nil_r). 
     apply (r_set_local _ H H0 H1).
@@ -1035,17 +1077,17 @@ Section reduce_properties_lemmas.
     left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
     repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
       (try by rewrite app_nil_r). 
-    apply (r_grow_memory_success H H0 H1 H2).
+    apply (r_grow_memory_success H H0 H1 H2). 
     left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
     repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
       (try by rewrite app_nil_r). 
-    apply (r_grow_memory_failure _ H H0 H1).
+    apply (r_grow_memory_failure _ H H0 H1). *)
     destruct IHHred as [ (k0 & lh0 & vs & e & es'' & Hvs & He & Hred' & Hes & Hes')
                        | (k0 & lh0 & bef & aft & Hbef & Hba & Hfill & Hfill' & Hσ) ].
-    destruct (lfilled_trans2 _ _ _ _ _ _ _ _ _ _ Hes Hes' H H0) as (lh' & Hfill1 & Hfill2).
+    destruct (lfilled_trans2 _ _ _ _ _ _ _ _ _ _ Hes Hes' H H0) as (lh' & Hfill1 & Hfill2). 
     left ; exists (k0 + k), lh', vs, e, es'' => //=.  
     destruct (lfilled_trans2 _ _ _ _ _ _ _ _ _ _ Hfill Hfill' H H0)
-      as (lh' & Hfill1 & Hfill2).
+      as (lh' & Hfill1 & Hfill2). 
     right ; exists (k0 + k), lh', bef, aft => //=.
   Qed.
 
@@ -1060,12 +1102,14 @@ Section reduce_properties_lemmas.
     destruct σ as [[[??]?]?].
     destruct σ' as [[[??]?]?].
     intros efs obs Hred Hstep.
-    destruct Hstep as (Hstep & -> & ->).
-    destruct Hred as (obs & es1 & [[[??]?]?] & efs & (Hred & -> & ->)).
-    destruct (reduce_focus _ _ _ _ _ _ Hstep) as [ (k & lh & vs & e0 & es'' &
+    destruct obs => //. destruct obs => //.
+    destruct Hstep as (Hstep & ->).
+    destruct Hred as (obs & es1 & [[[??]?]?] & efs & Hred).
+    destruct obs => //. destruct obs => //. destruct Hred as [Hred ->].
+    destruct (reduce_focus _ _ _ _ _ _ _ Hstep) as [ (k & lh & vs & e0 & es'' &
                                                           Hvs & He & Hred' & Hes & Hes')
                                                      | (k & lh & bef & aft & Hbef & Hba &
-                                                          Hfill & Hfill' & Hσ)].
+                                                          Hfill & Hfill' & Hσ & ->)].
     { destruct k.
       { unfold lfilled, lfill in Hes. destruct lh as [bef aft|]; last by false_assumption.
         remember (const_list bef) as b eqn:Hbef ; destruct b ; last by false_assumption.
@@ -1083,7 +1127,7 @@ Section reduce_properties_lemmas.
         rewrite Htail in Hes'. rewrite Hes'. repeat rewrite app_assoc.
         rewrite app_length. simpl. rewrite Nat.add_sub.
         rewrite take_app. repeat split => //=. by subst. subst.
-        apply (r_label (k:=0) (lh:=LH_base bef ys) (es:=vs++[e0]) (es':=es'')) ; (try done) ;
+        apply (rm_label (k:=0) (lh:=LH_base bef ys) (es:=vs++[e0]) (es':=es'')) ; (try done) ;
           unfold lfilled, lfill ; rewrite <- Hbef ; repeat rewrite <- app_assoc => //=. }
       unfold lfilled, lfill in Hes ; fold lfill in Hes.
       destruct lh ; first by false_assumption.
@@ -1102,7 +1146,7 @@ Section reduce_properties_lemmas.
       rewrite Htail in Hes'. rewrite Hes'. rewrite app_comm_cons. repeat rewrite app_assoc.
       rewrite app_length. simpl. rewrite Nat.add_sub.
       rewrite take_app. repeat split => //=. by subst. subst.
-      apply (r_label (k:=S k) (lh:=LH_rec l2 n l3 lh ys) (es:=vs++[e0]) (es':=es'')) ;
+      apply (rm_label (k:=S k) (lh:=LH_rec l2 n l3 lh ys) (es:=vs++[e0]) (es':=es'')) ;
         (try done) ;
         unfold lfilled, lfill ; fold lfill ; rewrite <- Hl2.
       by rewrite <- Heqfill.
@@ -1163,10 +1207,10 @@ Section reduce_properties_lemmas.
     rewrite Htail in Hfill'. rewrite Hfill'. rewrite app_comm_cons. repeat rewrite app_assoc.
     rewrite app_length. simpl. rewrite Nat.add_sub.
     rewrite take_app. repeat split => //=. by subst. subst.
-    apply (r_label (k:=S k) (lh:=LH_rec l2 n l3 lh ys) (es:=bef ++ [AI_trap] ++ aft)
+    apply (rm_label (k:=S k) (lh:=LH_rec l2 n l3 lh ys) (es:=bef ++ [AI_trap] ++ aft)
                    (es':=[AI_trap])) ;
       unfold lfilled, lfill ; fold lfill.
-    inversion Hσ ; subst ; constructor.
+    inversion Hσ ; subst. eapply rm_silent, r_simple.
     apply (rs_trap (lh := LH_base bef aft)) ; unfold lfilled, lfill.
     intro Habs ; apply app_eq_unit in Habs as [[-> Habs] | [_ Habs]] ; last by inversion Habs.
     apply app_eq_unit in Habs as [[ Habs _] | [_ ->]] ; first by inversion Habs.
@@ -1177,12 +1221,12 @@ Section reduce_properties_lemmas.
   Qed.
 
   
-  Lemma br_no_reduce s f lh i es s' f' es' :
+  Lemma br_no_reduce s f lh i es me s' f' es' :
     lfilled 0 lh [AI_basic (BI_br i)] es ->
-    reduce s f es s' f' es' -> False.
+    reduce s f es me s' f' es' -> False.
   Proof.
     cut (forall n, length es < n -> lfilled 0 lh [AI_basic (BI_br i)] es ->
-              reduce s f es s' f' es' -> False).
+              reduce s f es me s' f' es' -> False).
     { intro Hn ; apply (Hn (S (length es))) ; lia. }
     intro n. generalize dependent es. generalize dependent lh. generalize dependent es'.
     induction n ; intros es' lh es Hlen Hfill Hred ; first by inversion Hlen.
@@ -1190,6 +1234,7 @@ Section reduce_properties_lemmas.
     remember (const_list vs) as b eqn:Hvs ; destruct b ; last by false_assumption.
     move/eqP in Hfill.
     induction Hred ; try by found_intruse (AI_basic (BI_br i)) Hfill Hxl1.
+    destruct H ; try by found_intruse (AI_basic (BI_br i)) Hfill Hxl1.
     { destruct H ; try by found_intruse (AI_basic (BI_br i)) Hfill Hxl1.
       - found_intruse (AI_basic (BI_br i)) Hfill Hxl1.
         apply in_app_or in Hxl1 as [Habs | Habs].
@@ -1222,7 +1267,7 @@ Section reduce_properties_lemmas.
                                                  simpl in H0. move/eqP in H0.
                                                  rewrite app_nil_r in H0. subst.
                                                  apply IHHred => //=. }
-          destruct (first_non_value_reduce _ _ _ _ _ _ Hred) as
+          destruct (first_non_value_reduce _ _ _ _ _ _ _ Hred) as
             (vs0 & e0 & es0 & Hvs0 & He0 & Hes). rewrite Hfill H in Hlen.
                                   rewrite Hes in H. simpl in H.
                                   rewrite <- app_assoc in H. rewrite <- app_comm_cons in H.
@@ -1233,7 +1278,7 @@ Section reduce_properties_lemmas.
                                   lia. unfold lfilled, lfill ; rewrite Hvs0 ; by subst. destruct He0 as [? | ->] => //.
                                   destruct (is_const e0) eqn:Habs => //. assert (const_list [e0]). unfold const_list => /= ; by rewrite Habs. apply const_list_to_val in H2 as [? Habs'] => //.
                                   unfold to_val in H1. rewrite Habs' in H1 => //. }
-        destruct (first_non_value_reduce  _ _ _ _ _ _ Hred) as
+        destruct (first_non_value_reduce  _ _ _ _ _ _ _ Hred) as
           (vs0 & e0 & es0 & Hvs0 & He0 & Hes). rewrite Hfill H in Hlen.
                     rewrite Hes in H. simpl in H.
                     rewrite <- app_assoc in H. rewrite app_comm_cons in H.
@@ -1253,8 +1298,8 @@ Section reduce_properties_lemmas.
       apply first_values in H as (_ & Habs & _) ; (try done) ; try by intros [? ?].
   Qed.
 
-  Lemma lfilled_first_non_value s f es s' f' es' k lh les les':
-    reduce s f es s' f' es' ->
+  Lemma lfilled_first_non_value s f es me s' f' es' k lh les les':
+    reduce s f es me s' f' es' ->
     lfilled k lh es les ->
     lfilled k lh es' les' ->
     exists vs e esf es' k0 lh0,
@@ -1264,13 +1309,17 @@ Section reduce_properties_lemmas.
                       (const_list LI \/ LI = [AI_trap] \/
                          exists k lh vs i, lfilled k lh (vs ++ [AI_basic (BI_br i)]) LI)) /\
         (is_const e = false ) /\ 
-        reduce s f (vs ++ e :: esf) s' f' es' /\
+        reduce s f (vs ++ e :: esf) me s' f' es' /\
         lfilled k0 lh0 (vs ++ e :: esf) les /\
         lfilled k0 lh0 es' les'.
   Proof.
     intros Hred Hfill Hfill'.
     generalize dependent k ; generalize dependent lh.
-    induction Hred as [ | | | | |
+    induction Hred as [ | | | | | | | | | | | ? ? ? ? ? ? ? ? k0 lh0 ? ? ? ? | ];
+      (try by (eexists [], _, [], _, k, lh ; repeat split => //=; (try done); econstructor));
+        (try by (eexists [_], _, [], _, k, lh ; repeat split => //=; (try done); econstructor));
+        (try by (eexists [_;_], _, [], _, k, lh ; repeat split => //=; (try done); econstructor)).
+    destruct H as [ | | | | |
                         ? ? ? ? ? ? ? ? ? ? k0
                       | | | | | | 
                         ? ? ? ? ? k0
@@ -1288,189 +1337,69 @@ Section reduce_properties_lemmas.
                         ? ? ? ? ? ? k0
                       |
                         ? ? ? ? ? ? k0
-                      | | | |
-                        ? ? ? ? ? ? ? ? k0 lh0 ? ? ? ? | ];
-      intros lh k Hfill Hfill'.
-    { destruct H.
-      - exists [AI_basic (BI_const v)], (AI_basic (BI_unop t op)), [],
-          [AI_basic (BI_const (app_unop op v))], k, lh ; repeat split => //=.
-        by apply r_simple, rs_unop.
-      - exists [AI_basic (BI_const v1); AI_basic (BI_const v2)], (AI_basic (BI_binop t op)),
-          [], [AI_basic (BI_const v)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_binop_success.
-      - exists [AI_basic (BI_const v1); AI_basic (BI_const v2)], (AI_basic (BI_binop t op)),
-          [], [AI_trap], k, lh ; repeat split => //=.
-        by apply r_simple, rs_binop_failure.
-      - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic (BI_testop T_i32 testop)), [],
-          [AI_basic (BI_const (VAL_int32 (wasm_bool (app_testop_i (e:=i32t) testop c))))],
-          k, lh ; repeat split => //=.
-        by apply r_simple, rs_testop_i32.
-      - exists [AI_basic (BI_const (VAL_int64 c))], (AI_basic (BI_testop T_i64 testop)), [],
-          [AI_basic (BI_const (VAL_int32 (wasm_bool (app_testop_i (e:=i64t) testop c))))],
-          k, lh ; repeat split => //=.
-        by apply r_simple, rs_testop_i64.
-      - exists [AI_basic (BI_const v1) ; AI_basic (BI_const v2)], (AI_basic (BI_relop t op)), [],
-          [AI_basic (BI_const (VAL_int32 (wasm_bool (app_relop op v1 v2))))], k, lh ;
-          repeat split => //=. by apply r_simple, rs_relop.
-      - exists [AI_basic (BI_const v)], (AI_basic (BI_cvtop t2 CVO_convert t1 sx)), [],
-          [AI_basic (BI_const v')], k, lh ; repeat split => //=.
-        by apply r_simple, rs_convert_success.
-      - exists [AI_basic (BI_const v)], (AI_basic (BI_cvtop t2 CVO_convert t1 sx)), [],
-          [AI_trap], k, lh ; repeat split => //=.
-        by apply r_simple, rs_convert_failure.
-      - exists [AI_basic (BI_const v)], (AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)), [],
-          [AI_basic (BI_const (wasm_deserialise (bits v) t2))], k, lh ; repeat split => //=.
-        by apply r_simple, rs_reinterpret.
-      - exists [], (AI_basic BI_unreachable), [], [AI_trap], k, lh ; repeat split => //=.
-        by apply r_simple, rs_unreachable.
-      - exists [], (AI_basic (BI_nop)), [], [], k, lh ; repeat split => //=.
-        by apply r_simple, rs_nop.
-      - exists [AI_basic (BI_const v)], (AI_basic BI_drop), [], [], k, lh ; repeat split => //=.
-        by apply r_simple, rs_drop.
-      - exists [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ;
-           AI_basic (BI_const (VAL_int32 n))], (AI_basic BI_select), [],
-          [AI_basic (BI_const v2)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_select_false.
-      - exists [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ;
-           AI_basic (BI_const (VAL_int32 n))], (AI_basic BI_select), [],
-          [AI_basic (BI_const v1)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_select_true.
+                  | | | ];
+         (try by (eexists [], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent; econstructor));
+        (try by (eexists [_], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent; econstructor));
+        (try by (eexists [_;_], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent; econstructor)).
+     
+    intros lh k Hfill Hfill'.
+    { destruct H;
+        (try by (eexists [], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent, r_simple; econstructor));
+        (try by (eexists [_], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent, r_simple; econstructor));
+        (try by (eexists [_;_], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent, r_simple; econstructor));
+        (try by (eexists [_;_;_], _, [], _, k, lh ; repeat split => //=; (try done); eapply rm_silent, r_simple; econstructor)).
       - exists vs, (AI_basic (BI_block (Tf t1s t2s) es)), [],
           [AI_label m [] (vs ++ to_e_list es)], k, lh ; repeat split => //=.
-        by apply r_simple, (rs_block _ H H0 H1 H2).
+        by apply rm_silent, r_simple, (rs_block _ H H0 H1 H2).
       - exists vs, (AI_basic (BI_loop (Tf t1s t2s) es)), [],
           [AI_label n [AI_basic (BI_loop (Tf t1s t2s) es)] (vs ++ to_e_list es)],
           k, lh ; repeat split => //=.
-        by apply r_simple, (rs_loop _ H H0 H1 H2).
-      - exists [AI_basic (BI_const (VAL_int32 n))], (AI_basic (BI_if tf e1s e2s)), [],
-          [AI_basic (BI_block tf e2s)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_if_false.
-      - exists [AI_basic (BI_const (VAL_int32 n))], (AI_basic (BI_if tf e1s e2s)), [],
-          [AI_basic (BI_block tf e1s)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_if_true.
+        by apply rm_silent, r_simple, (rs_loop _ H H0 H1 H2).
       - exists [], (AI_label n es vs), [], vs, k, lh ; repeat split => //=.
         by inversion H0 ; subst ; left.
-        by apply r_simple, rs_label_const.
+        by apply rm_silent, r_simple, rs_label_const.
       - exists [], (AI_label n es [AI_trap]), [], [AI_trap], k, lh ; repeat split => //=.
         by inversion H ; right ; left.
-        by apply r_simple, rs_label_trap.
+        by apply rm_silent, r_simple, rs_label_trap.
       - exists [], (AI_label n es LI), [], (vs ++ es), k, lh ; repeat split => //=.
         right ; right. inversion H2 ; subst. by exists i, lh0, vs, i.
-      by apply r_simple, (rs_br _ H H0 H1).
-      - exists [AI_basic (BI_const (VAL_int32 n))], (AI_basic (BI_br_if i)), [],
-          [], k, lh ; repeat split => //=.
-        by apply r_simple, rs_br_if_false.
-      - exists [AI_basic (BI_const (VAL_int32 n))], (AI_basic (BI_br_if i)), [],
-          [AI_basic (BI_br i)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_br_if_true.
-      - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic (BI_br_table iss i)),
-          [], [AI_basic (BI_br j)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_br_table.
-      - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic (BI_br_table iss i)),
-          [], [AI_basic (BI_br i)], k, lh ; repeat split => //=.
-        by apply r_simple, rs_br_table_length.
-      - exists [], (AI_local n f0 es), [], es, k, lh ; repeat split => //=.
-        by apply r_simple, rs_local_const.
-      - exists [], (AI_local n f0 [AI_trap]), [], [AI_trap], k, lh ; repeat split => //=.
-        by apply r_simple, rs_local_trap.
-      - exists [], (AI_local n f0 es), [], vs, k, lh ; repeat split => //=.
-        by apply r_simple, (rs_return _ H H0 H1).
+      by apply rm_silent, r_simple, (rs_br _ H H0 H1).
       - exists [v], (AI_basic (BI_tee_local i)), [], [v ; v; AI_basic (BI_set_local i)],
           k, lh ; repeat split => //=. apply andb_true_iff ; split => //=.
-        by apply r_simple, rs_tee_local.
+        by apply rm_silent, r_simple, rs_tee_local.
       - unfold lfilled, lfill in H0. destruct lh0 as [bef aft|] ; last by false_assumption.
         remember (const_list bef) as b eqn:Hbef ; destruct b ; last by false_assumption.
         move/eqP in H0. subst.
         exists bef, (AI_trap), aft, [AI_trap], k, lh ; repeat split => //=.
-        apply r_simple, (rs_trap (lh := (LH_base bef aft))) => //=.
+        apply rm_silent, r_simple, (rs_trap (lh := (LH_base bef aft))) => //=.
         unfold lfilled, lfill ; by rewrite <- Hbef. }
-    - exists [], (AI_basic (BI_call i)), [], [AI_invoke a], k, lh ; repeat split => //=.
-      by apply r_call.
-    - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic (BI_call_indirect i)), [],
-        [AI_invoke a], k, lh ; repeat split => //=.
-      by apply (r_call_indirect_success H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic (BI_call_indirect i)), [],
-        [AI_trap], k, lh ; repeat split => //=.
-      by apply (r_call_indirect_failure1 H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic (BI_call_indirect i)), [],
-        [AI_trap], k, lh ; repeat split => //=.
-      by apply (r_call_indirect_failure2 _ H).
     - exists ves, (AI_invoke a), [], [AI_local m f' [AI_basic (BI_block (Tf [] t2s) es)]],
         k, lh ; repeat split => //=.
       rewrite H1 ; by apply v_to_e_is_const_list.
-      by apply (r_invoke_native _ H H0 H1 H2 H3 H4 H5 H6 H7 H8).
+      by apply rm_silent, (r_invoke_native _ H H0 H1 H2 H3 H4 H5 H6 H7 H8).
     - eexists ves, (AI_invoke a), [], _,
         k, lh ; repeat split => //=.
       rewrite H1 ; by apply v_to_e_is_const_list.
-      by apply (r_invoke_host _ H H0 H1 H2 H3 H4).
-    - exists [], (AI_basic (BI_get_local j)), [], [AI_basic (BI_const v)], k, lh ;
-      repeat split => //=.
-      by apply r_get_local.
-    - exists [AI_basic (BI_const v)], (AI_basic (BI_set_local i)), [], [], k, lh ;
-        repeat split => //=.
-      by apply (r_set_local _ H H0 H1).
-    - exists [], (AI_basic (BI_get_global i)), [], [AI_basic (BI_const v)], k, lh ;
-        repeat split => //=.
-      by apply r_get_global.
-    - exists [AI_basic (BI_const v)], (AI_basic (BI_set_global i)), [], [], k, lh ;
-        repeat split => //=.
-      by apply r_set_global.
-    - exists [AI_basic (BI_const (VAL_int32 k0))], (AI_basic (BI_load t None a off)),
-        [], [AI_basic (BI_const (wasm_deserialise bs t))], k, lh ; repeat split => //=.
-      by apply (r_load_success _ H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 k0))], (AI_basic (BI_load t None a off)),
-        [], [AI_trap], k, lh ; repeat split => //=.
-      by apply (r_load_failure _ H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 k0))], (AI_basic (BI_load t (Some (tp, sx)) a off)),
-        [], [AI_basic (BI_const (wasm_deserialise bs t))], k, lh ; repeat split => //=.
-      by apply (r_load_packed_success _ H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 k0))], (AI_basic (BI_load t (Some (tp, sx)) a off)),
-        [], [AI_trap], k, lh ; repeat split => //=.
-      by apply (r_load_packed_failure _ H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 k0)); AI_basic (BI_const v)],
-        (AI_basic (BI_store t None a off)), [], [], k, lh ; repeat split => //=.
-      by apply (r_store_success _ H H0 H1 H2).
-    - exists [AI_basic (BI_const (VAL_int32 k0)); AI_basic (BI_const v)],
-        (AI_basic (BI_store t None a off)), [], [AI_trap], k, lh ; repeat split => //=.
-      by apply (r_store_failure _ H H0 H1 H2).
-    - exists [AI_basic (BI_const (VAL_int32 k0)); AI_basic (BI_const v)],
-        (AI_basic (BI_store t (Some tp) a off)), [], [], k, lh ; repeat split => //=.
-      by apply (r_store_packed_success _ H H0 H1 H2).
-    - exists [AI_basic (BI_const (VAL_int32 k0)); AI_basic (BI_const v)],
-        (AI_basic (BI_store t (Some tp) a off)), [], [AI_trap], k, lh ; repeat split => //=.
-      by apply (r_store_packed_failure _ H H0 H1 H2).
-    - exists [], (AI_basic BI_current_memory), [],
-        [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (ssrnat.nat_of_bin n)))))],
-        k, lh ; repeat split => //=.
-      by apply (r_current_memory H H0 H1).
-    - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic BI_grow_memory), [],
-        [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (ssrnat.nat_of_bin n)))))],
-        k, lh ; repeat split => //=.
-      by apply (r_grow_memory_success H H0 H1 H2).
-    - exists [AI_basic (BI_const (VAL_int32 c))], (AI_basic BI_grow_memory), [],
-        [AI_basic (BI_const (VAL_int32 int32_minus_one))],
-        k, lh ; repeat split => //=.
-      by apply (r_grow_memory_failure _ H H0 H1).
-    - destruct (lfilled_trans2 _ _ _ _ _ _ _ _ _ _ H H0 Hfill Hfill')
-        as (lh1 & Hfill1 & Hfill2).
-      apply (IHHred lh1 (k0 + k)) => //=.
-    - exists [], (AI_local n f es), [], [AI_local n f' es'], k, lh ; repeat split => //=.
-      by apply r_local.
+      by apply rm_silent, (r_invoke_host _ H H0 H1 H2 H3 H4).
+    - intros. destruct (lfilled_trans2 _ _ _ _ _ _ _ _ _ _ H H0 Hfill Hfill')
+        as (lh1' & Hfill1 & Hfill2).
+      apply (IHHred lh1' (lh0 + k)) => //=.
   Qed.
 
-  Lemma reduce_return_trap_label es s' f' vs n es'0 es'' es' :
-    reduce s' f' es s' f' es' ->
+  Lemma reduce_return_trap_label es me s' f' vs n es'0 es'' es' :
+    reduce s' f' es me s' f' es' ->
     const_list vs ->
     es = (vs ++ [AI_label n es'0 [AI_trap]] ++ es'') ->
     ∃ lh', lfilled 0 lh' [AI_trap] es'.
   Proof.
     intros Hred.
     revert vs es''. induction Hred;[|intros vs es'' Hconst Heq..].
+    induction H;[|intros vs es'' Hconst Heq..].
     { induction H; intros vs' es'' Hconst Heq;subst.
-      all: try (do 2 destruct vs' =>//).
-      all: try (do 3 destruct vs' =>//).
+      all: try (do 2 destruct vs' => //).
+      all: try (do 3 destruct vs' => //).
       all: try (apply const_list_concat_inv in Heq as [? [? ?]];auto; done).
-      destruct vs',es'' =>//.
+      destruct vs',es'' => //.
       rewrite app_nil_r app_nil_l in Heq. simplify_eq.
       exists (LH_base [] []). by cbn.
       1,2: destruct vs' =>//.
@@ -1528,21 +1457,22 @@ Section reduce_properties_lemmas.
       2: intros;done.
       subst.
       apply val_head_stuck_reduce in Hred.
-      done. all: by intros [? ?].
+      done.
     }
   Qed.
 
-  Lemma reduce_focus_one es1 s f s' f' vs n es'0 LI es'' es' :
-    reduce s f es1 s' f' es' ->
+  Lemma reduce_focus_one es1 s f me s' f' vs n es'0 LI es'' es' :
+    reduce s f es1 me s' f' es' ->
     es1 = (vs ++ [AI_label n es'0 LI] ++ es'') ->
     const_list vs ->
     iris.to_val LI = None ->
     (∀ i j lh vs0, const_list vs0 -> lfilled i lh (vs0 ++ [AI_basic (BI_br j)]) LI -> False) ->
-    ∃ LI', reduce s f LI s' f' LI'.
+    ∃ LI', reduce s f LI me s' f' LI'.
   Proof.
     intros Hred.
     revert vs n es'0 LI es''.
     induction Hred;intros vs n' es'0 LI es'' Heq Hconst HLI Hnbr.
+    destruct H.
     all: try (subst; do 2 destruct vs =>//).
     all: try (subst; do 3 destruct vs =>//).
     { induction H;subst.
@@ -1604,19 +1534,20 @@ Section reduce_properties_lemmas.
         apply lfilled_Ind_Equivalent in H6.
         apply lfilled_swap with (es':=es') in H6 as Hfill'.
         destruct Hfill' as [LI' Hfill'].
-        exists LI'. eapply r_label;eauto.
+        exists LI'. eapply rm_label;eauto.
       }
     }
   Qed.
 
-  Lemma trap_reduce_state_eq i lh es s f s' f' es' :
-    reduce s f es s' f' es' ->
+  Lemma trap_reduce_state_eq i lh es me s f s' f' es' :
+    reduce s f es me s' f' es' ->
     lfilled i lh [AI_trap] es -> 
     (s,f) = (s',f').
   Proof.
     intros Hred. 
     revert i lh.
     induction Hred;auto.
+    destruct H; auto.
     all: try by subst ; intros i' lh Hfill%lfilled_Ind_Equivalent;
       inversion Hfill ; 
       subst ;
@@ -1641,7 +1572,26 @@ Section reduce_properties_lemmas.
       apply Logic.eq_sym in H1 ;
     [ found_intruse (AI_trap) H1 Hxl1
     | found_intruse (AI_label n es' LI) H1 Hxl1].
-          
+    all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
+    inversion Hfill;
+    subst;
+      apply Logic.eq_sym in H10;
+      [found_intruse (AI_trap) H10 Hxl1|
+        found_intruse (AI_label n es' LI) H10 Hxl1].
+        all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
+    inversion Hfill;
+    subst;
+      apply Logic.eq_sym in H11;
+      [found_intruse (AI_trap) H11 Hxl1|
+        found_intruse (AI_label n es' LI) H11 Hxl1].
+            all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
+    inversion Hfill;
+    subst;
+      apply Logic.eq_sym in H7;
+      [found_intruse (AI_trap) H7 Hxl1|
+    found_intruse (AI_label n es' LI) H7 Hxl1].
+
+    
     { intros i lh' Hlh'.
       eapply lfilled_singleton in Hlh' as [? [? ?]];[..|apply H];auto.
       eapply IHHred. apply H1.
@@ -1655,15 +1605,16 @@ Section reduce_properties_lemmas.
       all: do 2 destruct vs =>//. }
   Qed.
 
-  Lemma trap_reduce_lfilled i lh es s f s' f' es' :
-    reduce s f es s' f' es' ->
+  Lemma trap_reduce_lfilled i lh es me s f s' f' es' :
+    reduce s f es me s' f' es' ->
     lfilled i lh [AI_trap] es -> 
     exists lh' j, lfilled j lh' [AI_trap] es' ∧ j <= i.
   Proof.
     intros Hred.
     revert i lh.
     induction Hred;[|intros i' lh' Hfill%lfilled_Ind_Equivalent..].
-    2-24: inversion Hfill;
+    destruct H;[|intros i' lh' Hfill%lfilled_Ind_Equivalent..].
+    2-34: inversion Hfill;
     try done;
     try by destruct vs => //;
     try by do 2 destruct vs => //;
@@ -1802,8 +1753,8 @@ Section reduce_properties_lemmas.
     }
   Qed.
     
-  Lemma trap_reduce_nested s f es s' f' es' lh i :
-    lfilled i lh [AI_trap] es -> reduce s f es s' f' es' ->
+  Lemma trap_reduce_nested s f es me s' f' es' lh i :
+    lfilled i lh [AI_trap] es -> reduce s f es me s' f' es' ->
     (exists lh' j, lfilled j lh' [AI_trap] es' ∧ j <= i) ∧ (s,f) = (s',f').
   Proof.
     intros Hfill Hred.
@@ -1813,7 +1764,7 @@ Section reduce_properties_lemmas.
 
   Lemma trap_context_reduce locs s LI lh k :
     lfilled (S k) lh [AI_trap] LI ->
-    ∃ e', reduce locs s LI locs s e'.
+    ∃ e', reduce locs s LI ME_empty locs s e'.
   Proof.
     revert LI lh.
     induction k;intros LI lh Hfill%lfilled_Ind_Equivalent.
@@ -1824,18 +1775,18 @@ Section reduce_properties_lemmas.
         2: destruct vs0,es'0 =>//.
         erewrite app_nil_l, app_nil_r.
         exists (vs ++ [AI_trap] ++ es'').
-        eapply r_label.
+        eapply rm_label.
         2: instantiate (3:=0).
         2,3: apply lfilled_Ind_Equivalent;constructor;auto.
-        apply r_simple. apply rs_label_trap. }
+        apply rm_silent, r_simple. apply rs_label_trap. }
       { exists (vs ++ [AI_label n es' ([AI_trap])] ++ es'').
-        eapply r_label.
+        eapply rm_label.
         2: instantiate (3:=1).
         2,3: apply lfilled_Ind_Equivalent;constructor;auto.
         2: instantiate (2:=LH_base [] []).
         2,3: apply lfilled_Ind_Equivalent.
         2,3: cbn;rewrite app_nil_r; by apply/eqseqP.
-        apply r_simple. eapply rs_trap. auto.
+        apply rm_silent, r_simple. eapply rs_trap. auto.
         apply lfilled_Ind_Equivalent. eauto.
       }
     }
@@ -1844,7 +1795,7 @@ Section reduce_properties_lemmas.
       eapply IHk in H1 as Hred.
       destruct Hred as [e' Hred].
       eexists.
-      eapply r_label;[eauto|..].
+      eapply rm_label;[eauto|..].
       instantiate (2:=1).
       all: apply lfilled_Ind_Equivalent;constructor;auto.
       all: apply lfilled_Ind_Equivalent.
@@ -1864,8 +1815,8 @@ Section reduce_properties_lemmas.
     eapply val_head_stuck_reduce;eauto.
     Unshelve.
     
-    apply (Build_store_record [] [] [] []).
-    apply (Build_frame [] (Build_instance [] [] [] [] [])).
+    apply (Build_store_record [] [] [] []). apply []. apply [].
+    apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])).
   Qed.
 
   Lemma lfilled_to_val_0 i lh e es v :
@@ -1882,16 +1833,18 @@ Section reduce_properties_lemmas.
     congruence.
   Qed.
 
-  Lemma reduce_det_local ws f ws' f' es1 es2 n f0 :
+  Lemma reduce_det_local ws f me ws' f' es1 es2 n f0 :
     iris.to_val es1 = None ->
-    opsem.reduce ws f [AI_local n f0 es1] ws' f' es2 ->
+    opsem.reduce ws f [AI_local n f0 es1] me ws' f' es2 ->
     ∃ es2' f1, es2 = [AI_local n f1 es2'] ∧ f = f' ∧
-                 opsem.reduce ws f0 es1 ws' f1 es2'.
+                 opsem.reduce ws f0 es1 me ws' f1 es2'.
   Proof.
     intros Hes1.
     remember [AI_local n f0 es1] as es.
     revert es2. induction 1;simplify_eq.
-    all: try destruct vcs =>//.
+    remember [AI_local n f0 es1] as es.
+    revert es' H. destruct 1; simplify_eq.
+    all: try destruct vcs => //.
     { remember [AI_local n f0 es1] as es.
       revert e' H;induction 1;simplify_eq.
       all: try do 2 destruct vs =>//.
@@ -1924,16 +1877,17 @@ Section reduce_properties_lemmas.
     { eauto. }
   Qed.
 
-  Lemma reduce_det_label ws f ws' f' es1 n es es'' es2 :
-    opsem.reduce ws f es'' ws' f' es2 ->
+  Lemma reduce_det_label ws f me ws' f' es1 n es es'' es2 :
+    opsem.reduce ws f es'' me ws' f' es2 ->
     ∀ l1 l2, es'' = (l1 ++ [AI_label n es es1] ++ l2) ->
     const_list l1 ->
     iris.to_val es1 = None ->
     ∃ es2', es2 = l1 ++ [AI_label n es es2'] ++ l2 ∧
-              opsem.reduce ws f es1 ws' f' es2'.
+              opsem.reduce ws f es1 me ws' f' es2'.
   Proof.
-    revert es2. induction 1.
-    2-24:intros l1 l2 Heqes'' Hconst Hes1; simplify_eq.
+    revert es2. induction 1. 
+    revert es' H. destruct 1.
+    2-34:intros l1 l2 Heqes'' Hconst Hes1; simplify_eq.
     all: try by destruct l1 =>//.
     all: try by do 2 destruct l1 =>//.
     all: try by do 3 destruct l1 =>//.
@@ -1990,16 +1944,16 @@ Section reduce_properties_lemmas.
         eexists. split;eauto.
         apply lfilled_Ind_Equivalent in H7.
         apply lfilled_Ind_Equivalent in H13.
-        eapply r_label;eauto. 
+        eapply rm_label;eauto. 
       }
     }
   Qed.
 
-  Lemma reduce_det_label_nil ws f ws' f' es1 es2 n es :
+  Lemma reduce_det_label_nil ws f me ws' f' es1 es2 n es :
     iris.to_val es1 = None ->
-    opsem.reduce ws f [AI_label n es es1] ws' f' es2 ->
+    opsem.reduce ws f [AI_label n es es1] me ws' f' es2 ->
     ∃ es2', es2 = [AI_label n es es2'] ∧
-              opsem.reduce ws f es1 ws' f' es2'.
+              opsem.reduce ws f es1 me ws' f' es2'.
   Proof.
     intros Hes1.
     remember [AI_label n es es1] as es''.

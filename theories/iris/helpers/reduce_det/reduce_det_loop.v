@@ -2,18 +2,22 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
-Lemma loop_det vs n m t1s t2s s f es s' f' es' :
+Lemma loop_det vs n m t1s t2s s f es me s' f' es' :
   const_list vs ->
   length vs = n ->
   length t1s = n ->
   length t2s = m ->
-  reduce s f (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)]) s' f' es' ->
-  reduce_det_goal s f [AI_label n [AI_basic (BI_loop (Tf t1s t2s) es)] (vs ++ to_e_list es)] s' f' es' (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)]).
+  reduce s f (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)]) me s' f' es' ->
+  reduce_det_goal ME_empty s f [AI_label n [AI_basic (BI_loop (Tf t1s t2s) es)] (vs ++ to_e_list es)] me s' f' es' (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)]).
 Proof.
   move => H H0 H1 H2 Hred.
   remember (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)])%SEQ as es0.
   apply Logic.eq_sym in Heqes0.
   induction Hred ; (try by repeat ((by inversion Heqes0) +
+                                    (destruct vs ; first by inversion Heqes0))) ;
+  try by right ; right ; left ;
+    exists a ; rewrite first_instr_const => //= ; subst ; apply v_to_e_is_const_list.
+  destruct H3 ; (try by repeat ((by inversion Heqes0) +
                                     (destruct vs ; first by inversion Heqes0))) ;
   try by right ; right ; left ;
     exists a ; rewrite first_instr_const => //= ; subst ; apply v_to_e_is_const_list.
@@ -50,7 +54,7 @@ Proof.
                   rewrite app_assoc in H3. apply app_inj_tail in H3 as [Hvs' Hy].
                   rewrite Htail in Hred. rewrite <- Hy in Hred. exfalso.
                   apply (loop_not_enough_arguments_no_reduce
-                           _ _ _ _ _ _ _ _ _ Hred).
+                           _ _ _ _ _ _ _ _ _ _ Hred).
                   - rewrite Hvs' in H.
                     unfold const_list in H. rewrite forallb_app in H.
                       by apply andb_true_iff in H as [_ Hys].

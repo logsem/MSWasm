@@ -2,9 +2,9 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
-Lemma unop_det v op t s f s' f' es:
-  reduce s f [AI_basic (BI_const v); AI_basic (BI_unop t op)] s' f' es ->
-  reduce_det_goal s f [AI_basic (BI_const (app_unop op v))] s' f' es [AI_basic (BI_const v); AI_basic (BI_unop t op)].
+Lemma unop_det v op t s f me s' f' es:
+  reduce s f [AI_basic (BI_const v); AI_basic (BI_unop t op)] me s' f' es ->
+  reduce_det_goal ME_empty s f [AI_basic (BI_const (app_unop op v))] me s' f' es [AI_basic (BI_const v); AI_basic (BI_unop t op)].
 Proof.
   move => Hred.
   - (* example of a usage of [ only_one ] : in this subgoal, we know that Hred2 is

@@ -2,18 +2,18 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude iris_split_reduce.
 
-Lemma local_det s f es s' f' es' ws2 n f0 f2 es2 nnn:
-  (∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction),
-    reduce s f es s' f1 es1
-    → reduce s f es ws2 f2 es2 → length_rec es < nnn → reduce_det_goal s' f1 es1 ws2 f2 es2 es) ->
-  reduce s f es s' f' es' ->
-  reduce s f0 [AI_local n f es] ws2 f2 es2 ->
+Lemma local_det s f es me me' s' f' es' ws2 n f0 f2 es2 nnn:
+  (∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1 me2,
+    reduce s f es me1 s' f1 es1
+    → reduce s f es me2 ws2 f2 es2 → length_rec es < nnn → reduce_det_goal me1 s' f1 es1 me2 ws2 f2 es2 es) ->
+  reduce s f es me s' f' es' ->
+  reduce s f0 [AI_local n f es] me' ws2 f2 es2 ->
   length_rec [AI_local n f es] < S nnn ->
-  ((∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction),
-      reduce s f es s' f1 es1
-      → reduce s f es ws2 f2 es2 → length_rec es < nnn → reduce_det_goal s' f1 es1 ws2 f2 es2 es)
-   → reduce s f es ws2 f2 es2 → length_rec es < S nnn → reduce_det_goal s' f' es' ws2 f2 es2 es) ->
-  reduce_det_goal s' f0 [AI_local n f' es'] ws2 f2 es2 [AI_local n f es].
+  ((∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1 me2,
+      reduce s f es me1 s' f1 es1
+      → reduce s f es me2 ws2 f2 es2 → length_rec es < nnn → reduce_det_goal me1 s' f1 es1 me2 ws2 f2 es2 es)
+   → reduce s f es me' ws2 f2 es2 → length_rec es < S nnn → reduce_det_goal me s' f' es' me' ws2 f2 es2 es) ->
+  reduce_det_goal me s' f0 [AI_local n f' es'] me' ws2 f2 es2 [AI_local n f es].
 Proof.
   move => IHnnn Hred1 Hred2 Hlen IHHred1.
   (* final case : the r_local case. We perform the case analysis on Hred2 by hand *)
@@ -21,13 +21,34 @@ Proof.
   rewrite <- (app_nil_l [AI_local n f es]) in Heqes0.
   induction Hred2 ; (try by inversion Heqes0) ;
     try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
+  destruct H ; (try by inversion Heqes0) ;
+    try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
   { destruct H ; (try by inversion Heqes0) ;
       try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
     - inversion Heqes0 ; subst. exfalso ; values_no_reduce.
     - inversion Heqes0 ; subst.
-      exfalso ; by apply (test_no_reduce_trap _ _ _ _ _ Hred1).
+      exfalso ; by apply (test_no_reduce_trap _ _ _ _ _ _ Hred1).
     - { inversion Heqes0 ; subst.
         induction Hred1 ;
+          (try by simple_filled H1 i lh bef aft nn ll ll' ;
+           found_intruse (AI_basic BI_return) H1 Hxl1 ;
+           apply in_or_app ; right ; apply in_or_app ; left ;
+           apply in_or_app ; right ; left) ;
+          try by simple_filled H1 i lh bef aft nn ll ll' ;
+          [ found_intruse (AI_basic BI_return) H1 Hxl2 ;
+            [ apply in_app_or in Hxl2 as [Habs | Habs] ;
+              [ assert (const_list ves) as Hconst ;
+                [ rewrite H3 ; apply v_to_e_is_const_list => //=
+                | intruse_among_values ves Habs Hconst ]
+              | destruct Habs as [Habs | Habs] => //=]
+            | apply in_or_app ; right ; apply in_or_app ; left ;
+              apply in_or_app ; right ; by left] 
+          | apply in_app_or in Hxl1 as [Habs | Habs] ;
+            [ assert (const_list ves) as Hconst ;
+              [ rewrite H3 ; apply v_to_e_is_const_list => //=
+              | intruse_among_values ves Habs Hconst ]
+            | destruct Habs as [Habs | Habs] => //=]].
+         destruct H0 ;
           (try by simple_filled H1 i lh bef aft nn ll ll' ;
            found_intruse (AI_basic BI_return) H1 Hxl1 ;
            apply in_or_app ; right ; apply in_or_app ; left ;
@@ -130,10 +151,12 @@ Proof.
     assert (length_rec es < nnn).
     unfold length_rec in Hlen ; simpl in Hlen.
     unfold length_rec ; lia.
-    destruct (IHnnn _ _ _ _ _ _ Hred1 Hred2 H)
-      as [Hσ | [ [i Hstart] | (i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ) (* ] *)]].
+    destruct (IHnnn _ _ _ _ _ _ _ _ Hred1 Hred2 H)
+      as [Hσ | [ [i Hstart] | [ [ i Hstart ]| (i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)] (* ] *)]].
     * left. by inversion Hσ ; subst.
     * right ; left. exists (i + 1). unfold first_instr => //=. unfold first_instr in Hstart.
+      rewrite Hstart => //=. repeat f_equiv. lia.
+    * right; right ; left. exists (i + 1). unfold first_instr => //=. unfold first_instr in Hstart.
       rewrite Hstart => //=. repeat f_equiv. lia.
     * repeat right. exists (i1 + 1),(i2 + 1),(i3 + 1). repeat split => //=.
       unfold first_instr => //= ; unfold first_instr in Hstart1 ;

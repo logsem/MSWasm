@@ -2,10 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
-Lemma binop_det v1 v2 v op t s f s' f' es:
+Lemma binop_det v1 v2 v op t s f me s' f' es:
   app_binop op v1 v2 = Some v ->
-  reduce s f [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] s' f' es ->
-  reduce_det_goal s f [AI_basic (BI_const v)] s' f' es [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)].
+  reduce s f [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] me s' f' es ->
+  reduce_det_goal ME_empty s f [AI_basic (BI_const v)] me s' f' es [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)].
 Proof.
   move => H Hred.
     (* an example where we the user need to provide some extra work because [ only_one ]
@@ -19,10 +19,10 @@ Proof.
      inversion Heqes ; subst ; rewrite H in H0 ; inversion H0 ; subst.
 Qed.
 
-Lemma binop_none_det v1 v2 op t s f s' f' es:
+Lemma binop_none_det v1 v2 op t s f me s' f' es:
   app_binop op v1 v2 = None ->
-  reduce s f [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] s' f' es ->
-  reduce_det_goal s f [AI_trap] s' f' es [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)].
+  reduce s f [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] me s' f' es ->
+  reduce_det_goal ME_empty s f [AI_trap] me s' f' es [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)].
 Proof.
   move => H Hred.
   by only_one [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ; AI_basic (BI_binop t op)] Hred ;

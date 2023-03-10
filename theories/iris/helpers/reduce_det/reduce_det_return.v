@@ -2,12 +2,12 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
-Lemma return_det vs n i lh s f f0 es s' f' es' :
+Lemma return_det vs n i lh s f f0 es me s' f' es' :
   const_list vs ->
   length vs = n ->
   lfilled i lh (vs ++ [AI_basic BI_return]) es ->
-  reduce s f [AI_local n f0 es] s' f' es' ->
-  reduce_det_goal s f vs s' f' es' [AI_local n f0 es].
+  reduce s f [AI_local n f0 es] me s' f' es' ->
+  reduce_det_goal ME_empty s f vs me s' f' es' [AI_local n f0 es].
 Proof.
   move => H H0 H1 Hred.
   (* this is the rs_return case. It combines the difficulties of rs_br with
@@ -16,6 +16,8 @@ Proof.
   left ; remember [AI_local n f0 es] as es0.
   rewrite <- app_nil_l in Heqes0.
   induction Hred ; try by inversion Heqes0 ;
+    try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
+  destruct H2 ; try by inversion Heqes0 ;
     try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
   { destruct H2 ; try by inversion Heqes0 ;
       try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
@@ -61,6 +63,25 @@ Proof.
     apply app_eq_nil in Hes as [-> _] ; empty_list_no_reduce.
   + { inversion Heqes0 ; subst.
       induction Hred ;
+        (try by simple_filled H1 i lh bef aft nn ll ll' ;
+         found_intruse (AI_basic BI_return) H1 Hxl1 ;
+         apply in_or_app ; right ; apply in_or_app ; left ;
+         apply in_or_app ; right ; left) ;
+        try by simple_filled H1 i lh bef aft nn ll ll' ;
+        [ found_intruse (AI_basic BI_return) H1 Hxl2 ;
+          [ apply in_app_or in Hxl2 as [Habs | Habs] ;
+            [ assert (const_list ves) as Hconst ;
+              [ rewrite H3 ; apply v_to_e_is_const_list => //=
+              | intruse_among_values ves Habs Hconst ]
+            | destruct Habs as [Habs | Habs] => //=]
+          | apply in_or_app ; right ; apply in_or_app ; left ;
+            apply in_or_app ; right ; by left] 
+        | apply in_app_or in Hxl1 as [Habs | Habs] ;
+          [ assert (const_list ves) as Hconst ;
+            [ rewrite H3 ; apply v_to_e_is_const_list => //=
+            | intruse_among_values ves Habs Hconst ]
+          | destruct Habs as [Habs | Habs] => //=]].
+      destruct H0;
         (try by simple_filled H1 i lh bef aft nn ll ll' ;
          found_intruse (AI_basic BI_return) H1 Hxl1 ;
          apply in_or_app ; right ; apply in_or_app ; left ;

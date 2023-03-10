@@ -2,6 +2,11 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_properties first_instr.
 
+
+Definition check := 1.
+
+
+
 (* Knowing hypothesis "Hred : objs -> _" (with frames (locs, inst) and (locs', inst')),
    attempts to exfalso away most of the possible ways Hred could hold, leaving the user
    with only the one possible desired case. Tactic will also attempt to trivially solve
@@ -41,6 +46,7 @@ Ltac only_one_reduction Heqes0 Hred :=
   let les' := fresh "les" in
   let lh := fresh "lh" in
   let m := fresh "m" in
+  let me := fresh "me" in
   let n0 := fresh "n" in
   let n' := fresh "n" in
   let s := fresh "s" in
@@ -48,8 +54,10 @@ Ltac only_one_reduction Heqes0 Hred :=
   let t1s := fresh "t1s" in
   let t2s := fresh "t2s" in
   let vs := fresh "vs" in
-  induction Hred as [e e' s ? H | | | | | a | a | a | | | | | | | | | | | | | | |
-                      s ? es les s' f' es' les' k lh Hred IHreduce H0 H1 | ];
+  induction Hred as [s f es s' f' es' H | | | | | | | | | | | s f es les me s' f' es' les' k lh Hred IHreduce H0 H1 | ];
+  (try by inversion Heqes0) ;
+  first (
+      destruct H as [e e' s ? H | | | | | a | a | a | | | | | | | | | | | | | | ];
   (* induction on the reduction. Most cases will be trivially solved by the following
      two attemps : *)
   (try by inversion Heqes0) ;
@@ -58,21 +66,21 @@ Ltac only_one_reduction Heqes0 Hred :=
   first (destruct H as [ | | | | | | | | | | | | | | 
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
-                       | | | | | | | | | | | | | 
+                       | | | | | | | | | | | | | | | | 
                          es' lh Htrap' H0 ]  ;
          (* by case_analysis on the reduce_simple. most cases solved by just the 
             following inversion ; some cases need a little extra help *)
          inversion Heqes0 ; 
          (try by subst ; found_intruse (AI_basic (BI_block (Tf t1s t2s) es)) Heqes0 Hxl1) ;
          (try by subst ; found_intruse (AI_basic (BI_loop (Tf t1s t2s) es)) Heqes0 Hxl1) ;
-         (try by subst ; filled_trap H0 Hxl1) ) ;
+         (try by subst ; filled_trap H0 Hxl1) )) ;
   (* lfilled case *)
-  last (rewrite <- Heqes0 in H0 ;
+  try (rewrite <- Heqes0 in H0 ;
         (* the simple_filled tactic unfolds lfilled, solves the case where k>0,
            and in the case k=0 leaves user with hypothesis H0 modified to now be
            les = bef ++ es ++ aft *)
         simple_filled2 H0 k lh bef aft n0 l l' ;
-        first
+        try
           ( apply Logic.eq_sym in H0 ;
             remember ([] : seq.seq administrative_instruction) as g eqn:Heqg in s;
             let rec auxb H0 :=
@@ -160,9 +168,10 @@ Ltac only_one objs Hred2 :=
   apply Logic.eq_sym in Heqes ;
   only_one_reduction Heqes Hred2.
 
-Definition reduce_det_goal (ws1: store_record) (f1: frame) es1 ws2 f2 es2 es :=
-      ((ws1, f1, es1) = (ws2, f2, es2) \/
-          (exists i, first_instr es = Some (AI_basic (BI_grow_memory),i)) \/
+Definition reduce_det_goal (m1:memory_event) (ws1: store_record) (f1: frame) es1 m2 ws2 f2 es2 es :=
+      ((m1, ws1, f1, es1) = (m2, ws2, f2, es2) \/
+         (exists i, first_instr es = Some (AI_basic (BI_grow_memory),i)) \/
+         (exists i, first_instr es = Some (AI_basic (BI_segalloc), i)) \/
           (exists i1 i2 i3, first_instr es = Some (AI_trap,i1) /\ first_instr es1 = Some (AI_trap,i2) /\
                          first_instr es2 = Some (AI_trap,i3) /\
                          (ws1, f1) = (ws2, f2))).

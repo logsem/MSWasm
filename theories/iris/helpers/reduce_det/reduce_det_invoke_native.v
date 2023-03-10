@@ -2,16 +2,18 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_properties iris_reduce_det_prelude.
 
-Lemma invoke_native_det ws2 f2 es2 s a f f' t1s t2s ts es vcs:
+Lemma invoke_native_det ws2 f2 es2 s a me f f' t1s t2s ts es vcs:
   nth_error (s_funcs s) a = Some (FC_func_native (f_inst f') (Tf t1s t2s) ts es) ->
   length t1s = length vcs ->
   f_locs f' = (vcs ++ n_zeros ts) ->
-  reduce s f (v_to_e_list vcs ++ [AI_invoke a]) ws2 f2 es2 ->
-  (s, f, [AI_local (length t2s) f' [AI_basic (BI_block (Tf [] t2s) es)]]) = (ws2, f2, es2).
+  reduce s f (v_to_e_list vcs ++ [AI_invoke a]) me ws2 f2 es2 ->
+  (ME_empty, s, f, [AI_local (length t2s) f' [AI_basic (BI_block (Tf [] t2s) es)]]) = (me, ws2, f2, es2).
 Proof.
   remember (v_to_e_list vcs ++ [AI_invoke a])%SEQ as es0.
   move => Hnth Hlen Hflocs Hred.
   induction Hred ; try by do 4 destruct vcs => //; try by inversion Heqes0 ;
+                                              try by (apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs).
+   destruct H ; try by do 4 destruct vcs => //; try by inversion Heqes0 ;
                                                 try by (apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs).
   (* 3 remaining cases *)
   (* reduce_simple *)

@@ -1,6 +1,6 @@
 From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
-Require Export iris stdpp_aux iris_reduce_properties iris_wasm_determ.
+Require Export iris stdpp_aux iris_reduce_properties.
 
 
 Ltac first_not_const Hconst :=
@@ -74,8 +74,8 @@ Section reduction_core.
                        | ? ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4
                        | ? ? ? ? ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4 Hr5 Hr6 Hr7 Hr8
                        | ? ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4 Hr5
-                       |  ? ? ? ? ? ? ? ? ? ? Hr1 IHHred Hr2 Hr3 |
-                         ? ? ? ? ? ? ? ? Hr IHHred ];
+                       | ? ? ? ? ? ? ? ? ? ? ? Hr1 IHHred Hr2 Hr3 |
+                         ? ? ? ? ? ? ? ? ? Hr IHHred ];
         try (by left ; do 2 rewrite app_assoc in Heq ;
            rewrite - (app_assoc ( _ ++ _)) in Heq ;
            rewrite - app_comm_cons in Heq ;
@@ -2451,13 +2451,13 @@ Section reduction_core.
         rewrite - app_assoc in Heq0.
         rewrite separate1 in Heq0.
         rewrite (app_assoc ves) in Heq0.
-        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_ ;
+        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_, ME_empty ;
           repeat split ; try done ; try by rewrite app_nil_r.
         rewrite - (take_drop (length vs0 - n) vs0) in Hvs0.
         unfold const_list in Hvs0.
         rewrite forallb_app in Hvs0.
         by apply andb_true_iff in Hvs0 as [? _].
-        by econstructor. }
+        by eapply rm_silent, r_invoke_native. }
       intros nnn.
       clear Hbefs Hafts.
       generalize dependent afte0.
@@ -2477,7 +2477,17 @@ Section reduction_core.
         try (by  rewrite - (app_nil_r [_]) in Heq ;
              apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
              rewrite H1 ; apply v_to_e_is_const_list).
-      { destruct H ;
+       destruct H;
+        try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by  rewrite - (app_nil_r [_]) in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+             rewrite H1 ; apply v_to_e_is_const_list).
+       { destruct H ;
           try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
                apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
@@ -2498,22 +2508,22 @@ Section reduction_core.
       + rewrite - (app_nil_r [_]) in Heq.
         apply first_values in Heq as (-> & Hblock & <-) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
           try (destruct He0 as [-> | ->]; by intros [? ?]).
-        eapply (invoke_not_enough_arguments_no_reduce_native s f _ _ s f) => //=.
+        eapply (invoke_not_enough_arguments_no_reduce_native s f _ _ _ s f) => //=.
         rewrite Hr2 in Hr1.
         inversion Hblock ; subst a.
         exact Hr1.
-        by econstructor.
+        by eapply rm_silent, r_invoke_native.
         by rewrite Hr6.
         rewrite H1.
         by apply v_to_e_is_const_list.
       + rewrite - (app_nil_r [_]) in Heq.
         apply first_values in Heq as (-> & Hblock & <-) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
           try (destruct He0 as [-> | ->]; by intros [? ?]).
-        eapply (invoke_not_enough_arguments_no_reduce_native s f _ _ s f) => //=.
+        eapply (invoke_not_enough_arguments_no_reduce_native s f _ _ _ s f) => //=.
         rewrite Hr2 in Hr1.
         inversion Hblock ; subst a.
         exact Hr1.
-        by econstructor.
+        by eapply rm_silent; econstructor.
         by rewrite Hr6.
         rewrite H1.
         by apply v_to_e_is_const_list.
@@ -2554,13 +2564,13 @@ Section reduction_core.
         rewrite - app_assoc in Heq0.
         rewrite separate1 in Heq0.
         rewrite (app_assoc ves) in Heq0.
-        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_ ;
+        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_, ME_empty ;
           repeat split ; try done ; try by rewrite app_nil_r.
         rewrite - (take_drop (length vs0 - n) vs0) in Hvs0.
         unfold const_list in Hvs0.
         rewrite forallb_app in Hvs0.
         by apply andb_true_iff in Hvs0 as [? _].
-        by econstructor. }
+        by eapply rm_silent; econstructor. }
       intros nnn.
       clear Hbefs Hafts.
       generalize dependent afte0.
@@ -2571,6 +2581,16 @@ Section reduction_core.
       intros ; lia.
       intros es0 es0' Hred.
       induction Hred ; intros afte0 vs0 Hvs0 Heq Hnnn Hlen' ;
+        try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by  rewrite - (app_nil_r [_]) in Heq ;
+             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+             rewrite H1 ; apply v_to_e_is_const_list).
+      destruct H;
         try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
              apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
@@ -2601,22 +2621,22 @@ Section reduction_core.
       + rewrite - (app_nil_r [_]) in Heq.
         apply first_values in Heq as (-> & Hblock & <-) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ; 
           try (destruct He0 as [-> | ->]; by intros [? ?]).
-        eapply (invoke_not_enough_arguments_no_reduce_host s f _ _ s f) => //=.
+        eapply (invoke_not_enough_arguments_no_reduce_host s f _ _ _ s f) => //=.
         rewrite Hr2 in Hr1.
         inversion Hblock ; subst a.
         exact Hr1.
-        by econstructor.
+        by eapply rm_silent; econstructor.
         by rewrite Hr5.
         rewrite H1.
         by apply v_to_e_is_const_list.
       + rewrite - (app_nil_r [_]) in Heq.
         apply first_values in Heq as (-> & Hblock & <-) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
           try (destruct He0 as [-> | ->]; by intros [? ?]).
-        eapply (invoke_not_enough_arguments_no_reduce_host s f _ _ s f) => //=.
+        eapply (invoke_not_enough_arguments_no_reduce_host s f _ _ _ s f) => //=.
         rewrite Hr2 in Hr1.
         inversion Hblock ; subst a.
         exact Hr1.
-        by econstructor.
+        by eapply rm_silent; econstructor.
         by rewrite Hr5.
         rewrite H1.
         by apply v_to_e_is_const_list.
@@ -2636,8 +2656,8 @@ Section reduction_core.
         rewrite app_length in Hlen', Hnnn.
         eapply IHnnn => //= ; lia.
         rewrite H in Heq.
-        apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]).
-    - unfold lfilled, lfill in Hr2.
+        apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]).  }
+   - unfold lfilled, lfill in Hr2.
       destruct k.
       { destruct lh as [bef aft|] ; last by false_assumption.
         destruct (const_list bef) eqn:Hbef ; last by false_assumption.
@@ -2649,7 +2669,7 @@ Section reduction_core.
         move/eqP in Hr3.
         subst.
         by eapply IHHred.
-        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & Hbc0 & Hbc1 &
+        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & me' & Hbc0 & Hbc1 &
                                 Hes0 & Hes & Hbefs & Hafts & Hredcore & Hcore') |
                               (lh0 & lh1 & Hfill0 & Hfill1 & Hσ)].
         exact Hbef1.
@@ -2667,7 +2687,7 @@ Section reduction_core.
         simpl in Hlen.
         lia.
         left.
-        eexists core,bc0,ac0,bc1,(ac1 ++ (a :: aft)),core'.
+        eexists core,bc0,ac0,bc1,(ac1 ++ (a :: aft)),core', me'.
         repeat split => //=.
         rewrite Hr2 Hes.
         simpl.
@@ -2685,7 +2705,7 @@ Section reduction_core.
         unfold lfilled, lfill => //= ; by rewrite Hr2.
         destruct (lfilled_trans Hfill1 H) as [lh' Hfilltrap].
         eexists _,_ ; split => //=.
-        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & Hbc0 & Hbc1 &
+        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & me' & Hbc0 & Hbc1 &
                                 Hes0 & Hes & Hbefs & Hafts & Hredcore & Hcore') |
                               (lh0 & lh1 & Hfill0 & Hfill1 & Hσ)].
         instantiate (1 := (bef1 ++ a :: bef)).
@@ -2704,7 +2724,7 @@ Section reduction_core.
         simpl in Hlen.
         lia.
         left.
-        eexists core,bc0,ac0,(a :: bef ++ bc1),(ac1 ++ aft),core'.
+        eexists core,bc0,ac0,(a :: bef ++ bc1),(ac1 ++ aft),core', me'.
         repeat split => //.
         rewrite app_comm_cons.
         by const_list_app.
@@ -2731,7 +2751,7 @@ Section reduction_core.
         assert (lfilled 0 (LH_base (a :: bef) aft) es les).
         unfold lfilled, lfill ; by rewrite Hbef Hr2.
         destruct (lfilled_trans Hfill1 H) as [lh' Hfilltrap].
-        eexists _,_ ; split => //=. }
+        eexists _,_ ; split => //=.  }
       fold lfill in Hr2.
       destruct lh ; first by false_assumption.
       destruct (const_list l) eqn:Hl ; last by false_assumption.
@@ -2746,9 +2766,9 @@ Section reduction_core.
       unfold lfilled, lfill in Hr3 ; fold lfill in Hr3.
       rewrite Hl in Hr3.
       destruct (lfill k lh es') eqn : Hfill' ; last by false_assumption.
-      left ; eexists [AI_label n l0 l2], vs0, afte0, l, l1, _.
+      left ; eexists [AI_label n l0 l2], vs0, afte0, l, l1, _,_.
       repeat split => //=.
-      eapply r_label.
+      eapply rm_label.
       exact Hr1.
       instantiate (1 := LH_rec [] n l0 lh []).
       instantiate (1 := S k).

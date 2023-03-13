@@ -258,6 +258,17 @@ Section reduce_properties_lemmas.
     apply Logic.eq_sym in Heq.
     no_reduce Heq Hred.
   Qed.
+
+
+  Lemma reduce_segload_false s0 f s' f' es es' me x0 :
+    es = [AI_basic (BI_segload x0 )] ->
+    reduce s0 f es me s' f' es' -> False.
+  Proof.
+    intros Heq Hred.
+    apply Logic.eq_sym in Heq.
+    no_reduce Heq Hred.
+  Qed.
+
   
   Lemma reduce_store_false s0 f s' f' es es' me x0 x1 x2 x3 :
     es = [AI_basic (BI_store x0 x1 x2 x3)] ->
@@ -270,6 +281,24 @@ Section reduce_properties_lemmas.
   
   Lemma reduce_store_false_2 s0 f s' f' es es' me x0 x1 x2 x3 v :
     es = [AI_basic (BI_const v); AI_basic (BI_store x0 x1 x2 x3)] ->
+    reduce s0 f es me s' f' es' -> False.
+  Proof.
+    intros Heq Hred.
+    apply Logic.eq_sym in Heq.
+    no_reduce Heq Hred.
+  Qed.
+
+   Lemma reduce_segstore_false s0 f s' f' es es' me x0  :
+    es = [AI_basic (BI_segstore x0 )] ->
+    reduce s0 f es me s' f' es' -> False.
+  Proof.
+    intros Heq Hred.
+    apply Logic.eq_sym in Heq.
+    no_reduce Heq Hred.
+  Qed.
+  
+  Lemma reduce_segstore_false_2 s0 f s' f' es es' me x0 v :
+    es = [AI_basic (BI_const v); AI_basic (BI_segstore x0 )] ->
     reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Heq Hred.

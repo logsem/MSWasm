@@ -25,14 +25,14 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const v')], σ, [].
+    exists [ME_empty], [AI_basic (BI_const v')], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
-    repeat split => //. apply r_simple. rewrite <- Hunop. apply rs_unop.
+    repeat split => //. apply rm_silent, r_simple. rewrite <- Hunop. apply rs_unop.
   - destruct σ as [[ws locs] inst].
     iIntros "!>" (es σ2 efs HStep) "!>".
-    destruct σ2 as [[ ws' locs'] inst'].
-    destruct HStep as (H & -> & ->).
+    destruct σ2 as [[ ws' locs'] inst']. 
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
  
@@ -49,16 +49,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const v)], σ, [].
+    exists [ME_empty], [AI_basic (BI_const v)], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     by apply rs_binop_success.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
                                                                   
@@ -77,16 +78,16 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_trap], σ, [].
+    exists [ME_empty], [AI_trap], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     by apply rs_binop_failure.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
     
@@ -103,17 +104,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
+    exists [ME_empty], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_relop.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -130,17 +131,18 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
+    exists [ME_empty], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_testop_i32.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -157,17 +159,18 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
+    exists [ME_empty], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_testop_i64.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -185,17 +188,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const v')], σ, [].
+    exists [ME_empty], [AI_basic (BI_const v')], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_convert_success.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -213,17 +216,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_trap], σ, [].
+    exists [ME_empty], [AI_trap], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_convert_failure.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -241,17 +244,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const v')], σ, [].
+    exists [ME_empty], [AI_basic (BI_const v')], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_reinterpret.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -269,17 +272,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [AI_trap], σ, [].
+    exists [ME_empty], [AI_trap], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_unreachable.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -295,17 +298,17 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [], [], σ, [].
+    exists [ME_empty], [], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple.
+    apply rm_silent, r_simple.
     subst.
     by apply rs_nop.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -321,15 +324,15 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    exists [], [], σ, [].
+    exists [ME_empty], [], σ, [].
     destruct σ as [[ws  locs ] inst ].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_simple ; apply rs_drop.
+    apply rm_silent, r_simple ; apply rs_drop.
   - destruct σ as [[ws  locs ] inst ].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws'  locs' ] inst'].
-    destruct HStep as (H & -> & ->).
+    destruct κ => //. destruct κ => //. destruct HStep as (H & -> ).
     only_one_reduction H. iFrame.
 Qed.
 
@@ -347,14 +350,14 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const v2)], σ, [].
+    exists [ME_empty], [AI_basic (BI_const v2)], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
-    apply r_simple ; by apply rs_select_false.
+    apply rm_silent, r_simple ; by apply rs_select_false.
   - destruct σ as [[ws  locs ] inst ].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws'  locs' ] inst'].
-    destruct HStep as (H & -> & ->).
+    destruct κ => //. destruct κ => //. destruct HStep as (H & ->).
     only_one_reduction H. iFrame.
 Qed.
 
@@ -370,14 +373,14 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.
   - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
-    exists [], [AI_basic (BI_const v1)], σ, [].
+    exists [ME_empty], [AI_basic (BI_const v1)], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
-    apply r_simple ; by apply rs_select_true.
+    apply rm_silent, r_simple ; by apply rs_select_true.
   - destruct σ as [[ ws  locs ] inst].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ ws'  locs' ] inst'].
-    destruct HStep as (H & -> & ->).
+    destruct κ => //. destruct κ => //. destruct HStep as (H & ->).
     only_one_reduction H. iFrame.
 Qed.
     

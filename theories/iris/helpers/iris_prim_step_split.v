@@ -26,10 +26,11 @@ Section prim_step_split_properties.
     intros Hfill Hred Hstep.
     edestruct lfilled_reduce as [(es' & Hstep' & Hfill') | (lh0 & Htrap & Hσ) ] => //=.
     - destruct σ as [[s locs ] inst ].
-      destruct Hred as (obs & e1 & [[ s1 locs1 ] inst1] & efs & (Hes1 & -> & ->)).
-      exists [], (e1 ++ es2), (s1, locs1, inst1), [].
+      destruct Hred as (obs & e1 & [[ s1 locs1 ] inst1] & efs & Hes1).
+      destruct obs => //. destruct obs => //. destruct Hes1 as [Hes1 ->].
+      exists [o], (e1 ++ es2), (s1, locs1, inst1), [].
       repeat split => //=.
-      eapply (r_label (k:=0) (lh := LH_base [] es2)) ; try done ;
+      eapply (rm_label (k:=0) (lh := LH_base [] es2)) ; try done ;
         unfold lfilled, lfill => //=.
     - eapply prim_step_split_reduce_r in Hstep' as
           [ (es'' & Hes' & Hes1) | (n & m & lh0 & Htrap' & Htrap & Hσ)].
@@ -41,7 +42,8 @@ Section prim_step_split_properties.
         by eexists.
       + destruct (iris.to_val es1) eqn:Htv => //=.
         destruct σ as [[ ?  ? ] ?].
-        destruct Hred as (? & ? & [[ ?  ? ] ? ] & ? & (? & ? & ?)).
+        destruct Hred as (? & ? & [[ ?  ? ] ? ] & ? & ?).
+        destruct x => //. destruct x => //. destruct H as [H ?].
         apply val_head_stuck_reduce in H. congruence.
     - right. split => //=.
       unfold lfilled, lfill in Htrap.
@@ -49,7 +51,8 @@ Section prim_step_split_properties.
       destruct (const_list bef) eqn : Hbef ; last by false_assumption.
       move/eqP in Htrap.
       destruct σ as [[s  locs ] inst ].
-      destruct Hred as (?&?&[[??]?]&?&(?&?&?)).
+      destruct Hred as (?&?&[[??]?]&?&?).
+      destruct x => //. destruct x => //. destruct H as [H ?].
       edestruct first_non_value_reduce as (vs & e & afte & Hvs & He & Hes1) => //=.
       rewrite Hes1 in Htrap.
       rewrite - app_assoc in Htrap.
@@ -59,6 +62,7 @@ Section prim_step_split_properties.
       by unfold lfilled, lfill ; rewrite Hbef Hes1.
       destruct e => // ; destruct b => //.
       unfold to_val, iris.to_val in He ; simpl in He ; destruct He as [?|?] => //.
+      by destruct Hσ.
   Qed.
 
 
@@ -69,7 +73,9 @@ Section prim_step_split_properties.
     (∃ e' v'' i'' LI', prim_step es1 (s,v,i) obs2 e' (s2,v'',i'') efs2 ∧ v' = v2 ∧ i' = i2 ∧ e2 = [AI_local n (Build_frame v'' i'') LI'] ∧ lfilled j lh (e' ++ es2) LI') \/
       ∃ lh0, lfilled 0 lh0 [AI_trap] es1 /\ (s,v',i') = (s2,v2,i2) .
   Proof.
-    intros Hfill (obs & e1 & [[s1  v1 ] i1] & efs & (Hes1 & -> & ->)) (Hstep & -> & ->).
+    intros Hfill (obs & e1 & [[s1  v1 ] i1] & efs & Hes1) Hstep.
+    destruct obs => //. destruct obs => //. destruct obs2 => //. destruct obs2 => //.
+    destruct Hes1 as [Hes1 ->]. destruct Hstep as [Hstep ->].
     remember {| f_locs := v ; f_inst := i |} as f.
     remember {| f_locs := v1 ; f_inst := i1 |} as f1.
     remember {| f_locs := v' ; f_inst := i' |} as f'.
@@ -79,7 +85,11 @@ Section prim_step_split_properties.
       try (by rewrite <- (app_nil_l [AI_local _ _ _]) in Heqes ;
            apply app_inj_tail in Heqes as [_ Habs] ;
            inversion Habs).
-    { destruct H ; try (by inversion Heqes) ;
+    { destruct H; try (by inversion Heqes) ;
+      try (by rewrite <- (app_nil_l [AI_local _ _ _]) in Heqes ;
+           apply app_inj_tail in Heqes as [_ Habs] ;
+           inversion Habs).
+       destruct H ; try (by inversion Heqes) ;
         try (by rewrite <- (app_nil_l [AI_local _ _ _]) in Heqes ;
              apply app_inj_tail in Heqes as [_ Habs] ;
              inversion Habs).
@@ -100,7 +110,7 @@ Section prim_step_split_properties.
       - inversion Heqes ; subst ; clear Heqes.
         exfalso.
         eapply (lfilled_return_and_reduce (s := s) (es := es1 ++ es2) (LI:=LI)).
-        eapply r_label.
+        eapply rm_label.
         exact Hes1.
         instantiate (1 := LH_base [] es2).
         instantiate (1 := 0).
@@ -119,10 +129,10 @@ Section prim_step_split_properties.
     - inversion Heqes ; subst n0 f0 es ; clear Heqes.
       rewrite Heqf' in Heqf2 ; inversion Heqf2 ; subst v' i'.
       assert (reducible es1 (s, v, i)).
-      { eexists _, _ , (_,_,_), _. repeat split => //=.
+      { eexists [_], _ , (_,_,_), _. repeat split => //=.
         subst ; exact Hes1. }
       destruct f' as [v' i'] eqn:Hf'.
-      assert (prim_step LI (s, v, i) [] es' (s', v', i') []).
+      assert (prim_step LI (s, v, i) [me] es' (s', v', i') []).
       { repeat split => //=. subst ; exact Hstep. }
       edestruct lfilled_prim_step_split_reduce_r
         as [(e' & Hes1' & Hfill') | [[lh0 Htrap] Hσ]].

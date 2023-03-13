@@ -54,10 +54,10 @@ Qed.
 
 Lemma mem_block_lookup wms n mem:
   ⊢ (gen_heap_interp (gmap_of_memory wms)) -∗
-  (gen_heap_interp (gmap_of_list (fmap mem_length wms))) -∗
-  (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt wms))) -∗
-  n ↦[wmblock] mem -∗
-  ⌜ ∃ m, wms !! (N.to_nat n) = Some m /\ m.(mem_data).(ml_data) = mem.(mem_data).(ml_data) /\ m.(mem_max_opt) = mem.(mem_max_opt)⌝.
+    (gen_heap_interp (gmap_of_list (fmap mem_length wms))) -∗
+    (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt wms))) -∗
+    n ↦[wmblock] mem -∗
+    ⌜ ∃ m, wms !! (N.to_nat n) = Some m /\ m.(mem_data).(ml_data) = mem.(mem_data).(ml_data) /\ m.(mem_max_opt) = mem.(mem_max_opt)⌝.
 Proof.
   iIntros "Hwm Hwmlength Hwmlimit Hm".
   unfold mem_block.
@@ -77,9 +77,9 @@ Qed.
 
 Lemma tab_block_lookup_data wts n tab:
   ⊢ (gen_heap_interp (gmap_of_table wts)) -∗
-  (gen_heap_interp (gmap_of_list (fmap tab_size wts))) -∗
-  n ↦[wtblock] tab -∗
-  ⌜ ∃ t, wts !! (N.to_nat n) = Some t /\ t.(table_data) = tab.(table_data)⌝.
+    (gen_heap_interp (gmap_of_list (fmap tab_size wts))) -∗
+    n ↦[wtblock] tab -∗
+    ⌜ ∃ t, wts !! (N.to_nat n) = Some t /\ t.(table_data) = tab.(table_data)⌝.
 Proof.
   iIntros "Hwt Hwtsize Ht".
   unfold tab_block.
@@ -112,10 +112,10 @@ Qed.
 
 Lemma tab_block_lookup wts n tab:
   ⊢ (gen_heap_interp (gmap_of_table wts)) -∗
-  (gen_heap_interp (gmap_of_list (fmap tab_size wts))) -∗
-  (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt wts))) -∗
-  n ↦[wtblock] tab -∗
-  ⌜ wts !! (N.to_nat n) = Some tab⌝.
+    (gen_heap_interp (gmap_of_list (fmap tab_size wts))) -∗
+    (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt wts))) -∗
+    n ↦[wtblock] tab -∗
+    ⌜ wts !! (N.to_nat n) = Some tab⌝.
 Proof.
   iIntros "Hwt Hwtsize Hwtlimit Ht".
   unfold tab_block.
@@ -140,8 +140,8 @@ Qed.
 Lemma wp_get_local (s : stuckness) (E : coPset) (v: value) (i: nat) (Φ: iris.val -> iProp Σ) f :
   (f_locs f) !! i = Some v -> 
   ▷Φ (immV [v]) -∗
-  ↪[frame] f -∗
-   WP ([AI_basic (BI_get_local i)]) @ s; E {{ w, Φ w ∗ ↪[frame] f }}.
+    ↪[frame] f -∗
+    WP ([AI_basic (BI_get_local i)]) @ s; E {{ w, Φ w ∗ ↪[frame] f }}.
 Proof.
   iIntros (Hlook) "HΦ Hli".
   iApply wp_lift_atomic_step => //=.
@@ -154,13 +154,13 @@ Proof.
   iSplit.
   - iPureIntro.
     destruct s => //=.
-    exists [], [AI_basic (BI_const v)], (ws, locs, inst), [].
+    exists [ME_empty], [AI_basic (BI_const v)], (ws, locs, inst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    by apply r_get_local.
+    by apply rm_silent, r_get_local.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H.
     iFrame "# ∗ %".
 Qed.
@@ -181,19 +181,19 @@ Proof.
   iSplit.
   - iPureIntro.
     destruct s => //=.
-    exists [], [], (ws, set_nth v locs i v, inst), [].
+    exists [ME_empty], [], (ws, set_nth v locs i v, inst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    eapply r_set_local => //=.
+    eapply rm_silent, r_set_local => //=.
     rewrite -(rwP ssrnat.leP). lia.
   - iIntros "!>" (es σ2 efs HStep).
     iMod (ghost_map_update (Build_frame (set_nth v locs i v) inst) with "Hl Hli") as "(Hl & Hli)".
     iModIntro.
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
-    eapply reduce_det in H as [H | [ [? Hstart] |  (?&?&?&Hstart & Hstart1 & Hstart2
-                                                               & Hσ)]] ;
-      last (eapply r_set_local with (f' := {| f_locs := set_nth v locs i v; f_inst := inst |}); eauto) ;
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    eapply reduce_det in H as [H | [ [? Hstart] | [[? Hstart] |  (?&?&?&Hstart & Hstart1 & Hstart2
+                                                               & Hσ)]]] ;
+      last (eapply rm_silent, r_set_local with (f' := {| f_locs := set_nth v locs i v; f_inst := inst |}); eauto) ;
     try by unfold first_instr in Hstart ; simpl in Hstart ; inversion Hstart.
     inversion H; subst; clear H. simpl.
     iFrame "# ∗ %". rewrite insert_insert. iFrame. auto.
@@ -218,14 +218,14 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => //=.
-    eexists _,_,(_,_,_),_.
+    eexists [_],_,(_,_,_),_.
     repeat split => //=.
-    by apply r_simple, rs_tee_local.
+    by apply rm_silent, r_simple, rs_tee_local.
   - iIntros "!>" (es σ2 efs HStep).
     iMod "Hfupd".
     iModIntro.
     destruct σ2 as [[ws' locs' ] inst' ] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H.
     iApply bi.sep_exist_l. iExists _. iFrame.
 Qed.
@@ -260,13 +260,13 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    eexists [], [AI_basic (BI_const (g_val g))], (ws, locs, _), [].
+    eexists [ME_empty], [AI_basic (BI_const (g_val g))], (ws, locs, _), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    by apply r_get_global.
+    by apply rm_silent, r_get_global.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] winst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H. iFrame.
 Qed.
 
@@ -296,6 +296,8 @@ Proof.
       s_funcs := s_funcs ws;
       s_tables := s_tables ws;
       s_mems := s_mems ws;
+      s_segs := s_segs ws;
+      s_alls := s_alls ws;
       s_globals :=
         update_list_at (s_globals ws) k {| g_mut := g_mut g; g_val := v |}
     |}) as Hsglob.
@@ -306,13 +308,13 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    eexists [], _, (_, locs, _), [].
+    eexists [_], _, (_, locs, _), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    apply r_set_global;eauto.
+    apply rm_silent, r_set_global;eauto.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws' locs'] winst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     only_one_reduction H.
     iMod (gen_heap_update with "Hg Hglob") as "[Hg Hglob]".
     iFrame. rewrite nth_error_lookup in Hglob.
@@ -1579,6 +1581,22 @@ Proof.
   by rewrite Wasm_float.FloatSize32.of_to_bits.
   rewrite Memdata.decode_encode_int_8.
   by rewrite Wasm_float.FloatSize64.of_to_bits.
+  unfold serialise_handle.
+  unfold handle_of_bytes.
+  destruct (Memdata.encode_int 4 (Z.of_N (base h))) eqn:Hbase => //.
+  repeat destruct l => //.
+  destruct (Memdata.encode_int 4 (Z.of_N (offset h))) eqn:Hoff => //.
+  repeat destruct l => //.
+  destruct (Memdata.encode_int 4 (Z.of_N (bound h))) eqn:Hbound => //.
+  repeat destruct l => //.
+  destruct (serialise_i32 (_)) as [|b l] eqn:Hvalid => //.
+  repeat destruct l => //.
+  destruct (Memdata.encode_int 4 (Z.of_N (id h))) eqn:Hid => //.
+  repeat destruct l => //.
+  simpl.
+  rewrite - Hbase - Hoff - Hbound - Hvalid - Hid.
+  repeat rewrite Memdata.decode_encode_int.
+  
 Qed.
 
 Lemma bits_deserialise bs t :

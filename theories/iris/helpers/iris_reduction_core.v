@@ -25,7 +25,7 @@ Section reduction_core.
     const_list bef0 ->
     const_list bef1 ->
     bef0 ++ es0 ++ aft0 = bef1 ++ es1 ++ aft1 ->
-    (exists core bc0 ac0 bc1 ac1 core' me,
+    (exists core bc0 ac0 bc1 ac1 core',
         const_list bc0 /\
           const_list bc1 /\
           es0 = bc0 ++ core ++ ac0 /\
@@ -33,14 +33,14 @@ Section reduction_core.
           bef0 ++ bc0 = bef1 ++ bc1 /\
           ac0 ++ aft0 = ac1 ++ aft1 /\
 (*          me0 = me1 /\ *)
-          reduce s f core me s' f' core' /\
+          reduce s f core me1 s' f' core' /\
           bc1 ++ core' ++ ac1 = es1') \/
       exists lh0 lh1, lfilled 0 lh0 [AI_trap] es0 /\ lfilled 0 lh1 [AI_trap] es1 /\
-                   (s,f) = (s', f').
+                   (s,f) = (s', f') /\ me1 = ME_empty.
   Proof.
     intros Hred0 Hred1 Hbef0 Hbef1 Heq.
     cut (forall nnnn, length es1 < nnnn ->
-                 (∃ core bc0 ac0 bc1 ac1 core' me,
+                 (∃ core bc0 ac0 bc1 ac1 core',
                      const_list bc0
                      ∧ const_list bc1
                      ∧ es0 = bc0 ++ core ++ ac0
@@ -48,8 +48,8 @@ Section reduction_core.
                      ∧ bef0 ++ bc0 = bef1 ++ bc1
                      ∧ ac0 ++ aft0 = ac1 ++ aft1
                      (* /\ me0 = me1 *)
-                     ∧ reduce s f core me s' f' core' ∧ bc1 ++ core' ++ ac1 = es1')
-                 ∨ (∃ lh0 lh1 : lholed, lfilled 0 lh0 [AI_trap] es0 ∧ lfilled 0 lh1 [AI_trap] es1 /\ (s,f) = (s',f'))).
+                     ∧ reduce s f core me1 s' f' core' ∧ bc1 ++ core' ++ ac1 = es1')
+                 ∨ (∃ lh0 lh1 : lholed, lfilled 0 lh0 [AI_trap] es0 ∧ lfilled 0 lh1 [AI_trap] es1 /\ (s,f) = (s',f') /\ me1 = ME_empty)).
     { intro Hn ; eapply (Hn (S (length es1))) ; lia. }
     intro nnnn.
     generalize dependent es1.
@@ -83,7 +83,7 @@ Section reduction_core.
            try (destruct He0 as [-> | ->]; by intros [? ?]) ;
            try (by const_list_app) ;
            rewrite separate1 in Heq0 ;
-           eexists _, vs0, afte0, [], [], _, _ ;
+           eexists _, vs0, afte0, [], [], _ ;
            repeat split ; try done ; try (by rewrite app_nil_r) ;
                by econstructor);
       try (by left ; rewrite (separate1 (AI_basic (BI_const _))) in Heq ;
@@ -138,7 +138,7 @@ Section reduction_core.
              rewrite - app_assoc in Heq0 ;
              rewrite - separate1 in Heq0 ;
              rewrite separate2 in Heq0 ;
-             eexists _, ys, afte0, [], [], _, _ ;
+             eexists _, ys, afte0, [], [], _ ;
              repeat split ; try done ; try (by rewrite app_nil_r) ;
              [ rewrite Htail in Hvs0 ;
                unfold const_list in Hvs0 ;
@@ -287,7 +287,7 @@ Section reduction_core.
                 apply app_inj_tail in Hys' as [Hys ->] ;
                 rewrite Htail app_comm_cons Htail' - app_assoc - separate1 - app_assoc
                 - separate1 separate3 in Heq0 ;
-                eexists _, ys', afte0, [], [], _, _ ;
+                eexists _, ys', afte0, [], [], _ ;
                 repeat split ; try done ; try (by rewrite app_nil_r) ;
                 [ rewrite Htail app_comm_cons Htail' in Hvs0 ;
                   unfold const_list in Hvs0 ;
@@ -318,7 +318,7 @@ Section reduction_core.
            try (destruct He0 as [-> | ->]; by intros [? ?]) ;
            try (by const_list_app) ;
            rewrite separate1 in Heq0 ; 
-           eexists _, vs0, afte0, [], [], _, ME_empty ;
+           eexists _, vs0, afte0, [], [], _;
            repeat split ; try done ; try (by rewrite app_nil_r) ;
              by econstructor; econstructor);
   try (by left ; rewrite (separate1 (AI_basic (BI_const _))) in Heq ;
@@ -373,7 +373,7 @@ Section reduction_core.
              rewrite - app_assoc in Heq0 ;
              rewrite - separate1 in Heq0 ;
              rewrite separate2 in Heq0 ;
-             eexists _, ys, afte0, [], [], _, ME_empty ;
+             eexists _, ys, afte0, [], [], _;
              repeat split ; try done ; try (by rewrite app_nil_r) ;
              [ rewrite Htail in Hvs0 ;
                unfold const_list in Hvs0 ;
@@ -530,7 +530,7 @@ Section reduction_core.
                 apply app_inj_tail in Hys' as [Hys ->] ;
                 rewrite Htail app_comm_cons Htail' - app_assoc - separate1 - app_assoc
                 - separate1 separate3 in Heq0 ;
-                eexists _, ys', afte0, [], [], _, ME_empty ;
+                eexists _, ys', afte0, [], [], _;
                 repeat split ; try done ; try (by rewrite app_nil_r) ;
                 [ rewrite Htail app_comm_cons Htail' in Hvs0 ;
                   unfold const_list in Hvs0 ;
@@ -552,7 +552,7 @@ Section reduction_core.
                 try (destruct He0 as [-> | ->]; by intros [? ?]);
                 try (by const_list_app);
                 rewrite separate1 in Heq0;
-                eexists _, vs0, afte0, [], [], _, ME_empty ;
+                eexists _, vs0, afte0, [], [], _;
                 repeat split ; try done ; try (by rewrite app_nil_r) ;
                   by repeat econstructor).
       21: try (destruct v ; (try destruct b) ; try by inversion Hr).   
@@ -608,7 +608,7 @@ Section reduction_core.
                   rewrite - app_assoc in Heq0 ;
                   rewrite - separate1 in Heq0 ;
                   rewrite separate2 in Heq0 ;
-                  eexists _, ys, afte0, [], [], _, ME_empty ;
+                  eexists _, ys, afte0, [], [], _;
                   repeat split ; try done ; try (by rewrite app_nil_r) ;
                   [ rewrite Htail in Hvs0 ;
                     unfold const_list in Hvs0 ;
@@ -757,7 +757,7 @@ Section reduction_core.
                      apply app_inj_tail in Hys' as [Hys ->] ;
                      rewrite Htail app_comm_cons Htail' - app_assoc - separate1 - app_assoc
                      - separate1 separate3 in Heq0 ;
-                     eexists _, ys', afte0, [], [], _, ME_empty ;
+                     eexists _, ys', afte0, [], [], _;
                      repeat split ; try done ; try (by rewrite app_nil_r) ;
                      [ rewrite Htail app_comm_cons Htail' in Hvs0 ;
                        unfold const_list in Hvs0 ;
@@ -1079,7 +1079,7 @@ Section reduction_core.
         repeat rewrite - app_assoc in Heq0.
         simpl in Heq0.
         rewrite separate4 in Heq0.
-        eexists _, vs3, afte0, [], [], _, ME_empty.
+        eexists _, vs3, afte0, [], [], _.
         repeat split => //= ; try by rewrite app_nil_r.
         rewrite - Hbefs in Hbef1.
         unfold const_list in Hbef1.
@@ -1401,7 +1401,7 @@ Section reduction_core.
         repeat rewrite - app_assoc in Heq0.
         simpl in Heq0.
         rewrite separate4 in Heq0.
-        eexists _, vs3, afte0, [], [], _, ME_empty.
+        eexists _, vs3, afte0, [], [], _.
         repeat split => //= ; try by rewrite app_nil_r.
         rewrite - Hbefs in Hbef1.
         unfold const_list in Hbef1.
@@ -1428,7 +1428,7 @@ Section reduction_core.
           rewrite - app_assoc in Heq0.
           rewrite separate1 in Heq0.
           rewrite (app_assoc vs) in Heq0.
-          eexists _,(take (length vs0 - n) vs0),afte0,[],[],_,ME_empty ;
+          eexists _,(take (length vs0 - n) vs0),afte0,[],[],_;
             repeat split ; try done ; try by rewrite app_nil_r.
           rewrite - (take_drop (length vs0 - n) vs0) in Hvs0.
           unfold const_list in Hvs0.
@@ -1526,7 +1526,7 @@ Section reduction_core.
           rewrite - app_assoc in Heq0.
           rewrite separate1 in Heq0.
           rewrite (app_assoc vs) in Heq0.
-          eexists _,(take (length vs0 - n) vs0),afte0,[],[],_, ME_empty ;
+          eexists _,(take (length vs0 - n) vs0),afte0,[],[],_;
             repeat split ; try done ; try by rewrite app_nil_r.
           rewrite - (take_drop (length vs0 - n) vs0) in Hvs0.
           unfold const_list in Hvs0.
@@ -1761,7 +1761,7 @@ Section reduction_core.
           apply app_inj_tail in Hys' as [Hys ->] ;
           rewrite Htail app_comm_cons Htail' - app_assoc - separate1 - app_assoc
           - separate1 separate3 in Heq0 ;
-          eexists _, ys', afte0, [], [], _, ME_empty .
+          eexists _, ys', afte0, [], [], _.
           repeat split ; try done ; try (by rewrite app_nil_r) .
            rewrite Htail app_comm_cons Htail' in Hvs0 ;
             unfold const_list in Hvs0 ;
@@ -2083,7 +2083,7 @@ Section reduction_core.
         repeat rewrite - app_assoc in Heq0.
         simpl in Heq0.
         rewrite separate4 in Heq0.
-        eexists _, vs3, afte0, [], [], _, ME_empty.
+        eexists _, vs3, afte0, [], [], _.
         repeat split => //= ; try by rewrite app_nil_r.
         rewrite - Hbefs in Hbef1.
         unfold const_list in Hbef1.
@@ -2406,7 +2406,7 @@ Section reduction_core.
         repeat rewrite - app_assoc in Heq0.
         simpl in Heq0.
         rewrite separate4 in Heq0.
-        eexists _, vs3, afte0, [], [], _, ME_empty.
+        eexists _, vs3, afte0, [], [], _.
         repeat split => //= ; try by rewrite app_nil_r.
         rewrite - Hbefs in Hbef1.
         unfold const_list in Hbef1.
@@ -2451,7 +2451,7 @@ Section reduction_core.
         rewrite - app_assoc in Heq0.
         rewrite separate1 in Heq0.
         rewrite (app_assoc ves) in Heq0.
-        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_, ME_empty ;
+        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_;
           repeat split ; try done ; try by rewrite app_nil_r.
         rewrite - (take_drop (length vs0 - n) vs0) in Hvs0.
         unfold const_list in Hvs0.
@@ -2564,7 +2564,7 @@ Section reduction_core.
         rewrite - app_assoc in Heq0.
         rewrite separate1 in Heq0.
         rewrite (app_assoc ves) in Heq0.
-        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_, ME_empty ;
+        eexists _,(take (length vs0 - n) vs0),afte0,[],[],_;
           repeat split ; try done ; try by rewrite app_nil_r.
         rewrite - (take_drop (length vs0 - n) vs0) in Hvs0.
         unfold const_list in Hvs0.
@@ -2669,7 +2669,7 @@ Section reduction_core.
         move/eqP in Hr3.
         subst.
         by eapply IHHred.
-        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & me' & Hbc0 & Hbc1 &
+        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & Hbc0 & Hbc1 &
                                 Hes0 & Hes & Hbefs & Hafts & Hredcore & Hcore') |
                               (lh0 & lh1 & Hfill0 & Hfill1 & Hσ)].
         exact Hbef1.
@@ -2687,7 +2687,7 @@ Section reduction_core.
         simpl in Hlen.
         lia.
         left.
-        eexists core,bc0,ac0,bc1,(ac1 ++ (a :: aft)),core', me'.
+        eexists core,bc0,ac0,bc1,(ac1 ++ (a :: aft)),core'.
         repeat split => //=.
         rewrite Hr2 Hes.
         simpl.
@@ -2705,7 +2705,7 @@ Section reduction_core.
         unfold lfilled, lfill => //= ; by rewrite Hr2.
         destruct (lfilled_trans Hfill1 H) as [lh' Hfilltrap].
         eexists _,_ ; split => //=.
-        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & me' & Hbc0 & Hbc1 &
+        edestruct IHnnnn as [(core & bc0 & ac0 & bc1 & ac1 & core' & Hbc0 & Hbc1 &
                                 Hes0 & Hes & Hbefs & Hafts & Hredcore & Hcore') |
                               (lh0 & lh1 & Hfill0 & Hfill1 & Hσ)].
         instantiate (1 := (bef1 ++ a :: bef)).
@@ -2724,7 +2724,7 @@ Section reduction_core.
         simpl in Hlen.
         lia.
         left.
-        eexists core,bc0,ac0,(a :: bef ++ bc1),(ac1 ++ aft),core', me'.
+        eexists core,bc0,ac0,(a :: bef ++ bc1),(ac1 ++ aft),core'.
         repeat split => //.
         rewrite app_comm_cons.
         by const_list_app.
@@ -2766,7 +2766,7 @@ Section reduction_core.
       unfold lfilled, lfill in Hr3 ; fold lfill in Hr3.
       rewrite Hl in Hr3.
       destruct (lfill k lh es') eqn : Hfill' ; last by false_assumption.
-      left ; eexists [AI_label n l0 l2], vs0, afte0, l, l1, _,_.
+      left ; eexists [AI_label n l0 l2], vs0, afte0, l, l1, _.
       repeat split => //=.
       eapply rm_label.
       exact Hr1.

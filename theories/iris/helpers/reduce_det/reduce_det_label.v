@@ -5,17 +5,17 @@ Require Export iris_reduce_det_prelude iris_split_reduce.
 Local Definition reducible := @iris.program_logic.language.reducible wasm_lang.
 
 Lemma label_det s f es me me' s' f' es' les les' k lh ws2 f2 es2 nnn:
-  (∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1 me2,
+  (∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1,
     reduce s f es me1 s' f1 es1
-    → reduce s f es me2 ws2 f2 es2 → length_rec es < nnn → reduce_det_goal me1 s' f1 es1 me2 ws2 f2 es2 es) ->
+    → ∀ me2, reduce s f es me2 ws2 f2 es2 → length_rec es < nnn → reduce_det_goal me1 s' f1 es1 me2 ws2 f2 es2 es) ->
   reduce s f es me s' f' es' ->
   lfilled k lh es les ->
   lfilled k lh es' les' ->
   reduce s f les me' ws2 f2 es2 ->
   length_rec les < S nnn ->
-  ((∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1 me2,
+  ((∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1,
       reduce s f es me1 s' f1 es1
-      → reduce s f es me2 ws2 f2 es2 → length_rec es < nnn → reduce_det_goal me1 s' f1 es1 me2 ws2 f2 es2 es)
+      → ∀ me2, reduce s f es me2 ws2 f2 es2 → length_rec es < nnn → reduce_det_goal me1 s' f1 es1 me2 ws2 f2 es2 es)
    → reduce s f es me' ws2 f2 es2 → length_rec es < S nnn → reduce_det_goal me s' f' es' me' ws2 f2 es2 es) ->
   reduce_det_goal me s' f' les' me' ws2 f2 es2 les.
 Proof.
@@ -71,7 +71,7 @@ Proof.
           assert (length_rec [y] > 0) ; first by apply cons_length_rec.
           replace (es ++ ys)%list with (es ++ ys)%SEQ in Hlen => //=.
           lia. }
-        destruct (IHnnn _ _ _ _ _ _ _ _ H1 H2 H3) as [Hσ | [[i Hstart] |
+        destruct (IHnnn _ _ _ _ _ _ _ H1 _ H2 H3) as [Hσ | [[i Hstart] |
                                                              [[i Hstart] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)]
                                                         (*] *)]].
         - left. rewrite H0. inversion Hσ ; subst.
@@ -147,7 +147,7 @@ Proof.
             ([AI_basic (BI_const v)] ++ (bef ++ es ++ aft)) in Hlen => //=.
         rewrite app_length_rec in Hlen. simpl in Hlen. 
           by apply lt_S_n. }
-      destruct (IHnnn _ _ _ _ _ _ _ _ H1 H2 H3) as [Hσ | [[i Hstart] |
+      destruct (IHnnn _ _ _ _ _ _ _ H1 _ H2 H3) as [Hσ | [[i Hstart] |
                                                            [[ i Hstart ] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)]
                                                ]].
       - left. rewrite H0. rewrite <- app_comm_cons.
@@ -278,7 +278,7 @@ Proof.
         assert (lfilled 1 (LH_rec [] n0 l2 (LH_base [] []) []) l4
                         [AI_label n0 l2 l4]).
         unfold lfilled, lfill => //=. by rewrite app_nil_r.
-        destruct (IHnnn _ _ _ _ _ _ _ _ H H0 H3)
+        destruct (IHnnn _ _ _ _ _ _ _ H _ H0 H3)
           as [ Hσ | [ [i Hstart] | [ [ i Hstart] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)] (* ] *)]].
         - left. move/eqP in H2. inversion Hσ ; by subst.
         - right ; left. exists (i + 1).
@@ -325,7 +325,7 @@ Proof.
           assert (length_rec [y] > 0) ; first by apply cons_length_rec.
           replace (es ++ ys)%list with (es ++ ys)%SEQ in Hlen => //=.
           lia. }
-        destruct (IHnnn _ _ _ _ _ _ _ _ H1 H2 H3) as [Hσ | [ [i Hstart] |
+        destruct (IHnnn _ _ _ _ _ _ _ H1 _ H2 H3) as [Hσ | [ [i Hstart] |
                                                          [[i Hstart] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)]
                                                  ]].
         - left. rewrite H0. inversion Hσ ; subst.
@@ -400,7 +400,7 @@ Proof.
             ([AI_basic (BI_const v)] ++ (bef ++ AI_label n es0 l :: aft)) in Hlen => //=.
         rewrite app_length_rec in Hlen. simpl in Hlen. 
           by apply lt_S_n. }          
-      destruct (IHnnn _ _ _ _ _ _ _ _ Hles H2 H1) as [Hσ | [ [i Hstart] |
+      destruct (IHnnn _ _ _ _ _ _ _ Hles _ H2 H1) as [Hσ | [ [i Hstart] |
                                                          [ [i Hstart] | (i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)]
                                                  ]].
       - left. rewrite H0. rewrite <- app_comm_cons.

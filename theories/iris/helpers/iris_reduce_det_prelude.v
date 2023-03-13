@@ -75,12 +75,12 @@ Ltac only_one_reduction Heqes0 Hred :=
          (try by subst ; found_intruse (AI_basic (BI_loop (Tf t1s t2s) es)) Heqes0 Hxl1) ;
          (try by subst ; filled_trap H0 Hxl1) )) ;
   (* lfilled case *)
-  try (rewrite <- Heqes0 in H0 ;
+  last (rewrite <- Heqes0 in H0 ;
         (* the simple_filled tactic unfolds lfilled, solves the case where k>0,
            and in the case k=0 leaves user with hypothesis H0 modified to now be
            les = bef ++ es ++ aft *)
         simple_filled2 H0 k lh bef aft n0 l l' ;
-        try
+        first 
           ( apply Logic.eq_sym in H0 ;
             remember ([] : seq.seq administrative_instruction) as g eqn:Heqg in s;
             let rec auxb H0 :=

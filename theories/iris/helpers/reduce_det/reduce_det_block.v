@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
+
+Section reduce_det_block.
+  Context `{ HHB : HandleBytes }.
+
 Lemma block_det vs n m t1s t2s s f me es s' f' es' :
   const_list vs ->
   length vs = n ->
@@ -75,3 +79,6 @@ Proof.
   done. rewrite <- Heqes0 in Hxl1. apply in_app_or in Hxl1 as [Habs | Habs].
   intruse_among_values vs Habs H. inversion Habs ; inversion H5.
 Qed.
+
+
+End reduce_det_block.

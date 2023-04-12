@@ -180,15 +180,7 @@ Definition to_val (e : expr) : option val :=
   | _ => None
   end.
 
-Definition prim_step (e : expr) (s : state) (os : list observation) (e' : expr) (s' : state) (fork_es' : list expr) : Prop :=
-  let '(σ, locs, inst) := s in
-  let '(σ', locs', inst') := s' in
-  match os with 
-  | [:: me] => reduce σ (Build_frame locs inst) e me σ' (Build_frame locs' inst') e' /\ fork_es' = []
-  | _ => False
-  end.
 
-  
 Lemma val_not_val_combine_app v1 v2 :
   expr_of_val_not_val (val_not_val_combine v1 v2) = of_val v1 ++ expr_of_val_not_val v2.
 Proof.
@@ -1555,6 +1547,20 @@ Proof.
   - unfold to_val => /= ; by rewrite merge_call_host flatten_simplify.
 Qed.
 
+Section prim_step.
+  Context `{ HHB: HandleBytes }.
+
+Definition prim_step (e : expr) (s : state) (os : list observation) (e' : expr) (s' : state) (fork_es' : list expr) : Prop :=
+  let '(σ, locs, inst) := s in
+  let '(σ', locs', inst') := s' in
+  match os with 
+  | [:: me] => reduce σ (Build_frame locs inst) e me σ' (Build_frame locs' inst') e' /\ fork_es' = []
+  | _ => False
+  end.
+
+
+
+
 Lemma val_head_stuck_reduce : ∀ locs1 s1 e1 me locs2 s2 e2,
     reduce locs1 s1 e1 me locs2 s2 e2 ->
     to_val e1 = None.
@@ -1709,3 +1715,4 @@ Proof. split; eauto using to_of_val, of_to_val, val_head_stuck. Qed.
 
 Definition wasm_lang := Language wasm_mixin.
 
+End prim_step.

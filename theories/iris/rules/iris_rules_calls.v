@@ -49,6 +49,8 @@ Context `{!wasmG Σ}.
   (* ----------------------------- Native invocations ------------------------- *)
   (* -------------------------------------------------------------------------- *)
 
+  Context `{HHB : HandleBytes}.
+  
   Lemma wp_invoke_native (s : stuckness) (E : coPset) (Φ : val -> iProp Σ) ves vcs t1s t2s ts a es i m f :
     iris.to_val ves = Some (immV vcs) ->
     length vcs = length t1s ->
@@ -67,27 +69,28 @@ Context `{!wasmG Σ}.
     iDestruct (gen_heap_valid with "Hσ1 Hi") as %Hlook.
     set (σ := (s0,l,i0)).
     assert (reduce s0 {| f_locs := l; f_inst := i0 |}
-           (ves ++ [AI_invoke a])%list s0 {| f_locs := l; f_inst := i0 |}
+           (ves ++ [AI_invoke a])%list ME_empty s0 {| f_locs := l; f_inst := i0 |}
            [AI_local m {| f_locs := vcs ++ n_zeros ts; f_inst := i |} [AI_basic (BI_block (Tf [] t2s) es)]]) as Hred.
-    { eapply r_invoke_native with (ts:=ts);eauto.
-      { rewrite gmap_of_list_lookup Nat2N.id in Hlook. rewrite /= nth_error_lookup //. }
+    { eapply rm_silent, r_invoke_native with (ts0:=ts) ;eauto.
+      { rewrite gmap_of_list_lookup Nat2N.id in Hlook. rewrite /= nth_error_lookup //.  }
       { symmetry. apply v_to_e_list_to_val. auto. } }
     iSplit.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       unfold iris.prim_step => /=.
       repeat split => //.
     - iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ ws' locs'] inst'].
-      destruct HStep as (H & -> & ->).
+      destruct κ => //. destruct κ => //.
+      destruct HStep as (H & -> ).
       assert (first_instr (ves ++ [AI_invoke a]) = Some (AI_invoke a,0)) as Hf.
       { apply first_instr_const. eapply to_val_const_list. eauto. }
       eapply reduce_det in H as HH;[|apply Hred].
-      destruct HH as [HH | [[? Hstart] |  (?&?&?&Hstart & Hstart1 & Hstart2 & Hσ)]]; try done.
+      destruct HH as [HH | [(? & Hstart & ?) | [[? Hstart] |  (?&?&?&Hstart & Hstart1 & Hstart2 & Hσ)]]]; try done.
       simplify_eq. iApply bi.sep_exist_l. iExists f. iFrame.
       iSplit => //. iIntros "Hf".
       iSpecialize ("HΦ" with "[$]"). iFrame.

@@ -4,7 +4,7 @@
 From Wasm Require Import common.
 From Coq Require Import ZArith.BinInt.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
-From Wasm Require Export operations (* host *) type_checker segment_list.
+From Wasm Require Export operations (* host *) type_checker segment_list handle.
 Require Import BinNat.
 
 Set Implicit Arguments.
@@ -149,6 +149,9 @@ Proof.
     by inversion 1.
   - move=> >. by apply: ReflectF.
 Qed.*)
+
+Section interpreter_func.
+  Context `{HHB: HandleBytes}.
 
 Fixpoint run_step_with_fuel (fuel : fuel) (d : depth) (cfg : config_tuple) : res_tuple :=
   let: (s, f, es) := cfg in
@@ -690,4 +693,5 @@ Fixpoint run_v (fuel : fuel) (d : depth) (cfg : config_tuple) : ((store_record *
         end
   end.
 
+End interpreter_func.
 

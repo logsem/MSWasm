@@ -10,6 +10,10 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
+Section type_preservation.
+  Context `{HBB: HandleBytes}.
+
+
 Definition t_be_value bes : Prop :=
   const_list (to_e_list bes).
 
@@ -3399,7 +3403,7 @@ Proof.
     inversion H0; subst. clear H0.
     apply Forall_update => //=.
     eapply store_mem_agree; eauto.
-    * by destruct v => //=.
+      * destruct v => //=. destruct HBB => //=. 
     * by move/ltP in H3.
     destruct s => //=; destruct HST as [_ [_ [_ [? _]]]] => //.
   - (* store some *)
@@ -3532,7 +3536,8 @@ Proof.
     { apply List.nth_error_Some. by rewrite H1. }
     apply Forall_update => //=.
     eapply segstore_seg_agree; eauto.
-      * by move/ltP in H.
+    by destruct HBB. lias.
+(*      * move/ltP in H. *)
   - (* segalloc *)
     subst.
     assert (store_extension s (upd_s_seg (upd_s_all s (update_list_at (s_alls s) j A')) (update_list_at (s_segs s) i seg'))).
@@ -4102,3 +4107,4 @@ Proof.
 Qed.
 
 
+End type_preservation.

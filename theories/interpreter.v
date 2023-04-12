@@ -6,7 +6,7 @@ From Coq Require Import ZArith.BinInt BinNat.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From ExtLib Require Import Structures.Monad.
 From ITree Require Import ITree ITreeFacts.
-From Wasm Require Export operations segment_list (* host *).
+From Wasm Require Export operations segment_list (* host *) handle.
 
 Import Monads.
 Import MonadNotation.
@@ -105,7 +105,8 @@ Inductive run_stepE : Type -> Type :=
 Section RunStep.
 
 (** See ITree/tutorial/Imp.v: these commands are used to enable other events to be mangled in. **)
-Context {eff : Type -> Type}.
+  Context {eff : Type -> Type}.
+  Context `{HandleBytes}.
 (* Context {eff_has_host_event : host_event -< eff}. *)
 
 Definition run_step_base (call : run_stepE ~> itree (run_stepE +' eff))
@@ -682,7 +683,8 @@ End RunStep.
 
 Section Run.
 
-Context {eff : Type -> Type}.
+  Context {eff : Type -> Type}.
+  Context `{HandleBytes}.
 (* Context {eff_has_host_event : host_event -< eff}. *)
 
 Definition run_v : depth -> instance -> config_tuple -> itree eff (store_record * res) :=

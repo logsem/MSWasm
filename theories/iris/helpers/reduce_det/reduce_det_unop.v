@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
+
+Section reduce_det_unop.
+  Context `{ HHB : HandleBytes }.
+
 Lemma unop_det v op t s f me s' f' es:
   reduce s f [AI_basic (BI_const v); AI_basic (BI_unop t op)] me s' f' es ->
   reduce_det_goal ME_empty s f [AI_basic (BI_const (app_unop op v))] me s' f' es [AI_basic (BI_const v); AI_basic (BI_unop t op)].
@@ -18,3 +22,6 @@ Proof.
          [ only_one ] cannot exfalso all irrelevant cases *)
   by only_one [AI_basic (BI_const v) ; AI_basic (BI_unop t op)] Hred.
 Qed.
+
+
+End reduce_det_unop.

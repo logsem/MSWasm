@@ -5,6 +5,8 @@ From iris.base_logic Require Export gen_heap proph_map.
 Require Export iris iris_locations iris_properties.
 Require Export datatypes operations properties opsem.
 
+Section atomicity.
+  Context `{HHB : HandleBytes}.
 
 Local Definition reducible := @reducible wasm_lang.
 
@@ -202,7 +204,7 @@ Proof.
   destruct σ' as [[[hs' ws'] locs'] inst'].
   destruct K => //. destruct K => //.
   destruct Hstep as [Hstep ->].
-  induction Hstep using reduce_ind.
+  induction Hstep. (* using reduce_ind. *)
   destruct H.
   all: apply is_atomic_eq in Ha as Heq.
   all: destruct Heq as [(?&?&?&?&?&?)|[(?&?&?)|[(?&?&?&?&?&?&?)|[(?&?&?&?)|[(?&?&?)|[(?&?)|?]]]]]];simplify_eq; eauto.
@@ -265,11 +267,15 @@ Proof.
     erewrite app_nil_r. erewrite app_nil_l. apply IHHstep. auto. }
 Qed.
 
-
+End atomicity. 
 
 Ltac solve_atomic :=
   apply is_atomic_correct; simpl; repeat split;
     rewrite ?to_of_val; eapply mk_is_Some; fast_done.
 
+
+
 Global Hint Extern 0 (Atomic _ _) => solve_atomic : core.
 Global Hint Extern 0 (Atomic _ _) => solve_atomic : typeclass_instances.
+
+

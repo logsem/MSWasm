@@ -8,10 +8,12 @@ From Wasm Require Import common memory memory_list segment_list.
 From Wasm Require Export numerics bytes.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From compcert Require common.Memdata.
+Require Import handle.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
+
 
 
 (** * Basic Datatypes **)
@@ -37,22 +39,6 @@ Definition serialise_f32 (f : f32) : bytes :=
 Definition serialise_f64 (f : f64) : bytes :=
   common.Memdata.encode_int 8%nat (Integers.Int64.unsigned (numerics.Wasm_float.FloatSize64.to_bits f)).
 
-Record handle : Type := {
-    base : N;
-    offset : N;
-    bound : N;
-    valid : bool;
-    id : N;
-  }.
-
-
-Definition serialise_handle (h : handle) : bytes :=
-   common.Memdata.encode_int 4%nat (BinInt.Z.of_N h.(base)) ++
-        common.Memdata.encode_int 4%nat (BinInt.Z.of_N h.(offset)) ++
-        common.Memdata.encode_int 4%nat (BinInt.Z.of_N h.(bound)) ++
-        serialise_i32 (wasm_bool h.(valid)) ++
-        common.Memdata.encode_int 4%nat (BinInt.Z.of_N h.(id))
-     .
 
 (** std-doc:
 Limits classify the size range of resizeable storage associated with memory types and table types.

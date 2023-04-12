@@ -2,6 +2,9 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude iris_split_reduce.
 
+Section reduce_det_local.
+  Context `{ HHB : HandleBytes }.
+
 Lemma local_det s f es me me' s' f' es' ws2 n f0 f2 es2 nnn:
   (∀ (f f2 f1 : frame) (es2 es1 es : seq.seq administrative_instruction) me1,
     reduce s f es me1 s' f1 es1
@@ -152,9 +155,9 @@ Proof.
     unfold length_rec in Hlen ; simpl in Hlen.
     unfold length_rec ; lia.
     destruct (IHnnn _ _ _ _ _ _ _ Hred1 _ Hred2 H)
-      as [Hσ | [ [i Hstart] | [ [ i Hstart ]| (i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ)] (* ] *)]].
+      as [Hσ | [ (i & Hstart & Hme) | [ [ i Hstart ]| (i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ & Hme)] (* ] *)]].
     * left. by inversion Hσ ; subst.
-    * right ; left. exists (i + 1). unfold first_instr => //=. unfold first_instr in Hstart.
+    * right ; left. exists (i + 1). split => //. unfold first_instr => //=. unfold first_instr in Hstart.
       rewrite Hstart => //=. repeat f_equiv. lia.
     * right; right ; left. exists (i + 1). unfold first_instr => //=. unfold first_instr in Hstart.
       rewrite Hstart => //=. repeat f_equiv. lia.
@@ -167,3 +170,5 @@ Proof.
                              rewrite Hstart3 => //=; repeat f_equiv; lia.
         by inversion Hσ ; subst.
 Qed.
+
+End reduce_det_local.

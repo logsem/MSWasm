@@ -28,15 +28,11 @@ Definition differ_at {A} (start len : N) (l1 l2 : list A) :=
 (*
 Definition data_alloc (data : byte * btag * option N) : option N :=
   let '(_,_,n) := data in n.
-
 Definition data_proper (data: byte * btag * option N) :=
   let '(a,b,_) := data in (a,b).
-
 Definition create_data (data : byte * btag) (alloc : option N) :=
   let '(a,b) := data in (a,b,alloc). 
-
 Definition nth_alloc data i := option_map data_alloc (List.nth_error data i).
-
 Definition count_some (x : N) l :=
   List.fold_left (fun acc obj =>
                     match data_alloc obj with
@@ -165,8 +161,6 @@ Proof.
       by apply Hnid.
       apply sym_eq, N.eqb_neq. intro; lia.
 Qed.
-
-
 Check (fresh_nid {| allocated := [::] |}). *)
   
 (*
@@ -177,7 +171,6 @@ Proof.
   apply Alloc => //. lia. apply Hnid. lia.
   
 Qed.
-
 Lemma can_free: forall T a nid, nth_alloc T.(segl_data) (N.to_nat a) = Some (Some nid) ->
                            exists T', sfree T a nid T'.
 Proof.
@@ -267,3 +260,4 @@ Proof.
   eapply IHl in H2; last exact Hl.
   done.
 Qed. 
+

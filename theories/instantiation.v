@@ -386,6 +386,9 @@ Definition init_seg (s : store_record) (inst : instance) (d_ind : N) (d : module
 Definition init_segs (s : store_record) (inst : instance) (d_inds : list N) (ds : list module_segdata) : store_record :=
   List.fold_left (fun s' '(d_ind, d) => init_seg s' inst d_ind d) (List.combine d_inds ds) s.
 
+Section module_typing.
+  Context `{HHB : HandleBytes}.
+
 Definition module_func_typing (c : t_context) (m : module_func) (tf : function_type) : Prop :=
   let '{| modfunc_type := Mk_typeidx i; modfunc_locals := t_locs; modfunc_body := b_es |} := m in
   let '(Tf tn tm) := tf in
@@ -403,6 +406,8 @@ Definition module_func_typing (c : t_context) (m : module_func) (tf : function_t
     tc_return := Some tm;
   |} in
   typing.be_typing c' b_es (Tf [::] tm).
+
+
 
 Definition limit_typing (lim : limits) (k : N) : bool :=
   let '{| lim_min := min; lim_max := maxo |} := lim in
@@ -625,6 +630,13 @@ Inductive external_typing : store_record -> v_ext -> extern_t -> Prop :=
   typing.global_agree g gt ->
   external_typing s (MED_global (Mk_globalidx i)) (ET_glob gt).
 
+
+End module_typing.
+
+
+Section module_instantiation.
+  Context `{HHB: HandleBytes}.
+
 Definition instantiate_globals inst (s' : store_record) m g_inits : Prop :=
   List.Forall2 (fun g v =>
                   exists mes,
@@ -737,3 +749,6 @@ Definition instantiate
     let s'' := init_tabs s' inst (map (fun o => BinInt.Z.to_nat o.(Wasm_int.Int32.intval)) e_offs) m.(mod_elem) in
     (s_end : store_record_eqType)
       == init_mems s'' inst (map (fun o => BinInt.Z.to_N o.(Wasm_int.Int32.intval)) d_offs) m.(mod_data). (* MAXIME : this last line, need to add something for segments? *)
+
+
+End module_instantiation.

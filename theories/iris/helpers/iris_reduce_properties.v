@@ -6,7 +6,7 @@ Open Scope list_scope.
 
 
 Section reduce_properties.
-  
+  Context `{ HHB: HandleBytes }.
 
   Let expr := iris.expr.
   Let val := iris.val.
@@ -193,7 +193,7 @@ Ltac no_reduce Heqes Hred :=
   ].
 
 Section reduce_properties_lemmas.
-
+  Context `{ HHB: HandleBytes }.
   Let expr := iris.expr.
   Let val := iris.val.
   Let to_val := iris.to_val.
@@ -496,6 +496,7 @@ Ltac not_enough_arguments s f vs obj t1s me s' f' es' :=
   )).
 
 Section reduce_properties_lemmas.
+  Context `{ HHB: HandleBytes }.
    Let reducible := @iris.program_logic.language.reducible wasm_lang.
 
   Let expr := iris.expr.
@@ -759,7 +760,7 @@ Section reduce_properties_lemmas.
     
   Lemma AI_trap_reduce_det v ws f me ws' f' es':
     reduce ws f ([AI_basic (BI_const v); AI_trap]) me ws' f' es' ->
-    (ws', f', es') = (ws, f, [AI_trap]).
+    (ws', f', es', me) = (ws, f, [AI_trap], ME_empty).
   Proof.
     move => HReduce.
     remember ([AI_basic (BI_const v); AI_trap]) as es0.
@@ -848,7 +849,7 @@ Section reduce_properties_lemmas.
   Lemma trap_reduce_length s f es me s' f' es' vs1 es2 :
     lfilled 0 (LH_base vs1 es2) [AI_trap] es -> reduce s f es me s' f' es' ->
     exists n1 n2, (n1 + (length es2 - n2) < length vs1 + length es2 ∧ n1 <= length vs1 ∧ n2 <= length es2) ∧
-               lfilled 0 (LH_base (take n1 vs1) (drop n2 es2)) [AI_trap] es' /\ (s, f) = (s', f').
+               lfilled 0 (LH_base (take n1 vs1) (drop n2 es2)) [AI_trap] es' /\ (s, f, me) = (s', f', ME_empty).
   Proof.
     intros Hfill%lfilled_Ind_Equivalent Hred.
     revert vs1 es2 Hfill.
@@ -912,7 +913,7 @@ Section reduce_properties_lemmas.
 
   Lemma trap_reduce s f es me s' f' es' lh :
     lfilled 0 lh [AI_trap] es -> reduce s f es me s' f' es' ->
-    exists lh', lfilled 0 lh' [AI_trap] es' /\ (s, f) = (s', f').
+    exists lh', lfilled 0 lh' [AI_trap] es' /\ (s, f, me) = (s', f', ME_empty).
   Proof.
     intros Hfill Hred.
     destruct lh;try done.
@@ -1126,7 +1127,7 @@ Section reduce_properties_lemmas.
       prim_step (es ++ [e]) σ obs es' σ' efs ->
       (es' = take (length es' - 1) es' ++ [e] /\
          prim_step es σ obs (take (length es' - 1) es') σ' efs)
-      \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\ lfilled 0 lh' [AI_trap] es /\ σ = σ').
+      \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\ lfilled 0 lh' [AI_trap] es /\ σ = σ' /\ obs = [ME_empty]).
   Proof.
     destruct σ as [[[??]?]?].
     destruct σ' as [[[??]?]?].

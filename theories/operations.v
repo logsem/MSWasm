@@ -6,7 +6,7 @@ From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From compcert Require lib.Floats.
 From Wasm Require Export datatypes_properties list_extra.
 From Coq Require Import BinNat Eqdep_dec.
-Require Import Lia Coq.Program.Equality.
+Require Import Lia Coq.Program.Equality handle.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -100,21 +100,7 @@ Definition upd_s_all s m :=
 Definition upd_seg_data seg data :=
   {| seg_data := data ; seg_max_opt := seg.(seg_max_opt) |}.
 
-Definition upd_handle_validity h b :=
-  {| base := h.(base) ;
-    offset := h.(offset) ;
-    bound := h.(bound) ;
-    id := h.(id) ;
-    valid := h.(valid) && b |}.
 
-Definition slice_handle h n1 n2 :=
-  if N.leb 0%N n1 && N.ltb n1 h.(bound) && N.leb 0%N n2 then
-    Some {| base := h.(base) + n1 ;
-           offset := h.(offset) ;
-           bound := h.(bound) - n2 ;
-           valid := h.(valid) ;
-           id := h.(id) |}
-  else None.
 
 
 Definition page_size : N := (64 % N) * (1024 % N).
@@ -186,12 +172,6 @@ Definition seg_grow (s : segment) (len_delta : N) : option segment :=
   end
   else None.
 
-Definition dummy_handle :=
-  {| base := 0%N ;
-    offset := 0%N ;
-    bound := 0%N ;
-    valid := false ;
-    id := 0%N |}.
 
 Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -> Prop
   :=
@@ -237,10 +217,12 @@ Definition load (m : memory) (n : N) (off : static_offset) (l : nat) : option by
   then read_bytes m (N.add n off) l
   else None.
 
+
 Definition segload (s : segment) (h : handle) (l : nat) :=
   if N.leb (N.add h.(base) (N.add h.(offset) (N.of_nat l))) (seg_length s)
   then read_segbytes s (N.add h.(base) h.(offset)) l
   else None.
+
 
 Definition sign_extend (s : sx) (l : nat) (bs : bytes) : bytes :=
   (* TODO: implement sign extension *) bs.
@@ -270,10 +252,12 @@ Fixpoint tagged_bytes_takefill (a : (byte * btag)) (n : nat) aas :=
     end
   end.
 
+
 Definition segstore (s : segment) (h : handle) bs (l : nat) : option segment :=
   if N.leb (h.(base) + h.(offset) + N.of_nat l) (seg_length s)
   then write_segbytes s (h.(base) + h.(offset)) (tagged_bytes_takefill (#00, Numeric) l bs)
   else None.
+
 (*
 Lemma segstore_same_length s h bs l s' :
   segstore s h bs l = Some s' -> seg_length s = seg_length s'.
@@ -284,24 +268,26 @@ Proof.
   intro H; inversion H; subst.
   unfold write_segbytes in Hbytes. *)
 
-Definition handle_of_bytes bs :=
+(* Definition handle_of_bytes bs :=
   match bs with
   | base1 :: base2 :: base3 :: base4 ::
       offset1 :: offset2 :: offset3 :: offset4 ::
       bound1 :: bound2 :: bound3 :: bound4 ::
       valid1 :: valid2 :: valid3 :: valid4 ::
       id1 :: id2 :: id3 :: id4 :: [::] =>
-      let base := BinInt.Z.to_N (common.Memdata.decode_int [:: base1 ; base2 ; base3 ; base4]) in
-      let offset := BinInt.Z.to_N (common.Memdata.decode_int [:: offset1 ; offset2 ; offset3 ; offset4]) in
-      let bound := BinInt.Z.to_N (common.Memdata.decode_int [:: bound1 ; bound2 ; bound3 ; bound4]) in
+      let base := Wasm_int.Int32.repr (common.Memdata.decode_int [:: base1 ; base2 ; base3 ; base4]) in
+      let offset := Wasm_int.Int32.repr (common.Memdata.decode_int [:: offset1 ; offset2 ; offset3 ; offset4]) in
+      let bound := Wasm_int.Int32.repr (common.Memdata.decode_int [:: bound1 ; bound2 ; bound3 ; bound4]) in
       let valid := match BinInt.Z.to_N (common.Memdata.decode_int [:: valid1 ; valid2 ; valid3 ; valid4]) with
                      | 1%N => true | _ => false end in
-      let id := BinInt.Z.to_N (common.Memdata.decode_int [:: id1 ; id2 ; id3 ; id4]) in
+      let id := Wasm_int.Int32.repr (common.Memdata.decode_int [:: id1 ; id2 ; id3 ; id4]) in
       {| base := base ; offset := offset ; bound := bound ; valid := valid ; id := id |}
-  | _ => {| base := 0%N ; offset := 0%N ; bound := 0%N ; valid := false ; id := 0%N |}
-  end.
+  | _ => dummy_handle
+  end. *)
 
 
+Section WasmBytes.
+  Context `{HandleBytes}.
 Definition wasm_deserialise (bs : bytes) (vt : value_type) : value :=
   match vt with
   | T_i32 => VAL_int32 (Wasm_int.Int32.repr (common.Memdata.decode_int bs))
@@ -310,6 +296,50 @@ Definition wasm_deserialise (bs : bytes) (vt : value_type) : value :=
   | T_f64 => VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (common.Memdata.decode_int bs)))
   | T_handle => VAL_handle (handle_of_bytes bs)
   end.
+
+Definition bits (v : value) : bytes :=
+  match v with
+  | VAL_int32 c => serialise_i32 c
+  | VAL_int64 c => serialise_i64 c
+  | VAL_float32 c => serialise_f32 c
+  | VAL_float64 c => serialise_f64 c
+  | VAL_handle h => serialise_handle h
+  end.
+
+Definition t_length (t : value_type) : nat :=
+  match t with
+  | T_i32 => 4
+  | T_i64 => 8
+  | T_f32 => 4
+  | T_f64 => 8
+  | T_handle => handle_size
+  end.
+
+
+Definition tp_length (tp : packed_type) : nat :=
+  match tp with
+  | Tp_i8 => 1
+  | Tp_i16 => 2
+  | Tp_i32 => 4
+  end.
+
+Definition is_int_t (t : value_type) : bool :=
+  match t with
+  | T_i32 => true
+  | T_i64 => true
+  | T_f32 => false
+  | T_f64 => false
+  | T_handle => false
+  end.
+
+Definition load_store_t_bounds (a : alignment_exponent) (tp : option packed_type) (t : value_type) : bool :=
+  match tp with
+  | None => Nat.pow 2 a <= t_length t
+  | Some tp' => (Nat.pow 2 a <= tp_length tp') && (tp_length tp' < t_length t) && (is_int_t t)
+  end.
+
+
+End WasmBytes.
 
 
 Definition typeof (v : value) : value_type :=
@@ -327,30 +357,10 @@ Definition option_projl (A B : Type) (x : option (A * B)) : option A :=
 Definition option_projr (A B : Type) (x : option (A * B)) : option B :=
   option_map snd x.
 
-Definition t_length (t : value_type) : nat :=
-  match t with
-  | T_i32 => 4
-  | T_i64 => 8
-  | T_f32 => 4
-  | T_f64 => 8
-  | T_handle => 20 (* MAXIME: is this the correct size for a handle? *)
-  end.
 
-Definition tp_length (tp : packed_type) : nat :=
-  match tp with
-  | Tp_i8 => 1
-  | Tp_i16 => 2
-  | Tp_i32 => 4
-  end.
 
-Definition is_int_t (t : value_type) : bool :=
-  match t with
-  | T_i32 => true
-  | T_i64 => true
-  | T_f32 => false
-  | T_f64 => false
-  | T_handle => false
-  end.
+
+
 
 Definition is_float_t (t : value_type) : bool :=
   match t with
@@ -912,11 +922,7 @@ Definition result_types_agree (ts : result_type) r :=
   | result_trap => true
   end.
 
-Definition load_store_t_bounds (a : alignment_exponent) (tp : option packed_type) (t : value_type) : bool :=
-  match tp with
-  | None => Nat.pow 2 a <= t_length t
-  | Some tp' => (Nat.pow 2 a <= tp_length tp') && (tp_length tp' < t_length t) && (is_int_t t)
-  end.
+
 
 
 (* MAXIME: should cvt_[any type] of a handle value be something else than None ? *)
@@ -1011,14 +1017,8 @@ Definition cvt (t : value_type) (s : option sx) (v : value) : option value :=
   | T_handle => None
   end.
 Search (i32).
-Definition bits (v : value) : bytes :=
-  match v with
-  | VAL_int32 c => serialise_i32 c
-  | VAL_int64 c => serialise_i64 c
-  | VAL_float32 c => serialise_f32 c
-  | VAL_float64 c => serialise_f64 c
-  | VAL_handle h => serialise_handle h
-  end.
+
+
 
 Definition bitzero (t : value_type) : value :=
   match t with
@@ -1026,7 +1026,7 @@ Definition bitzero (t : value_type) : value :=
   | T_i64 => VAL_int64 (Wasm_int.int_zero i64m)
   | T_f32 => VAL_float32 (Wasm_float.float_zero f32m)
   | T_f64 => VAL_float64 (Wasm_float.float_zero f64m)
-  | T_handle => VAL_handle {| base := 0%N ; offset := 0%N ; bound := 0%N ; valid := false ; id := 0%N |}
+  | T_handle => VAL_handle dummy_handle
   end.
 
 Definition n_zeros (ts : seq value_type) : seq value :=

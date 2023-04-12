@@ -3,7 +3,7 @@ From stdpp Require Import base list.
 Require Export iris_reduce_properties first_instr.
 
 
-Definition check := 1.
+
 
 
 
@@ -170,8 +170,9 @@ Ltac only_one objs Hred2 :=
 
 Definition reduce_det_goal (m1:memory_event) (ws1: store_record) (f1: frame) es1 m2 ws2 f2 es2 es :=
       ((m1, ws1, f1, es1) = (m2, ws2, f2, es2) \/
-         (exists i, first_instr es = Some (AI_basic (BI_grow_memory),i)) \/
+         (exists i, first_instr es = Some (AI_basic (BI_grow_memory),i) /\ (m1, m2) = (ME_empty, ME_empty)) \/
          (exists i, first_instr es = Some (AI_basic (BI_segalloc), i)) \/
           (exists i1 i2 i3, first_instr es = Some (AI_trap,i1) /\ first_instr es1 = Some (AI_trap,i2) /\
                          first_instr es2 = Some (AI_trap,i3) /\
-                         (ws1, f1) = (ws2, f2))).
+                         (ws1, f1, m1) = (ws2, f2, m2) /\
+                         m1 = ME_empty)).

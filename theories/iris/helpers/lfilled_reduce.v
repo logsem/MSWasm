@@ -115,7 +115,7 @@ Ltac filled2 Hfill i lh Hes1 es1 :=
 
 
 Section lfilled_reduce_properties.
-  
+  Context `{ HHB : HandleBytes }.
   Let reducible := @iris.program_logic.language.reducible wasm_lang.
 
   Let expr := iris.expr.

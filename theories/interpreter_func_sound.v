@@ -66,8 +66,13 @@ Let run_one_step := @run_one_step host_function host_instance host_application_i
 Let run_step := @run_step host_function host_instance host_application_impl.
 Let run_step_with_fuel := @run_step_with_fuel host_function host_instance host_application_impl. *)
 
+
+Section interpreter_func_sound.
+  Context `{HHB : HandleBytes}. 
+  
 (** The lemmas [r_eliml] and [r_elimr] are the fundamental framing lemmas.
   They enable to focus on parts of the stack, ignoring the context. **)
+
 
 Lemma r_eliml: forall s f es me s' f' es' lconst,
     const_list lconst ->
@@ -304,7 +309,8 @@ Ltac explode_value v :=
 Ltac explode_and_simplify :=
   repeat lazymatch goal with
   | |- ?T = _ -> _ =>
-    lazymatch T with
+      lazymatch T with
+      | HandleBytes => idtac 
     | context C [split_n ?l ?n] => rewrite (split_n_is_take_drop l n)
     | context C [vs_to_es ?l] => rewrite/vs_to_es
 (*    | context C [host_application_impl _ _ _ _ _ _] =>
@@ -359,6 +365,7 @@ Ltac explode_and_simplify :=
                  | T_i64 => _
                  | T_f32 => _
                  | T_f64 => _
+                 | T_handle => _
                  end] =>
       let Hv := fresh "Ev" in
       destruct v eqn:Hv;
@@ -510,7 +517,7 @@ Local Lemma run_step_fuel_increase_aux : forall d es s f s' f' r' fuel fuel',
   r' = RS_crash C_exhaustion
   \/ run_step_with_fuel fuel' d (s, f, es) = (s', f', r').
 Proof.
-  move=> d es s f s' f' r' fuel fuel' I F. destruct fuel as [|fuel].
+  move => d es s f s' f' r' fuel fuel' I F. destruct fuel as [|fuel].
   - unfold run_step_with_fuel; unfold interpreter_func.run_step_with_fuel.
     intro H ; inversion H ; by left.
   - unfold run_step_with_fuel. unfold interpreter_func.run_step_with_fuel.
@@ -522,9 +529,9 @@ Proof.
       * intro H ; inversion H ; by right.
       * explode_and_simplify; try by intro H ; inversion H ; right.
         apply TProp.Forall_forall with (e := e) in F.
-        -- destruct run_one_step as [[[hs'' s''] vs''] r''] eqn:E.
+        -- destruct (run_one_step fuel d (s, f, rev lconst) e) as [[[hs'' s''] vs''] r''] eqn:E.  unfold run_one_step in E. unfold run_step_with_fuel in E. rewrite E.
            eapply F in E; [|by apply I|..]. destruct E as [E|E].
-           ++ subst. intro H ; inversion H ;  by left.
+           ++ subst. intro H ; inversion H; by left.
            ++ unfold run_one_step in E. unfold interpreter_func.run_one_step in E.
               rewrite E. by right.
         -- rewrite HSplitVals. apply Coqlib.in_app. right. by left.
@@ -731,11 +738,14 @@ Proof.
     apply/eqP.
     move:H. explode_and_simplify.
     destruct run_step_with_fuel as [[[hs'' s''] f''] r''] eqn:HDestruct.
-    destruct r'' as [ |n' rvs'| | |]=> //. destruct n'; last by pattern_match.
+    unfold run_one_step, run_step_with_fuel in HDestruct.
+    rewrite HDestruct.
+    destruct r'' as [ |n' rvs'| | |]=> //. destruct n' ; last by pattern_match.
     by destruct (n0 <= length rvs').
   - (* Local *)
     move:H. explode_and_simplify.
-    destruct run_step_with_fuel as [[[hs'' s''] f''] r''] eqn:HDestruct.
+    destruct (run_step_with_fuel fuel d (s, l, l0)) as [[[hs'' s''] f''] r''] eqn:HDestruct.
+    unfold run_step_with_fuel in HDestruct. rewrite HDestruct.
     destruct r'' as [ | |rvs'| |]=> //. by destruct (n0 <= length rvs').
 Qed.
 
@@ -797,12 +807,14 @@ Proof.
     split => //. right. split => //.
     move:H. explode_and_simplify.
     destruct run_step_with_fuel as [[[hs'' s''] f''] r''] eqn:HDestruct => //.
+    unfold run_step_with_fuel in HDestruct; rewrite HDestruct.
     destruct r'' as [ |n' rvs'| | |]=> //; try pattern_match.
     destruct n' => //.
     by destruct (n <= length rvs').
   - (* Local *)
     move:H. explode_and_simplify.
-    destruct run_step_with_fuel as [[[hs'' s''] f''] r''] eqn:HDestruct => //.
+    destruct (run_step_with_fuel fuel d (s, f0, l)) as [[[hs'' s''] f''] r''] eqn:HDestruct => //.
+    unfold run_step_with_fuel in HDestruct; rewrite HDestruct.
     destruct r'' as [ | |rvs'| |]=> //; try pattern_match.
     by destruct (n <= length rvs').
 Qed.
@@ -2580,32 +2592,32 @@ Proof.
 
       - (** [AI_basic (Testop v t)] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
+(*        destruct v => //.
         destruct v => //.
-        destruct v => //.
-        inversion H2; subst.
+        inversion H2; subst. *)
         split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
-        rewrite - catA => //=.
+        (* rewrite - catA => //=. *)
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        destruct v => //. inversion H2; subst. split; last by subst. exists ME_empty.
+        (* destruct v => //. inversion H2; subst. *) split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
-        rewrite - catA => //=.
+        (* rewrite - catA => //=. *)
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-         destruct v => //. destruct v => //. destruct v => //. 
+(*         destruct v => //. destruct v => //. destruct v => //.  *)
 
       - (** [AI_basic (Relop v2 v1 r)] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
@@ -2861,3 +2873,4 @@ Proof.
 Qed.
 
 
+End interpreter_func_sound.

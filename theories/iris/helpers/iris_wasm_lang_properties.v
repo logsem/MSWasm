@@ -1771,6 +1771,8 @@ Section wasm_lang_properties.
         rewrite merge_call_host flatten_simplify => //=. }
   Qed.
 
+  Section to_val_None.
+    Context `{HHB: HandleBytes}.
   Lemma to_val_brV_None vs n i lh es LI :
     const_list vs ->
     length vs = n ->
@@ -1808,6 +1810,8 @@ Section wasm_lang_properties.
     apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])).
   Qed.
 
+End to_val_None.
+  
   Lemma to_val_cons_immV v l :
     iris.to_val (AI_basic (BI_const v) :: iris.of_val (immV l)) = Some (immV (v :: l)).
   Proof.

@@ -7,7 +7,7 @@ Require Export type_preservation type_progress.
 
 
 Section module_typing_det.
-  
+  Context `{HHB : HandleBytes}.
 Lemma module_typing_det_import_aux m it1 et1 it2 et2:
   module_typing m it1 et1 ->
   module_typing m it2 et2 ->
@@ -214,7 +214,7 @@ Qed.
 
 
 Section Instantiation_properties.
-
+Context `{HHB : HandleBytes}.
 Definition ext_func_addrs := (map (fun x => match x with | Mk_funcidx i => i end)) ∘ ext_funcs.
 Definition ext_tab_addrs := (map (fun x => match x with | Mk_tableidx i => i end)) ∘ ext_tabs.
 Definition ext_mem_addrs := (map (fun x => match x with | Mk_memidx i => i end)) ∘ ext_mems.

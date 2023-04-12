@@ -130,7 +130,7 @@ Section control_operations.
 End control_operations.
 
 Section control_rules.
-  
+  Context `{ HHB : HandleBytes }.
   Context `{!wasmG Σ}.
 
   (* Structural lemmas for contexts *)
@@ -269,18 +269,18 @@ Section control_rules.
     iSplit.
     - iPureIntro. destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      exists [], vs, σ, [].
+      eexists [_], vs, σ, [].
       destruct σ as [[ ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      constructor. econstructor =>//.
+      do 2 constructor. econstructor =>//.
     - destruct σ as [[ ws locs] inst] => //=.
       iModIntro.
       iIntros (es1 σ2 efs HStep).
       iMod "HΦ" as "(HΦ & Hf)".
       iModIntro.
       destruct σ2 as [[ ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]]. iFrame.
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->]. iFrame.
       only_one_reduction H.
       + iFrame.
         rewrite Hval.
@@ -294,6 +294,7 @@ Section control_rules.
                                                     unfold first_instr in Hstart ; simpl in Hstart ;
                                                     unfold first_instr in Hfill' ; rewrite Hfill' in Hstart ;
                                                     inversion Hstart.
+        all: done.
   Qed.
   
   Lemma wp_frame_return (s: stuckness) (E: coPset) (Φ: val -> iProp Σ) vs vs0 n f0 f i lh LI:
@@ -334,17 +335,17 @@ Section control_rules.
     iSplit.
     - iPureIntro. destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      exists [], (vs ++ es), σ, [].
+      eexists [_], (vs ++ es), σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      constructor. econstructor =>//.
+      do 2 constructor. econstructor => //.
     - destruct σ as [[ ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
       assert (lfilled 0 (LH_base vs []) [AI_basic (BI_br i)]
                       (vs ++ [AI_basic (BI_br i)])).
@@ -355,7 +356,8 @@ Section control_rules.
         eapply lfilled_implies_starts in Hfill' => //= ;
                                                   unfold first_instr in Hstart ; simpl in Hstart ;
                                                   unfold first_instr in Hfill' ; rewrite Hfill' in Hstart ;
-                                                  inversion Hstart.    
+                                                  inversion Hstart.
+      all: done.
   Qed.
 
   Lemma wp_br_ctx_nested (s : stuckness) (E : coPset) (Φ : val -> iProp Σ) n vs es i j lh lh' lh'' vs' es' f vs0' n0 es0 es0' :
@@ -383,41 +385,41 @@ Section control_rules.
       inversion Hfill;simplify_eq.
       
       eapply val_head_stuck_reduce.
-      eapply r_label. 3: apply Hfill2'. 2: eauto.
-      eapply r_label with (lh:=(LH_base vs' es')).
+      eapply rm_label. 3: apply Hfill2'. 2: eauto.
+      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
       2: { apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
-      apply r_simple. eapply rs_br.
+      apply rm_silent, r_simple. eapply rs_br.
       apply Hvs. auto. apply lfilled_Ind_Equivalent. eauto.
-      Unshelve. apply (Build_store_record [] [] [] []).
-      apply (Build_frame [] (Build_instance [] [] [] [] [])). }
+      Unshelve. apply (Build_store_record [] [] [] [] [] []).
+      apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])). }
     iApply wp_lift_step => //=.
     iIntros (σ ns κ κs nt) "Hσ".
     iApply fupd_frame_l.
-    assert (iris.prim_step LI σ [] LI_r σ []) as Hstep.
+    assert (iris.prim_step LI σ [ME_empty] LI_r σ []) as Hstep.
     { destruct σ as [[ws locs] inst].
       simpl.
       repeat split => //.
-      eapply r_label. 3: apply Hfill2'. 2: eauto.
-      eapply r_label with (lh:=(LH_base vs' es')).
+      eapply rm_label. 3: apply Hfill2'. 2: eauto.
+      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
       2: { apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
-      apply r_simple. eapply rs_br.
+      apply rm_silent, r_simple. eapply rs_br.
       apply Hvs. auto. apply lfilled_Ind_Equivalent. eauto. }
     
     iSplit.
     { 
       iPureIntro. destruct s;auto.
       
-      eexists [],LI_r,σ,[]. eauto. }
+      eexists [ME_empty],LI_r,σ,[]. eauto. }
     destruct σ as [[ws locs] inst] => //=.
     iApply fupd_mask_intro;[solve_ndisj|].
     iIntros "Hcls !>" (es1 σ2 efs HStep).
     iMod "Hcls". iModIntro.
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [HStep [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [HStep ->].
     iApply bi.sep_exist_l.
     apply lfilled_Ind_Equivalent in H8.
     assert (first_instr LI = Some (AI_basic (BI_br i),(0 + S i) + (j - S i))).
@@ -428,8 +430,8 @@ Section control_rules.
       rewrite first_instr_const//.
     }
     destruct Hstep as [Hstep _].
-    eapply reduce_det in HStep as [Heq | [[i0 Hstart] |
-                                                          (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]] ; try congruence.
+    eapply reduce_det in HStep as [Heq | [(i0 & Hstart & Hme) | [[i0 Hstart] |
+                                                          (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ & Hme) ]]] ; try congruence.
     2: apply Hstep.
     inversion Heq; subst; clear Heq.
     iExists f.
@@ -457,21 +459,21 @@ Section control_rules.
     iSplit.
     - iPureIntro. destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      constructor. econstructor =>//.
+      do 2 constructor. econstructor =>//.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
       iApply bi.sep_exist_l.
-      destruct HStep as [H [-> ->]].
-      eapply reduce_det in H as [H | [[i0 Hstart] | 
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]];
-        last (by eapply r_simple, rs_block) ;
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      eapply reduce_det in H as [H | [(i0 & Hstart & Hme) | [[i0 Hstart] | 
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ & Hme)]]];
+        last (by eapply rm_silent, r_simple, rs_block) ;
         first (inversion H; subst; clear H ; by iExists f; iFrame) ;
         rewrite first_instr_const in Hstart => //=.
   Qed.
@@ -489,19 +491,19 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      exists [], es, σ, [].
+      eexists [_], es, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      apply r_simple.  apply rs_label_const.
+      apply rm_silent, r_simple.  apply rs_label_const.
       eapply to_val_const_list. apply Hval.
     - destruct σ as [[ws locs] inst] => //=.
       iIntros "!>" (es1 σ2 efs HStep) "!>".
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]];
-        (try by apply r_simple ; apply rs_label_const ;
+      destruct κ => //. destruct κ => //. destruct HStep as [H -> ].
+      eapply reduce_det in H as [H | [(i0 & Hstart & Hme) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]]];
+        (try by apply rm_silent, r_simple ; apply rs_label_const ;
          eapply to_val_const_list ; apply Hval) .
       + (* The only possible case. *)
         inversion H; subst; clear H.
@@ -529,17 +531,17 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      exists [], [AI_trap], σ, [].
+      eexists [_], [AI_trap], σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
       apply to_val_trap_is_singleton in Hval as ->.
-      apply r_simple.  apply rs_label_trap.
+      apply rm_silent, r_simple.  apply rs_label_trap.
     - apply to_val_trap_is_singleton in Hval as ->.
       destruct σ as [[ws locs] inst] => //=.
       iIntros "!>" (es1 σ2 efs HStep) "!>".
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       (* Here, the conclusion of reduce_det is not strong enough, so we re-do the proof
        of this subcase by hand, since in this particular case, we can get a 
        stronger result *)
@@ -547,6 +549,8 @@ Section control_rules.
       remember {| f_locs := locs ; f_inst := inst |} as f.
       remember {| f_locs := locs' ; f_inst := inst' |} as f'.
       rewrite <- app_nil_l in Heqes0.
+      induction H ; (try by inversion Heqes0) ;
+        try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
       induction H ; (try by inversion Heqes0) ;
         try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
       { destruct H ; (try by inversion Heqes0) ;
@@ -649,11 +653,11 @@ Section control_rules.
     { iPureIntro. destruct s;auto.
       apply lfilled_swap with (es':=[::AI_label m [::] (vs ++ to_e_list es)]) in Hfill as Hfill'.
       destruct Hfill' as [LI' Hfill'].
-      eexists [],_,σ,[]. simpl.
+      eexists [_],_,σ,[]. simpl.
       destruct σ as [[ ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple. eapply rs_block.
+      eapply rm_label. apply rm_silent, r_simple. eapply rs_block.
       apply Hconst. apply Hn. apply Hn'. apply Hm. eauto. eauto. }
     destruct σ as [[ws locs] inst] => //=.
     iApply fupd_mask_intro;[solve_ndisj|].
@@ -662,14 +666,14 @@ Section control_rules.
     destruct σ2 as [[ws' locs'] inst'] => //=.
     apply lfilled_swap with (es':=[::AI_label m [::] (vs ++ to_e_list es)]) in Hfill as Hfill'.
     destruct Hfill' as [LI' Hfill'].
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     iApply bi.sep_exist_l.
     assert (lfilled 0 (LH_base vs []) [AI_basic (BI_block (Tf t1s t2s) es)]
                     (vs ++ [AI_basic (BI_block (Tf t1s t2s) es)])).
     { unfold lfilled, lfill ; rewrite Hconst ; done. }
-    eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
-      [..|eapply r_label;[apply r_simple;eapply rs_block|eauto..];eauto].
+    eapply reduce_det in H as [H | [(i0 & Hstart & Hme) | [ [i0 Hstart] |
+                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
+      [..|eapply rm_label;[apply rm_silent, r_simple;eapply rs_block|eauto..];eauto].
     all: try (by 
                eapply lfilled_trans in Hfill as Hfill'';eauto;destruct Hfill'' as [lh' Hfill''];
               eapply lfilled_implies_starts in Hfill'' ; (try done) ;
@@ -711,11 +715,11 @@ Section control_rules.
     { iPureIntro. destruct s;auto.
       apply lfilled_swap with (es':=[::AI_label m [::] (vs ++ to_e_list es)]) in Hfill as Hfill'.
       destruct Hfill' as [LI' Hfill'].
-      eexists [],_,σ,[]. simpl.
+      eexists [_],_,σ,[]. simpl.
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple. eapply rs_block.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple. eapply rs_block.
       apply Hconst. apply Hn. apply Hn'. apply Hm. eauto. eauto. }
     destruct σ as [[ws locs] inst] => //=.
     iApply fupd_mask_intro;[solve_ndisj|].
@@ -724,13 +728,13 @@ Section control_rules.
     destruct σ2 as [[ws' locs'] inst'] => //=.
     apply lfilled_swap with (es':=[::AI_label m [::] (vs ++ to_e_list es)]) in Hfill as Hfill'.
     destruct Hfill' as [LI' Hfill'].
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_block (Tf t1s t2s) es),S (0 + i))) as HH.
     { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill].
       apply first_instr_const;auto. }
     iApply bi.sep_exist_l.
-    eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)  ]];
+    eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)  ]]];
       try congruence;
       try by assert (lfilled 0 (LH_base vs []) [AI_basic (BI_block (Tf t1s t2s) es)]
                              (vs ++ [AI_basic (BI_block (Tf t1s t2s) es)])) ;
@@ -738,7 +742,7 @@ Section control_rules.
       destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfill''] ;
       eapply lfilled_implies_starts in Hfill'' ; (try done) ;
       rewrite Hfill'' in Hstart ; inversion Hstart => //=.
-    2: { eapply r_local. eapply r_label. apply r_simple. eapply rs_block;eauto. all: eauto. }
+    2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple. eapply rs_block;eauto. all: eauto. }
     inversion H; subst; clear H.
     all: iExists f0.
     all: iFrame. iSplit => //.
@@ -773,15 +777,15 @@ Section control_rules.
       apply lfilled_Ind_Equivalent in H8 as Hfill'.
       apply lfilled_swap with (es':=vs ++ es) in Hfill' as Hfill''.
       destruct Hfill'' as [LI' Hfill''].    
-      eexists [],_,σ,[].
+      eexists [_],_,σ,[].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.   
-      eapply r_label with (lh:=(LH_base vs' es')).
+      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
       2: { erewrite cons_middle. apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
-      apply r_simple. eapply rs_br.
+      apply rm_silent, r_simple. eapply rs_br.
       apply Hvs. auto. eauto. }
     destruct σ as [[ws locs] inst] => //=.
     iApply fupd_mask_intro;[solve_ndisj|].
@@ -792,18 +796,18 @@ Section control_rules.
     apply lfilled_Ind_Equivalent in H8 as Hfill'.
     apply lfilled_swap with (es':=vs ++ es) in Hfill' as Hfill''.
     destruct Hfill'' as [LI' Hfill''].    
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     iApply bi.sep_exist_l.
     assert (lfilled 0 (LH_base vs []) [AI_basic (BI_br i)]
                     (vs ++ [AI_basic (BI_br i)])) ;
       first (unfold lfilled, lfill ; rewrite Hvs ; by rewrite app_nil_r).
-    eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]].
-    4: { eapply r_label with (lh:=(LH_base vs' es')).
+    eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]].
+    5: { eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
          2: { apply lfilled_Ind_Equivalent.
               econstructor;auto. }
          2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
-         apply r_simple. eapply rs_br. apply Hvs. all:eauto. }
+         apply rm_silent, r_simple. eapply rs_br. apply Hvs. all:eauto. }
     all: try by apply lfilled_Ind_Equivalent in Hfill ;
       eapply lfilled_trans in Hfill as Hfilln;eauto;destruct Hfilln as [lh' Hfilln];
       eapply lfilled_implies_starts in Hfilln ; (try done) ;
@@ -843,15 +847,15 @@ Section control_rules.
       apply lfilled_Ind_Equivalent in H8 as Hfill'.
       apply lfilled_swap with (es':=vs ++ es) in Hfill' as Hfill''.
       destruct Hfill'' as [LI' Hfill''].    
-      eexists [],_,σ,[].
+      eexists [_],_,σ,[].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label with (lh:=(LH_base vs' es')).
+      repeat split => //. eapply rm_local.
+      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
       2: { erewrite cons_middle. apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
-      apply r_simple. eapply rs_br.
+      apply rm_silent, r_simple. eapply rs_br.
       apply Hvs. auto. eauto. }
     destruct σ as [[ws locs] inst] => //=.
     iApply fupd_mask_intro;[solve_ndisj|].
@@ -862,15 +866,15 @@ Section control_rules.
     apply lfilled_Ind_Equivalent in H8 as Hfill'.
     apply lfilled_swap with (es':=vs ++ es) in Hfill' as Hfill''.
     destruct Hfill'' as [LI' Hfill''].    
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     assert (first_instr [AI_local n1 f1 (vs' ++ [AI_label (length vs) es LI0] ++ es')] 
             = Some (AI_basic (BI_br i),S (0 + S i))) as HH.
     { apply lfilled_Ind_Equivalent in Hfill.
       apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill].
       apply first_instr_const;auto. }
     iApply bi.sep_exist_l.
-    eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                    (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
+    eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                          (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
       try congruence;
       try by apply lfilled_Ind_Equivalent in Hfill ;
       assert (lfilled 0 (LH_base vs []) [AI_basic (BI_br i)]
@@ -879,12 +883,12 @@ Section control_rules.
       destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
       eapply lfilled_implies_starts in Hfilln ; (try done) ;
       rewrite Hfilln in Hstart ; inversion Hstart => //=. 
-    2: { eapply r_local.
-         eapply r_label with (lh:=(LH_base vs' es')).
+    2: { eapply rm_local.
+         eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
          2: { apply lfilled_Ind_Equivalent.
               econstructor;auto. }
          2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
-         apply r_simple. eapply rs_br. apply Hvs. all:eauto. }
+         apply rm_silent, r_simple. eapply rs_br. apply Hvs. all:eauto. }
     inversion H; subst; clear H.
     iExists f0.
     iFrame. iSplit => //.
@@ -917,22 +921,22 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], LI', σ, [].
+      eexists [_], LI', σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple;eauto. eapply rs_loop;eauto.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_loop;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]].
-      4: { eapply r_label. apply r_simple;eauto. eapply rs_loop;eauto.
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]]].
+      5: { eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_loop;eauto.
            eauto. eauto. }
       all: try by assert (lfilled 0 (LH_base vs []) [AI_basic (BI_loop (Tf t1s t2s) es)]
                                   (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)])) ;
@@ -970,24 +974,24 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple;eauto. eapply rs_loop;eauto.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_loop;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_loop (Tf t1s t2s) es),S (0 + i))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill].
         apply first_instr_const. auto. }
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
         try by assert (lfilled 0 (LH_base vs []) [AI_basic (BI_loop (Tf t1s t2s) es)]
                                (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)])) ;
@@ -995,7 +999,7 @@ Section control_rules.
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfill''] ;
         eapply lfilled_implies_starts in Hfill'' ; (try done) ;
         rewrite Hfill'' in Hstart ; inversion Hstart => //=.
-      2: { eapply r_local. eapply r_label. apply r_simple;eauto. eapply rs_loop;eauto.
+      2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_loop;eauto.
            eauto. eauto. }
       inversion H; subst; clear H.
       iExists f0.
@@ -1040,18 +1044,18 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], LI', σ, [].
+      eexists [_], LI', σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple;eauto. eapply rs_if_true;eauto.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_true;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       rename tf into tf'.
       iApply bi.sep_exist_l.
       only_one_reduction H.
@@ -1088,23 +1092,23 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple;eauto. eapply rs_if_true;eauto.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_true;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_if tf e1s e2s),S (0 + i))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill]. auto. }
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)  ]];
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)  ]]];
         try congruence;
         try by assert (lfilled 0 (LH_base vs []) [AI_basic (BI_loop (Tf t1s t2s) es)]
                                (vs ++ [AI_basic (BI_loop (Tf t1s t2s) es)])) ;
@@ -1112,7 +1116,7 @@ Section control_rules.
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfill''] ;
         eapply lfilled_implies_starts in Hfill'' ; (try done) ;
         rewrite Hfill'' in Hstart ; inversion Hstart => //=.
-      2: { eapply r_local. eapply r_label. apply r_simple;eauto. eapply rs_if_true;eauto.
+      2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_true;eauto.
            eauto. eauto. }
       inversion H; subst; clear H.
       iExists f0.
@@ -1153,22 +1157,22 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], LI', σ, [].
+      eexists [_], LI', σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple;eauto. eapply rs_if_false;eauto.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_false;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]].
-      4: { eapply r_label. apply r_simple;eauto. eapply rs_if_false;eauto.
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) |[ [i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]].
+      5: { eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_false;eauto.
            eauto. eauto. }
       all: try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
                                   [AI_basic (BI_if tf e1s e2s)]
@@ -1205,23 +1209,23 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple;eauto. eapply rs_if_false;eauto.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_false;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_if tf e1s e2s),S (0 + i))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
                                [AI_basic (BI_if tf e1s e2s)]
@@ -1230,7 +1234,7 @@ Section control_rules.
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
                                                    rewrite Hfilln in Hstart ; inversion Hstart.
-      2: { eapply r_local. eapply r_label. apply r_simple;eauto. eapply rs_if_false;eauto.
+      2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_false;eauto.
            eauto. eauto. }
       inversion H; subst; clear H.
       iExists f0.
@@ -1271,18 +1275,18 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], LI', σ, [].
+      eexists [_], LI', σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple;eauto. eapply rs_br_if_true;eauto.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_br_if_true;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
       only_one_reduction H ;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
@@ -1316,23 +1320,23 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple;eauto. eapply rs_br_if_true;eauto.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_br_if_true;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_br_if i),S (0 + j))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
-      eapply reduce_det in H as [H | [[i0 Hstart] | 
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] | 
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
                                [AI_basic (BI_if tf e1s e2s)]
@@ -1341,7 +1345,7 @@ Section control_rules.
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
                                                    rewrite Hfilln in Hstart ; inversion Hstart.
-      2: { eapply r_local. eapply r_label. apply r_simple;eauto. eapply rs_br_if_true;eauto.
+      2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_br_if_true;eauto.
            eauto. eauto. }
       inversion H; subst; clear H.
       iExists f0.
@@ -1377,17 +1381,17 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold reducible, language.prim_step => /=.
-      exists [], [], σ, [].
+      eexists [_], [], σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      apply r_simple.
+      apply rm_silent, r_simple.
       subst.
       by apply rs_br_if_false.
     - destruct σ as [[ws locs] inst] => //=.
       iIntros "!>" (es σ2 efs HStep) "!>".
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       only_one_reduction H. iFrame.
   Qed.
 
@@ -1412,18 +1416,18 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], LI', σ, [].
+      eexists [_], LI', σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple;eauto. apply rs_br_table;eauto.
+      eapply rm_label. apply rm_silent, r_simple;eauto. apply rs_br_table;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
       only_one_reduction H ;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 c))] [])
@@ -1458,23 +1462,23 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple;eauto. apply rs_br_table;eauto.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple;eauto. apply rs_br_table;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_br_table iss i),S (0 + k))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
                                [AI_basic (BI_if tf e1s e2s)]
@@ -1483,7 +1487,7 @@ Section control_rules.
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
                                                    rewrite Hfilln in Hstart ; inversion Hstart.
-      2: { eapply r_local. eapply r_label. apply r_simple;eauto. eapply rs_br_table;eauto.
+      2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_br_table;eauto.
            eauto. eauto. }
       inversion H; subst; clear H.
       iExists f0.
@@ -1517,25 +1521,25 @@ Section control_rules.
     iApply wp_lift_step => //=.
     { destruct (iris.to_val LI) eqn:Hcontr;auto.
       apply lfilled_to_val in Hfill;eauto.
-      destruct Hfill as [? Hfill]. simpl in Hfill. done. }
-    iIntros (σ ns κ κs nt) "Hσ".
+      destruct Hfill as [? Hfill]. simpl in Hfill. done. } 
+   iIntros (σ ns κ κs nt) "Hσ".
     iApply fupd_frame_l.
     iSplitR.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], LI', σ, [].
+      eexists [_], LI', σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.
-      eapply r_label. apply r_simple;eauto. apply rs_br_table_length;eauto.
+      eapply rm_label. apply rm_silent, r_simple;eauto. apply rs_br_table_length;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       iApply bi.sep_exist_l.
       only_one_reduction H ;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 c))] [])
@@ -1568,23 +1572,23 @@ Section control_rules.
     - iPureIntro.
       destruct s => //=.
       unfold language.reducible, language.prim_step => /=.
-      eexists [], _, σ, [].
+      eexists [_], _, σ, [].
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
-      repeat split => //. eapply r_local.
-      eapply r_label. apply r_simple;eauto. apply rs_br_table_length;eauto.
+      repeat split => //. eapply rm_local.
+      eapply rm_label. apply rm_silent, r_simple;eauto. apply rs_br_table_length;eauto.
       eauto. eauto.
     - destruct σ as [[ws locs] inst] => //=.
       iApply fupd_mask_intro;[solve_ndisj|].
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct HStep as [H [-> ->]].
+      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_br_table iss i),S (0 + j))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
-      eapply reduce_det in H as [H | [[i0 Hstart] |
-                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]];
+      eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
+                                                      (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
                                [AI_basic (BI_if tf e1s e2s)]
@@ -1593,7 +1597,7 @@ Section control_rules.
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
                                                    rewrite Hfilln in Hstart ; inversion Hstart.
-      2: { eapply r_local. eapply r_label. apply r_simple;eauto. eapply rs_br_table_length;eauto.
+      2: { eapply rm_local. eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_br_table_length;eauto.
            eauto. eauto. }
       inversion H; subst; clear H.
       iExists f0.
@@ -1655,38 +1659,38 @@ Section control_rules.
 
     assert (reduce s0
                    {| f_locs := l2; f_inst := i0 |}
-                   (l ++ [AI_label (length vs) l0 LI0] ++ l1) s0
+                   (l ++ [AI_label (length vs) l0 LI0] ++ l1) ME_empty s0
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply r_label with (k:=0) (lh:=LH_base l l1);cycle 1.
+    { eapply rm_label; cycle 1. (* with (k:=0) (lh:=LH_base l l1);cycle 1. *)
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
-      eapply r_simple, rs_br;eauto. }
+      eapply rm_silent, r_simple, rs_br;eauto. }
 
     assert (reduce s0
                    {| f_locs := l2; f_inst := i0 |}
-                   (l ++ [AI_label (length vs) l0 LIi] ++ l1) s0 
+                   (l ++ [AI_label (length vs) l0 LIi] ++ l1) ME_empty s0 
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply r_label with (k:=0) (lh:=LH_base l l1);cycle 1.
+    { eapply rm_label; cycle 1. (* with (k:=0) (lh:=LH_base l l1);cycle 1. *)
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
-      eapply r_simple, rs_br;eauto. }
+      eapply rm_silent, r_simple, rs_br;eauto. }
     
     iMod "Hwp". iModIntro.
     iDestruct "Hwp" as "[_ Hwp]".
     iSplitR.
     { destruct s =>//. unfold reducible. iPureIntro.
-      eexists [],_,(s0,l2,i0),[]. simpl. repeat split;eauto. }
+      eexists [_],_,(s0,l2,i0),[]. simpl. repeat split;eauto. }
     iIntros (e2 σ2 efs Hprim).
     destruct σ2 as [[? ?] ?].
-    destruct Hprim as [Hprim [-> ->]].
+    destruct κ1 => //. destruct κ1 => //. destruct Hprim as [Hprim ->].
     apply lfilled_Ind_Equivalent in Hfill.
     assert (first_instr (l ++ [AI_label (length vs) l0 LI0] ++ l1) = Some (AI_basic (BI_br (S i)),0 + S (S i))) as Hfirst0.
     { eapply starts_with_lfilled;cycle 1.
       apply lfilled_Ind_Equivalent. constructor;eauto.
       apply first_instr_const;auto. }
-    eapply reduce_det in Hprim as [? | [[? ?]|[? [? [? [? [? [? ?]]]]]]]];[..|apply H1].
+    eapply reduce_det in Hprim as [? | [(? & ? & ?) |[[? ?]|[? [? [? [? [? [? ?]]]]]]]]];[..|apply H1].
     all: try by (rewrite separate1 Hfirst0 in H3; inversion H3).
     inversion H3;simplify_eq.
     iSpecialize ("Hwp" $! _ (s1,l3,i1) with "[]").
@@ -1745,38 +1749,38 @@ Section control_rules.
 
     assert (reduce  s0 
                    {| f_locs := l2; f_inst := i0 |}
-                   (l ++ [AI_label (length vs) l0 LI0] ++ l1) s0 
+                   (l ++ [AI_label (length vs) l0 LI0] ++ l1) ME_empty s0 
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply r_label with (k:=0) (lh:=LH_base l l1);cycle 1.
+    { eapply rm_label (* with (k:=0) (lh:=LH_base l l1) *) ;cycle 1.
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
-      eapply r_simple, rs_br;eauto. }
+      eapply rm_silent, r_simple, rs_br;eauto. }
 
     assert (reduce s0 
                    {| f_locs := l2; f_inst := i0 |}
-                   (l ++ [AI_label (length vs) l0 LI1] ++ l1) s0 
+                   (l ++ [AI_label (length vs) l0 LI1] ++ l1) ME_empty s0 
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply r_label with (k:=0) (lh:=LH_base l l1);cycle 1.
+    { eapply rm_label (* with (k:=0) (lh:=LH_base l l1)*);cycle 1.
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
-      eapply r_simple, rs_br;eauto. apply lfilled_Ind_Equivalent. eauto. }
+      eapply rm_silent, r_simple, rs_br;eauto. apply lfilled_Ind_Equivalent. eauto. }
     
     iMod "Hwp". iModIntro.
     iDestruct "Hwp" as "[_ Hwp]".
     iSplitR.
     { destruct s =>//. unfold reducible. iPureIntro.
-      eexists [],_,(s0,l2,i0),[]. simpl. repeat split;eauto. }
+      eexists [_],_,(s0,l2,i0),[]. simpl. repeat split;eauto. }
     iIntros (e2 σ2 efs Hprim).
     destruct σ2 as [[? ?] ?].
-    destruct Hprim as [Hprim [-> ->]].
+    destruct κ1 => //. destruct κ1 => //. destruct Hprim as [Hprim ->].
     apply lfilled_Ind_Equivalent in Hfill.
     assert (first_instr (l ++ [AI_label (length vs) l0 LI1] ++ l1) = Some (AI_basic (BI_br i),0 + S i)) as Hfirst0.
     { eapply starts_with_lfilled;cycle 1.
       apply lfilled_Ind_Equivalent. constructor;eauto.
       apply first_instr_const;auto. }
-    eapply reduce_det in Hprim as [? | [[? ?]|[? [? [? [? [? [? ?]]]]] ]]];[..|apply H2].
+    eapply reduce_det in Hprim as [? | [(?&?&?)|[[? ?]|[? [? [? [? [? [? ?]]]]] ]]]];[..|apply H2].
     all: try by (rewrite separate1 Hfirst0 in H3; inversion H3).
     inversion H3;simplify_eq.
     iSpecialize ("Hwp" $! _ (s1,l3,i1) with "[]").
@@ -1823,28 +1827,28 @@ Section control_rules.
 
     assert (reduce s0 
                    {| f_locs := l; f_inst := i0 |}
-                   ([AI_local n f LI]) s0
+                   ([AI_local n f LI]) ME_empty s0
                    {| f_locs := l; f_inst := i0 |}
                    vs).
-    { eapply r_simple. eapply rs_return;eauto. }
+    { eapply rm_silent, r_simple. eapply rs_return;eauto. }
     assert (reduce s0 
                    {| f_locs := l; f_inst := i0 |}
-                   ([AI_local n f LI']) s0 
+                   ([AI_local n f LI']) ME_empty s0 
                    {| f_locs := l; f_inst := i0 |}
                    vs).
-    { eapply r_simple. eapply rs_return;eauto. }
+    { eapply rm_silent, r_simple. eapply rs_return;eauto. }
     iMod "Hwp". iModIntro.
     iDestruct "Hwp" as "[_ Hwp]".
     iSplitR.
     { destruct s => //. unfold reducible. iPureIntro.
-      eexists [],_,(s0,l,i0),[]. simpl. repeat split;eauto. }
+      eexists [_],_,(s0,l,i0),[]. simpl. repeat split;eauto. }
     iIntros (e2 σ2 efs Hprim).
     destruct σ2 as [[? ?] ?].
-    destruct Hprim as [Hprim [-> ->]].
+    destruct κ1 => //. destruct κ1 => //. destruct Hprim as [Hprim ->].
     assert (first_instr ([AI_local n f LI']) = Some (AI_basic (BI_return),S(0 + j))) as Hfirst0.
     { eapply first_instr_local. eapply starts_with_lfilled;eauto.
       apply first_instr_const;auto. }
-    eapply reduce_det in Hprim as [? | [[? ?]| [? [? [? [? [? [? ?]]]]] ]]];[..|apply H0].
+    eapply reduce_det in Hprim as [? | [(?&?&?)|[[? ?]| [? [? [? [? [? [? ?]]]]]] ]]];[..|apply H0].
     all: try by (rewrite separate1 Hfirst0 in H1; inversion H1).
     inversion H1;simplify_eq.
     iSpecialize ("Hwp" $! _ (s1,l0,i1) with "[]").

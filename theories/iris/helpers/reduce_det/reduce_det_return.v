@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
+Section reduce_det_return.
+  Context `{ HHB : HandleBytes }.
+
+
 Lemma return_det vs n i lh s f f0 es me s' f' es' :
   const_list vs ->
   length vs = n ->
@@ -170,3 +174,5 @@ Proof.
             as (Habs & _ & _) => //=. } 
       * exfalso. eapply lfilled_return_and_reduce => //=. }
 Qed.
+
+End reduce_det_return.

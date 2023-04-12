@@ -8,7 +8,7 @@ Require Export iris_wp_def.
 
 (* basic instructions with simple(pure) reductions *)
 Section iris_rules_pure.
-
+Context `{HHB: HandleBytes}.
 Context `{!wasmG Σ}.
 
 (* numerics *)

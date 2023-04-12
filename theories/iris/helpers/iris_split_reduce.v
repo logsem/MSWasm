@@ -11,7 +11,7 @@ Ltac solve_prim_step_split_reduce_r H objs Heqf0 :=
 
 
 Section split_reduce_properties.
-  
+  Context `{ HHB : HandleBytes }.
   Let reducible := @iris.program_logic.language.reducible wasm_lang.
 
   Let expr := iris.expr.
@@ -25,7 +25,7 @@ Section split_reduce_properties.
     (exists es'', es' = es'' ++ es2 /\ prim_step es1 σ obs es'' σ' efs) \/
       (exists n m lh, lfilled 0 (LH_base (take n es1)
                                     (drop m (es1 ++ es2)))
-                         [AI_trap] es' /\ lfilled 0 lh [AI_trap] es1 ∧ σ' = σ). 
+                         [AI_trap] es' /\ lfilled 0 lh [AI_trap] es1 ∧ σ' = σ /\ obs = [ME_empty]). 
   Proof.
     intros Hes1 Hstep. 
     cut (forall n, length es' < n ->
@@ -33,7 +33,7 @@ Section split_reduce_properties.
                 (exists n m lh, n <= length es1 /\ m <= length (es1 ++ es2) /\
                              lfilled 0 (LH_base (take n es1)
                                                 (drop m (es1 ++ es2)))
-                                     [AI_trap] es' /\ lfilled 0 lh [AI_trap] es1 ∧ σ'=σ)). 
+                                     [AI_trap] es' /\ lfilled 0 lh [AI_trap] es1 ∧ σ'=σ /\ obs = [ME_empty])). 
     { intro Hn ; assert (length es' < S (length es')) as Hlen ; first lia.
       destruct (Hn (S (length es')) Hlen) as [ Hl | (n0 & m & lh & _ & _ & ? & ? & ?) ].
       by left. right ; exists n0, m, lh. 
@@ -395,11 +395,11 @@ Section split_reduce_properties.
                                          [AI_basic (BI_const v0); AI_trap] me s
                                          {| f_locs := l ; f_inst := i |} [AI_trap] /\
                             ([] : seq.seq administrative_instruction) = [] /\
-                            ([] : seq.seq administrative_instruction) = [])).
+                            ([] : seq.seq administrative_instruction) = [] /\ me = ME_empty)).
           { intro Hn. assert (length es0 < S (length es0)) ; first lia.
-            destruct (Hn _ H0) as (m & Hs1 & Hs2 & Hs3 & Hs4 & Hs5 & Hs6 & Hs7).
-            exists m. repeat split => //=. exists (LH_base [AI_basic (BI_const v0)] []).
-            unfold lfilled, lfill => //=. }
+            destruct (Hn _ H0) as (m & Hs1 & Hs2 & Hs3 & Hs4 & Hs5 & Hs6 & Hs7 & Hs8).
+            exists m.  exists (LH_base [AI_basic (BI_const v0)] []). repeat split => //=.
+            unfold lfilled, lfill => //=. by subst. }
           intros len' Hlen'. clear H4 Hes1 Hbef Ha Heqtv Heqes H Hmerge.
           generalize dependent es0. generalize dependent es.
           generalize dependent es'. generalize dependent aft.
@@ -465,7 +465,7 @@ Section split_reduce_properties.
               simpl.
               lia.
               destruct (IHlen' (z :: aft) _ H2 ys (es0 ++ zs) (Logic.eq_sym Heq) H H1) as
-                (m & Hn & Hm & Hfill & Hσ & Hred & _ & _).
+                (m & Hn & Hm & Hfill & Hσ & Hred & _ & _ & ->).
               unfold lfilled, lfill in Hfill. simpl in Hfill.
               move/eqP in Hfill. simpl. rewrite (app_comm_cons es) Hy Hz Hyz.
               exists m. repeat split => //=.
@@ -552,7 +552,7 @@ Section split_reduce_properties.
       reducible es σ ->
       prim_step ([AI_basic (BI_const v)] ++ es) σ obs es' σ' efs ->
       (es' = [AI_basic (BI_const v)] ++ drop 1 es' /\ prim_step es σ obs (drop 1 es') σ' efs)
-      \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\ lfilled 0 lh' [AI_trap] es /\ σ = σ'). 
+      \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\ lfilled 0 lh' [AI_trap] es /\ σ = σ' /\ obs = [ME_empty]). 
   Proof.
     cut (forall n v es es' σ σ' efs obs,
             length es < n ->
@@ -561,7 +561,7 @@ Section split_reduce_properties.
             (es' = [AI_basic (BI_const v)] ++ drop 1 es' /\
                prim_step es σ obs (drop 1 es') σ' efs)
             \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\
-                           lfilled 0 lh' [AI_trap] es /\ σ = σ')).
+                           lfilled 0 lh' [AI_trap] es /\ σ = σ' /\ obs = [ME_empty])).
     { intros H v es es' σ σ' efs obs. apply (H (S (length es)) v es). lia. } 
     intro len. induction len.
     { intros v es es' σ σ' efs obs Habs ; inversion Habs. }
@@ -772,7 +772,7 @@ Section split_reduce_properties.
           assert (length ces < len) as Hlences.
           rewrite <- Hes in Hlen. rewrite app_length in Hlen. simpl in Hlen ; lia.
           destruct (IHlen v ces ces' (s,l,i) _ _ _ Hlences H0 H3) as
-            [[Hdrop Hstep] | (lh & lh' & Hfill & Hfill' & Hσ) ].
+            [[Hdrop Hstep] | (lh & lh' & Hfill & Hfill' & Hσ & Hme) ].
           { left. subst. repeat split => //=.
             rewrite Hdrop. rewrite <- app_assoc => //=.
             replace (drop 1 (ces' ++ (a0 :: aft)%SEQ)%list) with ((drop 1 ces') ++ a0 :: aft).
@@ -806,7 +806,7 @@ Section split_reduce_properties.
         split ; unfold lfilled, lfill => //=. rewrite <- Hl1. rewrite Hles'.
         rewrite Hfill'. simpl. by rewrite <- app_assoc.
         rewrite <- Hbef0. rewrite H2. rewrite <- app_assoc. split => //.
-        inversion Hσ'; subst. by inversion H4.
+        inversion Hσ'; subst. by inversion H4. 
       }
       inversion Heqves ; subst. left. repeat split => //=.
       unfold drop.

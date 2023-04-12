@@ -1,14 +1,15 @@
 (** Wasm typing rules **)
 (* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
-From Wasm Require Import operations segment_list.
+From Wasm Require Import operations segment_list handle.
 From Coq Require Import NArith.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive. 
 
-
+Section Typing.
+  Context `{HandleBytes}.
 
 
 Definition convert_helper (sxo : option sx) t1 t2 : bool :=
@@ -382,8 +383,8 @@ Definition cl_typing_self (s : store_record) (fc : function_closure) : Prop :=
 Lemma cl_typing_unique : forall s cl tf, cl_typing s cl tf -> tf = cl_type cl.
 Proof.
   move=> s + tf. case.
-  - move => i ts bes t H /=; by inversion H.
-  - move => f h H; by inversion H.
+  - move => i ts bes t H0 /=; by inversion H0.
+  - move => f h H0; by inversion H0.
 Qed.
 
 Definition cl_type_check_single (s:store_record) (f:function_closure):=
@@ -439,3 +440,4 @@ Inductive config_typing : store_record -> frame -> seq administrative_instructio
 
 
 
+End Typing.

@@ -10,6 +10,13 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 
+ Global Hint Constructors reduce_simple : core.
+Global Hint Constructors opsem.reduce_simple : core. 
+
+Section type_progress.
+
+  Context `{HHB: HandleBytes}.
+
 Definition terminal_form (es: seq administrative_instruction) :=
   const_list es \/ es = [::AI_trap].
 
@@ -156,8 +163,6 @@ Proof.
   rewrite -HDrop. by rewrite cat_take_drop.
 Qed.
 
-Global Hint Constructors reduce_simple : core.
-Global Hint Constructors opsem.reduce_simple : core.
 
 Ltac invert_typeof_vcs :=
   lazymatch goal with
@@ -1758,3 +1763,4 @@ Qed.
 
 
 
+End type_progress.

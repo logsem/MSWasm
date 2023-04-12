@@ -2,24 +2,31 @@
 (* (C) J. Pichon - see LICENSE.txt *)
 (* TODO: all the numeric stuff is in dire need of testing *)
 
-From Wasm Require Import datatypes datatypes_properties typing operations segment_list.
+From Wasm Require Import datatypes datatypes_properties typing operations segment_list handle.
 From compcert Require Import Integers.
 From parseque Require Import Parseque.
 Require Import Byte.
 Require Import leb128.
 Require Import Coq.Arith.Le.
 Require Import BinNat.
+(* From Wasm Require Import handle. *)
+
 
 Notation "p $> b" := (cmap b p) (at level 59, right associativity).
 
 Section Language.
+    Context `{HHB: HandleBytes}.
 
 Context
   {Toks : nat -> Type} `{Sized Toks byte}
   {M : Type -> Type} `{RawMonad M} `{RawAlternative M}.
 
-Definition byte_parser A n := Parser Toks byte M A n.
+
+Definition byte_parser A n := Parser Toks byte M A n. 
 Definition be_parser n := byte_parser basic_instruction n.
+
+Definition byte_eqb := datatypes_properties.byte_eqb.
+
 
 Definition exact_byte (b : byte) {n} : byte_parser byte n :=
   guardM
@@ -49,6 +56,7 @@ Definition parse_s64 {n} : byte_parser Wasm_int.Int64.int n :=
   (* TODO: limit size *)
   (fun x => Wasm_int.Int64.repr x) <$> (extract parse_signed n).
 
+
 Fixpoint k_plus_one_anyTok (k : nat) {n} : byte_parser (list byte) n :=
   match k with
   | 0 => (fun x => cons x nil) <$> anyTok
@@ -62,9 +70,6 @@ Definition parse_f64 {n} : byte_parser Wasm_float.FloatSize64.T n :=
   (fun bs => Floats.Float.of_bits (Integers.Int64.repr (common.Memdata.decode_int (List.map compcert_byte_of_byte bs)))) <$> (k_plus_one_anyTok 7).
 
 
-Definition parse_handle {n} : byte_parser handle n :=
-  (fun bs => handle_of_bytes (List.map compcert_byte_of_byte bs)) <$> (k_plus_one_anyTok 19).
-  
 
 Definition parse_u32_as_nat {n} : byte_parser nat n :=
   (fun x => (N.to_nat x)) <$> parse_u32_as_N.
@@ -395,6 +400,12 @@ Definition parse_f32_const {n} : be_parser n :=
 
 Definition parse_f64_const {n} : be_parser n :=
   exact_byte x44 &> ((fun x => BI_const (VAL_float64 x)) <$> parse_f64).
+
+
+
+
+Definition parse_handle {n} : byte_parser handle n :=
+  (fun bs => handle_of_bytes (List.map compcert_byte_of_byte bs)) <$> (k_plus_one_anyTok 19).
 
 Definition parse_handle_const {n} : be_parser n :=
   exact_byte xd0 &> ((fun x => BI_const (VAL_handle x)) <$> parse_handle).
@@ -1178,6 +1189,8 @@ Definition run : list byte -> [ Parser (SizedList Tok) Tok M A ] -> option A := 
 
 End Run.
 
+Section run_parse.
+  Context `{HHB : HandleBytes}.
 Definition run_parse_be (bs : list byte) : option basic_instruction :=
   run bs parse_be.
 
@@ -1190,3 +1203,5 @@ Definition run_parse_bes (bs : list byte) : option (list basic_instruction) :=
 Definition run_parse_module (bs : list byte) : option module :=
   run (bs ++ cons end_marker nil) (fun n => parse_module)
 .
+End run_parse.
+

@@ -51,6 +51,9 @@ Let run_v : depth -> instance -> config_tuple -> itree eff (store_record * res)%
 Global Hint Constructors reduce_simple : core.
 Global Hint Constructors reduce : core.
 
+Section interpreter_sound.
+  Context `{HHB: HandleBytes}.
+
 (*
 Let reduce_simple : seq administrative_instruction -> seq administrative_instruction -> Prop :=
   @reduce_simple _.
@@ -1308,3 +1311,4 @@ Qed.
 
 
 
+End interpreter_sound.

@@ -473,6 +473,8 @@ Proof.
   by rewrite ct_suffix_extend => //.
 Qed.
 
+Section check_proofs.
+  Context `{HBB : HandleBytes}.
 Lemma check_rcons: forall es e C ts,
   check C (es ++ [::e]) ts = check_single C (check C es ts) e.
 Proof.
@@ -568,6 +570,9 @@ Proof.
     by erewrite check_single_weaken_top; eauto.
   - by rewrite check_single_bot in Htc.
 Qed.
+
+
+End check_proofs.
     
 Lemma same_lab_h_condition: forall C ts l,
   all (fun i: nat => (i < length (tc_label C)) && plop2 C i ts) l ->
@@ -1159,6 +1164,9 @@ Proof with auto_rewrite_cond.
         by rewrite ct_suffix_any_grow => //.
 Qed.
 
+
+Section types_agree_proofs.
+  Context `{HBB: HandleBytes}.
 Lemma c_types_agree_suffix_single: forall l C ts ts2 e,
   c_types_agree (check_single C (CT_type ts) e) ts2 ->
   ct_suffix l (to_ct_list ts) ->
@@ -2032,6 +2040,9 @@ Proof with auto_rewrite_cond.
       * move/eqP in IHHbet1. by subst.
     + by apply c_types_agree_weakening.
 Qed.
+
+End types_agree_proofs.
+
 
 End Host.
 

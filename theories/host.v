@@ -2,7 +2,7 @@
 (* (C) M. Bodin - see LICENSE.txt *)
 
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
-From Wasm Require Import common datatypes operations typing.
+From Wasm Require Import common datatypes operations typing handle.
 From ITree Require Import ITree ITreeFacts.
 
 Import Monads.
@@ -21,7 +21,7 @@ Set Implicit Arguments.
 (** We start with a host expressed as a predicate, useful for proofs. **)
 
 Section Predicate.
-
+ Context `{HHB: HandleBytes}.
 (** We assume a set of host functions. **)
 (* Variable host_function : eqType.
 
@@ -84,7 +84,7 @@ Arguments host_apply [_ _].
 (** ** Relation between both versions **)
 
 Section Parameterised.
-
+Context `{HHB: HandleBytes}.
 
 
 Variable phost : host.

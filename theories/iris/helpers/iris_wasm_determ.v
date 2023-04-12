@@ -6,12 +6,45 @@ Require Export reduce_det_invoke_native reduce_det_unop reduce_det_binop
         reduce_det_block reduce_det_loop reduce_det_return reduce_det_label reduce_det_local.
 
 Section determ.
-  
+  Context `{ HHB : HandleBytes }.
   Let reducible := @iris.program_logic.language.reducible wasm_lang.
 
   Let expr := iris.expr.
   Let val := iris.val.
   Let to_val := iris.to_val.
+
+
+  Lemma reduce_grow_memory s f c me2 ws2 f2 es2 :
+    reduce s f [AI_basic (BI_const c); AI_basic BI_grow_memory] me2
+      ws2 f2 es2 -> me2 = ME_empty.
+  Proof.
+    remember [AI_basic (BI_const c) ; AI_basic BI_grow_memory] as es.
+    induction 1; try by inversion Heqes.
+    subst. unfold lfilled, lfill in H0.
+    destruct k => //.
+    destruct lh => //. destruct (const_list l) => //.
+    move/eqP in H0.
+    destruct l => //. destruct l0 => //.
+    simpl in H0; rewrite app_nil_r in H0.
+    subst; by apply IHreduce.
+    destruct es; first empty_list_no_reduce.
+    destruct es; inversion H0; subst.
+    exfalso. values_no_reduce.
+    destruct es => //.
+    destruct l => //. destruct es; first empty_list_no_reduce.
+    inversion H0 => //. destruct es => //.
+    exfalso. subst. remember [AI_basic BI_grow_memory] as es.
+    symmetry in Heqes. no_reduce Heqes H.
+    destruct l => //. destruct es => //.
+    empty_list_no_reduce.
+    fold lfill in H0. destruct lh => //. destruct (const_list l) => //.
+    destruct (lfill _ _ _) => //.
+    move/eqP in H0.
+    destruct l => //. destruct l => //. destruct l => //.
+  Qed. 
+    
+    
+    
 
   Lemma reduce_det: forall (ws: store_record) (f: frame) es me1 ws1 f1 es1 me2 ws2 f2 es2,
       reduce ws f es me1 ws1 f1 es1 ->
@@ -350,6 +383,7 @@ Section determ.
             repeat split => //=. rewrite first_instr_const => //=. 
             
             by eapply lfilled_implies_starts.
+            by inversion Hσ.
             destruct e => // ; destruct b => //.
             unfold to_val, iris.to_val in He ; simpl in He.
             destruct He as [ He | He ] => //.
@@ -542,15 +576,17 @@ Section determ.
     (* the following two cases are the r_grow_memory cases. We do not guarantee
        determinism in these cases, but the second disjunct of the conclusion holds *)
     - right ; left.
-      exists 0.
+      exists 0. split.
       replace [AI_basic (BI_const (VAL_int32 c)); AI_basic BI_grow_memory] with
         ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_grow_memory] ++ []).
       constructor => //=. by rewrite app_nil_r.
+      by apply reduce_grow_memory in Hred2 as ->.
     - right ; left.
-      exists 0.
+      exists 0. split.
       replace [AI_basic (BI_const (VAL_int32 c)); AI_basic BI_grow_memory] with
         ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_grow_memory] ++ []).
       constructor => //=. by rewrite app_nil_r.
+      by apply reduce_grow_memory in Hred2 as ->.
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
       inversion Heqes; subst. rewrite H0 in H11. inversion H11; subst.
       rewrite H1 in H12. inversion H12; subst. rewrite H19 in H8.

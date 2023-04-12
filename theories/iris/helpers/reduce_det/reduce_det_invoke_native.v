@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_properties iris_reduce_det_prelude.
 
+Section reduce_det_invoke_native.
+  Context `{ HHB : HandleBytes }.
+
+
 Lemma invoke_native_det ws2 f2 es2 s a me f f' t1s t2s ts es vcs:
   nth_error (s_funcs s) a = Some (FC_func_native (f_inst f') (Tf t1s t2s) ts es) ->
   length t1s = length vcs ->
@@ -82,3 +86,4 @@ Proof.
   }
 Qed.
   
+End reduce_det_invoke_native.

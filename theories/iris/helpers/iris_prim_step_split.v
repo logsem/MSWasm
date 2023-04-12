@@ -9,7 +9,7 @@ Ltac solve_prim_step_split_reduce_r H objs Heqf0 :=
   repeat split => //= ; rewrite Heqf0.
 
 Section prim_step_split_properties.
-  
+  Context `{ HHB : HandleBytes }.
   Let reducible := @iris.program_logic.language.reducible wasm_lang.
 
   Let expr := iris.expr.
@@ -21,7 +21,7 @@ Section prim_step_split_properties.
     reducible es1 σ ->
     prim_step LI σ obs2 e2 σ2 efs2 ->
     (∃ e', prim_step es1 σ obs2 e' σ2 efs2 ∧ lfilled i lh (e' ++ es2) e2)
-    \/ (exists lh, lfilled 0 lh [AI_trap] es1) /\ σ = σ2.
+    \/ (exists lh, lfilled 0 lh [AI_trap] es1) /\ σ = σ2 /\ obs2 = [ME_empty].
   Proof.
     intros Hfill Hred Hstep.
     edestruct lfilled_reduce as [(es' & Hstep' & Hfill') | (lh0 & Htrap & Hσ) ] => //=.
@@ -33,7 +33,7 @@ Section prim_step_split_properties.
       eapply (rm_label (k:=0) (lh := LH_base [] es2)) ; try done ;
         unfold lfilled, lfill => //=.
     - eapply prim_step_split_reduce_r in Hstep' as
-          [ (es'' & Hes' & Hes1) | (n & m & lh0 & Htrap' & Htrap & Hσ)].
+          [ (es'' & Hes' & Hes1) | (n & m & lh0 & Htrap' & Htrap & Hσ & ->)].
       + left. eexists ; split => //=.
         replace (cat es'' es2) with (app es'' es2) ; last done.
         rewrite - Hes'.
@@ -44,7 +44,7 @@ Section prim_step_split_properties.
         destruct σ as [[ ?  ? ] ?].
         destruct Hred as (? & ? & [[ ?  ? ] ? ] & ? & ?).
         destruct x => //. destruct x => //. destruct H as [H ?].
-        apply val_head_stuck_reduce in H. congruence.
+        apply val_head_stuck_reduce in H. congruence. 
     - right. split => //=.
       unfold lfilled, lfill in Htrap.
       destruct lh0 as [bef aft|] ; last by false_assumption.
@@ -62,7 +62,7 @@ Section prim_step_split_properties.
       by unfold lfilled, lfill ; rewrite Hbef Hes1.
       destruct e => // ; destruct b => //.
       unfold to_val, iris.to_val in He ; simpl in He ; destruct He as [?|?] => //.
-      by destruct Hσ.
+(*      by destruct Hσ. *)
   Qed.
 
 
@@ -71,7 +71,7 @@ Section prim_step_split_properties.
     reducible es1 (s,v,i) ->
     prim_step [AI_local n (Build_frame v i) LI] (s,v',i') obs2 e2 (s2,v2,i2) efs2 ->
     (∃ e' v'' i'' LI', prim_step es1 (s,v,i) obs2 e' (s2,v'',i'') efs2 ∧ v' = v2 ∧ i' = i2 ∧ e2 = [AI_local n (Build_frame v'' i'') LI'] ∧ lfilled j lh (e' ++ es2) LI') \/
-      ∃ lh0, lfilled 0 lh0 [AI_trap] es1 /\ (s,v',i') = (s2,v2,i2) .
+      ∃ lh0, lfilled 0 lh0 [AI_trap] es1 /\ (s,v',i') = (s2,v2,i2) /\ obs2 = [ME_empty] .
   Proof.
     intros Hfill (obs & e1 & [[s1  v1 ] i1] & efs & Hes1) Hstep.
     destruct obs => //. destruct obs => //. destruct obs2 => //. destruct obs2 => //.
@@ -145,7 +145,7 @@ Section prim_step_split_properties.
       eexists.
       split => //=.
       inversion Hσ ; subst.
-      done.
+      split => //. by inversion H1.
   Qed.    
 
 
@@ -153,7 +153,7 @@ Section prim_step_split_properties.
     reducible es1 (s,v,i) ->
     prim_step [AI_local n (Build_frame v i) (es1 ++ es2)] (s,v',i') obs2 e2 (s2,v2,i2) efs2 ->
     (∃ e' v'' i'', prim_step es1 (s,v,i) obs2 e' (s2,v'',i'') efs2 ∧ v' = v2 ∧ i' = i2 ∧ e2 = [AI_local n (Build_frame v'' i'') (e' ++ es2)]) \/
-      (∃ lh0, lfilled 0 lh0 [AI_trap] es1 /\ (s,v',i') = (s2,v2,i2)).
+      (∃ lh0, lfilled 0 lh0 [AI_trap] es1 /\ (s,v',i') = (s2,v2,i2) /\ obs2 = [ME_empty]).
   Proof.
     intros Hred Hprim.
     apply local_frame_lfilled_prim_step_split_reduce_r with (es1 := es1) (es2:=es2) (j:=0) (lh:= LH_base [] []) in Hprim;auto.

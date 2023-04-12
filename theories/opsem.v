@@ -3,13 +3,14 @@
 
 From Coq Require Import ZArith.BinInt BinNat.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
-Require Export operations segment_list (* host *).
+Require Export operations segment_list (* host *) handle.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-
+Section Opsem.
+   Context `{HandleBytes}. 
 
 Inductive reduce_simple : seq administrative_instruction -> seq administrative_instruction -> Prop :=
 
@@ -502,5 +503,5 @@ Definition reduce_tuple s_f_es me s'_f'_es' : Prop :=
     store_record * frame * seq administrative_instruction -> Prop :=
   Relations.Relation_Operators.clos_refl_trans _ reduce_tuple. *)
 
-
-
+End Opsem.
+  

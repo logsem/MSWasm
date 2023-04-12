@@ -1,12 +1,14 @@
 (** Wasm AST to binary.
 Breaks non-determinism ties; see binary_format_spec.v for the spec. *)
-Require Import datatypes_properties numerics segment_list.
+Require Import datatypes_properties numerics segment_list handle.
 From compcert Require Integers.
 Require Import Byte.
 Require leb128.
 Require Import Coq.Arith.Le.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 
+Section printer.
+  Context `{HHB : HandleBytes}.
 Definition binary_of_value_type (t : value_type) : byte :=
   match t with
   | T_i32 => x7f
@@ -567,3 +569,5 @@ Definition binary_of_module (m : module) : list byte :=
   only_if_non_nil binary_of_codesec m.(mod_funcs) ++
                                         only_if_non_nil binary_of_datasec m.(mod_data) ++
 only_if_non_nil binary_of_segdatasec m.(mod_segdata).
+
+End printer.

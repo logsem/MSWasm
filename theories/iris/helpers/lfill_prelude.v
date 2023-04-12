@@ -1007,6 +1007,9 @@ Proof.
   lia.
 Qed.
 
+
+Section lfilled_reduce.
+  Context `{HHB: HandleBytes}.
 Lemma lfilled_br_and_reduce s f es LI me s' f' es' i j lh vs k lh' :
   reduce s f es me s' f' es' ->
   const_list vs ->
@@ -1588,6 +1591,8 @@ Proof.
     apply lfilled_length_rec in Hfill''. unfold length_rec.
     unfold length_rec in Hfill''. lia.
 Qed.
+
+End lfilled_reduce.
 
 Lemma sfill_nested vh wh e :
   ∃ vh', sfill vh (sfill wh e) = sfill vh' e.

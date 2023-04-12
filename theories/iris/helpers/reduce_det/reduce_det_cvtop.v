@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
+
+Section reduce_det_cvtop.
+  Context `{ HHB : HandleBytes }.
+
 Lemma cvtop_convert_det v v' t1 t2 sx s f me s' f' es:
   types_agree t1 v ->
   cvt t2 sx v = Some v' ->
@@ -35,3 +39,5 @@ Proof.
   move => H Hred.
   by only_one [AI_basic (BI_const v) ; AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)] Hred.
 Qed.
+
+End reduce_det_cvtop.

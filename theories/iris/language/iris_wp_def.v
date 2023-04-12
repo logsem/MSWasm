@@ -16,7 +16,8 @@ Definition val := iris.val.
 Definition to_val := iris.to_val.
 
 (* Defining a Wasm-specific WP with frame existence *)
-
+Section wp_def.
+  Context `{ HHB : HandleBytes }.
 
 Canonical Structure wasm_lang := Language wasm_mixin.
  
@@ -92,6 +93,12 @@ Global Instance heapG_irisG `{!wasmG Σ} : irisGS wasm_lang Σ := {
     state_interp_mono _ _ _ _ := fupd_intro _ _
   }.
 
+
+
+
+End wp_def.
+
+
 (* Resource ownerships *)
 Notation "n ↦[wf]{ q } v" := (mapsto (L:=N) (V:=function_closure) n q v%V)
                            (at level 20, q at level 5, format "n ↦[wf]{ q } v") : bi_scope.
@@ -122,6 +129,9 @@ Notation " ↪[frame]{ q } v" := (ghost_map_elem frameGName tt q v%V)
 Notation " ↪[frame] v" := (ghost_map_elem frameGName tt (DfracOwn 1) v%V)
                            (at level 20, format " ↪[frame] v").
 
+
+
+
 (* Predicates for memory blocks and whole tables *)  
 Definition mem_block `{!wasmG Σ} (n: N) (m: memory) :=
   (([∗ list] i ↦ b ∈ (m.(mem_data).(ml_data)), n ↦[wm][ (N.of_nat i) ] b ) ∗
@@ -130,15 +140,18 @@ Definition mem_block `{!wasmG Σ} (n: N) (m: memory) :=
 Definition mem_block_at_pos `{!wasmG Σ} (n: N) (l:bytes) k :=
   ([∗ list] i ↦ b ∈ l, n ↦[wm][ (N.of_nat (N.to_nat k+i)) ] b)%I.
 
+
+Definition tab_block `{!wasmG Σ} (n: N) (tab: tableinst) :=
+  (([∗ list] i ↦ tabelem ∈ (tab.(table_data)), n ↦[wt][ (N.of_nat i) ] tabelem ) ∗
+     (n ↪[wtsize] (tab_size tab)) ∗ (n ↪[wtlimit] (table_max_opt tab)))%I.
+
 Notation "n ↦[wmblock] m" := (mem_block n m)
                            (at level 20, format "n ↦[wmblock] m"): bi_scope.
 Notation "n ↦[wms][ i ] l" := (mem_block_at_pos n l i)                    
                                 (at level 20, format "n ↦[wms][ i ] l"): bi_scope.
 
 
-Definition tab_block `{!wasmG Σ} (n: N) (tab: tableinst) :=
-  (([∗ list] i ↦ tabelem ∈ (tab.(table_data)), n ↦[wt][ (N.of_nat i) ] tabelem ) ∗
-     (n ↪[wtsize] (tab_size tab)) ∗ (n ↪[wtlimit] (table_max_opt tab)))%I.
+
 
 Notation "n ↦[wtblock] t" := (tab_block n t)
                            (at level 20, format "n ↦[wtblock] t"): bi_scope.
@@ -158,14 +171,18 @@ Proof.
 Qed.
 
 
+
+
 Section Wasm_wp.
   Context `{!wasmG Σ}.
+  Context `{HHB : HandleBytes}.
+
 
   Global Instance wp_wasm : Wp (iProp Σ) (expr) (val) stuckness.
-  Proof using Σ wasmG0.
+  Proof using Σ wasmG0 HHB.
     eapply wp'. Unshelve. exact frame. exact (λ f,  ↪[frame] f)%I. Defined.
 
-End Wasm_wp.
+
 
 (* A Definition of a context dependent WP for WASM expressions *)
 
@@ -186,7 +203,7 @@ Definition wp_wasm_ctx_frame `{!wasmG Σ}
           (Φ : val -> iProp Σ) (n: nat) (f: frame) (i : nat) (lh : lholed) : iProp Σ :=
   
   ∀ LI, ⌜lfilled i lh es LI⌝ -∗ WP [AI_local n f LI] @ s; E {{ Φ }}.
-
+End Wasm_wp.
 
 (* Notations *)
 
@@ -264,3 +281,5 @@ Ltac only_one_reduction H :=
   last (by repeat econstructor) ;
   first (try inversion H ; subst ; clear H => /=; match goal with [f: frame |- _] => iExists f; iFrame; by iIntros | _ => idtac end) ;
   try by repeat (unfold first_instr in Hstart ; simpl in Hstart) ; inversion Hstart.
+
+

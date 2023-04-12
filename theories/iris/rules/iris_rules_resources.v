@@ -12,7 +12,7 @@ Set Default Proof Using "Type".
 
 
 Section iris_rules_resources.
-
+Context `{HHB : HandleBytes}.
 Let reducible := @reducible wasm_lang.
 
 Context `{!wasmG Σ}.
@@ -1059,7 +1059,8 @@ Lemma length_bits v t:
   types_agree t v -> length (bits v) = t_length t.
 Proof.
   intros. unfold bits.
-  destruct v ; destruct t ; by inversion H.
+  destruct v ; destruct t ; try by inversion H.
+  destruct HHB. rewrite length_serialise. done.
 Qed.
 
 
@@ -1581,22 +1582,7 @@ Proof.
   by rewrite Wasm_float.FloatSize32.of_to_bits.
   rewrite Memdata.decode_encode_int_8.
   by rewrite Wasm_float.FloatSize64.of_to_bits.
-  unfold serialise_handle.
-  unfold handle_of_bytes.
-  destruct (Memdata.encode_int 4 (Z.of_N (base h))) eqn:Hbase => //.
-  repeat destruct l => //.
-  destruct (Memdata.encode_int 4 (Z.of_N (offset h))) eqn:Hoff => //.
-  repeat destruct l => //.
-  destruct (Memdata.encode_int 4 (Z.of_N (bound h))) eqn:Hbound => //.
-  repeat destruct l => //.
-  destruct (serialise_i32 (_)) as [|b l] eqn:Hvalid => //.
-  repeat destruct l => //.
-  destruct (Memdata.encode_int 4 (Z.of_N (id h))) eqn:Hid => //.
-  repeat destruct l => //.
-  simpl.
-  rewrite - Hbase - Hoff - Hbound - Hvalid - Hid.
-  repeat rewrite Memdata.decode_encode_int.
-  
+  destruct HHB => /=. rewrite handle_of_serialise. done.
 Qed.
 
 Lemma bits_deserialise bs t :
@@ -1605,8 +1591,8 @@ Lemma bits_deserialise bs t :
 Proof.
   intros Hlen.
   unfold wasm_deserialise.
-  destruct t ; simpl in Hlen ;
-    repeat (destruct bs ; try by inversion Hlen) ;
+  destruct t ; simpl in Hlen.
+  1-4:repeat (destruct bs ; try by inversion Hlen) ;
     unfold bits.
   - unfold serialise_i32.
     rewrite Wasm_int.Int32.unsigned_repr ;
@@ -1756,6 +1742,7 @@ Proof.
       replace Integers.Byte.modulus with 256%Z in H6 ; try done ;
       replace Integers.Int64.max_unsigned with 18446744073709551615%Z ; try done ;
       lia.
+  - unfold bits. destruct HHB => //=.
 Qed.    
 
 
@@ -1809,7 +1796,10 @@ Proof.
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
-  destruct bv eqn:Hb. destruct t;done.
+  destruct bv eqn:Hb. destruct t => //.
+  simpl in Htv. destruct HHB. simpl in Htv.
+  assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
+  rewrite <- Htv in H. lias.
   iDestruct (wms_implies_smems_is_Some with "Hm Hwms") as "(Hwms & Hm & %Hm)".
   destruct Hm as [m Hm].
   rewrite <- Hb.
@@ -1826,18 +1816,19 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    eapply r_load_success => //.
+    eapply rm_silent, r_load_success => //.
     unfold smem_ind.
     by rewrite Hinstmem.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
-    eapply reduce_det in H as [ H | [ [? Hfirst] |  (?&?&?&Hfirst & Hfirst2 &
-                                                                  Hfirst3 & Hσ)]] ;
-      last (eapply r_load_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [H ->].
+    eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) |  [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
+                                                                  Hfirst3 & Hσ & Hme)]]] ;
+      last (eapply rm_silent, r_load_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H;subst. iFrame. done.
 Qed.
@@ -1897,18 +1888,19 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    eapply r_load_packed_success => //.
+    eapply rm_silent, r_load_packed_success => //.
     unfold smem_ind.
     by rewrite Hinstmem.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
-    eapply reduce_det in H as [ H | [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
-                                                                  Hfirst3 & Hσ)(* ] *)]] ;
-      last (eapply r_load_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [H ->].
+    eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) | [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
+                                                                  Hfirst3 & Hσ & Hme)(* ] *)]]] ;
+      last (eapply rm_silent, r_load_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst. iFrame. done.
 Qed.
@@ -1943,9 +1935,9 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [AI_trap], (_, locs, winst), [].
+    eexists [_], [AI_trap], (_, locs, winst), [].
     repeat split => //.
-    eapply r_load_failure => //=.
+    eapply rm_silent, r_load_failure => //=.
     unfold smem_ind.
     by rewrite Hinstmem.
     by rewrite nth_error_lookup.
@@ -1953,10 +1945,11 @@ Proof.
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
     iModIntro.
-    destruct HStep as [HStep [-> ->]].
-    eapply reduce_det in HStep as [H | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
-                                                                       Hfirst3 & Hσ)]] ;
-      last (eapply r_load_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [HStep ->].
+    eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                       Hfirst3 & Hσ & Hme)]]] ;
+      last (eapply rm_silent, r_load_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -1992,20 +1985,20 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [AI_trap], (_, locs, winst), [].
+    eexists [_], [AI_trap], (_, locs, winst), [].
     repeat split => //.
-    eapply r_load_packed_failure => //=.
+    eapply rm_silent, r_load_packed_failure => //=.
     unfold smem_ind.
     by rewrite Hinstmem.
     by rewrite nth_error_lookup.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
-    iModIntro.
-    destruct HStep as [HStep [-> ->]].
-    eapply reduce_det in HStep as [H | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
-                                                                       Hfirst3 & Hσ)]] ;
-      last (eapply r_load_packed_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    iModIntro. destruct κ => //.  destruct κ => //.
+    destruct HStep as [HStep ->].
+    eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                       Hfirst3 & Hσ & ?)]]] ;
+      last (eapply rm_silent, r_load_packed_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -2035,6 +2028,10 @@ Proof.
   assert (types_agree t vinit) as Hvinit.
   { rewrite Heqvinit. by apply deserialise_type. }
   destruct (bits vinit) eqn:Hb. destruct vinit ; inversion Hb.
+  assert (length (serialise_handle h) = 0) as Habs ; first by rewrite H0.
+  destruct HHB. simpl in Habs. rewrite length_serialise in Habs.
+  assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
+  rewrite Habs in H. lias.
   iDestruct (wms_implies_smems_is_Some with "Hm Hwms") as "(Hwms & Hm & %Hm)".
   destruct Hm as [m Hm].
   rewrite <- Hb.
@@ -2055,9 +2052,9 @@ Proof.
     edestruct (if_load_then_store (bits vinit) (bits v)) as [mem Hsomemem];eauto.
     { simplify_eq. erewrite length_bits => //=. }
     erewrite length_bits in Hsomemem => //=.
-    eexists [], [], (_, locs, winst), [].
+    eexists [_], [], (_, locs, winst), [].
     repeat split => //.
-    eapply r_store_success => //=.
+    eapply rm_silent, r_store_success => //=.
     unfold smem_ind.
     by rewrite Hinstmem.    
   - iIntros "!>" (es σ2 efs HStep).
@@ -2070,11 +2067,11 @@ Proof.
     erewrite length_bits => //=.
     done.
     rewrite nth_error_lookup in Hm => //=.
-    iModIntro.
-    destruct HStep as [HStep [-> ->]].
-    eapply reduce_det in HStep as [H | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
-                                                                       Hfirst3 & Hσ) ]] ;
-      last (eapply r_store_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    iModIntro. destruct κ => //. destruct κ => //.
+    destruct HStep as [HStep ->].
+    eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                       Hfirst3 & Hσ & Hme) ]]] ;
+      last (eapply rm_silent, r_store_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -2133,9 +2130,9 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [], (_, locs, winst), [].
+    eexists [_], [], (_, locs, winst), [].
     repeat split => //.
-    eapply r_store_packed_success => //=.
+    eapply rm_silent, r_store_packed_success => //=.
     unfold smem_ind.
     by rewrite Hinstmem.
   - iIntros "!>" (es σ2 efs HStep).
@@ -2146,11 +2143,11 @@ Proof.
     { rewrite length_bytes_takefill.
       rewrite store_bytes_takefill_eq. eauto. }
     { by rewrite nth_error_lookup in Hm. }
-    iModIntro.
-    destruct HStep as [HStep [-> ->]].
-    eapply reduce_det in HStep as [H | [[? Hfirst] |  (?&?&?& Hfirst & Hfirst2 &
-                                                          Hfirst3 & Hσ) ]] ;
-      last (eapply r_store_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    iModIntro. destruct κ => //. destruct κ => //.
+    destruct HStep as [HStep ->].
+    eapply reduce_det in HStep as [H | [(?&Hfirst&?) | [[? Hfirst] |  (?&?&?& Hfirst & Hfirst2 &
+                                                          Hfirst3 & Hσ & Hme) ]]] ;
+      last (eapply rm_silent, r_store_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -2193,20 +2190,20 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [AI_trap], (_, locs, winst), [].
+    eexists [_], [AI_trap], (_, locs, winst), [].
     repeat split => //.
-    eapply r_store_failure => //=.
+    eapply rm_silent, r_store_failure => //=.
     unfold smem_ind.
     by rewrite Hinstmem.
     by rewrite nth_error_lookup.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
-    iModIntro.
-    destruct HStep as [HStep [-> ->]].
-    eapply reduce_det in HStep as [H | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
-                                                                       Hfirst3 & Hσ)]] ;
-      last (eapply r_store_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    iModIntro. destruct κ => //. destruct κ => //.
+    destruct HStep as [HStep ->].
+    eapply reduce_det in HStep as [H | [(? & Hfirst & ?) |[[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                       Hfirst3 & Hσ)]]] ;
+      last (eapply rm_silent, r_store_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -2242,20 +2239,20 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], [AI_trap], (_, locs, winst), [].
+    eexists [_], [AI_trap], (_, locs, winst), [].
     repeat split => //.
-    eapply r_store_packed_failure => //=.
+    eapply rm_silent, r_store_packed_failure => //=.
     unfold smem_ind.
     by rewrite Hinstmem.
     by rewrite nth_error_lookup.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
-    iModIntro.
-    destruct HStep as [HStep [-> ->]].
-    eapply reduce_det in HStep as [H | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
-                                                                       Hfirst3 & Hσ)]] ;
-      last (eapply r_store_packed_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
+    iModIntro. destruct κ => //. destruct κ => //.
+    destruct HStep as [HStep ->].
+    eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                       Hfirst3 & Hσ)]]] ;
+      last (eapply rm_silent, r_store_packed_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -2287,16 +2284,17 @@ Proof.
   iSplit.
   - iPureIntro.
     destruct s => //=.
-    exists [], [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (ssrnat.nat_of_bin (N.div n page_size)))))], (ws, locs, winst), [].
+    eexists [_], [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (ssrnat.nat_of_bin (N.div n page_size)))))], (ws, locs, winst), [].
 
     unfold iris.prim_step => /=.
     repeat split => //.
-    eapply r_current_memory => //.
+    eapply rm_silent, r_current_memory => //.
     unfold mem_size.
     by f_equal.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //.
+    destruct HStep as [H ->].
     only_one_reduction H.
     iFrame.
 Qed.
@@ -2570,19 +2568,21 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    eexists _,_,(_,_,_),_.
+    eexists [_],_,(_,_,_),_.
     repeat split => //=.
-    eapply r_grow_memory_failure => //=.
+    eapply rm_silent, r_grow_memory_failure => //=.
     by rewrite nth_error_lookup.
   - iIntros "!>" (es σ2 efs HStep). 
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct HStep as [H [-> ->]].
+    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
     remember [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_grow_memory] as es0.
     remember {| f_locs := locs ; f_inst := winst |} as f.
     remember {| f_locs := locs' ; f_inst := inst' |} as f'.
     replace [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_grow_memory] with
       ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_grow_memory]) in Heqes0 => //=.
     induction H ; try by inversion Heqes0 ;
+      try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
+    destruct H ; try by inversion Heqes0 ;
       try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
     { destruct H ; try by inversion Heqes0 ;
         try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
@@ -2664,6 +2664,8 @@ Proof.
     rewrite <- app_nil_l in Hes.
     clear IHreduce H1 Heqes0 H0.
     induction H ; try by inversion Hes ; try by apply app_inj_tail in Hes as [_ Habs] ;
+      inversion Habs.
+     induction H ; try by inversion Hes ; try by apply app_inj_tail in Hes as [_ Habs] ;
       inversion Habs.
     { destruct H ; try by inversion Hes ; try by apply app_inj_tail in Hes as [_ Habs] ;
         inversion Habs.

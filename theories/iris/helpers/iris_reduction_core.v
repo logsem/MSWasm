@@ -11,7 +11,7 @@ Ltac first_not_const Hconst :=
 
 
 Section reduction_core.
-
+  Context `{ HHB : HandleBytes }.
   Let reducible := @iris.program_logic.language.reducible wasm_lang.
   
   Let expr := iris.expr.

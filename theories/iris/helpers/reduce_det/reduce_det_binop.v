@@ -2,6 +2,10 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool.
 From stdpp Require Import base list.
 Require Export iris_reduce_det_prelude.
 
+Section reduce_det_binop.
+  Context `{ HHB : HandleBytes }.
+
+
 Lemma binop_det v1 v2 v op t s f me s' f' es:
   app_binop op v1 v2 = Some v ->
   reduce s f [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] me s' f' es ->
@@ -28,3 +32,6 @@ Proof.
   by only_one [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ; AI_basic (BI_binop t op)] Hred ;
      inversion Heqes ; subst ; rewrite H in H0 ; inversion H0 ; subst.
 Qed.
+
+
+End reduce_det_binop.

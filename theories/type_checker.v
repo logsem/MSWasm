@@ -1,6 +1,6 @@
 (** Wasm type checker **)
 (* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
-Require Import common.
+Require Import common handle.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 
 Set Implicit Arguments.
@@ -203,6 +203,9 @@ Definition is_float (t: value_type) :=
   | T_handle => false
   end.
 
+Section Check.
+  Context `{HandleBytes}.
+
 Fixpoint check_single (C : t_context) (ts : checker_type) (be : basic_instruction) : checker_type :=
   let b_e_type_checker (C : t_context) (es : list basic_instruction) (tf : function_type) : bool :=
     let: (Tf tn tm) := tf in
@@ -398,6 +401,8 @@ in
       else CT_bot
   end.
 
+
+
 Fixpoint collect_at_inds A (l : seq A) (ns : seq nat) : seq A :=
   match ns with
   | n :: ns' =>
@@ -411,10 +416,13 @@ Fixpoint collect_at_inds A (l : seq A) (ns : seq nat) : seq A :=
 Definition check (C : t_context) (es : list basic_instruction) (ts : checker_type): checker_type :=
   List.fold_left (check_single C) es ts.
 
+
+
 Definition b_e_type_checker (C : t_context) (es : list basic_instruction) (tf : function_type) : bool :=
   let: (Tf tn tm) := tf in
   c_types_agree (List.fold_left (check_single C) es (CT_type tn)) tm  .
 
+End Check.
 (* TODO: This definition is kind of a duplication of inst_typing, to avoid more dependent definitions becoming Prop downstream *)
 
 (* UPD: This in fact makes the soundness proof extremely tedious and dependent on the type_checker reflecting typing.

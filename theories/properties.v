@@ -1,6 +1,6 @@
 (** Miscellaneous properties about Wasm operations **)
 
-From Wasm Require Export datatypes_properties operations typing opsem common stdpp_aux.
+From Wasm Require Export datatypes_properties operations typing opsem common stdpp_aux handle.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From StrongInduction Require Import StrongInduction.
 From Coq Require Import Bool BinNat Program.Equality.
@@ -448,8 +448,9 @@ Ltac gen_ind_pre H :=
   let rec aux v :=
     lazymatch v with
     | ?f ?x =>
-      let only_do_if_ok_direct t cont :=
+        let only_do_if_ok_direct t cont :=
         lazymatch t with
+        | HandleBytes => idtac
         | Type => idtac
         | _ => cont tt
         end in
@@ -493,7 +494,10 @@ Ltac gen_ind_gen H :=
     | ?f ?x => 
     lazymatch goal with
       | _ : x = ?y |- _ => try_generalize y
-      | _ => fail "unexpected term" v
+    | _ => lazymatch type of x with
+          | HandleBytes => idtac
+          | _ => fail "unexpected term" v
+          end 
       end;
       aux f
     | _ => idtac
@@ -942,6 +946,9 @@ Proof.
   move=> es D. by apply: lfilled_pickable_rec_gen.
 Defined.
 
+Section Elim.
+  Context `{HHB: HandleBytes}.
+
 (** The lemmas [r_eliml] and [r_elimr] are the fundamental framing lemmas.
   They enable to focus on parts of the stack, ignoring the context. **)
 
@@ -950,9 +957,9 @@ Lemma r_eliml: forall s f es me s' f' es' lconst,
     reduce s f es me s' f' es' ->
     reduce s f (lconst ++ es) me s' f' (lconst ++ es').
 Proof.
-  move => s f es me s' f' es' lconst HConst H.
+  move => s f es me s' f' es' lconst HConst H0.
   apply: rm_label; try apply/lfilledP.
-  - by apply: H.
+  - by apply: H0.
   - replace (lconst++es) with (lconst++es++[::]); first by apply: LfilledBase.
     f_equal. by apply: cats0.
   - replace (lconst++es') with (lconst++es'++[::]); first by apply: LfilledBase.
@@ -963,9 +970,9 @@ Lemma r_elimr: forall s f es me s' f' es' les,
     reduce s f es me s' f' es' ->
     reduce s f (es ++ les) me s' f' (es' ++ les).
 Proof.
-  move => s f es me s' f' es' les H.
+  move => s f es me s' f' es' les H0.
   apply: rm_label; try apply/lfilledP.
-  - apply: H.
+  - apply: H0.
   - replace (es++les) with ([::]++es++les) => //. by apply: LfilledBase.
   - replace (es'++les) with ([::]++es'++les) => //. by apply: LfilledBase.
 Qed.
@@ -990,6 +997,8 @@ Proof.
   assert (reduce s f (es++les) me s' f' ([::] ++les)); first by apply: r_elimr.
   by rewrite cat0s in H0.
 Qed.
+
+
 
 (* A reformulation of [ety_a] that is easier to be used. *)
 Lemma ety_a': forall s C es ts,
@@ -1066,10 +1075,11 @@ Proof.
     * by eapply IHHType2 => //.
   + apply bet_weakening. by eapply IHHType => //.
 Qed.
+End Elim.
 
 
 Section composition_typing_proofs.
-
+  Context `{HHB: HandleBytes}.
 Hint Constructors be_typing : core.
 
 (** A helper tactic for proving [composition_typing_single]. **)
@@ -1098,7 +1108,7 @@ Proof.
   + apply concat_cancel_last in H1. destruct H1. subst.
     by exists [::], t1s0, t2s0, t2s.
   + edestruct IHHType; eauto.
-    destruct H as [t1s' [t2s' [t3s' [H1 [H2 [H3 H4]]]]]]. subst.
+    destruct H as [t1s' [t2s' [t3s' [H5 [H2 [H3 H4]]]]]]. subst.
     exists (ts ++ x), t1s', t2s', t3s'.
     by repeat split => //=; rewrite -catA.
 Qed.
@@ -1293,6 +1303,9 @@ Lemma cat_cons_not_nil : forall T (xs : list T) y ys,
   xs ++ (y :: ys) <> [::].
 Proof. move => T xs y ys E. by move: (List.app_eq_nil _ _ E) => [? ?]. Qed.
 
+Section nil_proofs.
+  Context `{HHB : HandleBytes}.
+
 Lemma not_reduce_simple_nil : forall es', ~ reduce_simple [::] es'.
 Proof.
   assert (forall es es', reduce_simple es es' -> es = [::] -> False) as H.
@@ -1394,7 +1407,7 @@ Proof.
   { intros. apply: lfilled_not_nil. exact H1. exact H0. }
 Qed.
 
-
+End nil_proofs.
 
 
 
@@ -1431,6 +1444,79 @@ Proof.
   simpl in H'.
   rewrite Hlen in H' => //.
 Qed.
+
+
+
+Lemma size_tagged_bytes_takefill a l b :
+  size (tagged_bytes_takefill a l b) = l.
+Proof.
+  generalize dependent b. induction l => //=.
+  intro b; destruct b => //=.
+  by rewrite IHl.
+  by rewrite IHl.
+Qed.
+  
+
+Lemma segstore_is_None_aux_aux b c' k:
+   List.fold_left
+    (fun '(k0, acc) (x : byte * btag) =>
+     ((k0 + 1)%coq_nat,
+     match acc with
+     | Some dat => seg_update (base b + offset b + N.of_nat k0) x dat
+     | None => None
+     end)) c' (k, None) = (k + length c', None).
+Proof.
+  generalize dependent k. induction c' => //=.
+  intro k. induction k => //=. inversion IHk. rewrite <- H0 at 2. done.
+  intro k. rewrite IHc'. clear. induction k => //=.
+  inversion IHk. rewrite addSn H0. done.
+Qed.
+  
+
+Lemma segstore_is_None_aux a a' b c c' k k':
+  length c = length c' ->
+  length a.(segl_data) = length a'.(segl_data) ->
+List.fold_left
+        (fun '(k, acc) (x : byte * btag) =>
+         ((k + 1)%coq_nat,
+         match acc with
+         | Some dat => seg_update (base b + offset b + N.of_nat k) x dat
+         | None => None
+         end)) c (k, Some a)
+= (k', None) -> 
+  List.fold_left
+        (fun '(k, acc) (x : byte * btag) =>
+         ((k + 1)%coq_nat,
+         match acc with
+         | Some dat => seg_update (base b + offset b + N.of_nat k) x dat
+         | None => None
+         end)) c' (k, Some a') = (k', None).
+Proof.
+  generalize dependent a. generalize dependent a'.
+  generalize dependent k. generalize dependent k'.
+  generalize dependent c'. induction c => //=.
+  destruct c' => //=.
+  intros k' k a' a0 Hlen Hlena. 
+  unfold seg_update at 2 4.
+  rewrite Hlena. destruct (_ <? _)%N => //.
+  - intro H. erewrite IHc. done. by inversion Hlen. 2: exact H.
+    simpl. do 2 rewrite length_is_size size_cat => //=.
+    do 2 rewrite size_take size_drop. do 2 rewrite length_is_size in Hlena.
+    repeat rewrite Hlena. done.
+  - do 2 rewrite segstore_is_None_aux_aux. by inversion Hlen.
+Qed. 
+
+
+Lemma segstore_is_None a b c c' d :
+  segstore a b c d = None -> segstore a b c' d = None.
+Proof.
+  unfold segstore. destruct (_ <=? _)%N => //.
+  unfold write_segbytes. unfold fold_lefti.
+  destruct (List.fold_left _ _ _) eqn:Hfl => //.
+  destruct o => //. erewrite segstore_is_None_aux. done. 3: exact Hfl.
+  do 2 rewrite length_is_size size_tagged_bytes_takefill. done. done.
+Qed. 
+
 
  Lemma segstore_same_length_aux:
   forall l h s s' k k',
@@ -1493,15 +1579,6 @@ Proof.
 Qed. 
 
 
-Lemma size_tagged_bytes_takefill a l b :
-  size (tagged_bytes_takefill a l b) = l.
-Proof.
-  generalize dependent b. induction l => //=.
-  intro b; destruct b => //=.
-  by rewrite IHl.
-  by rewrite IHl.
-Qed.
-  
 
 
 Lemma segstore_same_length s h l i s' :
@@ -1895,6 +1972,9 @@ Proof.
     *)
 
 
+Section reduce_wellformed_proof.
+  Context `{HHB : HandleBytes}.
+
 Lemma reduce_preserves_wellformedness s f es me s' f' es':
   wellFormedState s f ->
   reduce s f es me s' f' es' ->
@@ -2136,3 +2216,5 @@ Proof.
     
     
 *)
+
+End reduce_wellformed_proof.

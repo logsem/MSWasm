@@ -346,50 +346,50 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
 
   | AI_basic (BI_segload T_handle) =>
       if ves is VAL_handle h :: ves' then
-        expect
+(*        expect
           (sseg_ind s f.(f_inst))
           (fun j =>
              expect
                (sall_ind s f.(f_inst))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) all_s_j' && (N.eqb (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
+                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
-                             (segload seg_s_j h (t_length T_handle))
+                             (segload s.(s_segs) h (t_length T_handle))
                              (fun bs =>
                                 if wasm_deserialise (List.map fst bs) T_handle is VAL_handle hmem then
                                   ret (s, f, RS_normal (vs_to_es (VAL_handle (upd_handle_validity hmem (List.forallb (fun x => match x with Handle => true | _ => false end) (List.map snd bs))) :: ves')))
                                 else ret (s, f, crash_error))
                              (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-                    else ret (s, f, crash_error)
+(*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
                (ret (s, f, crash_error)))
-          (ret (s, f, crash_error))
+          (ret (s, f, crash_error)) *)
       else ret (s, f, crash_error)
 
  | AI_basic (BI_segstore T_handle) =>
       if ves is v :: VAL_handle h :: ves' then
-        expect
+(*        expect
           (sseg_ind s f.(f_inst))
           (fun j =>
              expect
                (sall_ind s f.(f_inst))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) all_s_j'&& (N.eqb (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
+                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
-                             (segstore seg_s_j h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
+                             (segstore s.(s_segs) h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
                              (fun seg' =>
-                                (ret (upd_s_seg s (update_list_at s.(s_segs) j seg'), f, RS_normal (vs_to_es ves'))))
+                                (ret (upd_s_seg s seg', f, RS_normal (vs_to_es ves'))))
                              (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-                    else ret (s, f, crash_error)
+(*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
                (ret (s, f, crash_error)))
-          (ret (s, f, crash_error))
+          (ret (s, f, crash_error)) *)
       else ret (s, f, crash_error)
 
 
@@ -397,47 +397,47 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                
   | AI_basic (BI_segload t) =>
       if ves is VAL_handle h :: ves' then
-        expect
+(*        expect
           (sseg_ind s f.(f_inst))
           (fun j =>
              expect
                (sall_ind s f.(f_inst))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) all_s_j'
+                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
+                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
-                             (segload seg_s_j h (t_length t))
+                             (segload s.(s_segs) h (t_length t))
                              (fun bs => ret (s, f, RS_normal (vs_to_es (wasm_deserialise (List.map fst bs) t :: ves'))))
                              (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-                    else ret (s, f, crash_error)
+(*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
                (ret (s, f, crash_error)))
-          (ret (s, f, crash_error))
+          (ret (s, f, crash_error)) *)
       else ret (s, f, crash_error)
 
   | AI_basic (BI_segstore t) =>
       if ves is v :: VAL_handle h :: ves' then
-        expect
+(*        expect
           (sseg_ind s f.(f_inst))
           (fun j =>
              expect
                (sall_ind s f.(f_inst))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) all_s_j'
+                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
+                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
-                             (segstore seg_s_j h (List.map (fun x => (x, Numeric)) (bits v)) (t_length t))
+                             (segstore s.(s_segs) h (List.map (fun x => (x, Numeric)) (bits v)) (t_length t))
                              (fun seg' =>
-                                (ret (upd_s_seg s (update_list_at s.(s_segs) j seg'), f, RS_normal (vs_to_es ves'))))
+                                (ret (upd_s_seg s seg', f, RS_normal (vs_to_es ves'))))
                              (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-                    else ret (s, f, crash_error)
+(*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
                (ret (s, f, crash_error)))
-          (ret (s, f, crash_error))
+          (ret (s, f, crash_error)) *)
       else ret (s, f, crash_error)
                          
 
@@ -504,53 +504,53 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
 
   | AI_basic BI_segalloc =>
       if ves is VAL_int32 c :: ves' then
-        expect
+(*        expect
           (sseg_ind s f.(f_inst))
           (fun j =>
              expect
                (sall_ind s f.(f_inst))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some s_seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some s_all_s_j' then
-                      let: l := operations.seg_length s_seg_s_j in
-                      let: seg' := operations.seg_grow s_seg_s_j (Wasm_int.N_of_uint i32m c) in
+                    if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
+                      let: l := operations.seg_length s.(s_segs) in
+                      let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
                       if seg' is Some seg'' then
-                        ret (upd_s_seg (upd_s_all s (update_list_at s.(s_alls) j' ({| allocated := (fresh_nid s_all_s_j', l, Wasm_int.N_of_uint i32m c) :: allocated s_all_s_j' |}))) (update_list_at s.(s_segs) j seg''), f,
+                        ret (upd_s_seg (upd_s_all s ({| allocated := (fresh_nid s.(s_alls), l, Wasm_int.N_of_uint i32m c) :: allocated s.(s_alls) |})) seg'', f,
                             RS_normal (vs_to_es (VAL_handle {| base := l;
                                                               offset := N.of_nat 0;
                                                               bound := Wasm_int.N_of_uint i32m c;
                                                               valid := true;
-                                                              id := fresh_nid s_all_s_j' |} :: ves')))
+                                                              id := fresh_nid s.(s_alls) |} :: ves')))
                       else ret (s, f, crash_error)
-                    else ret (s, f, crash_error)
+(*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
                (ret (s, f, crash_error)))
-          (ret (s, f, crash_error))
+          (ret (s, f, crash_error)) *)
       else ret (s, f, crash_error)
 
   | AI_basic BI_segfree =>
       if ves is VAL_handle h :: ves' then
-        expect
+(*        expect
           (sseg_ind s f.(f_inst))
           (fun j =>
              expect
                (sall_ind s f.(f_inst))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some s_seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some s_all_s_j' then
+                    if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
                       if h.(valid) && (h.(offset) == N.zero)%N then
                         expect
-                          (find_and_remove h.(id) s_all_s_j'.(allocated))
+                          (find_and_remove h.(id) s.(s_alls).(allocated))
                           (fun '(l, a, n) =>
                              if (a == h.(base))%N then
-                               ret (upd_s_all s (update_list_at s.(s_alls) j' {| allocated := l |}), f, RS_normal (vs_to_es ves'))
+                               ret (upd_s_all s {| allocated := l |}, f, RS_normal (vs_to_es ves'))
                              else ret (s, f, crash_error))
                           (ret (s, f, crash_error))
                       else ret (s, f, crash_error)
-                    else ret (s, f, crash_error)
+(*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
                (ret (s, f, crash_error)))
-          (ret (s, f, crash_error))
+          (ret (s, f, crash_error)) *)
       else ret (s, f, crash_error)
                                       
                       

@@ -77,7 +77,7 @@ Definition upd_s_mem (s : store_record) (m : list memory) : store_record := {|
   s_globals := s.(s_globals);
                                                                            |}.
 
-Definition upd_s_seg (s : store_record) (m : list segment) : store_record :=
+Definition upd_s_seg (s : store_record) (m : segment) : store_record :=
   {|
     s_funcs := s.(s_funcs) ;
     s_tables := s.(s_tables) ;
@@ -602,7 +602,7 @@ Definition smem_ind (s : store_record) (i : instance) : option nat :=
   | cons k _ => Some k
   end.
 
-Definition sseg_ind (s : store_record) i : option nat :=
+(* Definition sseg_ind (s : store_record) i : option nat :=
   match i.(inst_segment) with
   | nil => None
   | cons k _ => Some k
@@ -612,7 +612,7 @@ Definition sall_ind (s : store_record) i :=
   match i.(inst_allocator) with
   | nil => None
   | cons k _ => Some k
-  end.
+  end. *)
 
 
 Definition tab_size (t: tableinst) : nat :=
@@ -714,8 +714,8 @@ Definition store_extension (s s' : store_record) : bool :=
   (s_funcs s == s_funcs s') &&
   (all2 tab_extension s.(s_tables) s'.(s_tables)) &&
     (all2 mem_extension s.(s_mems) s'.(s_mems)) &&
-    (all2 seg_extension s.(s_segs) s'.(s_segs)) &&
-    (all2 all_extension s.(s_alls) s'.(s_alls)) &&
+    (seg_extension s.(s_segs) s'.(s_segs)) &&
+    (all_extension s.(s_alls) s'.(s_alls)) &&
   (all2 glob_extension s.(s_globals) s'.(s_globals)).
 
 Definition vs_to_vts (vs : seq value) := map typeof vs.

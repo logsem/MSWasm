@@ -86,12 +86,12 @@ Definition empty_module := {|
   mod_funcs := nil;
   mod_tables := nil;
                             mod_mems := nil;
-                            mod_segs := nil;
-                            mod_alls := nil;
+                            (* mod_segs := nil;
+                            mod_alls := nil; *)
   mod_globals := nil;
   mod_elem := nil;
                             mod_data := nil;
-                            mod_segdata := nil;
+(*                            mod_segdata := nil; *)
   mod_start := None;
   mod_imports := nil;
   mod_exports := nil;
@@ -109,10 +109,10 @@ Definition module_type := {|
   mod_types := cons (Tf nil (cons T_i32 nil)) nil;
   mod_funcs := nil;
   mod_tables := nil;
-  mod_mems := nil; mod_segs := nil; mod_alls := nil;
+  mod_mems := nil; (* mod_segs := nil; mod_alls := nil;*)
   mod_globals := nil;
   mod_elem := nil;
-  mod_data := nil; mod_segdata := nil;
+  mod_data := nil; (* mod_segdata := nil; *)
   mod_start := None;
   mod_imports := nil;
   mod_exports := nil;
@@ -128,10 +128,10 @@ Definition module_type_fun := {|
   mod_funcs :=
     cons {| modfunc_type := Mk_typeidx 0; modfunc_locals := nil; modfunc_body := nil |} nil;
   mod_tables := nil;
-  mod_mems := nil; mod_segs := nil; mod_alls := nil;
+  mod_mems := nil; (* mod_segs := nil; mod_alls := nil; *)
   mod_globals := nil;
   mod_elem := nil;
-  mod_data := nil; mod_segdata := nil;
+  mod_data := nil; (* mod_segdata := nil; *)
   mod_start := None;
   mod_imports := nil;
   mod_exports := nil;
@@ -147,10 +147,10 @@ Definition module_42 := {|
     let e := BI_const (VAL_int32 (Wasm_int.Int32.repr (BinInt.Z.of_nat 42))) in
     cons {| modfunc_type := Mk_typeidx 0; modfunc_locals := nil; modfunc_body := cons e nil |} nil;
   mod_tables := nil;
-  mod_mems := nil; mod_segs := nil; mod_alls := nil;
+  mod_mems := nil; (* mod_segs := nil; mod_alls := nil; *)
   mod_globals := nil;
   mod_elem := nil;
-  mod_data := nil; mod_segdata := nil;
+  mod_data := nil; (* mod_segdata := nil; *) 
   mod_start := None;
   mod_imports := nil;
   mod_exports := nil;
@@ -166,10 +166,10 @@ Definition module_42_exported := {|
     let e := BI_const (VAL_int32 (Wasm_int.Int32.repr (BinInt.Z.of_nat 42))) in
     cons {| modfunc_type := Mk_typeidx 0; modfunc_locals := nil; modfunc_body := cons e nil |} nil;
   mod_tables := nil;
-  mod_mems := nil; mod_segs := nil; mod_alls := nil;
+  mod_mems := nil; (* mod_segs := nil; mod_alls := nil; *) 
   mod_globals := nil;
   mod_elem := nil;
-  mod_data := nil; mod_segdata := nil;
+  mod_data := nil; (* mod_segdata := nil; *) 
   mod_start := None;
   mod_imports := nil;
   mod_exports := cons {| modexp_name := String.list_byte_of_string "hello"; modexp_desc := MED_func (Mk_funcidx 0); |} nil;

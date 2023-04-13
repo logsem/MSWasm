@@ -358,13 +358,13 @@ Definition binary_of_memidx (t : memidx) : list byte :=
   let 'Mk_memidx i := t in
   leb128.encode_unsigned (bin_of_nat i).
 
-Definition binary_of_segidx (t : segidx) : list byte :=
+(* Definition binary_of_segidx (t : segidx) : list byte :=
   let 'Mk_segidx i := t in
   leb128.encode_unsigned (bin_of_nat i).
 
 Definition binary_of_allidx (t : allidx) : list byte :=
   let 'Mk_allidx i := t in
-  leb128.encode_unsigned (bin_of_nat i).
+  leb128.encode_unsigned (bin_of_nat i). *)
 
 Definition binary_of_globalidx (t : globalidx) : list byte :=
   let 'Mk_globalidx i := t in
@@ -415,8 +415,8 @@ Definition binary_of_import_desc (imp_desc : import_desc) : list byte :=
   | ID_func tidx => x00 :: binary_of_typeidx (Mk_typeidx tidx)
   | ID_table t_ty => x01 :: binary_of_table_type t_ty
   | ID_mem m_ty => x02 :: binary_of_memory_type m_ty
-  | ID_seg m_ty => xd2 :: binary_of_segment_type m_ty
-  | ID_all m_ty => xd5 :: binary_of_allocator_type m_ty
+(*  | ID_seg m_ty => xd2 :: binary_of_segment_type m_ty
+  | ID_all m_ty => xd5 :: binary_of_allocator_type m_ty *)
   | ID_global g_ty => x03 :: binary_of_global_type g_ty
   end.
 
@@ -458,8 +458,8 @@ Definition binary_of_export_desc (ed : module_export_desc) : list byte :=
   | MED_func n => x00 :: binary_of_funcidx n
   | MED_table n => x01 :: binary_of_tableidx n
   | MED_mem n => x02 :: binary_of_memidx n
-  | MED_seg n => xd2 :: binary_of_segidx n
-  | MED_all n => xd5 :: binary_of_allidx n
+(*  | MED_seg n => xd2 :: binary_of_segidx n
+  | MED_all n => xd5 :: binary_of_allidx n *)
   | MED_global n => x03 :: binary_of_globalidx n
   end.
 
@@ -533,13 +533,13 @@ Definition binary_of_tagged_byte (x : byte * btag) :=
   | Handle => [:: xd8 ; b]
   end.
 
-Definition binary_of_segdata (d : module_segdata) : list byte :=
+(* Definition binary_of_segdata (d : module_segdata) : list byte :=
   binary_of_segidx d.(modsegdata_data) ++
                        binary_of_expr d.(modsegdata_offset) ++
                                           binary_of_vec (fun x => binary_of_tagged_byte x ++ nil) d.(modsegdata_init).
 
 Definition binary_of_segdatasec (ds : list module_segdata) : list byte :=
-  xd9 :: with_length (binary_of_vec binary_of_segdata ds).
+  xd9 :: with_length (binary_of_vec binary_of_segdata ds). *)
 
 Definition only_if_non_nil {A} (f : list A -> list byte) (xs : list A) : list byte :=
   match xs with
@@ -560,14 +560,16 @@ Definition binary_of_module (m : module) : list byte :=
   only_if_non_nil binary_of_funcsec m.(mod_funcs) ++
   only_if_non_nil binary_of_tablesec m.(mod_tables) ++
   only_if_non_nil binary_of_memsec m.(mod_mems) ++
-  only_if_non_nil binary_of_segsec m.(mod_segs) ++
-  only_if_non_nil binary_of_allsec m.(mod_alls) ++
+(*  only_if_non_nil binary_of_segsec m.(mod_segs) ++
+  only_if_non_nil binary_of_allsec m.(mod_alls) ++ *)
   only_if_non_nil binary_of_globalsec m.(mod_globals) ++
   only_if_non_nil binary_of_exportssec m.(mod_exports) ++
   only_if_non_none binary_of_startsec m.(mod_start) ++
   only_if_non_nil binary_of_elemsec m.(mod_elem) ++
   only_if_non_nil binary_of_codesec m.(mod_funcs) ++
-                                        only_if_non_nil binary_of_datasec m.(mod_data) ++
-only_if_non_nil binary_of_segdatasec m.(mod_segdata).
+                                        only_if_non_nil binary_of_datasec m.(mod_data) (* ++
+only_if_non_nil binary_of_segdatasec m.(mod_segdata) *) . 
 
 End printer.
+
+  

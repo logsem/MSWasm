@@ -206,12 +206,12 @@ Proof.
   unfold inst_typing, typing.inst_typing in HIT.
   destruct i => //=. destruct C => //=.
   destruct tc_local => //=. destruct tc_label => //=. destruct tc_return => //=.
-  remove_bools_options.
-  remember H5 as H500. clear HeqH500.
-  apply all2_size in H5.
-  repeat rewrite -length_is_size in H5.
+  remove_bools_options. 
+  remember H3 as H500. clear HeqH500.
+  apply all2_size in H3.
+  repeat rewrite -length_is_size in H3.
   simpl in HLength.
-  rewrite -H5 in HLength.
+  rewrite -H3 in HLength.
   move/ltP in HLength.
   apply List.nth_error_Some in HLength.
   destruct (List.nth_error inst_funcs j) eqn:HN1 => //=.
@@ -231,11 +231,11 @@ Proof.
   destruct i => //=. destruct C => //=.
   destruct tc_local => //=. destruct tc_label => //=. destruct tc_return => //=.
   remove_bools_options.
-  remember H4 as H500. clear HeqH500.
-  apply all2_size in H4.
-  repeat rewrite -length_is_size in H4.
+  remember H2 as H500. clear HeqH500.
+  apply all2_size in H2.
+  repeat rewrite -length_is_size in H2.
   simpl in HLength.
-  rewrite -H4 in HLength.
+  rewrite -H2 in HLength.
   move/ltP in HLength.
   apply List.nth_error_Some in HLength.
   destruct (List.nth_error inst_globs j) eqn:HN1 => //=.
@@ -243,7 +243,7 @@ Proof.
   unfold globals_agree in H500.
   eapply all2_projection in H500; eauto.
   remove_bools_options.
-  by move/ltP in H6.
+  by move/ltP in H4.
 Qed.
 
 Lemma mem_context_store: forall s i C,
@@ -258,8 +258,8 @@ Proof.
   destruct tc_local => //=. destruct tc_label => //=. destruct tc_return => //=.
   remove_bools_options.
   simpl in HMemory. unfold smem_ind. simpl.
-  remember H2 as H500. clear HeqH500.
-  apply all2_size in H2.
+  remember H0 as H500. clear HeqH500.
+  apply all2_size in H0.
   destruct inst_memory => //=; first by destruct tc_memory.
   exists m. split => //.
   destruct tc_memory => //.
@@ -269,7 +269,7 @@ Proof.
 Qed.
 
 
-Lemma seg_context_store: forall s i C,
+(* Lemma seg_context_store: forall s i C,
     inst_typing s i C ->
     tc_segment C <> [::] ->
     exists n, sseg_ind s i = Some n /\
@@ -311,7 +311,7 @@ Proof.
   simpl in H500.
   unfold alli_agree in H500.
   by remove_bools_options.
-Qed.
+Qed. *)
 
 
 
@@ -335,11 +335,11 @@ Proof.
   destruct tc_table => //=.
   remove_bools_options.
   destruct HST.
-  destruct H7.
-  rewrite -> List.Forall_forall in H7.
+  destruct H5.
+  rewrite -> List.Forall_forall in H5.
   assert (HIN1: List.In t0 s_tables).
   { by apply List.nth_error_In in Hoption0. }
-  apply H7 in HIN1. destruct HIN1 as [HIN1 _].
+  apply H5 in HIN1. destruct HIN1 as [HIN1 _].
   rewrite -> List.Forall_forall in HIN1.
   assert (HIN2: List.In (Some a) (table_data t0)).
   { by apply List.nth_error_In in Hoption. }
@@ -784,22 +784,22 @@ Proof.
     right. subst.
     simpl in H, H0.
     invert_typeof_vcs. destruct v => //=.
-    eapply seg_context_store in H;eauto.
-    destruct H as (n & HMenInd & HMem).
+(*    eapply seg_context_store in H;eauto.
+    destruct H as (n & HMenInd & HMem). 
     eapply all_context_store in H0;eauto.
-    destruct H0 as (n0 & HAllInd & HAll).
+    destruct H0 as (n0 & HAllInd & HAll). 
     destruct (List.nth_error (s_segs s) n) eqn:HN => //=.
-    destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=.
+    destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=. *)
     destruct h.(valid) eqn:Hvalid.
     destruct (0 <=? h.(offset))%N eqn:Hlo; [apply N.leb_le in Hlo| apply N.leb_gt in Hlo].
     destruct (nat_of_bin h.(offset) + t_length t <=? nat_of_bin h.(bound)) eqn:Hhi;
       [ apply Nat.leb_le in Hhi | apply Nat.leb_gt in Hhi].
-    destruct (find h.(id) a.(allocated)) eqn:Halloc.
+    destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
     destruct (is_handle_t t) eqn:Ht.
     destruct t => //=.
     destruct (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
     move/eqP in Hallign.
-    destruct (segload s0 h (t_length T_handle)) eqn:HLoadResult.
+    destruct (segload (s_segs s) h (t_length T_handle)) eqn:HLoadResult.
     repeat eexists.
     eapply rm_segload_handle_success; eauto; try lias.
     unfold isAlloc; by rewrite Halloc.
@@ -807,8 +807,8 @@ Proof.
     repeat eexists _; eapply rm_segload_failure; eauto; try lias.
     rewrite HLoadResult. repeat ((try by left); right).
     repeat eexists _; eapply rm_segload_failure; eauto; try lias.
-    repeat right. split => //. intro H; rewrite H in Hallign; done.
-    destruct (segload s0 h (t_length t)) eqn:HLoadResult.
+    repeat right. split => //. intro Hii; rewrite Hii in Hallign; done.
+    destruct (segload (s_segs s) h (t_length t)) eqn:HLoadResult.
     repeat eexists.
     eapply rm_segload_success; eauto; try lias.
     destruct t => //=. unfold isAlloc; by rewrite Halloc.
@@ -848,18 +848,18 @@ Proof.
     right. subst.
     simpl in H, H0.
     invert_typeof_vcs. destruct v => //=.
-    eapply seg_context_store in H;eauto.
+(*    eapply seg_context_store in H;eauto.
     destruct H as (n & HMenInd & HMem).
     eapply all_context_store in H0;eauto.
     destruct H0 as (n0 & HAllInd & HAll).
     destruct (List.nth_error (s_segs s) n) eqn:HN => //=.
-    destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=.
+    destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=. *)
     destruct h.(valid) eqn:Hvalid.
     destruct (0 <=? h.(offset))%N eqn:Hlo; [apply N.leb_le in Hlo| apply N.leb_gt in Hlo].
     destruct (nat_of_bin h.(offset) + t_length (typeof v0) <=? nat_of_bin h.(bound)) eqn:Hhi;
       [ apply Nat.leb_le in Hhi | apply Nat.leb_gt in Hhi].
-    destruct (find h.(id) a.(allocated)) eqn:Halloc.
-    destruct (segstore s0 h (List.map (fun x => (x, match typeof v0 with T_handle => Handle | _ => Numeric end)) (bits v0)) (t_length (typeof v0))) eqn:HStoreResult.
+    destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
+    destruct (segstore (s_segs s) h (List.map (fun x => (x, match typeof v0 with T_handle => Handle | _ => Numeric end)) (bits v0)) (t_length (typeof v0))) eqn:HStoreResult.
     destruct (is_handle_t (typeof v0)) eqn:Hhandle.
     destruct v0 => //=.
     destruct (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
@@ -869,7 +869,7 @@ Proof.
     unfold isAlloc; by rewrite Halloc.
     all:try by repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
      repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
-     repeat right. split => //. intro H; rewrite H in Hallign; done.
+     repeat right. split => //. intro Hii; rewrite Hii in Hallign; done.
      
      destruct v0 => //=; repeat eexists; 
     eapply rm_segstore_success; eauto; try lias.
@@ -904,12 +904,12 @@ Proof.
  - (* Segalloc *)
    right. subst.
    invert_typeof_vcs. destruct v => //.
-   simpl in H, H0. eapply seg_context_store in H; eauto.
+   simpl in H, H0. (* eapply seg_context_store in H; eauto. 
    destruct H as (n & HMenInd & HMem).
    eapply all_context_store in H0; eauto.
    destruct H0 as (n0 & HAllInd & HAll).
    destruct (List.nth_error (s_segs s) n) eqn:HN => //.
-   destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //.
+   destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //. *)
    repeat eexists.
    eapply rm_segalloc_failure; eauto.
 
@@ -923,13 +923,13 @@ Proof.
  - (* Segfree *)
    right. subst.
    invert_typeof_vcs. destruct v => //.
-   simpl in H, H0. eapply seg_context_store in H; eauto.
+   simpl in H, H0. (* eapply seg_context_store in H; eauto.
    destruct H as (n & HMemInd & HMem).
    eapply all_context_store in H0; eauto.
    destruct H0 as (n0 & HAllInd & HAll).
    destruct (List.nth_error (s_segs s) n) eqn:HN => //.
-   destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //.
-   destruct (find_and_remove h.(id) a.(allocated)) eqn:Halloc.
+   destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //. *)
+   destruct (find_and_remove h.(id) (s_alls s).(allocated)) eqn:Halloc.
    destruct p as [[l add] len].
    destruct (add =? base h)%N eqn:Hadd.
    move/eqP in Hadd. subst.

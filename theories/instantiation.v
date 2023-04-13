@@ -26,8 +26,8 @@ Inductive externval : Type :=
 | ev_func : funaddr -> externval
 | ev_table : tableaddr -> externval
 | ev_mem : memaddr -> externval
-| ev_seg : segaddr -> externval
-| ev_alloc : allocaddr -> externval
+(*| ev_seg : segaddr -> externval
+| ev_alloc : allocaddr -> externval *)
 | ev_global : globaladdr -> externval.
 
 Definition funcs_of_externals (evs : list externval) : list addr :=
@@ -39,11 +39,11 @@ Definition tables_of_externals (evs : list externval) : list addr :=
 Definition mems_of_externals (evs : list externval) : list addr :=
   seq.pmap (fun ev => match ev with | ev_mem ta => Some ta | _ => None end) evs.
 
-Definition segs_of_externals (evs : list externval) : list addr :=
+(*Definition segs_of_externals (evs : list externval) : list addr :=
   seq.pmap (fun ev => match ev with | ev_seg ta => Some ta | _ => None end) evs.
 
 Definition allocs_of_externals (evs : list externval) : list addr :=
-  seq.pmap (fun ev => match ev with | ev_alloc ta => Some ta | _ => None end) evs.
+  seq.pmap (fun ev => match ev with | ev_alloc ta => Some ta | _ => None end) evs. *)
 
 Definition globals_of_externals (evs : list externval) : list addr :=
   seq.pmap (fun ev => match ev with | ev_global ta => Some ta | _ => None end) evs.
@@ -112,7 +112,7 @@ Definition alloc_mem (s : store_record) (m_m : memory_type) : store_record * mem
 Definition alloc_mems (s : store_record) (m_ms : list memory_type) : store_record * list memidx :=
   alloc_Xs alloc_mem s m_ms.
 
-Definition seg_mk (lim : limits) : segment :=
+(*Definition seg_mk (lim : limits) : segment :=
   let len := BinNatDef.N.mul page_size lim.(lim_min) in
   {| seg_data := seg_make Integers.Byte.zero len;
     seg_max_opt := lim.(lim_max);
@@ -152,7 +152,7 @@ Definition alloc_allocator (s : store_record) (tty : allocator_type) : store_rec
   (add_allocator s {| allocated := [::] |}, allocaddr).
 
 Definition alloc_allocators (s : store_record) (ts : list allocator_type) : store_record * list allidx :=
-  alloc_Xs alloc_allocator s ts.
+  alloc_Xs alloc_allocator s ts. *)
 
 
 Definition add_glob (s : store_record) (m_g : global) : store_record := {|
@@ -179,8 +179,8 @@ Definition export_get_v_ext (inst : instance) (exp : module_export_desc) : v_ext
   | MED_func (Mk_funcidx i) => MED_func (Mk_funcidx (List.nth i inst.(inst_funcs) 0))
   | MED_table (Mk_tableidx i) => MED_table (Mk_tableidx (List.nth i inst.(inst_tab) 0))
   | MED_mem (Mk_memidx i) => MED_mem (Mk_memidx (List.nth i inst.(inst_memory) 0))
-  | MED_seg (Mk_segidx i) => MED_seg (Mk_segidx (List.nth i inst.(inst_segment) 0))
-  | MED_all (Mk_allidx i) => MED_all (Mk_allidx (List.nth i inst.(inst_allocator) 0))
+(*  | MED_seg (Mk_segidx i) => MED_seg (Mk_segidx (List.nth i inst.(inst_segment) 0))
+  | MED_all (Mk_allidx i) => MED_all (Mk_allidx (List.nth i inst.(inst_allocator) 0)) *)
   | MED_global (Mk_globalidx i) => MED_global (Mk_globalidx (List.nth i inst.(inst_globs) 0))
   end.
 
@@ -208,7 +208,7 @@ Definition ext_mems :=
       | _ => None
       end).
 
-Definition ext_segs :=
+(*Definition ext_segs :=
   seq.pmap
     (fun x =>
        match x with
@@ -222,7 +222,7 @@ Definition ext_alls :=
        match x with
        | MED_all i => Some i
        | _ => None
-       end).
+       end). *)
 
 Definition ext_globs :=
   seq.pmap
@@ -256,7 +256,7 @@ Definition ext_t_mems :=
       | _ => None
       end).
 
-Definition ext_t_segs :=
+(*Definition ext_t_segs :=
   seq.pmap
     (fun x =>
       match x with
@@ -270,7 +270,7 @@ Definition ext_t_alls :=
       match x with
       | ET_all i => Some i
       | _ => None
-      end).
+      end). *)
 
 Definition ext_t_globs :=
   seq.pmap
@@ -286,16 +286,16 @@ Definition alloc_module (s : store_record) (m : module) (imps : list v_ext) (gvs
   let '(s1, i_fs) := alloc_funcs s m.(mod_funcs) inst in
   let '(s2, i_ts) := alloc_tabs s1 (List.map (fun t => t.(modtab_type)) m.(mod_tables)) in
   let '(s3, i_ms) := alloc_mems s2 m.(mod_mems) in
-  let '(s4, i_ss) := alloc_segs s3 m.(mod_segs) in
-  let '(s5, i_as) := alloc_allocators s4 m.(mod_alls) in
-  let '(s', i_gs) := alloc_globs s5 m.(mod_globals) gvs in
+(*   let '(s4, i_ss) := alloc_segs s3 m.(mod_segs) in
+  let '(s5, i_as) := alloc_allocators s4 m.(mod_alls) in *)
+  let '(s', i_gs) := alloc_globs s3 m.(mod_globals) gvs in
   (s'_goal == s') &&
   (inst.(inst_types) == m.(mod_types)) &&
   (inst.(inst_funcs) == List.map (fun '(Mk_funcidx i) => i) (List.app (ext_funcs imps) i_fs)) &&
   (inst.(inst_tab) == List.map (fun '(Mk_tableidx i) => i) (List.app (ext_tabs imps) i_ts)) &&
     (inst.(inst_memory) == List.map (fun '(Mk_memidx i) => i) (List.app (ext_mems imps) i_ms)) &&
-    (inst.(inst_segment) == List.map (fun '(Mk_segidx i) => i) (List.app (ext_segs imps) i_ss)) &&
-    (inst.(inst_allocator) == List.map (fun '(Mk_allidx i) => i) (List.app (ext_alls imps) i_as)) &&
+(*    (inst.(inst_segment) == List.map (fun '(Mk_segidx i) => i) (List.app (ext_segs imps) i_ss)) &&
+    (inst.(inst_allocator) == List.map (fun '(Mk_allidx i) => i) (List.app (ext_alls imps) i_as)) && *)
   (inst.(inst_globs) == List.map (fun '(Mk_globalidx i) => i) (List.app (ext_globs imps) i_gs)) &&
   (exps == (List.map (fun m_exp => {| modexp_name := m_exp.(modexp_name); modexp_desc := (export_get_v_ext inst m_exp.(modexp_desc)) |}) m.(mod_exports) : seq module_export)).
 
@@ -303,24 +303,24 @@ Definition interp_alloc_module (s : store_record) (m : module) (imps : list v_ex
   let i_fs := List.map (fun i => Mk_funcidx i) (seq.iota (List.length s.(s_funcs)) (List.length m.(mod_funcs))) in
   let i_ts := List.map (fun i => Mk_tableidx i) (seq.iota (List.length s.(s_tables)) (List.length m.(mod_tables))) in
   let i_ms := List.map (fun i => Mk_memidx i) (seq.iota (List.length s.(s_mems)) (List.length m.(mod_mems))) in
-  let i_ss := List.map (fun i => Mk_segidx i) (seq.iota (List.length s.(s_segs)) (List.length m.(mod_segs))) in
-  let i_as := List.map (fun i => Mk_allidx i) (seq.iota (List.length s.(s_alls)) (List.length m.(mod_alls))) in
+(*  let i_ss := List.map (fun i => Mk_segidx i) (seq.iota (List.length s.(s_segs)) (List.length m.(mod_segs))) in
+  let i_as := List.map (fun i => Mk_allidx i) (seq.iota (List.length s.(s_alls)) (List.length m.(mod_alls))) in *)
   let i_gs := List.map (fun i => Mk_globalidx i) (seq.iota (List.length s.(s_globals)) (min (List.length m.(mod_globals)) (List.length gvs))) in
   let inst := {|
     inst_types := m.(mod_types);
     inst_funcs := List.map (fun '(Mk_funcidx i) => i) (List.app (ext_funcs imps) i_fs);
     inst_tab := List.map (fun '(Mk_tableidx i) => i) (List.app (ext_tabs imps) i_ts);
                inst_memory := List.map (fun '(Mk_memidx i) => i) (List.app (ext_mems imps) i_ms);
-               inst_segment := List.map (fun '(Mk_segidx i) => i) (List.app (ext_segs imps) i_ss);
-               inst_allocator := List.map (fun '(Mk_allidx i) => i) (List.app (ext_alls imps) i_as);
+               (* inst_segment := List.map (fun '(Mk_segidx i) => i) (List.app (ext_segs imps) i_ss);
+               inst_allocator := List.map (fun '(Mk_allidx i) => i) (List.app (ext_alls imps) i_as); *)
     inst_globs := List.map (fun '(Mk_globalidx i) => i) (List.app (ext_globs imps) i_gs);
   |} in
   let '(s1, _) := alloc_funcs s m.(mod_funcs) inst in
   let '(s2, _) := alloc_tabs s1 (List.map (fun t => t.(modtab_type)) m.(mod_tables)) in
   let '(s3, _) := alloc_mems s2 m.(mod_mems) in
-  let '(s4, _) := alloc_segs s3 m.(mod_segs) in
-  let '(s5, _) := alloc_allocators s4 m.(mod_alls) in
-  let '(s', _) := alloc_globs s5 m.(mod_globals) gvs in
+(*  let '(s4, _) := alloc_segs s3 m.(mod_segs) in
+  let '(s5, _) := alloc_allocators s4 m.(mod_alls) in *)
+  let '(s', _) := alloc_globs s3 m.(mod_globals) gvs in
   let exps := List.map (fun m_exp => {| modexp_name := m_exp.(modexp_name); modexp_desc := export_get_v_ext inst m_exp.(modexp_desc) |}) m.(mod_exports) in
   (s', inst, exps).
 
@@ -370,9 +370,11 @@ Definition dummy_segdata_vec :=
 Definition dummy_seg := {|
   seg_data := dummy_segdata_vec;
   seg_max_opt := None
-|}.
+                       |}.
 
-Definition init_seg (s : store_record) (inst : instance) (d_ind : N) (d : module_segdata) : store_record :=
+Definition dummy_all := {| allocated := [::] |}.
+
+(* Definition init_seg (s : store_record) (inst : instance) (d_ind : N) (d : module_segdata) : store_record :=
   let s_ind := List.nth (match d.(modsegdata_data) with Mk_segidx i => i end) inst.(inst_segment) 0 in
   let seg := List.nth s_ind s.(s_segs) dummy_seg in
   let d_pay := List.map (fun '(a,b) => (bytes.compcert_byte_of_byte a, b)) d.(modsegdata_init) in
@@ -384,7 +386,7 @@ Definition init_seg (s : store_record) (inst : instance) (d_ind : N) (d : module
      s_globals := s.(s_globals); |}.
 
 Definition init_segs (s : store_record) (inst : instance) (d_inds : list N) (ds : list module_segdata) : store_record :=
-  List.fold_left (fun s' '(d_ind, d) => init_seg s' inst d_ind d) (List.combine d_inds ds) s.
+  List.fold_left (fun s' '(d_ind, d) => init_seg s' inst d_ind d) (List.combine d_inds ds) s. *)
 
 Section module_typing.
   Context `{HHB : HandleBytes}.
@@ -458,11 +460,11 @@ Definition module_data_typing (c : t_context) (m_d : module_data) : Prop :=
   typing.be_typing c es (Tf nil [::T_i32]) /\
     d < List.length c.(tc_memory).
 
-Definition module_segdata_typing (c : t_context) (m_d : module_segdata) : Prop :=
+(* Definition module_segdata_typing (c : t_context) (m_d : module_segdata) : Prop :=
   let '{| modsegdata_data := Mk_segidx d; modsegdata_offset := es; modsegdata_init := bs |} := m_d in
   const_exprs c es /\
   typing.be_typing c es (Tf nil [::T_i32]) /\
-    d < List.length c.(tc_memory).
+    d < List.length c.(tc_memory). *)
 
 Definition module_start_typing (c : t_context) (ms : module_start) : bool :=
   let '(Mk_funcidx i) := ms.(modstart_func) in
@@ -484,9 +486,9 @@ Definition module_import_typing (c : t_context) (d : import_desc) (e : extern_t)
     (t_t == t_t') && module_tab_typing {| modtab_type := t_t |}
   | (ID_mem mt, ET_mem mt') =>
       (mt == mt') && module_mem_typing mt
-  | (ID_seg st, ET_seg st') =>
+(*  | (ID_seg st, ET_seg st') =>
       (st == st') && module_seg_typing st
-  | (ID_all allt, ET_all allt') => allt == allt'
+  | (ID_all allt, ET_all allt') => allt == allt' *)
   | (ID_global gt, ET_glob gt') => gt == gt'
   | _ => false
   end.
@@ -511,7 +513,7 @@ Definition module_export_typing (c : t_context) (d : module_export_desc) (e : ex
     | None => false
     | Some lim' => t_m == lim'
     end
-  | (MED_seg (Mk_segidx i), ET_seg t_m) =>
+(*  | (MED_seg (Mk_segidx i), ET_seg t_m) =>
       (i < List.length c.(tc_segment)) &&
         match List.nth_error c.(tc_segment) i with
         | None => false
@@ -522,7 +524,7 @@ Definition module_export_typing (c : t_context) (d : module_export_desc) (e : ex
         match List.nth_error c.(tc_allocator) i with
         | None => false
         | Some lim' => t_m == lim'
-        end
+        end *)
   | (MED_global (Mk_globalidx i), ET_glob gt) =>
     (i < List.length c.(tc_global)) &&
     match List.nth_error c.(tc_global) i with
@@ -545,12 +547,12 @@ Definition module_typing (m : module) (impts : list extern_t) (expts : list exte
     mod_funcs := fs;
     mod_tables := ts;
           mod_mems := ms;
-          mod_segs := ss;
-          mod_alls := alls;
+          (* mod_segs := ss;
+          mod_alls := alls; *)
     mod_globals := gs;
     mod_elem := els;
           mod_data := ds;
-          mod_segdata := sds;
+          (* mod_segdata := sds; *)
     mod_start := i_opt;
     mod_imports := imps;
     mod_exports := exps;
@@ -558,16 +560,16 @@ Definition module_typing (m : module) (impts : list extern_t) (expts : list exte
   let ifts := ext_t_funcs impts in
   let its := ext_t_tabs impts in
   let ims := ext_t_mems impts in
-  let iss := ext_t_segs impts in
-  let ias := ext_t_alls impts in
+(*  let iss := ext_t_segs impts in
+  let ias := ext_t_alls impts in *)
   let igs := ext_t_globs impts in
   let c := {|
     tc_types_t := tfs;
     tc_func_t := List.app ifts fts;
     tc_global := List.app igs gts;
     tc_table := List.app its (List.map (fun t => t.(modtab_type)) ts);
-            tc_memory := List.app ims ms; tc_segment := List.app iss ss;
-                                          tc_allocator := List.app ias alls;
+    tc_memory := List.app ims ms; tc_segment := {| lim_min := 0 ; lim_max := None |} ;
+                                  tc_allocator := ALL_type ; 
     tc_local := nil;
     tc_label := nil;
     tc_return := None;
@@ -577,18 +579,19 @@ Definition module_typing (m : module) (impts : list extern_t) (expts : list exte
     tc_func_t := nil;
     tc_global := igs;
     tc_table := nil;
-    tc_memory := nil; tc_segment := nil ; tc_allocator := nil;
+             tc_memory := nil;  tc_segment := {| lim_min := 0 ; lim_max := None |} ;
+                               tc_allocator := ALL_type;
     tc_local := nil;
     tc_label := nil;
     tc_return := None;
   |} in
   List.Forall2 (module_func_typing c) fs fts /\
   seq.all module_tab_typing ts /\
-  seq.all module_mem_typing ms /\ seq.all module_seg_typing ss /\ 
+  seq.all module_mem_typing ms /\ (* seq.all module_seg_typing ss /\  *)
   List.Forall2 (module_glob_typing c') gs gts /\
   List.Forall (module_elem_typing c) els /\
     List.Forall (module_data_typing c) ds /\
-    List.Forall (module_segdata_typing c) sds /\
+(*     List.Forall (module_segdata_typing c) sds /\ *)
   pred_option (module_start_typing c) i_opt /\
   List.Forall2 (fun imp => module_import_typing c imp.(imp_desc)) imps impts /\
   List.Forall2 (fun exp => module_export_typing c exp.(modexp_desc)) exps expts.
@@ -612,7 +615,7 @@ Inductive external_typing : store_record -> v_ext -> extern_t -> Prop :=
   List.nth_error s.(s_mems) i = Some m ->
   typing.mem_typing m mt ->
   external_typing s (MED_mem (Mk_memidx i)) (ET_mem mt)
-| ETY_seg :
+(*| ETY_seg :
   forall (s: store_record) (i : nat) (seg : segment) (st : segment_type),
     i < List.length s.(s_segs) ->
     List.nth_error s.(s_segs) i = Some seg ->
@@ -622,7 +625,7 @@ Inductive external_typing : store_record -> v_ext -> extern_t -> Prop :=
   forall (s: store_record) (i : nat) (all : allocator) (allt : allocator_type),
     i < List.length s.(s_alls) ->
     List.nth_error s.(s_alls) i = Some all ->
-    external_typing s (MED_all (Mk_allidx i)) (ET_all allt)
+    external_typing s (MED_all (Mk_allidx i)) (ET_all allt) *)
 | ETY_glob :
   forall (s : store_record) (i : nat) (g : global) (gt : global_type),
   i < List.length s.(s_globals) ->
@@ -658,12 +661,12 @@ Definition instantiate_data inst (s' : store_record) m d_offs : Prop :=
     m.(mod_data)
         d_offs.
 
-Definition instantiate_segdata inst (s' : store_record) m d_offs : Prop :=
+(* Definition instantiate_segdata inst (s' : store_record) m d_offs : Prop :=
   List.Forall2 (fun d c =>
                   exists mes, opsem.reduce_trans (s', (Build_frame nil inst), operations.to_e_list d.(modsegdata_offset))
                         mes (s', (Build_frame nil inst), [::AI_basic (BI_const (VAL_int32 c))]))
     m.(mod_segdata)
-    d_offs.
+    d_offs. *)
 
 Definition nat_of_int (i : i32) : nat :=
   BinInt.Z.to_nat i.(Wasm_int.Int32.intval).
@@ -707,7 +710,7 @@ Definition check_bounds_data (inst : instance) (s : store_record) (m : module) (
       d_offs
       m.(mod_data).
 
-Definition check_bounds_segdata (inst : instance) (s : store_record) (m : module) (d_offs : seq i32) : bool :=
+(* Definition check_bounds_segdata (inst : instance) (s : store_record) (m : module) (d_offs : seq i32) : bool :=
   seq.all2
     (fun d_off d =>
       match List.nth_error inst.(inst_segment) (match d.(modsegdata_data) with Mk_segidx i => i end) with
@@ -720,7 +723,7 @@ Definition check_bounds_segdata (inst : instance) (s : store_record) (m : module
         end
       end)
       d_offs
-      m.(mod_segdata).
+      m.(mod_segdata). *)
 
 Definition check_start m inst start : bool :=
   let start' :=
@@ -734,17 +737,17 @@ Definition instantiate
                        (s : store_record) (m : module) (v_imps : list v_ext)
                        (z : (store_record * instance * list module_export) * option nat) : Prop :=
   let '((s_end, inst, v_exps), start) := z in
-  exists t_imps t_exps s' g_inits e_offs d_offs sd_offs,
+  exists t_imps t_exps s' g_inits e_offs d_offs,
     module_typing m t_imps t_exps /\
     List.Forall2 (external_typing s) v_imps t_imps /\
     alloc_module s m v_imps g_inits (s', inst, v_exps) /\
     instantiate_globals inst s' m g_inits /\
     instantiate_elem inst s' m e_offs /\
       instantiate_data inst s' m d_offs /\
-      instantiate_segdata inst s' m sd_offs /\
+      (* instantiate_segdata inst s' m sd_offs /\ *)
     check_bounds_elem inst s' m e_offs /\
       check_bounds_data inst s' m d_offs /\
-      check_bounds_segdata inst s' m sd_offs /\
+      (* check_bounds_segdata inst s' m sd_offs /\ *)
     check_start m inst start /\
     let s'' := init_tabs s' inst (map (fun o => BinInt.Z.to_nat o.(Wasm_int.Int32.intval)) e_offs) m.(mod_elem) in
     (s_end : store_record_eqType)

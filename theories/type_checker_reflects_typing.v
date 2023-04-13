@@ -1858,8 +1858,8 @@ Proof with auto_rewrite_cond.
       exists (tn' ++ [::T_handle]); split => //.
       apply bet_weakening.
       apply bet_segload => //.
-      by destruct C.(tc_segment).
-      by destruct C.(tc_allocator).
+(*      by destruct C.(tc_segment).
+      by destruct C.(tc_allocator). *)
     + replace ([::CTA_some T_i32; CTA_some v]) with (to_ct_list [::T_i32; v]) in Hct2 => //.
       apply consume_type_agree in Hct2.
       exists (tm ++ [::T_i32; v]); split => //.
@@ -1869,8 +1869,8 @@ Proof with auto_rewrite_cond.
       apply consume_type_agree in Hct2.
       exists (tm ++ [::T_handle;v]); split => //.
       apply bet_weakening_empty_2.
-      apply bet_segstore => //. by destruct C.(tc_segment) => //=.
-      by destruct C.(tc_allocator) => //.
+      apply bet_segstore => //. (* by destruct C.(tc_segment) => //=.
+      by destruct C.(tc_allocator) => //. *)
     + replace [:: CTA_some T_handle; CTA_some T_i32 ; CTA_some T_i32] with
         (to_ct_list [::T_handle; T_i32; T_i32]) in Hct2 => //.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
@@ -1881,8 +1881,8 @@ Proof with auto_rewrite_cond.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet) ; subst.
       exists (tn' ++ [::T_i32]); split => //.
       apply bet_weakening.
-      apply bet_segalloc => //. by destruct C.(tc_segment).
-      by destruct C.(tc_allocator).
+      apply bet_segalloc => //. (* by destruct C.(tc_segment).
+      by destruct C.(tc_allocator). *)
     + replace [::CTA_some T_i32; CTA_some T_handle] with (to_ct_list [::T_i32; T_handle]) in Hct2 => //.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
       exists (tn' ++ [::T_i32; T_handle]); split => //.
@@ -1891,7 +1891,7 @@ Proof with auto_rewrite_cond.
       apply consume_type_agree in Hct2. 
       exists (tm ++ [::T_handle]); split => //.
       apply bet_weakening_empty_2. apply bet_segfree => //.
-      by destruct C.(tc_segment). by destruct C.(tc_allocator).
+      (* by destruct C.(tc_segment). by destruct C.(tc_allocator). *)
     + assert (c_types_agree (type_update cts (to_ct_list [::]) (CT_type [::T_i32])) tm) as Hct3.
       * simplify_type_update.
         by unfold produce => //=.

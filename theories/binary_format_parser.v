@@ -102,11 +102,11 @@ Definition parse_tableidx {n} : byte_parser tableidx n :=
 Definition parse_memidx {n} : byte_parser memidx n :=
   (fun x => Mk_memidx (Wasm_int.nat_of_uint i32m x)) <$> parse_u32_as_int32.
 
-Definition parse_segidx {n} : byte_parser segidx n :=
+(* Definition parse_segidx {n} : byte_parser segidx n :=
   (fun x => Mk_segidx (Wasm_int.nat_of_uint i32m x)) <$> parse_u32_as_int32.
 
 Definition parse_allidx {n} : byte_parser allidx n :=
-  (fun x => Mk_allidx (Wasm_int.nat_of_uint i32m x)) <$> parse_u32_as_int32.
+  (fun x => Mk_allidx (Wasm_int.nat_of_uint i32m x)) <$> parse_u32_as_int32. *)
 
 Definition parse_typeidx {n} : byte_parser typeidx n :=
   (fun x => Mk_typeidx (Wasm_int.nat_of_uint i32m x)) <$> parse_u32_as_int32.
@@ -647,8 +647,8 @@ Definition parse_import_desc {n} : byte_parser import_desc n :=
   exact_byte x00 &> (extract_typeidx ID_func <$> parse_typeidx) <|>
   exact_byte x01 &> (ID_table <$> parse_table_type) <|>
   exact_byte x02 &> (ID_mem <$> parse_memory_type) <|>
-  exact_byte xd2 &> (ID_seg <$> parse_segment_type) <|>
-  exact_byte xd5 &> (ID_all <$> parse_allocator_type) <|>
+(*  exact_byte xd2 &> (ID_seg <$> parse_segment_type) <|>
+  exact_byte xd5 &> (ID_all <$> parse_allocator_type) <|> *)
   exact_byte x03 &> (ID_global <$> parse_global_type).
 
 Definition parse_module_import {n} : byte_parser module_import n :=
@@ -662,8 +662,8 @@ Definition parse_module_export_desc {n} : byte_parser module_export_desc n :=
   (exact_byte x00 &> (MED_func <$> parse_funcidx)) <|>
   (exact_byte x01 &> (MED_table <$> parse_tableidx)) <|>
   (exact_byte x02 &> (MED_mem <$> parse_memidx)) <|>
-  (exact_byte xd2 &> (MED_seg <$> parse_segidx)) <|>
-  (exact_byte xd5 &> (MED_all <$> parse_allidx)) <|>
+(*  (exact_byte xd2 &> (MED_seg <$> parse_segidx)) <|>
+  (exact_byte xd5 &> (MED_all <$> parse_allidx)) <|> *)
   (exact_byte x03 &> (MED_global <$> parse_globalidx)).
 
 Definition parse_module_export {n} : byte_parser module_export n :=
@@ -712,10 +712,10 @@ Definition parse_tagged_byte {n} : byte_parser (byte * btag) n :=
   exact_byte xd7 &> parse_numeric_byte <|>
     exact_byte xd8 &> parse_handle_byte.
 
-Definition parse_module_segdata {n} : byte_parser module_segdata n :=
+(*Definition parse_module_segdata {n} : byte_parser module_segdata n :=
   ((fun data offset init => {| modsegdata_data := data ; modsegdata_offset := offset;
                                                       modsegdata_init := init |}) <$>
-                                                                                  parse_segidx) <*> parse_expr <*> parse_vec parse_tagged_byte.
+                                                                                  parse_segidx) <*> parse_expr <*> parse_vec parse_tagged_byte. *)
 
 Definition parse_customsec {n} : byte_parser (list byte) n :=
   exact_byte x00 &> parse_vec anyTok.
@@ -735,11 +735,11 @@ Definition parse_tablesec {n} : byte_parser (list module_table) n :=
 Definition parse_memsec {n} : byte_parser (list memory_type) n :=
   exact_byte x05 &> parse_memidx &> parse_vec parse_memory_type.
 
-Definition parse_segsec {n} : byte_parser (list segment_type) n :=
-  exact_byte xd3 &> parse_segidx &> parse_vec parse_segment_type.
+(* Definition parse_segsec {n} : byte_parser (list segment_type) n :=
+  exact_byte xd3 &> parse_segidx &> parse_vec parse_segment_type. 
 
 Definition parse_allsec {n} : byte_parser (list allocator_type) n :=
-  exact_byte xd4 &> parse_allidx &> parse_vec parse_allocator_type.
+  exact_byte xd4 &> parse_allidx &> parse_vec parse_allocator_type. *)
 
 Definition parse_globalsec {n} : byte_parser (list module_glob) n :=
   exact_byte x06 &> parse_u32_as_int32 &> parse_vec parse_module_glob.
@@ -759,8 +759,8 @@ Definition parse_codesec {n} : byte_parser (list code_func) n :=
 Definition parse_datasec {n} : byte_parser (list module_data) n :=
   exact_byte x0b &> parse_u32_as_int32 &> parse_vec parse_module_data.
 
-Definition parse_segdatasec {n} : byte_parser (list module_segdata) n :=
-  exact_byte xd9 &> parse_u32_as_int32 &> parse_vec parse_module_segdata.
+(* Definition parse_segdatasec {n} : byte_parser (list module_segdata) n :=
+  exact_byte xd9 &> parse_u32_as_int32 &> parse_vec parse_module_segdata. *)
 
 Definition parse_magic {n} : byte_parser unit n :=
   (exact_byte x00 &> exact_byte x61 &> exact_byte x73 &> exact_byte x6d) $> tt.
@@ -784,12 +784,12 @@ Record parsing_module : Type := {
   pmod_funcs : list typeidx;
   pmod_tables : list module_table;
     pmod_mems : list memory_type;
-    pmod_segs : list segment_type;
-    pmod_alls : list allocator_type;
+(*    pmod_segs : list segment_type;
+    pmod_alls : list allocator_type; *)
   pmod_globals : list module_glob;
   pmod_elem : list module_element;
     pmod_data : list module_data;
-    pmod_segdata : list module_segdata;
+(*     pmod_segdata : list module_segdata; *)
   pmod_start : option module_start;
   pmod_imports : list module_import;
   pmod_exports : list module_export;
@@ -801,12 +801,12 @@ Definition merge_parsing_modules (m1 m2 : parsing_module) : parsing_module := {|
   pmod_funcs := List.app m1.(pmod_funcs) m2.(pmod_funcs);
   pmod_tables := List.app m1.(pmod_tables) m2.(pmod_tables);
   pmod_mems := List.app m1.(pmod_mems) m2.(pmod_mems);
-                                                                               pmod_segs := List.app m1.(pmod_segs) m2.(pmod_segs);
-                                                                               pmod_alls := List.app m1.(pmod_alls) m2.(pmod_alls);
+                                                                               (*pmod_segs := List.app m1.(pmod_segs) m2.(pmod_segs);
+                                                                               pmod_alls := List.app m1.(pmod_alls) m2.(pmod_alls); *)
   pmod_globals := List.app m1.(pmod_globals) m2.(pmod_globals);
   pmod_elem := List.app m1.(pmod_elem) m2.(pmod_elem);
                                                                                pmod_data := List.app m1.(pmod_data) m2.(pmod_data);
-                                                                               pmod_segdata := List.app m1.(pmod_segdata) m2.(pmod_segdata);
+                                                                               (* pmod_segdata := List.app m1.(pmod_segdata) m2.(pmod_segdata); *)
   pmod_start :=
     match (m1.(pmod_start), m2.(pmod_start)) with
     | (None, Some st) => Some st
@@ -823,10 +823,10 @@ Definition parse_typesec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := types;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *)
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *)
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -839,10 +839,10 @@ Definition parse_importsec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls:= nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls:= nil; *)
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *)
     pmod_start := None;
     pmod_imports := imports;
     pmod_exports := nil;
@@ -855,10 +855,10 @@ Definition parse_funcsec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := funcs;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *)
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -871,10 +871,10 @@ Definition parse_tablesec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := tables;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -887,10 +887,10 @@ Definition parse_memsec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := mems; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := mems; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -898,17 +898,17 @@ Definition parse_memsec_wrapper {n} : byte_parser parsing_module n :=
   |}) <$>
     (parse_with_customsec_star_before parse_memsec).
 
-Definition parse_segsec_wrapper {n} : byte_parser parsing_module n :=
+(* Definition parse_segsec_wrapper {n} : byte_parser parsing_module n :=
   (fun segs =>
      {|
        pmod_types := nil;
        pmod_funcs := nil;
        pmod_tables := nil;
        pmod_mems := nil;
-       pmod_segs := segs ; pmod_alls:= nil;
+       (* pmod_segs := segs ; pmod_alls:= nil; *) 
        pmod_globals := nil;
        pmod_elem := nil;
-       pmod_data := nil; pmod_segdata := nil;
+       pmod_data := nil; (* pmod_segdata := nil; *) 
        pmod_start := None;
        pmod_imports := nil;
        pmod_exports := nil;
@@ -932,17 +932,17 @@ Definition parse_allsec_wrapper {n} : byte_parser parsing_module n :=
        pmod_exports := nil;
        pmod_code := nil;
      |}) <$>
-    (parse_with_customsec_star_before parse_allsec).
+    (parse_with_customsec_star_before parse_allsec). *)
 
 Definition parse_globalsec_wrapper {n} : byte_parser parsing_module n :=
   (fun globals => {|
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := globals;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -955,10 +955,10 @@ Definition parse_exportsec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := exports;
@@ -971,10 +971,10 @@ Definition parse_startsec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := Some start;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -987,10 +987,10 @@ Definition parse_elemsec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := elem;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -1003,10 +1003,10 @@ Definition parse_codesec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -1019,10 +1019,10 @@ Definition parse_datasec_wrapper {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := data; pmod_segdata := nil;
+    pmod_data := data; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -1030,21 +1030,21 @@ Definition parse_datasec_wrapper {n} : byte_parser parsing_module n :=
   |}) <$>
     (parse_with_customsec_star_before parse_datasec).
 
-Definition parse_segdatasec_wrapper {n} : byte_parser parsing_module n :=
+(* Definition parse_segdatasec_wrapper {n} : byte_parser parsing_module n :=
   (fun data => {|
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_segdata := data; pmod_data := nil;
+    (*pmod_segdata := data; *) pmod_data := nil;
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
     pmod_code := nil;
   |}) <$>
-  (parse_with_customsec_star_before parse_segdatasec).
+  (parse_with_customsec_star_before parse_segdatasec). *)
 
 (** this is not in the spec, it is here to force productivity;
     we make it be different from all section markers *)
@@ -1055,10 +1055,10 @@ Definition parse_module_end {n} : byte_parser parsing_module n :=
     pmod_types := nil;
     pmod_funcs := nil;
     pmod_tables := nil;
-    pmod_mems := nil; pmod_segs := nil; pmod_alls := nil;
+    pmod_mems := nil; (* pmod_segs := nil; pmod_alls := nil; *) 
     pmod_globals := nil;
     pmod_elem := nil;
-    pmod_data := nil; pmod_segdata := nil;
+    pmod_data := nil; (* pmod_segdata := nil; *) 
     pmod_start := None;
     pmod_imports := nil;
     pmod_exports := nil;
@@ -1070,13 +1070,13 @@ Definition parse_datasec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_datasec_wrapper) <*> parse_module_end) <|>
     parse_module_end.
 
-Definition parse_segdatasec_onwards {n} : byte_parser parsing_module n :=
+(* Definition parse_segdatasec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_segdatasec_wrapper) <*> parse_datasec_onwards) <|>
-    parse_datasec_onwards.
+    parse_datasec_onwards. *)
 
 Definition parse_codesec_onwards {n} : byte_parser parsing_module n :=
-  ((merge_parsing_modules <$> parse_codesec_wrapper) <*> parse_segdatasec_onwards) <|>
-  parse_segdatasec_onwards.
+  ((merge_parsing_modules <$> parse_codesec_wrapper) <*> parse_datasec_onwards) <|>
+  parse_datasec_onwards.
 
 Definition parse_elemsec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_elemsec_wrapper) <*> parse_codesec_onwards) <|>
@@ -1098,17 +1098,17 @@ Definition parse_memsec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_memsec_wrapper) <*> parse_globalsec_onwards) <|>
     parse_globalsec_onwards.
 
-Definition parse_segsec_onwards {n} : byte_parser parsing_module n :=
+(* Definition parse_segsec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_segsec_wrapper) <*> parse_memsec_onwards) <|>
     parse_memsec_onwards.
 
 Definition parse_allsec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_allsec_wrapper) <*> parse_segsec_onwards) <|>
-    parse_segsec_onwards.
+    parse_segsec_onwards. *)
 
 Definition parse_tablesec_onwards {n} : byte_parser parsing_module n :=
-  ((merge_parsing_modules <$> parse_tablesec_wrapper) <*> parse_allsec_onwards) <|>
-  parse_allsec_onwards.
+  ((merge_parsing_modules <$> parse_tablesec_wrapper) <*> parse_memsec_onwards) <|>
+  parse_memsec_onwards.
 
 Definition parse_funcsec_onwards {n} : byte_parser parsing_module n :=
   ((merge_parsing_modules <$> parse_funcsec_wrapper) <*> parse_tablesec_onwards) <|>
@@ -1132,11 +1132,11 @@ Definition module_of_parsing_module (m : parsing_module) : module := {|
       (List.combine m.(pmod_funcs) m.(pmod_code));
   mod_tables := m.(pmod_tables);
   mod_mems := m.(pmod_mems);
-  mod_segs := m.(pmod_segs);
-  mod_alls := m.(pmod_alls);
+  (* mod_segs := m.(pmod_segs);
+  mod_alls := m.(pmod_alls); *)
   mod_globals := m.(pmod_globals);
   mod_elem := m.(pmod_elem);
-  mod_data := m.(pmod_data); mod_segdata := m.(pmod_segdata);
+  mod_data := m.(pmod_data); (* mod_segdata := m.(pmod_segdata); *)
   mod_start := m.(pmod_start);
   mod_imports := m.(pmod_imports);
   mod_exports := m.(pmod_exports);

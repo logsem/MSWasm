@@ -141,8 +141,8 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
   load_store_t_bounds a (option_projl tp_sx) t ->
   be_typing C [::BI_load t tp_sx a off] (Tf [::T_i32] [::t])
 | bet_segload : forall C t,
-    tc_segment C <> nil ->
-    tc_allocator C <> nil ->
+(*    tc_segment C <> nil ->
+    tc_allocator C <> nil -> *)
     (* MAXIME: do I need a load_store_t_bounds here? *)
     be_typing C [::BI_segload t] (Tf [::T_handle] [::t])
 | bet_store : forall C a off tp t,
@@ -150,21 +150,21 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
   load_store_t_bounds a tp t ->
   be_typing C [::BI_store t tp a off] (Tf [::T_i32; t] [::])
 | bet_segstore : forall C t,
-    tc_segment C <> nil ->
-    tc_allocator C <> nil ->
+(*    tc_segment C <> nil ->
+    tc_allocator C <> nil -> *)
     (* MAXIME: do I need a load_store_t_bounds here? *)
     be_typing C [::BI_segstore t] (Tf [::T_handle ; t] [::])
 | bet_slice : forall C,
     be_typing C [::BI_slice] (Tf [::T_handle; T_i32 ; T_i32] [::T_handle])
 | bet_segalloc : forall C,
-    tc_segment C <> nil ->
-    tc_allocator C <> nil ->
+(*    tc_segment C <> nil ->
+    tc_allocator C <> nil -> *)
     be_typing C [::BI_segalloc] (Tf [::T_i32] [::T_handle])
 | bet_handleadd : forall C,
     be_typing C [::BI_handleadd] (Tf [::T_i32 ; T_handle] [::T_handle])
 | bet_segfree : forall C,
-    tc_segment C <> nil ->
-    tc_allocator C <> nil ->
+(*    tc_segment C <> nil ->
+    tc_allocator C <> nil -> *)
     be_typing C [::BI_segfree] (Tf [::T_handle] [::])
 | bet_current_memory : forall C,
   tc_memory C <> nil ->
@@ -290,16 +290,16 @@ Definition tabi_agree ts (n : nat) (tab_t : table_type) : bool :=
   end.
 
 Definition inst_typing (s : store_record) (inst : instance) (C : t_context) : bool :=
-  let '{| inst_types := ts; inst_funcs := fs; inst_tab := tbs; inst_memory := ms; inst_segment := ss; inst_allocator := alls ; inst_globs := gs; |} := inst in
+  let '{| inst_types := ts; inst_funcs := fs; inst_tab := tbs; inst_memory := ms; (* inst_segment := ss; inst_allocator := alls ; *) inst_globs := gs; |} := inst in
   match C with
   | {| tc_types_t := ts'; tc_func_t := tfs; tc_global := tgs; tc_table := tabs_t; tc_memory := mems_t; tc_segment := segs_t ; tc_allocator := alls_t ; tc_local := nil; tc_label := nil; tc_return := None |} =>
     (ts == ts') &&
     (all2 (functions_agree s.(s_funcs)) fs tfs) &&
     (all2 (globals_agree s.(s_globals)) gs tgs) &&
     (all2 (tabi_agree s.(s_tables)) tbs tabs_t) &&
-      (all2 (memi_agree s.(s_mems)) ms mems_t) &&
+      (all2 (memi_agree s.(s_mems)) ms mems_t)  (* &&
       (all2 (segi_agree s.(s_segs)) ss segs_t) &&
-      (all2 (alli_agree s.(s_alls)) alls alls_t) 
+      (all2 (alli_agree s.(s_alls)) alls alls_t) *)
   | _ => false
   end.
 
@@ -427,8 +427,8 @@ Definition store_typing (s : store_record) : Prop :=
     List.Forall (cl_type_check_single s) fs /\
     List.Forall (tab_agree s) tclss /\
       List.Forall mem_agree mss /\
-      List.Forall seg_agree segs /\
-      List.Forall all_agree alls
+      seg_agree segs /\
+      all_agree alls
   end.
 
 Inductive config_typing : store_record -> frame -> seq administrative_instruction -> seq value_type -> Prop :=

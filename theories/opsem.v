@@ -330,12 +330,10 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       reduce s f es ME_empty s' f' es'
 
   | rm_segload_success :
-    forall s i j f t tbs bs h m A,
+    forall s f t tbs bs h m A,
       t <> T_handle -> 
-      sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       h.(valid) = true ->
       (0 <= h.(offset))%N ->
       (h.(offset) + (t_length t) <= h.(bound))%N ->
@@ -346,12 +344,14 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
 
   | rm_segload_handle_success :
-    forall s i j f t tbs ts bs h m A bc hmem,
+    forall s f t tbs ts bs h m A bc hmem,
       t = T_handle ->
-      sseg_ind s f.(f_inst) = Some i ->
+      (*sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       h.(valid) = true ->
       (0 <= h.(offset))%N ->
       (h.(offset) + (t_length t) <= h.(bound))%N ->
@@ -367,11 +367,13 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
 
   | rm_segload_failure :
-    forall s i j f t h m A,
-      sseg_ind s f.(f_inst) = Some i ->
+    forall s f t h m A,
+      (* sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) -> 
       (h.(valid) = false \/
       (0 > h.(offset))%N \/
       (h.(offset) + (t_length t) > h.(bound))%N \/
@@ -382,27 +384,31 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
              
  | rm_segstore_success :
-    forall t v s i j f tbs seg' h m A,
+    forall t v s f tbs seg' h m A,
       t <> T_handle -> 
-      sseg_ind s f.(f_inst) = Some i ->
+      (* sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       h.(valid) = true ->
       (0 <= h.(offset))%N ->
       (h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A ->
       tbs = List.map (fun x => (x, Numeric)) (bits v) ->
       segstore m h tbs (t_length t) = Some seg' ->
-      reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] (ME_write t h v) (upd_s_seg s (update_list_at s.(s_segs) i seg')) f [::]
+      reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] (ME_write t h v) (upd_s_seg s seg') f [::]
 
 
-  | rm_segstore_handle_success : forall t v s i j f tbs seg' h m A,
+  | rm_segstore_handle_success : forall t v s f tbs seg' h m A,
       t = T_handle -> 
-      sseg_ind s f.(f_inst) = Some i ->
+      (* sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       h.(valid) = true ->
       (0 <= h.(offset))%N ->
       (h.(offset) + (t_length t) <= h.(bound))%N ->
@@ -410,14 +416,16 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
       tbs = List.map (fun x => (x, Handle)) (bits v) ->
       segstore m h tbs (t_length t) = Some seg' ->
-      reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] (ME_write t h v) (upd_s_seg s (update_list_at s.(s_segs) i seg')) f [::]
+      reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] (ME_write t h v) (upd_s_seg s seg') f [::]
 
   | rm_segstore_failure :
-    forall t v s i j f h m A,
-      sseg_ind s f.(f_inst) = Some i ->
+    forall t v s f h m A,
+      (* sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       (h.(valid) = false \/
          (0 > h.(offset))%N \/
          (h.(offset) + (t_length t) > h.(bound))%N \/
@@ -426,46 +434,54 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       t = T_handle /\ (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] ME_trap s f [::AI_trap]
 
-  | rm_segalloc_success : forall s f i j m A a n c nid seg' A' s' h,
-      sseg_ind s f.(f_inst) = Some i ->
+  | rm_segalloc_success : forall s f m A a n c nid seg' A' s' h,
+      (*sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       n = (Wasm_int.N_of_uint i32m c) ->
       salloc m A a n nid seg' A' ->
-      s' = upd_s_seg (upd_s_all s (update_list_at s.(s_alls) j A')) (update_list_at s.(s_segs) i seg') ->
+      s' = upd_s_seg (upd_s_all s A') seg' ->
       h = {| base := a ; offset := N.of_nat 0 ; bound := n ; valid := true ; id := nid |} ->
       reduce s f [::AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_segalloc]
         (ME_salloc h) s' f
         [:: AI_basic (BI_const (VAL_handle h))]
 
   | rm_segalloc_failure:
-         forall i j f m A s c,
-        sseg_ind s f.(f_inst) = Some i ->
+         forall f m A s c,
+        (*sseg_ind s f.(f_inst) = Some i ->
         List.nth_error s.(s_segs) i = Some m ->
         sall_ind s f.(f_inst) = Some j ->
-        List.nth_error s.(s_alls) j = Some A ->
+        List.nth_error s.(s_alls) j = Some A -> *)
+           m = s.(s_segs) ->
+           A = s.(s_alls) ->
         reduce s f [::AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_segalloc]
                ME_trap s f [:: AI_basic (BI_const (VAL_handle dummy_handle))]
 
-  | rm_segfree_success : forall s f i j m A seg' A' s' h,
-      sseg_ind s f.(f_inst) = Some i ->
+  | rm_segfree_success : forall s f m A seg' A' s' h,
+      (* sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       sfree m A h.(base) h.(id) seg' A' ->
       h.(valid) = true ->
       h.(offset) = N.zero ->
-      s' = upd_s_seg (upd_s_all s (update_list_at s.(s_alls) j A')) (update_list_at s.(s_segs) i seg') ->
+      s' = upd_s_seg (upd_s_all s A') seg' ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)) ; AI_basic BI_segfree]
         (ME_sfree h) s' f
         [::]
 
-  | rm_segfree_failure: forall s f i j m A h,
-      sseg_ind s f.(f_inst) = Some i ->
+  | rm_segfree_failure: forall s f m A h,
+      (* sseg_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_segs) i = Some m ->
       sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A ->
+      List.nth_error s.(s_alls) j = Some A -> *)
+      m = s.(s_segs) ->
+      A = s.(s_alls) ->
       find_address h.(id) A <> Some h.(base) \/ h.(offset) <> N.zero \/ h.(valid) = false ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)) ; AI_basic BI_segfree]
              ME_trap s f [::AI_trap]

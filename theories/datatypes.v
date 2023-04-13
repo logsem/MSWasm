@@ -197,8 +197,8 @@ Record t_context : Type := {
   tc_global : list global_type;
   tc_table : list table_type;
     tc_memory : list memory_type;
-    tc_segment : list segment_type;
-    tc_allocator : list allocator_type;
+    tc_segment : segment_type;
+    tc_allocator : allocator_type;
   tc_local : list value_type;
   tc_label : list (list value_type);
   tc_return : option (list value_type);
@@ -365,9 +365,9 @@ Inductive basic_instruction : Type := (* be *)
 Definition funcaddr := immediate.
 Definition tableaddr := immediate.
 Definition memaddr := immediate.
-Definition segaddr := immediate.
+(* Definition segaddr := immediate. *)
 Definition globaladdr := immediate.
-Definition allocaddr := immediate.
+(* Definition allocaddr := immediate. *)
 
 
 (** std-doc:
@@ -389,8 +389,8 @@ Record instance : Type := (* inst *) {
   inst_funcs : list funcaddr;
   inst_tab : list tableaddr;
     inst_memory : list memaddr;
-    inst_segment : list segaddr;
-    inst_allocator: list allocaddr;
+(*    inst_segment : list segaddr;
+    inst_allocator: list allocaddr; *)
   inst_globs : list globaladdr;
 }.
 (** std-doc:
@@ -443,8 +443,8 @@ Record store_record : Type := (* s *) {
   s_funcs : list function_closure;
   s_tables : list tableinst;
     s_mems : list memory;
-    s_segs : list segment;
-    s_alls : list allocator;
+    s_segs : segment;
+    s_alls : allocator;
   s_globals : list global;
 }.
 
@@ -504,11 +504,11 @@ Inductive tableidx : Type :=
 Inductive memidx : Type :=
 | Mk_memidx : nat -> memidx.
 
-Inductive segidx : Type :=
+(* Inductive segidx : Type :=
 | Mk_segidx : nat -> segidx.
 
 Inductive allidx : Type :=
-| Mk_allidx : nat -> allidx.
+| Mk_allidx : nat -> allidx. *)
 
 Inductive typeidx : Type :=
 | Mk_typeidx : nat -> typeidx.
@@ -523,8 +523,8 @@ Inductive import_desc : Type :=
 | ID_func : nat -> import_desc
 | ID_table : table_type -> import_desc
 | ID_mem : memory_type -> import_desc
-| ID_seg : segment_type -> import_desc
-| ID_all : allocator_type -> import_desc
+(* | ID_seg : segment_type -> import_desc
+| ID_all : allocator_type -> import_desc *)
 | ID_global : global_type -> import_desc.
 
 Definition name := list Byte.byte.
@@ -565,18 +565,18 @@ Record module_data : Type := {
   moddata_init : list Byte.byte;
   }.
 
-Record module_segdata : Type := {
+(* Record module_segdata : Type := {
     modsegdata_data : segidx;
     modsegdata_offset : expr;
     modsegdata_init : list (Byte.byte * btag);
-    }.
+    }. *)
 
 Inductive module_export_desc : Type :=
 | MED_func : funcidx -> module_export_desc
 | MED_table : tableidx -> module_export_desc
 | MED_mem : memidx -> module_export_desc
-| MED_seg : segidx -> module_export_desc
-| MED_all : allidx -> module_export_desc
+(* | MED_seg : segidx -> module_export_desc
+| MED_all : allidx -> module_export_desc *)
 | MED_global : globalidx -> module_export_desc.
 
 Record module_export : Type := {
@@ -599,12 +599,12 @@ Record module : Type := {
   mod_funcs : list module_func;
   mod_tables : list module_table;
     mod_mems : list memory_type;
-    mod_segs : list segment_type;
-    mod_alls : list allocator_type;
+(*    mod_segs : list segment_type; 
+    mod_alls : list allocator_type; *)
   mod_globals : list module_glob;
   mod_elem : list module_element;
     mod_data : list module_data;
-    mod_segdata : list module_segdata;
+(*    mod_segdata : list module_segdata; *)
   mod_start : option module_start;
   mod_imports : list module_import;
   mod_exports : list module_export;
@@ -614,8 +614,8 @@ Inductive extern_t : Type :=
 | ET_func : function_type -> extern_t
 | ET_tab : table_type -> extern_t
 | ET_mem : memory_type -> extern_t
-| ET_seg : segment_type -> extern_t
-| ET_all : allocator_type -> extern_t
+(* | ET_seg : segment_type -> extern_t
+| ET_all : allocator_type -> extern_t *)
 | ET_glob : global_type -> extern_t
 .
 

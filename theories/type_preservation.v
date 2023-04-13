@@ -1221,8 +1221,7 @@ Qed.
 
 Lemma Segalloc_typing: forall C t1s t2s,
     be_typing C [::BI_segalloc] (Tf t1s t2s) ->
-    exists ts, t1s = ts ++ [:: T_i32] /\ t2s = ts ++ [:: T_handle] /\
-            tc_segment C <> nil.
+    exists ts, t1s = ts ++ [:: T_i32] /\ t2s = ts ++ [:: T_handle].
 Proof.
   move => C t1s t2s HType.
   dependent induction HType => //=.
@@ -1230,7 +1229,7 @@ Proof.
          - invert_be_typing.
            by eapply IHHType2 => //=.
          -  edestruct IHHType => //=.
-            destruct H as (H1 & H2 & H3).
+            destruct H as (H1 & H2).
             subst.
             exists (ts ++ x).
             repeat rewrite -catA.
@@ -1239,17 +1238,15 @@ Qed.
 
 Lemma Segfree_typing: forall C t1s t2s,
     be_typing C [::BI_segfree] (Tf t1s t2s) ->
-    t1s = t2s ++ [::T_handle] /\
-      tc_segment C <> nil.
+    t1s = t2s ++ [::T_handle] .
 Proof.
   move => C t1s t2s HType.
   dependent induction HType => //=.
   - invert_be_typing.
     by eapply IHHType2 => //=.
-  - edestruct IHHType => //=.
-    subst.
+  - rewrite (IHHType t1s0 t2s0) => //=.
     repeat rewrite -catA.
-    repeat split => //=.
+    done. 
 Qed.
 
 
@@ -1559,11 +1556,11 @@ Proof.
   move/andP in HInstType. destruct HInstType.
   repeat (move/andP in H; destruct H).
   simpl in HN1. simpl in HN3.
-  eapply all2_projection in H5; eauto.
-  unfold functions_agree in H5. move/andP in H5. destruct H5.
-  unfold option_map in H6.
-  rewrite HN2 in H6. move/eqP in H6.
-  by inversion H6.
+  eapply all2_projection in H3; eauto.
+  unfold functions_agree in H3. move/andP in H3. destruct H3.
+  unfold option_map in H4.
+  rewrite HN2 in H4. move/eqP in H4.
+  by inversion H4.
 Qed.
 
 Lemma tc_func_reference2: forall s C i j cl tf,
@@ -1733,9 +1730,7 @@ Qed.
 
 Lemma Segload_typing: forall C t t1s t2s,
     be_typing C [::BI_segload t] (Tf t1s t2s) ->
-    exists ts, t1s = ts ++ [::T_handle] /\ t2s = ts ++ [::t] /\
-                    tc_segment C <> nil (* /\
-                    load_store_t_bounds a (option_projl tp_sx) t *). 
+    exists ts, t1s = ts ++ [::T_handle] /\ t2s = ts ++ [::t].
 Proof.
   move => C t t1s t2s HType.
   dependent induction HType; subst => //=.
@@ -1743,7 +1738,7 @@ Proof.
   - invert_be_typing.
     by eapply IHHType2.
   - edestruct IHHType => //=.
-    destruct H as [H1 [H2 H4]]. subst.
+    destruct H as [H1 H4]. subst.
     exists (ts ++ x).
     by repeat rewrite -catA.
 Qed.
@@ -1764,15 +1759,13 @@ Qed.
 
 Lemma Segstore_typing: forall C t t1s t2s,
     be_typing C [::BI_segstore t] (Tf t1s t2s) ->
-    t1s = t2s ++ [::T_handle; t] /\
-    tc_segment C <> nil (* /\
-    load_store_t_bounds a tp t *).
+    t1s = t2s ++ [::T_handle; t] .
 Proof.
   move => C t t1s t2s HType.
   dependent induction HType; subst => //=.
   - invert_be_typing.
     by eapply IHHType2.
-  - edestruct IHHType => //=. subst.
+  - rewrite (IHHType t t1s0 t2s0) => //=. subst.
     by repeat rewrite -catA.
 Qed.
 
@@ -1862,11 +1855,11 @@ Proof.
   destruct tc_local => //=. destruct tc_label => //=. destruct tc_return => //=.
   move/andP in HInstType. destruct HInstType.
   remove_bools_options.
-  eapply all2_projection in H4; eauto.
-  unfold globals_agree in H4. move/andP in H4. destruct H4.
+  eapply all2_projection in H2; eauto.
+  unfold globals_agree in H2. move/andP in H2. destruct H2.
   remove_bools_options.
   simpl in Hi. simpl in Hoption.
-  unfold global_agree in H8.
+  unfold global_agree in H6.
   by remove_bools_options.
 Qed.
 
@@ -2162,13 +2155,12 @@ Proof.
   destruct i => //=.
   destruct C => //=.
   destruct tc_local => //. destruct tc_label => //. destruct tc_return => //.
-  remove_bools_options. rewrite - H6.
+  remove_bools_options. rewrite - H4.
   repeat (apply/andP; split => //=; subst => //=).
   - by eapply glob_extension_C; eauto.
   - by eapply tab_extension_C; eauto.
   - by eapply mem_extension_C; eauto.
-  - by eapply seg_extension_C; eauto.
-  - by eapply all_extension_C; eauto.
+
 Qed.
 
 Lemma frame_typing_extension: forall s s' f C,
@@ -2322,8 +2314,10 @@ Proof.
   + by apply/eqP.
   + by apply all2_tab_extension_same.
   + by apply all2_mem_extension_same.
-  + by apply all2_seg_extension_same.
-  + by apply all2_all_extension_same.
+  + apply N.leb_le. lia. done. done.
+    
+(*  + by apply all2_seg_extension_same.
+  + by apply all2_all_extension_same. *)
   + by apply all2_glob_extension_same.
 Qed.
 
@@ -2423,9 +2417,9 @@ Proof.
   destruct tc_label => //=.
   destruct tc_return => //=.
   remove_bools_options.
-  eapply all2_projection in H4; eauto.
-  unfold globals_agree in H4.
-  rewrite HN2 in H4.
+  eapply all2_projection in H2; eauto.
+  unfold globals_agree in H2.
+  rewrite HN2 in H2.
   by remove_bools_options.
 Qed.
 
@@ -3041,14 +3035,7 @@ Proof.
       apply H8. by eapply List.nth_error_In; eauto.
     +  unfold store_extension in Hext. simpl in Hext.
       remove_bools_options.
-      rewrite List.Forall_forall.
-      move => x HIN.
-      destruct HST' as [_ [_ [_ H8]]].
-      rewrite -> List.Forall_forall in H8.
-      apply List.In_nth_error in HIN.
-      destruct HIN as [n HN].
-      apply H8. by eapply List.nth_error_In; eauto.
-    + apply forall_all_agree.
+      destruct HST' as [_ [_ [_ [H8 _]]]]. done.
 Qed.
 
 Lemma store_memory_extension_store_typed: forall s s',
@@ -3057,7 +3044,7 @@ Lemma store_memory_extension_store_typed: forall s s',
     (s_funcs s = s_funcs s') ->
     (s_tables s = s_tables s') ->
     List.Forall mem_agree (s_mems s') ->
-    List.Forall seg_agree (s_segs s') ->
+    seg_agree (s_segs s') ->
     store_typing s'.
 Proof.
   move => s s' HST Hext HF HT HMem HSeg.
@@ -3081,7 +3068,6 @@ Proof.
     rewrite -> List.Forall_forall in H1.
     unfold tab_agree.
     by rewrite -> List.Forall_forall.
-  - apply forall_all_agree.
 Qed.
 
 Lemma nth_error_map: forall {X Y:Type} l n (f: X -> Y) fv,
@@ -3172,18 +3158,15 @@ Proof.
   apply H. by eapply List.nth_error_In; eauto.
 Qed.
 
-Lemma segstore_typed_seg_agree: forall s n m,
+Lemma segstore_typed_seg_agree: forall s m,
     store_typing s ->
-    List.nth_error (s_segs s) n = Some m ->
+    s.(s_segs) = m ->
     seg_agree m.
 Proof.
-  move => s n m HST HN.
+  move => s m HST HN.
   unfold store_typing in HST.
   destruct s => //=.
-  destruct HST as [_ [_ [_ H]]].
-  rewrite -> List.Forall_forall in H.
-  simpl in HN.
-  apply H. by eapply List.nth_error_In; eauto.
+  destruct HST as [_ [_ [_ [H _]]]]. by subst. 
 Qed.
 
 Lemma store_mem_agree: forall s n m k off vs tl mem,
@@ -3207,18 +3190,18 @@ Qed.
 
 
 
-Lemma alloc_seg_agree: forall s n m A a b c mem A',
+Lemma alloc_seg_agree: forall s m A a b c mem A',
     store_typing s ->
-    List.nth_error (s_segs s) n = Some m ->
+    m = s.(s_segs) ->
     salloc m A a b c mem A' ->
     seg_agree mem.
 Proof.
-  move => s n m A a b c mem A' HST HN HAlloc.
+  move => s m A a b c mem A' HST HN HAlloc.
   assert (seg_agree m); first by eapply segstore_typed_seg_agree; eauto.
   unfold seg_agree.
   inversion HAlloc; subst => /=.
   unfold seg_agree in H.
-  destruct (seg_max_opt m) => //.
+  destruct (seg_max_opt (s_segs s)) => //.
   unfold seg_size, operations.seg_length, seg_length => /=.
   rewrite length_is_size.
   repeat rewrite size_cat.
@@ -3232,7 +3215,7 @@ Proof.
   rewrite (N.add_assoc a b).
   unfold seg_size, operations.seg_length, seg_length in H.
   rewrite length_is_size in H.
-  destruct (a + b <=? N.of_nat (size (segl_data (seg_data m))))%N eqn:Hab;
+  destruct (a + b <=? N.of_nat (size (segl_data (seg_data (s_segs s)))))%N eqn:Hab;
     [ apply N.leb_le in Hab | apply N.leb_gt in Hab ].
   rewrite N.add_sub_assoc => //.
   rewrite N.add_sub_swap; last lias.
@@ -3248,13 +3231,13 @@ Qed.
 
 
   
-  Lemma free_seg_agree: forall s n m A a c mem A',
+  Lemma free_seg_agree: forall s m A a c mem A',
     store_typing s ->
-    List.nth_error (s_segs s) n = Some m ->
+    m = s_segs s ->
     sfree m A a c mem A' ->
     seg_agree mem.
 Proof.
-  move => s n m A a c mem A' HST HN HAlloc.
+  move => s m A a c mem A' HST HN HAlloc.
   assert (seg_agree m); first by eapply segstore_typed_seg_agree; eauto.
   unfold seg_agree.
   specialize (sfree_same_size HAlloc) as Hlen.
@@ -3274,14 +3257,14 @@ Proof.
 Qed. *)
 
 
-Lemma segstore_seg_agree: forall s n m h vs tl mem,
+Lemma segstore_seg_agree: forall s m h vs tl mem,
     store_typing s ->
-    List.nth_error (s_segs s) n = Some m ->
+    m = s_segs s ->
     segstore m h vs tl = Some mem ->
     tl > 0 ->
     seg_agree mem.
 Proof.
-  move => s n m h vs tl mem HST HN HStore HTL.
+  move => s m h vs tl mem HST HN HStore HTL.
   unfold segstore in HStore.
   destruct ((base h+offset h+N.of_nat tl <=? operations.seg_length m)%N) eqn:H => //=.
   apply write_segbytes_preserve_type in HStore.
@@ -3363,8 +3346,7 @@ Proof.
       repeat (apply/andP; split) => //=.
       -- by apply all2_tab_extension_same.
       -- by apply all2_mem_extension_same.
-      -- by apply all2_seg_extension_same.
-      -- by apply all2_all_extension_same.
+      -- by apply N.leb_le. 
       -- eapply glob_extension_update_nth; eauto => //=.
          unfold glob_extension => //=.
          by destruct v => //=; destruct g_val => //=.
@@ -3388,8 +3370,7 @@ Proof.
       * by apply all2_tab_extension_same.
         eapply mem_extension_update_nth; eauto => //=.
       * by eapply mem_extension_store; eauto.
-      * by eapply all2_seg_extension_same.
-      * by eapply all2_all_extension_same.
+      * by apply N.leb_le.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3423,8 +3404,7 @@ Proof.
       * by apply all2_tab_extension_same.
       * eapply mem_extension_update_nth; eauto => //=.
         by eapply mem_extension_store; eauto.
-      * by eapply all2_seg_extension_same.
-      * by eapply all2_all_extension_same.
+      * by apply N.leb_le.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3455,8 +3435,7 @@ Proof.
       * by apply all2_tab_extension_same.
       * eapply mem_extension_update_nth; eauto => //=.
         by eapply mem_extension_grow_memory; eauto.
-      * by apply all2_seg_extension_same.
-      * by apply all2_all_extension_same.
+      * by apply N.leb_le.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3474,21 +3453,22 @@ Proof.
     apply et_to_bet in HType; auto_basic. simpl in HType.
     replace [::BI_const (VAL_handle h); BI_const v; BI_segstore t] with ([::BI_const (VAL_handle h); BI_const v] ++ [::BI_segstore t]) in HType => //.
     apply composition_typing in HType.
-    destruct HType as [ts [t1s [t2s [t3s [H13 [H14 [H15 H16]]]]]]]. subst.
+    destruct HType as [ts [t1s [t2s [t3s [H13 [H14 [H15 H17]]]]]]]. subst.
     invert_be_typing.
-    apply Segstore_typing in H16.
-    destruct H16 as [H17 H18].
+    apply Segstore_typing in H17.
     apply concat_cancel_last_n in H17 => //.
     remove_bools_options.
-    inversion H10. subst. clear H10.
-    assert (store_extension s (upd_s_seg s (update_list_at (s_segs s) i seg'))) as Hext.
+    inversion H1. subst. clear H1.
+    assert (store_extension s (upd_s_seg s seg')) as Hext.
     + unfold store_extension => //=.
-      repeat (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
       * by apply all2_tab_extension_same.
       * by apply all2_mem_extension_same.
-      * eapply seg_extension_update_nth; eauto => //=.
-        by eapply seg_extension_store; eauto.
-      * by apply all2_all_extension_same.
+      * by eapply seg_extension_store; eauto.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3496,33 +3476,29 @@ Proof.
     remember HST as HST2. clear HeqHST2.
     unfold store_typing in HST.
     destruct s => //=.
-    destruct HST as [_ [_ [_ [H11 _]]]].
-    simpl in H1.
-    assert (i < length s_segs)%coq_nat.
-    { apply List.nth_error_Some. by rewrite H1. }
-    apply Forall_update => //=.
+    destruct HST as [_ [_ [_ [H11 _]]]]. Check segstore_seg_agree.
     eapply segstore_seg_agree; eauto.
-    * by destruct v => //=. 
-    * by move/ltP in H8.
+    by destruct v => //=. 
   - (* segstore none? *)
     apply et_to_bet in HType; auto_basic. simpl in HType.
     replace [::BI_const (VAL_handle h); BI_const v; BI_segstore t] with ([::BI_const (VAL_handle h); BI_const v] ++ [::BI_segstore t]) in HType => //.
     apply composition_typing in HType.
-    destruct HType as [ts [t1s [t2s [t3s [H13 [H14 [H15 H16]]]]]]]. subst.
+    destruct HType as [ts [t1s [t2s [t3s [H13 [H14 [H15 H17]]]]]]]. subst.
     invert_be_typing.
-    apply Segstore_typing in H16.
-    destruct H16 as [H17 H18]. subst.
+    apply Segstore_typing in H17.
     apply concat_cancel_last_n in H17 => //.
     remove_bools_options.
-    inversion H9. subst. clear H9.
-    assert (store_extension s (upd_s_seg s (update_list_at (s_segs s) i seg'))) as Hext.
+    inversion H0. subst. clear H0.
+    assert (store_extension s (upd_s_seg s seg')) as Hext.
     + unfold store_extension => //=.
-      repeat (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
       * by apply all2_tab_extension_same.
       * by apply all2_mem_extension_same.
-      * eapply seg_extension_update_nth; eauto => //=.
-        by eapply seg_extension_store; eauto.
-      * by apply all2_all_extension_same.
+      * by eapply seg_extension_store; eauto.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3531,23 +3507,20 @@ Proof.
     unfold store_typing in HST.
     destruct s => //=.
     destruct HST as [_ [_ [_ [H11 _]]]].
-    simpl in H1.
-    assert (i < length s_segs)%coq_nat.
-    { apply List.nth_error_Some. by rewrite H1. }
-    apply Forall_update => //=.
     eapply segstore_seg_agree; eauto.
-    by destruct HBB. lias.
-(*      * move/ltP in H. *)
+    by destruct HBB. 
   - (* segalloc *)
     subst.
-    assert (store_extension s (upd_s_seg (upd_s_all s (update_list_at (s_alls s) j A')) (update_list_at (s_segs s) i seg'))).
+    assert (store_extension s (upd_s_seg (upd_s_all s A') seg')).
     + unfold store_extension. simpl.
-      repeat (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
       * by apply all2_tab_extension_same.
       * by apply all2_mem_extension_same.
-      * eapply seg_extension_update_nth; eauto => //=.
-        eapply seg_extension_alloc. exact H4.
-      * eapply all_extension_update_nth; eauto => //=.
+      * eapply seg_extension_alloc. exact H2.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3558,22 +3531,19 @@ Proof.
      unfold store_typing in HST.
     destruct s => //=.
     destruct HST as [_ [_ [_ [H11 ?]]]].
-    simpl in H0.
-    assert (i < length s_segs)%coq_nat.
-    { apply List.nth_error_Some. by rewrite H0. }
-    apply Forall_update => //=.
     eapply alloc_seg_agree ; eauto.
-    lias.
   - (* sfree *)
     subst.
-    assert (store_extension s (upd_s_seg (upd_s_all s (update_list_at (s_alls s) j A')) (update_list_at (s_segs s) i seg'))).
+    assert (store_extension s (upd_s_seg (upd_s_all s A') seg')).
     + unfold store_extension. simpl.
-      repeat (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
+      (apply/andP; split) => //=.
       * by apply all2_tab_extension_same.
       * by apply all2_mem_extension_same.
-      * eapply seg_extension_update_nth; eauto => //=.
-        eapply seg_extension_free; exact H3.
-      * eapply all_extension_update_nth; eauto => //=.
+      * eapply seg_extension_free; exact H1.
       * by apply all2_glob_extension_same.
     split => //.
     eapply store_memory_extension_store_typed; eauto => //=.
@@ -3584,12 +3554,7 @@ Proof.
      unfold store_typing in HST.
     destruct s => //=.
     destruct HST as [_ [_ [_ [H11 ?]]]].
-    simpl in H0.
-    assert (i < length s_segs)%coq_nat.
-    { apply List.nth_error_Some. by rewrite H0. }
-    apply Forall_update => //=.
     eapply free_seg_agree ; eauto.
-    lias.
   - (* r_label *)
     eapply lfilled_es_type_exists in HType; eauto.
     destruct HType as [lab' [t1s [t2s HType]]].
@@ -3669,8 +3634,8 @@ Proof.
   move => s i j C a x HIT HNth1 HNth2.
     destruct s; destruct i; destruct C; destruct tc_local; destruct tc_label; destruct tc_return; unfold inst_typing, typing.inst_typing in * => //=; remove_bools_options; simpl in * => //=.
     remove_bools_options.
-    unfold typing.functions_agree in H5.
-    eapply all2_projection in H5; eauto.
+    unfold typing.functions_agree in H3.
+    eapply all2_projection in H3; eauto.
     remove_bools_options; eauto.
 Qed.
 
@@ -3908,7 +3873,7 @@ Proof.
     destruct HType as [ts' [t1s' [t2s' [t3s' [H11 [H12 [H9 H10]]]]]]].
     invert_be_typing.
     apply Segload_typing in H10.
-    destruct H10 as [ts  [H11 [H12 H13]]].
+    destruct H10 as [ts  [H11 H13]].
     apply concat_cancel_last in H11. destruct H11. subst.
     eapply t_const_ignores_context => //=.
     instantiate (2 := s).
@@ -3917,7 +3882,7 @@ Proof.
     assert (be_typing C [::BI_const (wasm_deserialise (List.map fst tbs) t)] (Tf [::] [:: typeof (wasm_deserialise (List.map fst tbs) t)])); first by apply bet_const.
     rewrite catA.
     apply bet_weakening_empty_1.
-    rewrite typeof_deserialise in H9. by apply H9.
+    rewrite typeof_deserialise in H0. by apply H0.
   - (* Segload Some *) 
     convert_et_to_bet.
     replace [::BI_const (VAL_handle h); BI_segload T_handle] with ([::BI_const (VAL_handle h)] ++ [::BI_segload T_handle]) in HType => //=.
@@ -3925,7 +3890,7 @@ Proof.
     destruct HType as [ts' [t1s' [t2s' [t3s' [H12 [H15 [H16 H10]]]]]]].
     invert_be_typing.
     apply Segload_typing in H10.
-    destruct H10 as [ts  [H14 [H12 H130]]].
+    destruct H10 as [ts  [H14 H130]].
     apply concat_cancel_last in H14. destruct H14. subst.
     eapply t_const_ignores_context => //=.
     instantiate (2 := s).
@@ -3943,11 +3908,10 @@ Proof.
       destruct HType as [ts' [t1s' [t2s' [t3s' [H11 [H8 [H900 H10]]]]]]].
       invert_be_typing.
       apply Segstore_typing in H10.
-      destruct H10 as [H11 H12].
-      apply concat_cancel_last_n in H11 => //.
-      move/andP in H11. destruct H11. move/eqP in H5. subst.
+      apply concat_cancel_last_n in H10 => //.
+      move/andP in H10. destruct H10. move/eqP in H3. subst.
       apply ety_a'; auto_basic => //=.
-      apply b2p in H8 as ->. apply bet_weakening_empty_both.
+      apply b2p in H0 as ->. apply bet_weakening_empty_both.
       by apply bet_empty.
   - (* Store None *)
     + convert_et_to_bet.
@@ -3956,9 +3920,9 @@ Proof.
       apply composition_typing in HType.
       destruct HType as [ts' [t1s' [t2s' [t3s' [H11 [H12 [H9 H1000]]]]]]].
       invert_be_typing.
-      apply Segstore_typing in H1000 as [H11 H12].
+      apply Segstore_typing in H1000 as H11 .
       apply concat_cancel_last_n in H11 => //.
-      move/andP in H11. destruct H11. move/eqP in H5. subst.
+      move/andP in H11. destruct H11. move/eqP in H3. subst.
       apply ety_a'; auto_basic => //=.
       apply b2p in H as ->. apply bet_weakening_empty_both.
       by apply bet_empty.
@@ -3969,9 +3933,9 @@ Proof.
     destruct HType as (ts' & t1s' & t2s' & t3s' & H11 & H8 & H9 & H10).
     invert_be_typing.
     apply Segalloc_typing in H10.
-    destruct H10 as (ts & H10 & H11 & H12).
+    destruct H10 as (ts & H10 & H12).
     apply concat_cancel_last_n in H10 => //.
-    move/andP in H10. destruct H10. move/eqP in H3. subst.
+    move/andP in H10. destruct H10. move/eqP in H. subst.
     apply ety_a'; auto_basic => //=.
     rewrite catA. apply bet_weakening_empty_1.
     apply bet_const => //.
@@ -3982,9 +3946,9 @@ Proof.
     destruct HType as (ts' & t1s' & t2s' & t3s' & H11 & H8 & H9 & H10).
     invert_be_typing.
     apply Segalloc_typing in H10.
-    destruct H10 as (ts & H10 & H11 & H12).
+    destruct H10 as (ts & H10 & H12).
     apply concat_cancel_last_n in H10 => //.
-    move/andP in H10. destruct H10. move/eqP in H3. subst.
+    move/andP in H10. destruct H10. move/eqP in H. subst.
     apply ety_a'; auto_basic => //=.
     rewrite catA. apply bet_weakening_empty_1.
     apply bet_const => //.
@@ -3996,9 +3960,9 @@ Proof.
     destruct HType as (ts' & t1s' & t2s' & t3s' & H11 & H8 & H9 & H10).
     invert_be_typing.
     apply Segfree_typing in H10.
-    destruct H10 as [H10 H11].
+   
     apply concat_cancel_last_n in H10 => //.
-    move/andP in H10. destruct H10. move/eqP in H6. subst.
+    move/andP in H10. destruct H10. move/eqP in H. subst.
     apply ety_a'; auto_basic => //=.
     apply bet_weakening_empty_both.
     apply bet_empty => //.

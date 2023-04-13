@@ -372,17 +372,17 @@ in
     then type_update ts [::CTA_some T_i32] (CT_type [::t])
     else CT_bot
   | BI_segload t =>
-      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
-      then type_update ts [::CTA_some T_handle] (CT_type [::t])
-      else CT_bot
+(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
+      then *) type_update ts [::CTA_some T_handle] (CT_type [::t])
+(*      else CT_bot *)
   | BI_store t tp a off =>
     if (C.(tc_memory) != nil) && load_store_t_bounds a tp t
     then type_update ts [::CTA_some T_i32; CTA_some t] (CT_type [::])
     else CT_bot
   | BI_segstore t =>
-      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
-      then type_update ts [::CTA_some T_handle; CTA_some t] (CT_type [::])
-      else CT_bot
+(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
+      then *) type_update ts [::CTA_some T_handle; CTA_some t] (CT_type [::])
+(*      else CT_bot *) 
   | BI_current_memory =>
     if C.(tc_memory) != nil
     then type_update ts [::] (CT_type [::T_i32])
@@ -392,13 +392,13 @@ in
     then type_update ts [::CTA_some T_i32] (CT_type [::T_i32])
     else CT_bot
   | BI_segalloc =>
-      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil)
-      then type_update ts [::CTA_some T_i32] (CT_type [::T_handle])
-      else CT_bot
+(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
+      then *) type_update ts [::CTA_some T_i32] (CT_type [::T_handle])
+(*      else CT_bot *)
   | BI_segfree =>
-      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil)
-      then type_update ts [::CTA_some T_handle] (CT_type [::])
-      else CT_bot
+(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil)
+      then *) type_update ts [::CTA_some T_handle] (CT_type [::])
+(*      else CT_bot *)
   end.
 
 

@@ -636,7 +636,7 @@ Proof.
     move=> d [[tt_s tt_f] tt_es] s' f' r //.
   - simpl. destruct b; (try destruct v); explode_and_simplify; pattern_match => //.
     destruct p. destruct p.
-    destruct (n1 == base h); 
+    destruct (n0 == base h); 
       by inversion H1; subst. 
   - by pattern_match.
   - simpl. explode_and_simplify; try pattern_match => //.
@@ -726,7 +726,7 @@ Proof.
       exists (AI_basic (BI_br n)). exists es2'.
       (* unused ones *) exists 0. exists [::]. exists [::].
       move=> /=. apply/andP. split => //=. apply/orP. left. apply/andP. by split => //=.
-    + destruct p. destruct p. destruct (n2 == base h).
+    + destruct p. destruct p. destruct (n1 == base h).
       intro H; inversion H.
       all: try by unfold crash_error; intro Habs; inversion Habs.
   - move:H. by explode_and_simplify.
@@ -797,7 +797,7 @@ Proof.
       exists (AI_basic BI_return). exists es2'.
       exists 0. exists [::]. exists [::].
       split => //. left. split => //. by inversion H.
-    + destruct p. destruct p. destruct (n1 == base h).
+    + destruct p. destruct p. destruct (n0 == base h).
       all: try by unfold crash_error; intro Habs; inversion Habs.
   - move:H. by explode_and_simplify.
   - move:H. by explode_and_simplify;
@@ -1099,10 +1099,10 @@ Proof. admit. Admitted.
 
 
 Local Lemma run_step_soundness_aux : forall fuel d s f es s' f' es',
-    wellFormedState s f ->
+    wellFormedState s ->
     run_step_with_fuel fuel d (s, f, es)
   = (s', f', RS_normal es') ->
-    (exists me, reduce s f es me s' f' es') /\ wellFormedState s' f'.
+    (exists me, reduce s f es me s' f' es') /\ wellFormedState s'.
 Proof.
   strong induction fuel.
   move=> d s f es s' f' es' HWF /=. destruct fuel as [|fuel] => //=.
@@ -1438,8 +1438,6 @@ Proof.
         by eapply rm_silent, r_set_global.
         subst.
         unfold wellFormedState in HWF.
-        destruct HWF as (i0 & j & T & A & H1 & H2 & H3 & H4 & H5).
-        exists i0, j, T, A.
         unfold supdate_glob in option_expr.
         unfold option_bind in option_expr.
         destruct (sglob_ind _ _ _) eqn:Hglob => //.
@@ -1494,15 +1492,10 @@ Proof.
         + destruct v => //.
           destruct (rev lconst) eqn:Hlconst => //.
           destruct v => //.
-          destruct (sseg_ind _ _) eqn:Hseg => //.
-          unfold expect.
-          destruct (sall_ind _ _) eqn:Hall => //.
-          destruct (List.nth_error _ n) eqn:Hsegn => //.
-          destruct (List.nth_error _ a) eqn:Halla => //.
           destruct (_ && _ && _ && _) eqn:Hb => //.
           * do 4 (move/andP in Hb; destruct Hb as [Hb ?]).
           destruct (segload _ _ _) eqn:Hsegload => //.
-            --  destruct (wasm_deserialise _ _) eqn:Hdeserialise => //.
+            --  simpl. (* destruct (wasm_deserialise (List.map fst bs) _) eqn:Hdeserialise => //. *)
                 intro Htuple; inversion Htuple; subst.
                 split; last by subst. exists (ME_read T_handle h).
                 apply rev_move in Hlconst.
@@ -1520,7 +1513,6 @@ Proof.
                 repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                 done.
                 eapply rm_segload_handle_success => //.
-                exact Hseg. exact Hsegn. exact Hall. exact Halla.
                 apply BinNat.N.leb_le in H2.
                 unfold t_length in H2.
                 apply plus_binnat_leq.
@@ -1545,7 +1537,6 @@ Proof.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                eapply rm_segload_failure => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                right. right. right. right. left. done.
           * intro Htuple; inversion Htuple; subst. split; last done.
                exists ME_trap.
@@ -1563,7 +1554,6 @@ Proof.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                eapply rm_segload_failure => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                apply Bool.andb_false_iff in Hb as [Hb | Hb].
                apply Bool.andb_false_iff in Hb as [Hb | Hb].
                apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -1582,11 +1572,7 @@ Proof.
                done.
         + destruct (rev lconst) eqn:Hlconst; try by destruct v => //.
           destruct v0; try by destruct v => //.
-          destruct (sseg_ind _ _) eqn:Hseg; try by destruct v => //.
-          unfold expect.
-          destruct (sall_ind _ _) eqn:Hall; try by destruct v => //.
-          destruct (List.nth_error _ n) eqn:Hsegn; try by destruct v => //.
-          destruct (List.nth_error _ a) eqn:Halla; try by destruct v => //.
+
           destruct (_ && _ && _) eqn:Hb; try by destruct v.
           * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segload _ _ _) eqn:Hsegload; try by destruct v=> //.
@@ -1596,14 +1582,15 @@ Proof.
                rewrite rev_cons_app in Hlconst.
                subst lconst.
                unfold vs_to_es in Htuple.
-               rewrite rev_cons_app in Htuple.
+               (* rewrite rev_cons_app in Htuple.  *)
                repeat rewrite - v_to_e_cat in Htuple.
                repeat rewrite - v_to_e_cat.
                destruct v; inversion Htuple; subst.
                
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
+               rewrite rev_cons_app. rewrite - v_to_e_cat.
                by rewrite - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -1612,7 +1599,6 @@ Proof.
                replace (VAL_int32 (Wasm_int.Int32.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i32); last done.
                
                eapply rm_segload_success => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1620,7 +1606,7 @@ Proof.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list. 
-               by rewrite - catA.
+               rewrite rev_cons_app. rewrite - v_to_e_cat. by rewrite - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
@@ -1628,7 +1614,6 @@ Proof.
                replace (VAL_int64 (Wasm_int.Int64.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i64); last done.
                
                eapply rm_segload_success => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1636,7 +1621,7 @@ Proof.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list. 
-               by rewrite - catA.
+               by rewrite rev_cons_app - v_to_e_cat - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
@@ -1644,7 +1629,6 @@ Proof.
                replace (VAL_float32 (Floats.Float32.of_bits (Integers.Int.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f32); last done.
                
                eapply rm_segload_success => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1652,7 +1636,7 @@ Proof.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list. 
-               by rewrite - catA.
+               by rewrite rev_cons_app - v_to_e_cat - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
@@ -1660,7 +1644,6 @@ Proof.
                replace (VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f64); last done.
                
                eapply rm_segload_success => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1683,9 +1666,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                   right; right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -1694,9 +1675,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                   right; right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -1705,9 +1684,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                   right; right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -1716,9 +1693,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                   right; right; right; right; left; done].
                done.
               
               
@@ -1740,7 +1715,6 @@ Proof.
             repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
             done.
             eapply rm_segload_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -1757,7 +1731,6 @@ Proof.
             repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
             done.
             eapply rm_segload_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -1774,7 +1747,6 @@ Proof.
             repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
             done.
             eapply rm_segload_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -1791,7 +1763,6 @@ Proof.
             repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
             done.
             eapply rm_segload_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -1858,11 +1829,7 @@ Proof.
           destruct (rev lconst) eqn:Hlconst => //.
           destruct l => //.
           destruct v0 => //.
-          destruct (sseg_ind _ _) eqn:Hseg => //.
-          unfold expect.
-          destruct (sall_ind _ _) eqn:Hall => //.
-          destruct (List.nth_error _ n) eqn:Hsegn => //.
-          destruct (List.nth_error _ a) eqn:Halla => //.
+          
           destruct (_ && _ && _ && _) eqn:Hb => //.
           * do 4 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segstore _ _ _ _) eqn:Hsegload => //.
@@ -1884,44 +1851,34 @@ Proof.
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
                eapply rm_segstore_handle_success => //.
-               exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H2.
                unfold t_length in H2.
                apply plus_binnat_leq.
                done.
                unfold isAlloc. unfold isAllocb in H1. by destruct (find _ _).
-               apply Neqb_ok in H0. exact H0.
-               exact Hsegload.
+               apply Neqb_ok in H0. exact H0. simpl in Htuple.
+(*               exact Hsegload.
                destruct HWF as (i & j & T & A & Hi & HT & Hj & HA & HWF).
                rewrite Hi in Hseg. inversion Hseg; subst.
                rewrite Hj in Hall. inversion Hall; subst.
                rewrite HT in Hsegn. inversion Hsegn; subst.
                rewrite HA in Halla. inversion Halla; subst.
-               eexists n, a, _, a0. repeat split => //.
+               eexists n, a, _, a0. repeat split => //. *)
                assert (forall a b, s_segs (upd_s_seg a b) = b).
-               intros; by destruct a1.
-               rewrite H4.
-               unfold update_list_at.
-               replace n with (size (take n (s_segs s))) at 3.
-               rewrite list_nth_prefix.
-               done.
-               rewrite size_takel => //. 
-               rewrite nth_error_lookup in HT.
-               apply list.lookup_lt_Some in HT.
-               rewrite length_is_size in HT.
-               lias.
+               intros a1 b; by destruct a1.
+               unfold wellFormedState. rewrite H4.
                unfold isSound, isSound_aux.
-               unfold isSound, isSound_aux in HWF.
+               unfold wellFormedState in HWF. unfold isSound, isSound_aux in HWF.
                apply List.forallb_forall.
                intros x Hx.
                edestruct List.forallb_forall as [??].
-               specialize (H4 HWF x Hx) as Hlex.
+               specialize (H5 HWF x Hx) as Hlex. 
                destruct x as [[??]?].
-               replace (seg_length (seg_data s1)) with (seg_length (seg_data s0)) => //.
+               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //. 
                unfold segstore in Hsegload.
                destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
                apply write_segbytes_preserve_type in Hsegload as [??].
-               exact H6.
+               exact H7.
             -- intro Htuple; inversion Htuple; subst.
                split; last by subst. exists ME_trap.
                apply rev_move in Hlconst.
@@ -1941,7 +1898,6 @@ Proof.
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
                eapply rm_segstore_failure => //.
-               exact Hseg. exact Hsegn. exact Hall. exact Halla.
                right. right. right. right. left. done.
           * intro Htuple; inversion Htuple; subst. split; last done.
             exists ME_trap.
@@ -1961,7 +1917,6 @@ Proof.
             rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
             done.
             eapply rm_segstore_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -1980,11 +1935,11 @@ Proof.
             done.
         + destruct (rev lconst) eqn:Hlconst; try by destruct v => //.
           destruct l; try by destruct v => //. destruct v1; try by destruct v => //.
-          destruct (sseg_ind _ _) eqn:Hseg; try by destruct v => //.
+(*          destruct (sseg_ind _ _) eqn:Hseg; try by destruct v => //.
           unfold expect.
           destruct (sall_ind _ _) eqn:Hall; try by destruct v => //.
           destruct (List.nth_error _ n) eqn:Hsegn; try by destruct v => //.
-          destruct (List.nth_error _ a) eqn:Halla; try by destruct v => //.
+          destruct (List.nth_error _ a) eqn:Halla; try by destruct v => //. *)
           destruct (_ && _ && _ && _) eqn:Hb; try by destruct v.
           * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segstore _ _ _) eqn:Hsegload; try by destruct v=> //.
@@ -2010,11 +1965,9 @@ Proof.
 (*               replace (VAL_int32 (Wasm_int.Int32.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i32); last done. *)
                
                eapply rm_segstore_success => //.
-               exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
-               exact Hsegload.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -2028,11 +1981,9 @@ Proof.
 (*               replace (VAL_int64 (Wasm_int.Int64.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i64); last done. *)
                
                eapply rm_segstore_success => //.
-               exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
-               exact Hsegload.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list. 
@@ -2046,11 +1997,9 @@ Proof.
                (*replace (VAL_float32 (Floats.Float32.of_bits (Integers.Int.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f32); last done. *)
                
                eapply rm_segstore_success => //.
-               exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
-               exact Hsegload.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list. 
@@ -2063,116 +2012,74 @@ Proof.
 (*               replace (VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f64); last done. *)
                
                eapply rm_segstore_success => //.
-               exact Hsegn. exact Hall. exact Halla.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
-               exact Hsegload.
                by inversion Hv.
 
-               destruct HWF as (i & j & T & A & Hi & HT & Hj & HA & HWF).
-               rewrite Hi in Hseg. inversion Hseg; subst.
-               rewrite Hj in Hall. inversion Hall; subst.
-               rewrite HT in Hsegn. inversion Hsegn; subst.
-               rewrite HA in Halla. inversion Halla; subst.
-               eexists n, a, _, a0.
                destruct v; inversion Htuple; subst.
                repeat split => //.
                assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros; by destruct a1.
-               rewrite Hupd.
-               unfold update_list_at.
-               replace n with (size (take n (s_segs s))) at 3.
-               rewrite list_nth_prefix.
-               done.
-               rewrite size_takel => //. 
-               rewrite nth_error_lookup in HT.
-               apply list.lookup_lt_Some in HT.
-               rewrite length_is_size in HT.
-               lias.
+               intros a1 b ; by destruct a1.
+               unfold wellFormedState. rewrite Hupd.
                unfold isSound, isSound_aux.
-               unfold isSound, isSound_aux in HWF.
+               unfold wellFormedState, isSound, isSound_aux in HWF.
                apply List.forallb_forall.
                intros x Hx.
                edestruct List.forallb_forall as [Hfl _].
                specialize (Hfl HWF x Hx) as Hlex.
                destruct x as [[??]?].
-               replace (seg_length (seg_data s1)) with (seg_length (seg_data s0)) => //.
+               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
                unfold segstore in Hsegload.
                destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
                apply write_segbytes_preserve_type in Hsegload as [Hdone _].
                exact Hdone.
                repeat split => //.
                assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros; by destruct a1.
-               rewrite Hupd.
+               intros a1 b ; by destruct a1.
+               unfold wellFormedState; rewrite Hupd.
                unfold update_list_at.
-               replace n with (size (take n (s_segs s))) at 3.
-               rewrite list_nth_prefix.
-               done.
-               rewrite size_takel => //. 
-               rewrite nth_error_lookup in HT.
-               apply list.lookup_lt_Some in HT.
-               rewrite length_is_size in HT.
-               lias.
                unfold isSound, isSound_aux.
-               unfold isSound, isSound_aux in HWF.
+               unfold wellFormedState, isSound, isSound_aux in HWF.
                apply List.forallb_forall.
                intros x Hx.
                edestruct List.forallb_forall as [Hfl _].
                specialize (Hfl HWF x Hx) as Hlex.
                destruct x as [[??]?].
-               replace (seg_length (seg_data s1)) with (seg_length (seg_data s0)) => //.
+               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
                unfold segstore in Hsegload.
                destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
                apply write_segbytes_preserve_type in Hsegload as [Hdone _].
                exact Hdone.
                repeat split => //.
                assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros; by destruct a1.
-               rewrite Hupd.
+               intros a1 b ; by destruct a1.
+               unfold wellFormedState; rewrite Hupd.
                unfold update_list_at.
-               replace n with (size (take n (s_segs s))) at 3.
-               rewrite list_nth_prefix.
-               done.
-               rewrite size_takel => //. 
-               rewrite nth_error_lookup in HT.
-               apply list.lookup_lt_Some in HT.
-               rewrite length_is_size in HT.
-               lias.
                unfold isSound, isSound_aux.
-               unfold isSound, isSound_aux in HWF.
+               unfold wellFormedState, isSound, isSound_aux in HWF.
                apply List.forallb_forall.
                intros x Hx.
                edestruct List.forallb_forall as [Hfl _].
                specialize (Hfl HWF x Hx) as Hlex.
                destruct x as [[??]?].
-               replace (seg_length (seg_data s1)) with (seg_length (seg_data s0)) => //.
+               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
                unfold segstore in Hsegload.
                destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
                apply write_segbytes_preserve_type in Hsegload as [Hdone _].
                exact Hdone.
-               repeat split => //.
                assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros; by destruct a1.
-               rewrite Hupd.
+               intros a1 b ; by destruct a1.
+               unfold wellFormedState; rewrite Hupd.
                unfold update_list_at.
-               replace n with (size (take n (s_segs s))) at 3.
-               rewrite list_nth_prefix.
-               done.
-               rewrite size_takel => //. 
-               rewrite nth_error_lookup in HT.
-               apply list.lookup_lt_Some in HT.
-               rewrite length_is_size in HT.
-               lias.
                unfold isSound, isSound_aux.
-               unfold isSound, isSound_aux in HWF.
+               unfold wellFormedState, isSound, isSound_aux in HWF.
                apply List.forallb_forall.
                intros x Hx.
                edestruct List.forallb_forall as [Hfl _].
                specialize (Hfl HWF x Hx) as Hlex.
                destruct x as [[??]?].
-               replace (seg_length (seg_data s1)) with (seg_length (seg_data s0)) => //.
+               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
                unfold segstore in Hsegload.
                destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
                apply write_segbytes_preserve_type in Hsegload as [Hdone _].
@@ -2197,9 +2104,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                    right; right; right; right; left; done].
                 eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -2210,9 +2115,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                    right; right; right; right; left; done].
                  eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -2223,9 +2126,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                    right; right; right; right; left; done].
                   eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -2236,9 +2137,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                 [ exact Hseg |  exact Hsegn |
-                                                   exact Hall | exact Halla |
-                                                   right; right; right; right; left; done]].
+                                                    right; right; right; right; left; done].
                   by inversion Hv.
                      
           * intro Htuple. split; last by destruct v; inversion Htuple; subst.
@@ -2261,7 +2160,6 @@ Proof.
             rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
             done.
             eapply rm_segstore_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -2279,7 +2177,6 @@ Proof.
             repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
             rewrite (catA (v_to_e_list [:: _]) (_ ++ _)); done.
             eapply rm_segstore_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -2298,7 +2195,6 @@ Proof.
             rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
             done.
             eapply rm_segstore_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -2317,7 +2213,6 @@ Proof.
             rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
             done.
             eapply rm_segstore_failure => //.
-            exact Hseg. exact Hsegn. exact Hall. exact Halla.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
@@ -2357,41 +2252,35 @@ Proof.
         by repeat econstructor.
       - (** [AI_basic BI_segalloc] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
-         unfold operations.seg_grow in option_expr0.
-        destruct (BinNat.N.leb _ page_limit) eqn:Hlimit; try by inversion option_expr0.
-        assert (salloc v0 v2 (operations.seg_length v0) (Wasm_int.N_of_uint i32m s0) 
-    (fresh_nid v2) v1
+         unfold operations.seg_grow in option_expr.
+        destruct (BinNat.N.leb _ page_limit) eqn:Hlimit; try by inversion option_expr.
+        assert (salloc (s_segs s) (s_alls s) (operations.seg_length (s_segs s)) (Wasm_int.N_of_uint i32m s0) 
+    (fresh_nid (s_alls s)) v0
     {|
       allocated :=
-        [:: (fresh_nid v2, operations.seg_length v0,
+        [:: (fresh_nid (s_alls s), operations.seg_length (s_segs s),
             BinInt.Z.to_N (Wasm_int.Int32.unsigned s0))] ++ 
-          allocated v2
+          allocated (s_alls s)
     |}) as Halloc.
         { apply Alloc => //.
           (*        clear - Hlimit. unfold operations.seg_length, seg_length. lias. *)
           apply BinNat.N.leb_le in Hlimit. exact Hlimit.
-          destruct (seg_max_opt v0) => //.
-          destruct (BinNat.N.leb _ n0) eqn:Hpagesize; try by inversion option_expr0.
+          destruct (seg_max_opt (s_segs s)) => //.
+          destruct (BinNat.N.leb _ n) eqn:Hpagesize; try by inversion option_expr.
           apply BinNat.N.leb_le in Hpagesize => //.
           by apply fresh_nid_is_free.
           apply compatible_forall.
           intros x. destruct x as [[x addr] size].
           intros Hin.
-          destruct HWF as (i & j & T & A & Hi & HT & Hj & HA & HWF).
-          rewrite Hi in HExpect. inversion HExpect; subst.
-          rewrite Hj in HExpect0. inversion HExpect0; subst.
-          rewrite HT in option_expr. inversion option_expr; subst.
-          rewrite HA in option_expr1. inversion option_expr1; subst.
-          right.
-          unfold isSound, isSound_aux in HWF.
+          unfold wellFormedState, isSound, isSound_aux in HWF.
           edestruct List.forallb_forall as [Hfl _].
           eapply Hfl in HWF; last exact Hin.
           simpl in HWF.
           unfold operations.seg_length.
           apply BinNat.N.leb_le in HWF; lia.
-          destruct (seg_max_opt v0).
-          destruct (BinNat.N.leb _ n0).
-          inversion option_expr0 ; subst.
+          destruct (seg_max_opt (s_segs s)).
+          destruct (BinNat.N.leb _ n).
+          inversion option_expr ; subst.
           unfold seg_grow.
           unfold operations.seg_length, seg_length.
           rewrite Nnat.Nat2N.id.
@@ -2400,15 +2289,15 @@ Proof.
           rewrite drop_oversize.
           by rewrite cats0.
           lias.
-          by inversion option_expr0.
-          inversion option_expr0; subst.
+          by inversion option_expr.
+          inversion option_expr; subst.
           unfold seg_grow.
           unfold operations.seg_length, seg_length.
           rewrite Nnat.Nat2N.id.
           rewrite length_is_size.
           rewrite take_size.
           rewrite drop_oversize.
-          by rewrite cats0. lias. }
+          by rewrite cats0. lias.  }
         split.
         eexists (ME_salloc _).
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
@@ -2419,40 +2308,14 @@ Proof.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _;_]) => //=.
         subst. eapply rm_segalloc_success => //.
-        exact HExpect. exact option_expr. exact HExpect0. exact option_expr1.
         exact Halloc.
-
-         destruct HWF as (i & j & T & A & Hi & HT & Hj & HA & HWF).
-        rewrite Hi in HExpect. inversion HExpect; subst.
-        rewrite Hj in HExpect0. inversion HExpect0; subst.
-        rewrite HT in option_expr. inversion option_expr; subst.
-        rewrite HA in option_expr1. inversion option_expr1; subst.
-        repeat eexists. exact Hi.
         assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
         intros ai bi ; by destruct ai.
-        rewrite Hupd.
-        unfold update_list_at.
-        replace n with (size (take n (s_segs s))) at 3.
-        rewrite list_nth_prefix.
-        done.
-        rewrite size_takel => //. 
-        rewrite nth_error_lookup in HT.
-        apply list.lookup_lt_Some in HT.
-        rewrite length_is_size in HT.
-        lias.
-        exact Hj.
-        assert (forall a b c, s_alls (upd_s_seg (upd_s_all a b) c) = b) as Hupd.
+        unfold wellFormedState; rewrite Hupd.
+        unfold wellFormedState in HWF. 
+        assert (forall a b c, s_alls (upd_s_seg (upd_s_all a b) c) = b) as Hupd'.
         intros ai bi ci; by destruct ai.
-        rewrite Hupd.
-        unfold update_list_at.
-        replace a with (size (take a (s_alls s))) at 3.
-        rewrite list_nth_prefix.
-        done.
-        rewrite size_takel => //. 
-        rewrite nth_error_lookup in HA.
-        apply list.lookup_lt_Some in HA.
-        rewrite length_is_size in HA.
-        lias.
+        rewrite Hupd'.
         eapply salloc_sound.
         exact HWF. exact Halloc.
 
@@ -2475,13 +2338,12 @@ Proof.
       - (** [AI_basic BI_segfree] **)
         simpl; explode_and_simplify; pattern_match; auto_frame.
         destruct p as [[??]?].
-        destruct (n0 == base h) eqn:Hn0; try by inversion H2.
+        destruct (n == base h) eqn:Hn0; try by inversion H2.
         inversion H2; subst.
-        assert (sfree v0 v1 h.(base) h.(id) v0 {| allocated := l0 |}) as Hfree.
-        { eapply Free.
+        assert (sfree (s_segs s) (s_alls s) h.(base) h.(id) (s_segs s) {| allocated := l0 |}) as Hfree.
+        { eapply Free; last done.
           apply b2p in Hn0 as ->.
-          exact HExpect1.
-          done. }
+          exact HExpect. }
         split.
         exists (ME_sfree h).
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
@@ -2497,22 +2359,6 @@ Proof.
         apply b2p in H3 => //.
         destruct s => /=.
         unfold upd_s_seg, upd_s_all => /=.
-        replace (update_list_at s_segs n v0) with s_segs => //.
-        apply Logic.eq_sym, update_trivial.
-        simpl in option_expr.
-        by rewrite - nth_error_lookup.
-          destruct HWF as (i & j & T & A & Hi & HT & Hj & HA & HWF).
-        rewrite Hi in HExpect. inversion HExpect; subst.
-        rewrite Hj in HExpect0. inversion HExpect0; subst.
-        rewrite HT in option_expr. inversion option_expr; subst.
-        rewrite HA in option_expr0. inversion option_expr0; subst.
-        repeat eexists. exact Hi. exact HT. exact Hj.
-        destruct s => //=.
-        apply nth_error_update_list_hit.
-        simpl in HA.
-        rewrite nth_error_lookup in HA.
-        apply list.lookup_lt_Some in HA.
-        lias.
         eapply sfree_sound; last exact Hfree.
         exact HWF.
         
@@ -2857,16 +2703,15 @@ Proof.
           instantiate (1 := [:: _ ]) => //=.
           subst.
           by apply rm_local.
-          admit.
-          admit.
+          done.
     }
     { by pattern_match. } 
-Admitted. 
+Qed.
 
 Theorem run_step_soundness : forall d s f es s' f' es',
-    wellFormedState s f ->
+    wellFormedState s ->
   run_step d (s, f, es) = (s', f', RS_normal es') ->
-  (exists me, reduce s f es me s' f' es') /\ wellFormedState s' f'.
+  (exists me, reduce s f es me s' f' es') /\ wellFormedState s'.
 Proof.
   move=> d s f es s' f' es'.
   by apply: run_step_soundness_aux.

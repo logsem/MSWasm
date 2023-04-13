@@ -71,7 +71,9 @@ Record memory : Type := {
 Record segment : Type := {
     seg_data : segment_list;
     seg_max_opt: option N;
-    }.
+  }.
+
+Definition dummy_segment := {| seg_data := {| segl_data := [::] |} ; seg_max_opt := None |}.
 
 
 (** std-doc:

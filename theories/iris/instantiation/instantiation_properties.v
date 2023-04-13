@@ -16,8 +16,8 @@ Proof.
   move => Hmt1 Hmt2.
   unfold module_typing in Hmt1, Hmt2.
   destruct m.
-  destruct Hmt1 as (fts1 & gts1 & Hmft1 & Hmtt1 & Hmmt1 & Hmsegt1 & Hmgt1 & Hmet1 & Hmdt1 & Hmsdt1 & Hmst1 & Hmimt1 & Hmext1).
-  destruct Hmt2 as (fts2 & gts2 & Hmft2 & Hmtt2 & Hmmt2 & Hmsegt2 & Hmgt2 & Hmet2 & Hmdt2 & Hmsdt2 & Hmst2 & Hmimt2 & Hmext2).
+  destruct Hmt1 as (fts1 & gts1 & Hmft1 & Hmtt1 & Hmmt1 & Hmgt1 & Hmet1 & Hmdt1 & Hmst1 & Hmimt1 & Hmext1).
+  destruct Hmt2 as (fts2 & gts2 & Hmft2 & Hmtt2 & Hmmt2 & Hmgt2 & Hmet2 & Hmdt2 & Hmst2 & Hmimt2 & Hmext2).
   
   clear - Hmimt1 Hmimt2.
   apply list_eq.
@@ -54,18 +54,6 @@ Proof.
       move/eqP in H2.
       by subst.
     }
-    { (* segment *)
-      move/andP in H1; destruct H1.
-      move/andP in H4; destruct H4.
-      move/eqP in H0.
-      move/eqP in H2.
-      by subst.
-    }
-    { (* allocator *)
-      move/eqP in H1.
-      move/eqP in H4.
-      by subst.
-    }
       
     { (* global *)
       move/eqP in H1.
@@ -86,8 +74,8 @@ Proof.
   specialize (module_typing_det_import_aux _ _ _ _ _ Hmt1 Hmt2) as ->.
   unfold module_typing in Hmt1, Hmt2.
   destruct m.
-  destruct Hmt1 as (fts1 & gts1 & Hmft1 & Hmtt1 & Hmmt1 & Hmsegt1 & Hmgt1 & Hmet1 & Hmdt1 & Hmsdt1 & Hmst1 & Hmimt1 & Hmext1).
-  destruct Hmt2 as (fts2 & gts2 & Hmft2 & Hmtt2 & Hmmt2 & Hmsegt2 & Hmgt2 & Hmet2 & Hmdt2 & Hmsdt2 & Hmst2 & Hmimt2 & Hmext2).
+  destruct Hmt1 as (fts1 & gts1 & Hmft1 & Hmtt1 & Hmmt1 & Hmgt1 & Hmet1 & Hmdt1 & Hmst1 & Hmimt1 & Hmext1).
+  destruct Hmt2 as (fts2 & gts2 & Hmft2 & Hmtt2 & Hmmt2 & Hmgt2 & Hmet2 & Hmdt2 & Hmst2 & Hmimt2 & Hmext2).
 
   (* Function types *)
   assert (fts1 = fts2) as Heqfts.
@@ -141,7 +129,7 @@ Proof.
     inversion H2; subst; clear H2.
     destruct x; simpl in *.
     unfold module_export_typing in *.
-    destruct modexp_desc; [destruct f | destruct t | destruct m | destruct s | destruct a | destruct g]; simpl in *; destruct e; destruct e0 => //=.
+    destruct modexp_desc; [destruct f | destruct t | destruct m | destruct g]; simpl in *; destruct e; destruct e0 => //=.
     { (* func *)
       move/andP in H1; destruct H1.
       move/andP in H4; destruct H4.
@@ -166,22 +154,7 @@ Proof.
       move/eqP in H3.
       by subst.
     }
-    { (* segment *)
-      move/andP in H1; destruct H1.
-      move/andP in H4; destruct H4.
-      destruct (nth_error _ n) => //.
-      move/eqP in H1.
-      move/eqP in H3.
-      by subst.
-    }
-    { (* allocator *)
-      move/andP in H1; destruct H1.
-      move/andP in H4; destruct H4.
-      destruct (nth_error _ n) => //.
-      move/eqP in H1.
-      move/eqP in H3.
-      by subst.
-    }
+
     { (* global *)
       move/andP in H1; destruct H1.
       move/andP in H4; destruct H4.
@@ -218,8 +191,6 @@ Context `{HHB : HandleBytes}.
 Definition ext_func_addrs := (map (fun x => match x with | Mk_funcidx i => i end)) ∘ ext_funcs.
 Definition ext_tab_addrs := (map (fun x => match x with | Mk_tableidx i => i end)) ∘ ext_tabs.
 Definition ext_mem_addrs := (map (fun x => match x with | Mk_memidx i => i end)) ∘ ext_mems.
-Definition ext_seg_addrs := (map (fun x => match x with | Mk_segidx i => i end)) ∘ ext_segs.
-Definition ext_all_addrs := (map (fun x => match x with | Mk_allidx i => i end)) ∘ ext_alls.
 Definition ext_glob_addrs := (map (fun x => match x with | Mk_globalidx i => i end)) ∘ ext_globs.
 
 Lemma ext_func_addrs_aux l:
@@ -240,17 +211,6 @@ Proof.
   by [].
 Qed.
 
-Lemma ext_seg_addrs_aux l:
-  ext_seg_addrs l = fmap (fun '(Mk_segidx i) => i) (ext_segs l).
-Proof.
-  by [].
-Qed.
-
-Lemma ext_all_addrs_aux l:
-  ext_all_addrs l = fmap (fun '(Mk_allidx i) => i) (ext_alls l).
-Proof.
-  by [].
-Qed.
 
 Lemma ext_glob_addrs_aux l:
   ext_glob_addrs l = fmap (fun '(Mk_globalidx i) => i) (ext_globs l).
@@ -273,15 +233,6 @@ Definition get_import_mem_count (m: module) := length (pmap (fun x => match x.(i
                                                                    | _ => None
                                                                     end) m.(mod_imports)).
 
-Definition get_import_seg_count (m: module) := length (pmap (fun x => match x.(imp_desc) with
-                                                                   | ID_seg id => Some id
-                                                                   | _ => None
-                                                                    end) m.(mod_imports)).
-
-Definition get_import_all_count (m: module) := length (pmap (fun x => match x.(imp_desc) with
-                                                                   | ID_all id => Some id
-                                                                   | _ => None
-                                                                    end) m.(mod_imports)).
 
 
 Definition get_import_global_count (m: module) := length (pmap (fun x => match x.(imp_desc) with
@@ -350,45 +301,6 @@ Proof.
   all: by exists (S k).
 Qed.
 
-Lemma ext_segs_lookup_exist (modexps: list module_export_desc) n mn:
-  (ext_segs modexps) !! n = Some mn ->
-  exists k, modexps !! k = Some (MED_seg mn).
-Proof.
-  move: n mn.
-  induction modexps; move => n mn Hextseglookup => //=.
-  simpl in Hextseglookup.
-  destruct a => //. 
-  4: { simpl in *.
-       destruct n; simpl in *; first try by inversion Hextseglookup; subst; exists 0.
-       apply IHmodexps in Hextseglookup.
-       destruct Hextseglookup as [k ?].
-       by exists (S k).
-  }
-  all: simpl in *. 
-  all: apply IHmodexps in Hextseglookup.
-  all: destruct Hextseglookup as [k ?].
-  all: by exists (S k).
-Qed.
-
-Lemma ext_alls_lookup_exist (modexps: list module_export_desc) n mn:
-  (ext_alls modexps) !! n = Some mn ->
-  exists k, modexps !! k = Some (MED_all mn).
-Proof.
-  move: n mn.
-  induction modexps; move => n mn Hextmemlookup => //=.
-  simpl in Hextmemlookup.
-  destruct a => //. 
-  5: { simpl in *.
-       destruct n; simpl in *; first try by inversion Hextmemlookup; subst; exists 0.
-       apply IHmodexps in Hextmemlookup.
-       destruct Hextmemlookup as [k ?].
-       by exists (S k).
-  }
-  all: simpl in *. 
-  all: apply IHmodexps in Hextmemlookup.
-  all: destruct Hextmemlookup as [k ?].
-  all: by exists (S k).
-Qed.
 
 Lemma ext_globs_lookup_exist (modexps: list module_export_desc) n fn:
   (ext_globs modexps) !! n = Some fn ->
@@ -398,7 +310,7 @@ Proof.
   induction modexps; move => n tn Hextgloblookup => //=.
   simpl in Hextgloblookup.
   destruct a => //. 
-  6: { simpl in *.
+  4: { simpl in *.
        destruct n; simpl in *; first by inversion Hextgloblookup; subst; exists 0.
        apply IHmodexps in Hextgloblookup.
        destruct Hextgloblookup as [k ?].
@@ -452,33 +364,6 @@ Proof.
   by exists (S k).
 Qed.
 
-Lemma ext_segs_lookup_exist_inv (modexps: list module_export_desc) n idx:
-  modexps !! n = Some (MED_seg idx) ->
-  exists k, ((ext_segs modexps) !! k = Some idx).
-Proof.
-  move : n idx.
-  induction modexps; move => n idx H => //=.
-  destruct n; simpl in *.
-  { inversion H; subst; by exists 0 => /=. }
-  apply IHmodexps in H.
-  destruct H as [k Hl].
-  destruct a; try by exists k.
-  by exists (S k).
-Qed.
-
-Lemma ext_alls_lookup_exist_inv (modexps: list module_export_desc) n idx:
-  modexps !! n = Some (MED_all idx) ->
-  exists k, ((ext_alls modexps) !! k = Some idx).
-Proof.
-  move : n idx.
-  induction modexps; move => n idx H => //=.
-  destruct n; simpl in *.
-  { inversion H; subst; by exists 0 => /=. }
-  apply IHmodexps in H.
-  destruct H as [k Hl].
-  destruct a; try by exists k.
-  by exists (S k).
-Qed.
 
 Lemma ext_globs_lookup_exist_inv (modexps: list module_export_desc) n idx:
   modexps !! n = Some (MED_global idx) ->
@@ -627,91 +512,6 @@ Proof.
       by rewrite -> list_fmap_app => /=.
 Qed.
 
-Lemma alloc_seg_gen_index modmemtypes ws ws' l:
-  alloc_segs ws modmemtypes = (ws', l) ->
-  map (fun x => match x with | Mk_segidx i => i end) l = gen_index (length (s_segs ws)) (length modmemtypes) /\
-  ws'.(s_segs) = ws.(s_segs) ++ fmap (fun '{| lim_min := min; lim_max := maxo |} => {| seg_data := segment_list.seg_make #00%byte (page_size * min)%N; seg_max_opt := maxo |}) modmemtypes /\
-  ws.(s_funcs) = ws'.(s_funcs) /\
-    ws.(s_tables) = ws'.(s_tables) /\
-    ws.(s_mems) = ws'.(s_mems) /\
-    ws.(s_alls) = ws'.(s_alls) /\
-  ws.(s_globals) = ws'.(s_globals).
-Proof.
-  unfold alloc_segs, alloc_Xs.
-  generalize dependent l.
-  generalize dependent ws'.
-  generalize dependent ws.
-  induction modmemtypes using List.rev_ind; move => ws ws' l Halloc.
-  - inversion Halloc; subst; clear Halloc.
-    repeat split => //=.
-    by rewrite app_nil_r.
-  - rewrite fold_left_app in Halloc.
-    remember (fold_left _ modmemtypes (ws,[])) as fold_res.
-    simpl in Halloc.
-    destruct fold_res as [ws0 l0].
-    symmetry in Heqfold_res.
-    unfold alloc_mem, add_mem in Halloc.
-    destruct x => /=.
-    specialize (IHmodmemtypes ws ws0 (rev l0)).
-    rewrite Heqfold_res in IHmodmemtypes.
-    inversion Halloc; subst; clear Halloc.
-    simpl in *.
-    rewrite map_app app_length /=.
-    rewrite gen_index_extend.
-    destruct IHmodmemtypes as [? [? [? [? ?]]]] => //.
-    repeat split => //.
-    + rewrite H.
-      rewrite H0.
-      by rewrite app_length fmap_length.
-    + rewrite H0.
-      rewrite - app_assoc.
-      f_equal.
-      by rewrite -> list_fmap_app => /=.
-Qed.
-
-
-
-Lemma alloc_all_gen_index modmemtypes ws ws' l:
-  alloc_allocators ws modmemtypes = (ws', l) ->
-  map (fun x => match x with | Mk_allidx i => i end) l = gen_index (length (s_alls ws)) (length modmemtypes) /\
-  ws'.(s_alls) = ws.(s_alls) ++ fmap (fun ALL_type => {| allocated := [::] |}) modmemtypes /\
-  ws.(s_funcs) = ws'.(s_funcs) /\
-    ws.(s_tables) = ws'.(s_tables) /\
-    ws.(s_mems) = ws'.(s_mems) /\
-    ws.(s_segs) = ws'.(s_segs) /\
-  ws.(s_globals) = ws'.(s_globals).
-Proof.
-  unfold alloc_allocators, alloc_Xs.
-  generalize dependent l.
-  generalize dependent ws'.
-  generalize dependent ws.
-  induction modmemtypes using List.rev_ind; move => ws ws' l Halloc.
-  - inversion Halloc; subst; clear Halloc.
-    repeat split => //=.
-    by rewrite app_nil_r.
-  - rewrite fold_left_app in Halloc.
-    remember (fold_left _ modmemtypes (ws,[])) as fold_res.
-    simpl in Halloc.
-    destruct fold_res as [ws0 l0].
-    symmetry in Heqfold_res.
-    unfold alloc_mem, add_mem in Halloc.
-    destruct x => /=.
-    specialize (IHmodmemtypes ws ws0 (rev l0)).
-    rewrite Heqfold_res in IHmodmemtypes.
-    inversion Halloc; subst; clear Halloc.
-    simpl in *.
-    rewrite map_app app_length /=.
-    rewrite gen_index_extend.
-    destruct IHmodmemtypes as [? [? [? [? ?]]]] => //.
-    repeat split => //.
-    + rewrite H.
-      rewrite H0.
-      by rewrite app_length fmap_length.
-    + rewrite H0.
-      rewrite - app_assoc.
-      f_equal.
-      by rewrite -> list_fmap_app => /=.
-Qed.
 
 Lemma alloc_glob_gen_index modglobs ws g_inits ws' l:
   length g_inits = length modglobs ->
@@ -809,40 +609,19 @@ Proof.
   by unfold init_mem => /=.
 Qed.
 
-Lemma init_segs_preserve ws inst d_inits mdata ws':
-  init_segs ws inst d_inits mdata = ws' ->
-  ws.(s_funcs) = ws'.(s_funcs) /\
-    ws.(s_tables) = ws'.(s_tables) /\
-      ws.(s_mems) = ws'.(s_mems) /\
-    ws.(s_alls) = ws'.(s_alls) /\
-  ws.(s_globals) = ws'.(s_globals).
-Proof.
-  move => Hinit.
-  unfold init_segs in Hinit.
-  rewrite - Hinit.
-  apply fold_left_preserve => //.
-  move => x [n md] Heq.
-  destruct ws, x.
-  simpl in *.
-  destruct Heq as (-> & -> & -> & -> & ->).
-  by unfold init_mem => /=.
-Qed.
-
 
 Lemma mod_imps_len_t m t_imps t_exps:
   module_typing m t_imps t_exps ->
   get_import_func_count m = length (ext_t_funcs t_imps) /\
   get_import_table_count m = length (ext_t_tabs t_imps) /\
     get_import_mem_count m = length (ext_t_mems t_imps) /\
-    get_import_seg_count m = length (ext_t_segs t_imps) /\
-    get_import_all_count m = length (ext_t_alls t_imps) /\
-  get_import_global_count m = length (ext_t_globs t_imps).
+    get_import_global_count m = length (ext_t_globs t_imps).
 Proof.
-  unfold get_import_func_count, get_import_table_count, get_import_mem_count, get_import_seg_count, get_import_all_count, get_import_global_count.
+  unfold get_import_func_count, get_import_table_count, get_import_mem_count, get_import_global_count.
   unfold module_typing.
   move => Hmt.
   destruct m.
-  destruct Hmt as (fts & gts & ? & ? & ? & ? & ? & ? & ? & ? & ? & Himptype & ?).
+  destruct Hmt as (fts & gts & ? & ? & ? & ? & ? & ? & ? & Himptype & ?).
   simpl in *.
   clear - mod_imports Himptype.
   move : Himptype.
@@ -860,17 +639,12 @@ Proof.
       destruct H2 as [Hlen Hnth];
       move/eqP in Hnth; subst;
       simpl;
-      apply IHmod_imports in H4 as (? & ? & ? & ? & ? & ?) => //;
+      apply IHmod_imports in H4 as (? & ? & ? & ?) => //;
       repeat split => //;
       f_equal).
     move/eqP in H2; subst.
     simpl.
-    apply IHmod_imports in H4 as (? & ? & ? & ? & ? & ?) => //.
-    repeat split => //.
-    by f_equal.
-    move/eqP in H2; subst.
-    simpl.
-    apply IHmod_imports in H4 as (? & ? & ? & ? & ? & ?) => //.
+    apply IHmod_imports in H4 as (? & ? & ? & ?) => //.
     repeat split => //.
     by f_equal.
 Qed.
@@ -1042,7 +816,7 @@ Proof.
   unfold module_typing in Hmt.
   unfold instantiate_globals in *.
   destruct m; simpl in *.
-  destruct Hmt as (fts & gts & _ & _ & _ & _ & Hmgt & _).
+  destruct Hmt as (fts & gts & _ & _ & _ & Hmgt & _).
   assert (length gi1 = length gi2) as Hlen; first by (apply Forall2_length in Hgi1; apply Forall2_length in Hgi2; rewrite Hgi1 in Hgi2).
   apply list_eq.
   move => i.
@@ -1056,19 +830,19 @@ Proof.
     specialize (Hgi2 i).
     specialize (Hmgt i).
     rewrite Hg1 in Hgi1.
-    rewrite Hg2 in Hgi2.
+    rewrite Hg2 in Hgi2. 
     inversion Hgi1; subst; clear Hgi1.
     inversion Hgi2; subst; clear Hgi2.
     rewrite <- H0 in H.
     inversion H; subst; clear H.
     rewrite <- H0 in Hmgt.
-    inversion Hmgt; subst; clear Hmgt.
-    destruct x0.
+    inversion Hmgt ; subst ; clear Hmgt. 
+    destruct x0. 
     unfold module_glob_typing in H4.
-    destruct H4 as [Hconst [-> Hbet]].
+    destruct H4 as [Hconst [-> Hbet]]. 
     apply const_exprs_impl in Hbet => //.
-    destruct Hbet as [e [-> Hconste]].
-    unfold const_exprs, const_expr in Hconste.
+    destruct Hbet as [e [-> Hconste]]. 
+    unfold const_exprs, const_expr in Hconste. 
     destruct e => //; simpl in *.
     { destruct H1 as [mes H1]. apply reduce_trans_get_global in H1.
       destruct H3 as [mes' H3]. apply reduce_trans_get_global in H3.
@@ -1099,7 +873,7 @@ Proof.
   unfold module_typing in Hmt.
   unfold instantiate_elem in *.
   destruct m; simpl in *.
-  destruct Hmt as (fts & gts & _ & _ & _ & _ & _ & Hmet & _).
+  destruct Hmt as (fts & gts & _ & _ & _ & _ & Hmet & _).
   assert (length eo1 = length eo2) as Hlen; first by (apply Forall2_length in Heo1; apply Forall2_length in Heo2; rewrite Heo1 in Heo2).
   apply list_eq.
   move => i.
@@ -1148,7 +922,7 @@ Proof.
   unfold module_typing in Hmt.
   unfold instantiate_data in *.
   destruct m; simpl in *.
-  destruct Hmt as (fts & gts & _ & _ & _ & _ & _ & _ & Hmdt & _).
+  destruct Hmt as (fts & gts & _ & _ & _ & _ & _ & Hmdt & _).
   assert (length do1 = length do2) as Hlen; first by (apply Forall2_length in Hdo1; apply Forall2_length in Hdo2; rewrite Hdo1 in Hdo2).
   apply list_eq.
   move => i.
@@ -1188,62 +962,12 @@ Proof.
 Qed.
 
 
-Lemma module_segdata_init_det m v_imps t_imps inst s do1 do2:
-  module_typing m v_imps t_imps ->
-  instantiate_segdata inst s m do1 ->
-  instantiate_segdata inst s m do2 ->
-  do1 = do2.
-Proof.
-  move => Hmt Hdo1 Hdo2.
-  unfold module_typing in Hmt.
-  unfold instantiate_segdata in *.
-  destruct m; simpl in *.
-  destruct Hmt as (fts & gts & _ & _ & _ & _ & _ & _ & _ & Hmdt & _).
-  assert (length do1 = length do2) as Hlen; first by (apply Forall2_length in Hdo1; apply Forall2_length in Hdo2; rewrite Hdo1 in Hdo2).
-  apply list_eq.
-  move => i.
-  destruct (do1 !! i) as [v1 | ] eqn:Hd1; last first.
-  { destruct (do2 !! i) eqn:Hd2 => //; by apply lookup_lt_Some in Hd2; apply lookup_ge_None in Hd1; lias. }
-  { destruct (do2 !! i) as [v2 | ] eqn:Hd2 => //; last by apply lookup_lt_Some in Hd1; apply lookup_ge_None in Hd2; lias.
-    rewrite -> Forall2_lookup in Hdo1.
-    rewrite -> Forall2_lookup in Hdo2.
-    rewrite -> Forall_lookup in Hmdt.
-    specialize (Hdo1 i).
-    specialize (Hdo2 i).
-    specialize (Hmdt i).
-    rewrite Hd1 in Hdo1.
-    rewrite Hd2 in Hdo2.
-    inversion Hdo1; subst; clear Hdo1.
-    inversion Hdo2; subst; clear Hdo2.
-    rewrite <- H0 in H.
-    inversion H; subst; clear H.
-    rewrite <- H0 in Hmdt.
-    specialize (Hmdt x0).
-    destruct x0, modsegdata_data; simpl in *.
-    destruct Hmdt as [Hconst [Hbet Hleni]] => //.
-    apply const_exprs_impl in Hbet => //.
-    destruct Hbet as [e [-> Hconste]].
-    unfold const_exprs, const_expr in Hconste.
-    destruct e => //; simpl in *.
-    { destruct H1 as [? H1]. apply reduce_trans_get_global in H1.
-      destruct H3 as [? H3]. apply reduce_trans_get_global in H3.
-      rewrite H1 in H3.
-      by inversion H3.
-    }
-    { destruct H1 as [? H1]. apply reduce_trans_const in H1.
-      destruct H3 as [? H3]. apply reduce_trans_const in H3.
-      subst; by inversion H1.
-    }
-  }
-Qed.
 
 Lemma vt_imps_comp_len s (v_imps: list v_ext) t_imps:
   Forall2 (external_typing s) v_imps t_imps ->
   (length (ext_funcs v_imps) = length (ext_t_funcs t_imps) /\
     length (ext_tabs v_imps) = length (ext_t_tabs t_imps) /\
      length (ext_mems v_imps) = length (ext_t_mems t_imps) /\
-     length (ext_segs v_imps) = length (ext_t_segs t_imps) /\
-     length (ext_alls v_imps) = length (ext_t_alls t_imps) /\
     length (ext_globs v_imps) = length (ext_t_globs t_imps)).
 Proof.
   move: t_imps.
@@ -1275,30 +999,20 @@ Proof.
   destruct res_t as [s1 idt].
   remember (alloc_mems s1 (mod_mems m)) as res_m.
   destruct res_m as [s2 idm].
-  remember (alloc_segs s2 (mod_segs m)) as res_s.
-  destruct res_s as [s3 ids].
-  remember (alloc_allocators s3 (mod_alls m)) as res_a.
-  destruct res_a as [s4 ida].
-  remember (alloc_globs s4 (mod_globals m) g_inits) as res_g.
+  remember (alloc_globs s2 (mod_globals m) g_inits) as res_g.
   destruct res_g as [s5 idg].
   symmetry in Heqres_f.
   symmetry in Heqres_t.
   symmetry in Heqres_m.
-  symmetry in Heqres_s.
-  symmetry in Heqres_a.
   symmetry in Heqres_g.
   apply alloc_func_gen_index in Heqres_f.
   apply alloc_tab_gen_index in Heqres_t.
   apply alloc_mem_gen_index in Heqres_m.
-  apply alloc_seg_gen_index in Heqres_s.
-  apply alloc_all_gen_index in Heqres_a.
   apply alloc_glob_gen_index in Heqres_g => //.
-  destruct s0, s1, s2, s3, s4, s5; simpl in *.
+  destruct s0, s1, s2, s5; simpl in *.
   destruct Heqres_f as (Hidf & -> & <- & <- & <- & <- & <-).
   destruct Heqres_t as (Hidt & -> & <- & <- & <- & <- & <-). 
   destruct Heqres_m as (Hidm & -> & <- & <- & <- & <- & <-).
-  destruct Heqres_s as (Hids & -> & <- & <- & <- & <- & <-).
-  destruct Heqres_a as (Hida & -> & <- & <- & <- & <- & <-). 
   destruct Heqres_g as (Hidg & -> & <- & <- & <- & <- & <-). 
   
   remember (alloc_funcs s (mod_funcs m) inst') as res_f'.
@@ -1307,30 +1021,20 @@ Proof.
   destruct res_t' as [s1' idt'].
   remember (alloc_mems s1' (mod_mems m)) as res_m'.
   destruct res_m' as [s2' idm'].
-  remember (alloc_segs s2' (mod_segs m)) as res_s'.
-  destruct res_s' as [s3' ids'].
-  remember (alloc_allocators s3' (mod_alls m)) as res_a'.
-  destruct res_a' as [s4' ida'].
-  remember (alloc_globs s4' (mod_globals m) g_inits') as res_g'.
+  remember (alloc_globs s2' (mod_globals m) g_inits') as res_g'.
   destruct res_g' as [s5' idg'].
   symmetry in Heqres_f'.
   symmetry in Heqres_t'.
   symmetry in Heqres_m'.
-  symmetry in Heqres_s'.
-  symmetry in Heqres_a'.
   symmetry in Heqres_g'.
   apply alloc_func_gen_index in Heqres_f'.
   apply alloc_tab_gen_index in Heqres_t'.
   apply alloc_mem_gen_index in Heqres_m'.
-  apply alloc_seg_gen_index in Heqres_s'.
-  apply alloc_all_gen_index in Heqres_a'.
   apply alloc_glob_gen_index in Heqres_g' => //.
-  destruct s0', s1', s2', s3', s4', s5'; simpl in *.
+  destruct s0', s1', s2', s5'; simpl in *.
   destruct Heqres_f' as (Hidf' & -> & <- & <- & <- & <- & <-).
   destruct Heqres_t' as (Hidt' & -> & <- & <- & <- & <- & <-). 
   destruct Heqres_m' as (Hidm' & -> & <- & <- & <- & <- & <-).
-  destruct Heqres_s' as (Hids' & -> & <- & <- & <- & <- & <-).
-  destruct Heqres_a' as (Hida' & -> & <- & <- & <- & <- & <-).
   destruct Heqres_g' as (Hidg' & -> & <- & <- & <- & <- & <-). 
   
   rewrite <- Hidf' in Hidf.
@@ -1380,36 +1084,7 @@ Proof.
   }
   subst.
 
-    rewrite <- Hids' in Hids.
 
-  assert (ids = ids').
-  { clear - Hids.
-    move: Hids.
-    move: ids'.
-    induction ids as [|mi ?]; move => idm'; destruct idm' => //=.
-    move => H.
-    destruct mi, s.
-    inversion H; subst; clear H.
-    f_equal.
-    by apply IHids.
-  }
-  subst.
-
-
-    rewrite <- Hida' in Hida.
-
-  assert (ida = ida').
-  { clear - Hida.
-    move: Hida.
-    move: ida'.
-    induction ida as [|mi ?]; move => idm'; destruct idm' => //=.
-    move => H.
-    destruct mi, a.
-    inversion H; subst; clear H.
-    f_equal.
-    by apply IHida.
-  }
-  subst.
 
   
   rewrite <- Hidg' in Hidg.
@@ -1456,23 +1131,12 @@ Proof.
   destruct Ham2 as [Ham2 Hit2].
   move/eqP in Hit1.
   move/eqP in Hit2.
-  move/andP in Ham1; move/andP in Ham2.
-  destruct Ham1 as [Ham1 Hif1].
-  destruct Ham2 as [Ham2 Hif2].
-  move/eqP in Hif1.
-  move/eqP in Hif2.
-  move/andP in Ham1; move/andP in Ham2.
-  destruct Ham1 as [Ham1 Hitype1].
-  destruct Ham2 as [Ham2 Hitype2].
-  move/eqP in Hitype1.
-  move/eqP in Hitype2.
-  rewrite <- Hif2 in Hif1.
+  
   rewrite <- Hit2 in Hit1.
   rewrite <- Him2 in Him1.
   rewrite <- His2 in His1.
   rewrite <- Hia2 in Hia1.
   rewrite <- Hig2 in Hig1.
-  rewrite <- Hitype2 in Hitype1.
   destruct inst, inst'.
   simpl in *.
   subst.
@@ -1489,7 +1153,7 @@ Proof.
     repeat rewrite list_lookup_fmap.
     remember ((ext_globs v_imps ++ idg') !! i) as gi.
     specialize (vt_imps_comp_len _ _ _ Hexttype) as Hcomplen.
-    destruct Hcomplen as (_ & _ & _ & _ & _ & Hglen).
+    destruct Hcomplen as (_ & _ & _ & Hglen).
     rewrite lookup_app in Heqgi.
     rewrite <- Hglen in Hilen.
     destruct (ext_globs v_imps !! i) eqn:Hgvi; last by apply lookup_ge_None in Hgvi; lias.
@@ -1527,8 +1191,8 @@ Proof.
   destruct res as [[[s1 inst1] exp1] start1].
   destruct res' as [[[s2 inst2] exp2] start2].
   unfold instantiate, instantiation.instantiate in *.
-  destruct Hinst1 as (t_imps1 & t_exps1 & ws1 & g_inits1 & e_offs1 & d_offs1 & sd_offs1 & Hmodtype1 & Hexttype1 & Hallocmodule1 & Hinstglob1 & Hinstelem1 & Hinstdata1 & Hinstsegdata1 & Hcbelem1 & Hcbdata1 & Hcdsegdata1 & Hcstart1 & Hws1).
-  destruct Hinst2 as (t_imps2 & t_exps2 & ws2 & g_inits2 & e_offs2 & d_offs2 & sd_offs2 & Hmodtype2 & Hexttype2 & Hallocmodule2 & Hinstglob2 & Hinstelem2 & Hinstdata2 & Hinstsegdata2 & Hcbelem2 & Hcbdata2 & Hcdsegdata2 & Hcstart2 & Hws2). 
+  destruct Hinst1 as (t_imps1 & t_exps1 & ws1 & g_inits1 & e_offs1 & d_offs1 & Hmodtype1 & Hexttype1 & Hallocmodule1 & Hinstglob1 & Hinstelem1 & Hinstdata1 & Hcbelem1 & Hcbdata1 & Hcstart1 & Hws1).
+  destruct Hinst2 as (t_imps2 & t_exps2 & ws2 & g_inits2 & e_offs2 & d_offs2 & Hmodtype2 & Hexttype2 & Hallocmodule2 & Hinstglob2 & Hinstelem2 & Hinstdata2 & Hcbelem2 & Hcbdata2 & Hcstart2 & Hws2). 
 
   specialize (module_typing_det _ _ _ _ _ Hmodtype1 Hmodtype2) as Hvteq.
   inversion Hvteq; subst; clear Hvteq.

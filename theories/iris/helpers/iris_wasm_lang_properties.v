@@ -1782,9 +1782,9 @@ Section wasm_lang_properties.
     intros Hconst Hlen Hlfill.
     eapply val_head_stuck_reduce.
     apply rm_silent, r_simple. eapply rs_br;eauto.
-    Unshelve. apply (Build_store_record [] [] [] []).
-    apply []. apply [].
-    apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])).
+    Unshelve. apply (Build_store_record [] [] []).
+    apply dummy_segment. apply {| allocated := [] |}. apply [].
+    apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.
 
   Lemma to_val_immV_label_None es v m ctx :
@@ -1794,8 +1794,9 @@ Section wasm_lang_properties.
     intros Hes.
     eapply val_head_stuck_reduce.
     eapply rm_silent, r_simple, rs_label_const. eapply to_val_const_list;eauto.
-    Unshelve. apply (Build_store_record [] [] [] []). apply []. apply [].
-    apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])).
+    Unshelve. apply (Build_store_record [] [] []). apply dummy_segment.
+    apply {| allocated := [] |}. apply [].
+    apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.  
   
   Lemma to_val_trapV_label_None es m ctx :
@@ -1806,8 +1807,9 @@ Section wasm_lang_properties.
     apply to_val_trap_is_singleton in Hes as ->.
     eapply val_head_stuck_reduce.
     eapply rm_silent, r_simple, rs_label_trap.
-    Unshelve. apply (Build_store_record [] [] [] []). apply []. apply [].
-    apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])).
+    Unshelve. apply (Build_store_record [] [] []). apply dummy_segment.
+    apply {| allocated :=  [] |}. apply [].
+    apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.
 
 End to_val_None.

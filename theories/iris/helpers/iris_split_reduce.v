@@ -253,43 +253,43 @@ Section split_reduce_properties.
       left ; exists [AI_basic (BI_const (VAL_int32 int32_minus_one))].
       repeat split => //=. rewrite <- Heqf0. rewrite <- Heqf.
       by apply rm_silent, (r_grow_memory_failure (n := n) _ H H1).
-    - symmetry in H13; apply app_eq_nil in H13 as [-> ->].
+    - symmetry in H11; apply app_eq_nil in H11 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segload_success => //=.
-    - symmetry in H17; apply app_eq_nil in H17 as [-> ->].
+    - symmetry in H15; apply app_eq_nil in H15 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segload_handle_success => //=.
-    - symmetry in H7; apply app_eq_nil in H7 as [-> ->].
+    - symmetry in H5; apply app_eq_nil in H5 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segload_failure => //=.
-    - symmetry in H14; apply app_eq_nil in H14 as [-> ->].
+    - symmetry in H12; apply app_eq_nil in H12 as [-> ->].
       left; subst. eexists []; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segstore_success => //=.
-    - symmetry in H15; apply app_eq_nil in H15 as [-> ->].
+    - symmetry in H13; apply app_eq_nil in H13 as [-> ->].
       left; subst. eexists []; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segstore_handle_success => //=.
-    - symmetry in H8; apply app_eq_nil in H8 as [-> ->].
-      left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
-      inversion Heqf0; subst.
-      by eapply rm_segstore_failure => //=.
-    - symmetry in H10; apply app_eq_nil in H10 as [-> ->].
-      left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
-      inversion Heqf0; subst.
-      by eapply rm_segalloc_success => //=.
     - symmetry in H6; apply app_eq_nil in H6 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
+      by eapply rm_segstore_failure => //=.
+    - symmetry in H8; apply app_eq_nil in H8 as [-> ->].
+      left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
+      inversion Heqf0; subst.
+      by eapply rm_segalloc_success => //=.
+    - symmetry in H4; apply app_eq_nil in H4 as [-> ->].
+      left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
+      inversion Heqf0; subst.
       by eapply rm_segalloc_failure => //=.
-    - symmetry in H10; apply app_eq_nil in H10 as [-> ->].
+    - symmetry in H8; apply app_eq_nil in H8 as [-> ->].
       left; subst. eexists []; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segfree_success => //=.
-    - symmetry in H7; apply app_eq_nil in H7 as [-> ->].
+    - symmetry in H5; apply app_eq_nil in H5 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segfree_failure => //=.

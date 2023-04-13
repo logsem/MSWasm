@@ -1602,24 +1602,26 @@ Section reduce_properties_lemmas.
       apply Logic.eq_sym in H1 ;
     [ found_intruse (AI_trap) H1 Hxl1
     | found_intruse (AI_label n es' LI) H1 Hxl1].
+
+    
     all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
     inversion Hfill;
     subst;
-      apply Logic.eq_sym in H10;
-      [found_intruse (AI_trap) H10 Hxl1|
-        found_intruse (AI_label n es' LI) H10 Hxl1].
+      apply Logic.eq_sym in H9;
+      [found_intruse (AI_trap) H9 Hxl1|
+        found_intruse (AI_label n es' LI) H9 Hxl1].
         all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
     inversion Hfill;
     subst;
-      apply Logic.eq_sym in H11;
-      [found_intruse (AI_trap) H11 Hxl1|
-        found_intruse (AI_label n es' LI) H11 Hxl1].
-            all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
+      apply Logic.eq_sym in H5;
+      [found_intruse (AI_trap) H5 Hxl1|
+        found_intruse (AI_label n es' LI) H5 Hxl1].
+        intros i' lh Hfill%lfilled_Ind_Equivalent; 
     inversion Hfill;
-    subst;
-      apply Logic.eq_sym in H7;
-      [found_intruse (AI_trap) H7 Hxl1|
-    found_intruse (AI_label n es' LI) H7 Hxl1].
+    subst.
+      apply Logic.eq_sym in H5.
+      found_intruse (AI_trap) H5 Hxl1.
+      symmetry in H5. found_intruse (AI_label n0 es' LI) H5 Hxl1.
 
     
     { intros i lh' Hlh'.
@@ -1845,8 +1847,9 @@ Section reduce_properties_lemmas.
     eapply val_head_stuck_reduce;eauto.
     Unshelve.
     
-    apply (Build_store_record [] [] [] []). apply []. apply [].
-    apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])).
+    apply (Build_store_record [] [] []). apply dummy_segment.
+    apply {| allocated := [] |}. apply [].
+    apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.
 
   Lemma lfilled_to_val_0 i lh e es v :

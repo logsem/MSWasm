@@ -95,6 +95,7 @@ Context `{!wasmG Σ}.
       iSplit => //. iIntros "Hf".
       iSpecialize ("HΦ" with "[$]"). iFrame.
       rewrite Hf in Hstart. done.
+      rewrite Hf in Hstart. done.
   Qed.
 
   (* -------------------------------------------------------------------------- *)

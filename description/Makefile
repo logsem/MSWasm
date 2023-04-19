@@ -1,4 +1,4 @@
-TEXFILE=mswasmcert
+TEXFILE=irismswasm
 OUT:=.out
 OPTIONS=-pdf -synctex=1 -output-directory=$(OUT)
 BIBFILES:=$(wildcard *.bib)
@@ -7,7 +7,6 @@ DEPENDS=macros.tex
 BACKLINK:=$(OUT)/$(TEXFILE).pdf
 
 all: $(TEXFILE).pdf
-	evince $(BACKLINK)
 
 $(BACKLINK):
 	mkdir -p $(OUT)

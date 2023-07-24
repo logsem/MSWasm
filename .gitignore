@@ -22,8 +22,8 @@
 *.glob
 *.aux
 *.DS_Store
-*.lia.cache
-*.nia.cache
+.lia.cache
+.nia.cache
 *.travis.yml
 
 /theories/extract.ml

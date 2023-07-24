@@ -174,7 +174,8 @@ Proof.
   apply v_to_e_is_const_list.
 Qed.
 
-Lemma wp_build_ctx `{!wasmG Σ} es i lh LI s E P :
+
+Lemma wp_build_ctx `{!wasmG Σ, HHB: HandleBytes} es i lh LI s E P :
   BuildCtx i lh es LI ->
   WP es @ s; E CTX i; lh {{ P }} -∗ WP LI @ s; E {{ P }}.                                  
 Proof.
@@ -184,7 +185,7 @@ Proof.
   iFrame.
 Qed.
 
-Lemma wp_deconstruct_ctx `{!wasmG Σ} es i lh LI s E P :
+Lemma wp_deconstruct_ctx `{!wasmG Σ, HHB: HandleBytes} es i lh LI s E P :
   DeconstructCtx i lh es LI ->
   WP LI @ s; E {{ P }} -∗ WP es @ s; E CTX i; lh {{ P }}.
 Proof.
@@ -195,10 +196,11 @@ Proof.
   iFrame.
 Qed.
 
+
 Ltac build_ctx e :=
   match goal with
   | |- context [ (WP ?es @ ?s; ?E {{ ?P }})%I ] =>
-      iApply (@wp_build_ctx _ _ e)
+      iApply (@wp_build_ctx _ _ _ e)
   end.
 
 Ltac deconstruct_ctx :=
@@ -209,7 +211,9 @@ Ltac deconstruct_ctx :=
       iSimpl
   end.
 
-Lemma bind_seq_base_imm `{!wasmG Σ} es P LI l1 l2 s E Q w :
+
+
+Lemma bind_seq_base_imm `{!wasmG Σ, HHB: HandleBytes} es P LI l1 l2 s E Q w :
   DecomposeBase LI es l1 l2 ->
   WP es @ E {{ λ v, ⌜v = immV w⌝ ∗ P v }}
   -∗ (∀ v, ⌜v = immV w⌝ ∗ P v
@@ -228,7 +232,7 @@ Proof.
   iApply "H2". iFrame.
 Qed.
 
-Lemma bind_seq_base_callhost `{!wasmG Σ} es P LI l1 l2 s E Q a1 a2 a3 a4 :
+Lemma bind_seq_base_callhost `{!wasmG Σ, HHB: HandleBytes} es P LI l1 l2 s E Q a1 a2 a3 a4 :
   DecomposeBase LI es l1 l2 ->
   WP es @ E {{ λ v, ⌜v = callHostV a1 a2 a3 a4⌝ ∗ P v }}
   -∗ (∀ v, ⌜v = callHostV a1 a2 a3 a4⌝ ∗ P v -∗ WP (v_to_e_list l1) ++ (iris.of_val v) ++ l2 @ s; E {{ Q }})

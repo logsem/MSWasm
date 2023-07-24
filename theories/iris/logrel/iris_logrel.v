@@ -23,7 +23,7 @@ Close Scope byte_scope.
 
 Section logrel.
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
 
   
   Definition xb b := (VAL_int32 (wasm_bool b)).
@@ -79,6 +79,8 @@ Section logrel.
   Definition interp_value_i64 : WR := λne w, ⌜∃ z, w = VAL_int64 z⌝%I.
   Definition interp_value_f32 : WR := λne w, ⌜∃ z, w = VAL_float32 z⌝%I.
   Definition interp_value_f64 : WR := λne w, ⌜∃ z, w = VAL_float64 z⌝%I.
+  Definition intepr_value_handle: WR := λne w, ⌜∃ z, w = VAL_handle z⌝%I.
+      
 
    Definition interp_value (τ : value_type) : WR :=
     match τ return _ with
@@ -86,6 +88,7 @@ Section logrel.
     | T_i64 => interp_value_i64
     | T_f32 => interp_value_f32
     | T_f64 => interp_value_f64
+    | T_handle => intepr_value_handle
     end.
 
   Definition interp_values (τs : result_type) : VR :=
@@ -118,6 +121,7 @@ Section logrel.
     | SH_rec _ _ _ lh' _ => simple_get_base_l lh'
     end.
 
+  
   Definition interp_return_option (τr : option result_type) (τl : result_type) (i : instance) : RR :=
     λne (w : leibnizO val), (∃ (vh : simple_valid_holed) (v : seq.seq value), ⌜w = retV vh⌝ ∗ ⌜simple_get_base_l vh = v⌝ ∗
                              match τr with 
@@ -126,6 +130,7 @@ Section logrel.
                                                WP [AI_local (length τr) f (of_val w)] {{ vs, interp_val τr vs ∗ ↪[frame] f' }})
                              | None => False
                              end)%I.
+  
   
   (* --------------------------------------------------------------------------------------- *)
   (* --------------------------------- CLOSURE RELATION ------------------------------------ *)
@@ -561,7 +566,7 @@ End logrel.
 
 Reserved Notation "'WPh' h {{ Φ } }" (at level 20, h, Φ at level 200).
 
-Class host_program_logic Σ `{wasmG Σ} := {
+Class host_program_logic Σ `{HHB: HandleBytes, wasmG Σ} := {
     host_function : Type ;
     result : Type ;
 
@@ -596,7 +601,7 @@ Class host_program_logic Σ `{wasmG Σ} := {
 Notation "'WPh' h {{ Φ } }" := (wp_host NotStuck ⊤ h Φ).
 
 Section logrel_host.
-  Context `{!wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
 
   Let expr := iris.expr.
   Let val := iris.val.

@@ -160,7 +160,7 @@ Proof.
     by apply rm_silent, r_get_local.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H. 
     only_one_reduction H.
     iFrame "# ∗ %".
 Qed.
@@ -190,7 +190,7 @@ Proof.
     iMod (ghost_map_update (Build_frame (set_nth v locs i v) inst) with "Hl Hli") as "(Hl & Hli)".
     iModIntro.
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     eapply reduce_det in H as [H | [ [? Hstart] | [[? Hstart] |  (?&?&?&Hstart & Hstart1 & Hstart2
                                                                & Hσ)]]] ;
       last (eapply rm_silent, r_set_local with (f' := {| f_locs := set_nth v locs i v; f_inst := inst |}); eauto) ;
@@ -225,7 +225,7 @@ Proof.
     iMod "Hfupd".
     iModIntro.
     destruct σ2 as [[ws' locs' ] inst' ] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H.
     iApply bi.sep_exist_l. iExists _. iFrame.
 Qed.
@@ -266,7 +266,7 @@ Proof.
     by apply rm_silent, r_get_global.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] winst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -314,7 +314,7 @@ Proof.
     apply rm_silent, r_set_global;eauto.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws' locs'] winst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H.
     iMod (gen_heap_update with "Hg Hglob") as "[Hg Hglob]".
     iFrame. rewrite nth_error_lookup in Hglob.
@@ -1824,8 +1824,7 @@ Proof.
     by rewrite Hinstmem.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [H ->].
+    prim_split κ HStep H.
     eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) |  [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
                                                                   Hfirst3 & Hσ & Hme)]]] ;
       last (eapply rm_silent, r_load_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -1896,8 +1895,7 @@ Proof.
     by rewrite Hinstmem.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [H ->].
+    prim_split κ HStep H.
     eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) | [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
                                                                   Hfirst3 & Hσ & Hme)(* ] *)]]] ;
       last (eapply rm_silent, r_load_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -1945,8 +1943,7 @@ Proof.
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
     iModIntro.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [HStep ->].
+    prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & Hme)]]] ;
       last (eapply rm_silent, r_load_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -1994,8 +1991,8 @@ Proof.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
-    iModIntro. destruct κ => //.  destruct κ => //.
-    destruct HStep as [HStep ->].
+    iModIntro.
+    prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & ?)]]] ;
       last (eapply rm_silent, r_load_packed_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -2067,8 +2064,7 @@ Proof.
     erewrite length_bits => //=.
     done.
     rewrite nth_error_lookup in Hm => //=.
-    iModIntro. destruct κ => //. destruct κ => //.
-    destruct HStep as [HStep ->].
+    iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & Hme) ]]] ;
       last (eapply rm_silent, r_store_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -2143,8 +2139,7 @@ Proof.
     { rewrite length_bytes_takefill.
       rewrite store_bytes_takefill_eq. eauto. }
     { by rewrite nth_error_lookup in Hm. }
-    iModIntro. destruct κ => //. destruct κ => //.
-    destruct HStep as [HStep ->].
+    iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [(?&Hfirst&?) | [[? Hfirst] |  (?&?&?& Hfirst & Hfirst2 &
                                                           Hfirst3 & Hσ & Hme) ]]] ;
       last (eapply rm_silent, r_store_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -2199,8 +2194,7 @@ Proof.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
-    iModIntro. destruct κ => //. destruct κ => //.
-    destruct HStep as [HStep ->].
+    iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [(? & Hfirst & ?) |[[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ)]]] ;
       last (eapply rm_silent, r_store_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -2248,8 +2242,7 @@ Proof.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     rewrite -nth_error_lookup in Hm.
-    iModIntro. destruct κ => //. destruct κ => //.
-    destruct HStep as [HStep ->].
+    iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ)]]] ;
       last (eapply rm_silent, r_store_packed_failure => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
@@ -2293,8 +2286,7 @@ Proof.
     by f_equal.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H.
     iFrame.
 Qed.
@@ -2574,7 +2566,7 @@ Proof.
     by rewrite nth_error_lookup.
   - iIntros "!>" (es σ2 efs HStep). 
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     remember [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_grow_memory] as es0.
     remember {| f_locs := locs ; f_inst := winst |} as f.
     remember {| f_locs := locs' ; f_inst := inst' |} as f'.

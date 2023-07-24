@@ -2,6 +2,10 @@
 /_build/
 /node_modules/
 /_esy/
+/esy.lock/
+
+/description/.out/
+/Presentation/
 
 .merlin
 *.install
@@ -18,8 +22,9 @@
 *.glob
 *.aux
 *.DS_Store
-.lia.cache
-.nia.cache
+*.lia.cache
+*.nia.cache
+*.travis.yml
 
 /theories/extract.ml
 /theories/extract.mli

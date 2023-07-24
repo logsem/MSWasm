@@ -306,8 +306,8 @@ Proof.
     repeat split => //. apply rm_silent, r_simple. apply rs_local_const; auto.
   - destruct σ as [[ws locs] inst].
     iIntros "!>" (es2 σ2 efs HStep) "!>".
-    destruct σ2 as [[ws' locs'] inst']. destruct κ => //. destruct κ => //.
-    destruct HStep as (H & ->). iFrame.
+    destruct σ2 as [[ws' locs'] inst'].
+    prim_split κ HStep H. iFrame.
     only_one_reduction H. all:simplify_eq;iFrame. rewrite Hv. iFrame.
     destruct Hstart as [Hstart ?].
     all:rewrite find_first_const// in Hstart. 
@@ -466,8 +466,7 @@ Proof.
       apply rm_silent, r_simple; eapply rs_trap => //.
       move => HContra; subst. done.
     }
-    destruct κ => //. destruct κ => //.
-    destruct HStep' as [HStep' ->].
+    prim_split κ HStep' HStep'.
     simplify_eq. destruct HH as [HH Hme]. inversion Hme; subst.
     inversion HH; subst.
     iSpecialize ("H2" $! [AI_trap] σ [] HStep2).

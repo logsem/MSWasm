@@ -3708,6 +3708,9 @@ Proof.
   by rewrite Coqlib.nth_error_nil.
 Qed.
 
+Section instantiation_spec.
+ Context `{HHB :HandleBytes}. 
+
 Lemma instantiation_wasm_spec (v_imps: list module_export) (m: module) t_imps t_exps wfs wts wms wgs (s s': store_record) inst v_exps start: 
   module_typing m t_imps t_exps ->
   module_restrictions m ->
@@ -3761,6 +3764,7 @@ Proof.
       inversion Hmgeq; clear Hmgeq.
       rewrite H2 in H1.
       simpl in H1.
+      destruct H1 as [? H1].
       apply reduce_trans_const in H1.
       by subst.
     - inversion Hinstglob; subst.
@@ -3834,22 +3838,22 @@ Proof.
   (* alloc_funcs *)
   apply alloc_func_gen_index in Hallocfunc.
   simpl in Hallocfunc.
-  destruct Hallocfunc as [Hfindex [Hfapp [-> [-> ->]]]].
+  destruct Hallocfunc as (Hfindex & Hfapp & -> & -> & -> & -> & ->).
     
   (* alloc_tabs *)
   apply alloc_tab_gen_index in Halloctab.
   simpl in Halloctab.
-  destruct Halloctab as [Htindex [Htapp [-> [-> ->]]]].
+  destruct Halloctab as (Htindex & Htapp & -> & -> & -> & -> & ->).
     
   (* alloc_mems *)
   apply alloc_mem_gen_index in Hallocmem.
   simpl in Hallocmem.
-  destruct Hallocmem as [Hmindex [Hmapp [-> [-> ->]]]].
+  destruct Hallocmem as (Hmindex & Hmapp & -> & -> & -> & -> & ->).
     
   (* alloc_globs *)
   apply alloc_glob_gen_index in Hallocglob => //.
   simpl in Hallocglob.
-  destruct Hallocglob as [Hgindex [Hgapp [-> [-> ->]]]].
+  destruct Hallocglob as (Hgindex & Hgapp & -> & -> & -> & -> & ->).
 
   simpl in *.
 
@@ -4078,7 +4082,7 @@ Proof.
     inversion H4; subst; clear H4.
     inversion Hinstelem; subst; clear Hinstelem.
     simpl in H7.
-    apply reduce_trans_const in H7.
+    destruct H7 as [? H7]. apply reduce_trans_const in H7.
     inversion H7; subst; clear H7.
 
     
@@ -4369,10 +4373,10 @@ Proof.
 
   destruct s4.
     
-  specialize (init_tabs_preserve _ _ _ _ _ Heqs4) as [Hf4 [Hm4 Hg4]].
-  simpl in Hf4, Hm4, Hg4.
-  rewrite -> Hf4, Hm4, Hg4 in *.
-  clear Hf4 Hm4 Hg4.
+  specialize (init_tabs_preserve _ _ _ _ _ Heqs4) as (Hf4 & Hm4 & Hg4 & Hi4 & Hj4).
+  simpl in Hf4, Hm4, Hg4, Hi4, Hj4.
+  rewrite -> Hf4, Hm4, Hg4, Hi4, Hj4 in *.
+  clear Hf4 Hm4 Hg4 Hi4 Hj4.
   simpl.
 
   (* Split wts' back to the original form *)
@@ -4533,7 +4537,7 @@ Proof.
             destruct v => //=.
             destruct modelem_offset => //=.
             inversion Hmeoff; subst; clear Hmeoff.
-            apply reduce_trans_const in H3.
+            destruct H3 as [? H3]. apply reduce_trans_const in H3.
             inversion H3; subst; clear H3.
             replace (Z.to_nat (Wasm_int.Int32.intval t)) with (nat_of_int t) => //.
             remember ((take (nat_of_int t) (table_data t2) ++
@@ -4704,7 +4708,7 @@ Proof.
           inversion Hmodelem; subst; clear Hmodelem.
           f_equal; last by apply IHmod_elem.
           destruct a; simpl in *; subst.
-          apply reduce_trans_const in H2.
+          destruct H2 as [? H2]. apply reduce_trans_const in H2.
           by inversion H2.
         }
       }
@@ -5000,7 +5004,7 @@ Proof.
     inversion H4; clear H4.
     rewrite H8 in H7.
     simpl in H7.
-    apply reduce_trans_const in H7.
+    destruct H7 as [? H7]. apply reduce_trans_const in H7.
     by inversion H7.
   }
   rewrite <- Hdeq in *; clear Hdeq.
@@ -5437,10 +5441,10 @@ Proof.
 
   destruct s'.
     
-  specialize (init_mems_preserve _ _ _ _ _ Hs') as [Hf4 [Hm4 Hg4]].
-  simpl in Hf4, Hm4, Hg4.
-  rewrite -> Hf4, Hm4, Hg4 in *.
-  clear Hf4 Hm4 Hg4.
+  specialize (init_mems_preserve _ _ _ _ _ Hs') as (Hf4 & Hm4 & Hg4 & Hi4 & Hj4).
+  simpl in Hf4, Hm4, Hg4, Hi4, Hj4.
+  rewrite -> Hf4, Hm4, Hg4, Hi4, Hj4 in *.
+  clear Hf4 Hm4 Hg4 Hi4 Hj4.
   simpl.
 
 
@@ -6163,7 +6167,7 @@ Proof.
     by iApply "Ht".
   }
 Qed.
-  
+End instantiation_spec.  
 
 End Iris_instantiation.
 

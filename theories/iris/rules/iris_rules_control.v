@@ -280,7 +280,7 @@ Section control_rules.
       iMod "HΦ" as "(HΦ & Hf)".
       iModIntro.
       destruct σ2 as [[ ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->]. iFrame.
+      prim_split κ HStep H.
       only_one_reduction H.
       + iFrame.
         rewrite Hval.
@@ -345,7 +345,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       assert (lfilled 0 (LH_base vs []) [AI_basic (BI_br i)]
                       (vs ++ [AI_basic (BI_br i)])).
@@ -392,8 +392,9 @@ Section control_rules.
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
       apply rm_silent, r_simple. eapply rs_br.
       apply Hvs. auto. apply lfilled_Ind_Equivalent. eauto.
-      Unshelve. apply (Build_store_record [] [] [] [] [] []).
-      apply (Build_frame [] (Build_instance [] [] [] [] [] [] [])). }
+      Unshelve. apply (Build_store_record [] [] []).
+      apply dummy_segment. apply {| allocated := [] |}. apply [].
+      apply (Build_frame [] (Build_instance [] [] [] [] [])). }
     iApply wp_lift_step => //=.
     iIntros (σ ns κ κs nt) "Hσ".
     iApply fupd_frame_l.
@@ -419,7 +420,7 @@ Section control_rules.
     iIntros "Hcls !>" (es1 σ2 efs HStep).
     iMod "Hcls". iModIntro.
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [HStep ->].
+    prim_split κ HStep HStep.
     iApply bi.sep_exist_l.
     apply lfilled_Ind_Equivalent in H8.
     assert (first_instr LI = Some (AI_basic (BI_br i),(0 + S i) + (j - S i))).
@@ -470,7 +471,7 @@ Section control_rules.
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
       iApply bi.sep_exist_l.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       eapply reduce_det in H as [H | [(i0 & Hstart & Hme) | [[i0 Hstart] | 
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ & Hme)]]];
         last (by eapply rm_silent, r_simple, rs_block) ;
@@ -500,7 +501,7 @@ Section control_rules.
     - destruct σ as [[ws locs] inst] => //=.
       iIntros "!>" (es1 σ2 efs HStep) "!>".
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H -> ].
+      prim_split κ HStep H.
       eapply reduce_det in H as [H | [(i0 & Hstart & Hme) | [[i0 Hstart] |
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]]];
         (try by apply rm_silent, r_simple ; apply rs_label_const ;
@@ -541,7 +542,7 @@ Section control_rules.
       destruct σ as [[ws locs] inst] => //=.
       iIntros "!>" (es1 σ2 efs HStep) "!>".
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       (* Here, the conclusion of reduce_det is not strong enough, so we re-do the proof
        of this subcase by hand, since in this particular case, we can get a 
        stronger result *)
@@ -666,7 +667,7 @@ Section control_rules.
     destruct σ2 as [[ws' locs'] inst'] => //=.
     apply lfilled_swap with (es':=[::AI_label m [::] (vs ++ to_e_list es)]) in Hfill as Hfill'.
     destruct Hfill' as [LI' Hfill'].
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     iApply bi.sep_exist_l.
     assert (lfilled 0 (LH_base vs []) [AI_basic (BI_block (Tf t1s t2s) es)]
                     (vs ++ [AI_basic (BI_block (Tf t1s t2s) es)])).
@@ -728,7 +729,7 @@ Section control_rules.
     destruct σ2 as [[ws' locs'] inst'] => //=.
     apply lfilled_swap with (es':=[::AI_label m [::] (vs ++ to_e_list es)]) in Hfill as Hfill'.
     destruct Hfill' as [LI' Hfill'].
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_block (Tf t1s t2s) es),S (0 + i))) as HH.
     { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill].
       apply first_instr_const;auto. }
@@ -795,8 +796,8 @@ Section control_rules.
     apply lfilled_Ind_Equivalent in Hfill. inversion Hfill;subst.
     apply lfilled_Ind_Equivalent in H8 as Hfill'.
     apply lfilled_swap with (es':=vs ++ es) in Hfill' as Hfill''.
-    destruct Hfill'' as [LI' Hfill''].    
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    destruct Hfill'' as [LI' Hfill''].
+    prim_split κ HStep H.
     iApply bi.sep_exist_l.
     assert (lfilled 0 (LH_base vs []) [AI_basic (BI_br i)]
                     (vs ++ [AI_basic (BI_br i)])) ;
@@ -865,8 +866,8 @@ Section control_rules.
     apply lfilled_Ind_Equivalent in Hfill. inversion Hfill;subst.
     apply lfilled_Ind_Equivalent in H8 as Hfill'.
     apply lfilled_swap with (es':=vs ++ es) in Hfill' as Hfill''.
-    destruct Hfill'' as [LI' Hfill''].    
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    destruct Hfill'' as [LI' Hfill''].
+    prim_split κ HStep H.
     assert (first_instr [AI_local n1 f1 (vs' ++ [AI_label (length vs) es LI0] ++ es')] 
             = Some (AI_basic (BI_br i),S (0 + S i))) as HH.
     { apply lfilled_Ind_Equivalent in Hfill.
@@ -932,7 +933,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ)]]].
@@ -985,7 +986,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_loop (Tf t1s t2s) es),S (0 + i))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill].
@@ -1055,7 +1056,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       rename tf into tf'.
       iApply bi.sep_exist_l.
       only_one_reduction H.
@@ -1103,7 +1104,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_if tf e1s e2s),S (0 + i))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill]. auto. }
@@ -1168,7 +1169,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       eapply reduce_det in H as [H | [(i0 & Hstart & ?) |[ [i0 Hstart] |
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]].
@@ -1220,7 +1221,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_if tf e1s e2s),S (0 + i))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
@@ -1286,7 +1287,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       only_one_reduction H ;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
@@ -1331,7 +1332,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_br_if i),S (0 + j))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
@@ -1391,7 +1392,7 @@ Section control_rules.
     - destruct σ as [[ws locs] inst] => //=.
       iIntros "!>" (es σ2 efs HStep) "!>".
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       only_one_reduction H. iFrame.
   Qed.
 
@@ -1427,7 +1428,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       only_one_reduction H ;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 c))] [])
@@ -1473,7 +1474,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_br_table iss i),S (0 + k))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
@@ -1539,7 +1540,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       iApply bi.sep_exist_l.
       only_one_reduction H ;
         try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 c))] [])
@@ -1583,7 +1584,7 @@ Section control_rules.
       iIntros "Hcls !>" (es1 σ2 efs HStep).
       iMod "Hcls". iModIntro.
       destruct σ2 as [[ws' locs'] inst'] => //=.
-      destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+      prim_split κ HStep H.
       assert (first_instr [AI_local n1 f1 LI] = Some (AI_basic (BI_br_table iss i),S (0 + j))) as HH.
       { apply first_instr_local. eapply starts_with_lfilled;[|apply Hfill];auto. }
       iApply bi.sep_exist_l.
@@ -1684,7 +1685,7 @@ Section control_rules.
       eexists [_],_,(s0,l2,i0),[]. simpl. repeat split;eauto. }
     iIntros (e2 σ2 efs Hprim).
     destruct σ2 as [[? ?] ?].
-    destruct κ1 => //. destruct κ1 => //. destruct Hprim as [Hprim ->].
+    prim_split κ1 Hprim Hprim.
     apply lfilled_Ind_Equivalent in Hfill.
     assert (first_instr (l ++ [AI_label (length vs) l0 LI0] ++ l1) = Some (AI_basic (BI_br (S i)),0 + S (S i))) as Hfirst0.
     { eapply starts_with_lfilled;cycle 1.
@@ -1774,7 +1775,7 @@ Section control_rules.
       eexists [_],_,(s0,l2,i0),[]. simpl. repeat split;eauto. }
     iIntros (e2 σ2 efs Hprim).
     destruct σ2 as [[? ?] ?].
-    destruct κ1 => //. destruct κ1 => //. destruct Hprim as [Hprim ->].
+    prim_split κ1 Hprim Hprim.
     apply lfilled_Ind_Equivalent in Hfill.
     assert (first_instr (l ++ [AI_label (length vs) l0 LI1] ++ l1) = Some (AI_basic (BI_br i),0 + S i)) as Hfirst0.
     { eapply starts_with_lfilled;cycle 1.
@@ -1844,7 +1845,7 @@ Section control_rules.
       eexists [_],_,(s0,l,i0),[]. simpl. repeat split;eauto. }
     iIntros (e2 σ2 efs Hprim).
     destruct σ2 as [[? ?] ?].
-    destruct κ1 => //. destruct κ1 => //. destruct Hprim as [Hprim ->].
+    prim_split κ1 Hprim Hprim.
     assert (first_instr ([AI_local n f LI']) = Some (AI_basic (BI_return),S(0 + j))) as Hfirst0.
     { eapply first_instr_local. eapply starts_with_lfilled;eauto.
       apply first_instr_const;auto. }

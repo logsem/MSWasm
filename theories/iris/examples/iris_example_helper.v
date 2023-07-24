@@ -20,7 +20,7 @@ Definition xb b := (VAL_int32 (wasm_bool b)).
 Definition yy i := (Wasm_int.nat_of_uint i32m (Wasm_int.int_of_Z i32m i)).
 
 Section Examples.
-  Context `{!wasmG Σ}.
+  Context `{!wasmG Σ, HHB: HandleBytes}.
   
   (* Helper lemmas and tactics for necessary list manipulations for expressions *)
   Lemma iRewrite_nil_l (s : stuckness) (E : coPset) (Φ : val -> iProp Σ) (e : iris.expr) :

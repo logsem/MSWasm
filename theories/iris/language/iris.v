@@ -1716,3 +1716,8 @@ Proof. split; eauto using to_of_val, of_to_val, val_head_stuck. Qed.
 Definition wasm_lang := Language wasm_mixin.
 
 End prim_step.
+
+Ltac prim_split κ HStep H :=
+  destruct κ ; first (by exfalso; exact HStep);
+  destruct κ ; last (by exfalso; exact HStep);
+  destruct HStep as [H ->].

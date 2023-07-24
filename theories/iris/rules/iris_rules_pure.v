@@ -31,8 +31,8 @@ Proof.
     repeat split => //. apply rm_silent, r_simple. rewrite <- Hunop. apply rs_unop.
   - destruct σ as [[ws locs] inst].
     iIntros "!>" (es σ2 efs HStep) "!>".
-    destruct σ2 as [[ ws' locs'] inst']. 
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    destruct σ2 as [[ ws' locs'] inst'].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
  
@@ -58,8 +58,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
                                                                   
@@ -87,7 +86,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
     
@@ -114,7 +113,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -141,8 +140,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -169,8 +167,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //.
-    destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -198,7 +195,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -226,7 +223,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -254,7 +251,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -282,7 +279,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -308,7 +305,7 @@ Proof.
   - destruct σ as [[ws locs] inst] => //=.
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
-    destruct κ => //. destruct κ => //. destruct HStep as [H ->].
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -332,7 +329,7 @@ Proof.
   - destruct σ as [[ws  locs ] inst ].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws'  locs' ] inst'].
-    destruct κ => //. destruct κ => //. destruct HStep as (H & -> ).
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -357,7 +354,7 @@ Proof.
   - destruct σ as [[ws  locs ] inst ].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws'  locs' ] inst'].
-    destruct κ => //. destruct κ => //. destruct HStep as (H & ->).
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
 
@@ -380,7 +377,7 @@ Proof.
   - destruct σ as [[ ws  locs ] inst].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ ws'  locs' ] inst'].
-    destruct κ => //. destruct κ => //. destruct HStep as (H & ->).
+    prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
     

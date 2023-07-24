@@ -19,7 +19,7 @@ Section Examples.
   
 
 
-Context `{!wasmG Σ}.
+Context `{!wasmG Σ, HHB: HandleBytes}.
 
 Definition xx i := (VAL_int32 (Wasm_int.int_of_Z i32m i)).
 Definition xb b := (VAL_int32 (wasm_bool b)).

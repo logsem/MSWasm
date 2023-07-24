@@ -8,7 +8,7 @@ Require Export iris_rules_control.
 
 Section bind_rules.
   
-Context `{!wasmG Σ}.
+Context `{!wasmG Σ, HHB: HandleBytes}.
 
   Lemma wp_frame_bind (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) n f f0 LI :
     iris.to_val [AI_local n f LI] = None ->
@@ -64,12 +64,12 @@ Context `{!wasmG Σ}.
         destruct Hred as [x [e' [σ' [efs Hstep]]]].
         destruct σ' as [[ ? ?] ?].
         eexists x,[AI_local n {| f_locs := l0; f_inst := i0 |} e'],(_,l,i),efs.
-        simpl. destruct Hstep as [Hstep [-> ->]]. split;auto.
-        apply r_local. eauto. }
+        simpl. destruct x => //. destruct x => //. destruct Hstep as [Hstep ->]. split;auto.
+        apply rm_local. eauto. }
 
       iIntros (e2 σ2 efs Hstep).
       destruct σ2 as [[ ? ?] ?].
-      destruct Hstep as [Hstep [-> ->]].
+      prim_split κ Hstep Hstep.
       apply reduce_det_local in Hstep as Hstep';[|auto].
       destruct Hstep' as [es2' [f1 [Heq1 [Heq2 Hstep']]]].
       simplify_eq. destruct f1.
@@ -151,7 +151,7 @@ Context `{!wasmG Σ}.
         iFrame. }
       { iIntros (σ ns κ κs nt) "Hσ".
         destruct σ as [[ ? ?] ?].
-        iDestruct ("H" $! (_,_,_) 0 [] [] 0 with "Hσ") as "H".
+        iDestruct ("H" $! (_,_,_) 0 κ [] 0 with "Hσ") as "H".
         iMod "H" as "[%Hred H]". iModIntro.
         iSplit.
         { iPureIntro.
@@ -162,7 +162,7 @@ Context `{!wasmG Σ}.
         repeat erewrite app_nil_l, app_nil_r.
         iIntros (e2 σ2 efs Hprim).
         destruct σ2 as [[ ? ?] ?].
-        destruct Hprim as [Hprim [-> ->]].
+        prim_split κ Hprim Hprim.
         eapply reduce_det_label in Hprim as Hprim';[|auto..]. destruct Hprim' as [es2' [-> Hstep]].
         iDestruct ("H" $! _ (_,_,_) with "[]") as "H".
         { iPureIntro. split;eauto. }
@@ -210,23 +210,23 @@ Context `{!wasmG Σ}.
       rewrite /wp_pre/= H.
       iIntros (σ ns κ κs nt) "Hσ".
       destruct σ as [[ ? ?] ?].
-      iDestruct ("H" $! (_,_,_) 0 [] [] 0 with "Hσ") as "H".
+      iDestruct ("H" $! (_,_,_) 0 κ [] 0 with "Hσ") as "H".
       iMod "H" as "[%Hred H]". iModIntro.
       erewrite (separate1 (AI_label _ _ _)) in Hred.
       iSplit.
       { iPureIntro. destruct s =>//.
         destruct Hred as (?&?&?&?&?).
         destruct x1 as [[ ??]?].
-        destruct H0 as [Hred [-> ->]].
+        prim_split x H0 Hred.
         eapply reduce_det_label in Hred as Hred';eauto.
         destruct Hred' as [es2 [Heq Hred']].
-        eexists _,_,(_,_,_),_. split;eauto. }
+        eexists [_],_,(_,_,_),_. split;eauto. }
       iIntros (e2 σ2 efs Hprim).
       destruct σ2 as [[ ??]?].
-      destruct Hprim as [Hprim [-> ->]].
+      prim_split κ Hprim Hprim.
       iDestruct ("H" $! _ (_,_,_) with "[]") as "H".
       { iPureIntro. split;eauto.
-        eapply r_label;eauto.
+        eapply rm_label;eauto.
         apply lfilled_Ind_Equivalent.
         constructor;auto. apply lfilled_Ind_Equivalent.
         cbn. apply/eqP. done. }

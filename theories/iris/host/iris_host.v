@@ -1,3 +1,4 @@
+
 From mathcomp Require Import ssreflect eqtype seq ssrbool ssrfun.
 From iris.program_logic Require Import language weakestpre lifting.
 From iris.proofmode Require Import base tactics classes.
@@ -9,6 +10,9 @@ Require Export type_preservation.
 
 Close Scope byte.
 
+(* Unsatisfying to have this host section, but getting rid of it causes typeclass errors *)
+ Section host.
+  Context `{ HHB : HandleBytes}.  
 Section Iris_host_def.
 
 (* Domain of the variable instantiation store *)
@@ -72,6 +76,8 @@ Definition stab_update s i idx newval :=
       else
         Some {| s_funcs := s_funcs s ;
                s_mems := s_mems s ;
+               s_segs := s_segs s ;
+               s_alls := s_alls s ;
                s_globals := s_globals s ;
                s_tables := update_list_at (s_tables s) i
                                           {| table_data := update_list_at (table_data stab_i) idx (Some newval) ;
@@ -100,7 +106,10 @@ Fixpoint innermost_frame llh defaultf :=
   | LL_local _ _ f llh _ => if no_more_locals llh then f else innermost_frame llh defaultf
   end. 
 
-Inductive host_reduce: store_record -> vi_store -> list module -> list host_e -> list host_action -> frame -> list administrative_instruction -> store_record -> vi_store -> list module -> list host_e -> list host_action -> frame -> list administrative_instruction -> Prop :=
+Section host_reduce.
+ (* Context `{HHB : HandleBytes}.  *)
+
+Inductive host_reduce: store_record -> vi_store -> list module -> list host_e -> list host_action -> frame -> list administrative_instruction -> memory_event -> store_record -> vi_store -> list module -> list host_e -> list host_action -> frame -> list administrative_instruction -> Prop :=
 | HR_host_step:
   forall s (vis: vi_store) m (viexps: list vi) vm vimps imps imp_descs s' vis' ms idecs' inst (exps: list module_export) start vs f fs,
     ms !! (N.to_nat vm) = Some m ->
@@ -110,7 +119,7 @@ Inductive host_reduce: store_record -> vi_store -> list module -> list host_e ->
     length viexps = length exps ->
     const_list vs ->
     insert_exports vis viexps exps = Some vis' ->
-    host_reduce s vis ms ((ID_instantiate viexps vm vimps) :: idecs') fs f vs s' vis' ms idecs' fs f (map_start start)
+    host_reduce s vis ms ((ID_instantiate viexps vm vimps) :: idecs') fs f vs ME_empty s' vis' ms idecs' fs f (map_start start)
 | HR_host_step_init_oob: forall s (vis: vi_store) m (viexps: list vi) vm vimps imps imp_descs ms idecs' (exps: list module_export) f vs fs,
     ms !! (N.to_nat vm) = Some m ->
     those ((lookup_export_vi vis) <$> vimps) = Some imps ->
@@ -118,7 +127,7 @@ Inductive host_reduce: store_record -> vi_store -> list module -> list host_e ->
     const_list vs ->
     (not (module_elem_bound_check_gmap (gmap_of_list s.(s_tables)) imp_descs m /\
             module_data_bound_check_gmap (gmap_of_list s.(s_mems)) imp_descs m)) ->
-    host_reduce s vis ms ((ID_instantiate viexps vm vimps) :: idecs') fs f vs s vis ms idecs' fs f [AI_trap]
+    host_reduce s vis ms ((ID_instantiate viexps vm vimps) :: idecs') fs f vs ME_empty s vis ms idecs' fs f [AI_trap]
  | HR_call_host_action :
   forall (s:store_record) vis ms idecs (s':store_record) (tf:function_type)
     (h:hostfuncidx) (hi:nat) f
@@ -131,23 +140,23 @@ Inductive host_reduce: store_record -> vi_store -> list module -> list host_e ->
     execute_action f s (innermost_frame lh f0) vcs s' res ->
     llfill lh [AI_call_host tf h vcs] = LI ->
     llfill lh res = LI' ->
-    host_reduce s vis ms idecs fs f0 LI s' vis ms idecs fs f0 LI'
+    host_reduce s vis ms idecs fs f0 LI ME_empty s' vis ms idecs fs f0 LI'
 | HR_call_host_instantiate :
   forall s vis ms idecs h hi f fs LI LI' lh f0,
     h = Mk_hostfuncidx hi ->
     fs !! hi = Some (HA_instantiate f) ->
     llfill lh [AI_call_host (Tf [] []) h []] = LI ->
     llfill lh [] = LI' ->
-    host_reduce s vis ms idecs fs f0 LI s vis ms (f :: idecs) fs f0 LI' 
-| HR_wasm_step: forall s vis ms idecs s' es es' f1 f2 fs,
-    opsem.reduce s f1 es s' f2 es' ->
-    host_reduce s vis ms idecs fs f1 es s' vis ms idecs fs f2 es'
+    host_reduce s vis ms idecs fs f0 LI ME_empty s vis ms (f :: idecs) fs f0 LI' 
+| HR_wasm_step: forall s vis ms idecs me s' es es' f1 f2 fs,
+    opsem.reduce s f1 es me s' f2 es' ->
+    host_reduce s vis ms idecs fs f1 es me s' vis ms idecs fs f2 es'
 | HR_get_global: ∀ s f vis ms g v_glob fs vs,
     (s_globals s) !! g = Some v_glob ->
     const_list vs ->
-    host_reduce s vis ms [H_get_global g] fs f vs s vis ms [] fs f (AI_basic (BI_const (g_val v_glob)) :: vs)
+    host_reduce s vis ms [H_get_global g] fs f vs ME_empty s vis ms [] fs f (AI_basic (BI_const (g_val v_glob)) :: vs)
 | HR_trap: ∀ s vis ms g fs f,
-    host_reduce s vis ms [H_get_global g] fs f [::AI_trap] s vis ms [] fs f [::AI_trap]
+    host_reduce s vis ms [H_get_global g] fs f [::AI_trap] ME_empty s vis ms [] fs f [::AI_trap]
 
                 
 with execute_action : host_action -> store_record -> frame -> list value -> store_record -> list administrative_instruction -> Prop :=
@@ -223,9 +232,9 @@ Proof.
 Qed.
   
 
-Lemma call_host_no_reduce tf h vcs s0 f s'0 f' es' llh LI:
+Lemma call_host_no_reduce tf h vcs s0 f me s'0 f' es' llh LI:
   llfill llh [AI_call_host tf h vcs] = LI ->
-  reduce s0 f LI s'0 f' es' -> False.
+  reduce s0 f LI me s'0 f' es' -> False.
 Proof.
   intros HLI Hred.
   apply val_head_stuck_reduce in Hred.
@@ -256,11 +265,11 @@ Proof.
 Qed.
 
 
-Lemma call_host_reduce_det s vis ms idecs fs tf h vcs s1 vis1 ms1 idecs1 fs1 f1 es1 s2 vis2 ms2 idecs2 fs2 f2 es2 f0 llh LI :
+Lemma call_host_reduce_det s vis ms idecs fs tf h vcs me1 s1 vis1 ms1 idecs1 fs1 f1 es1 me2 s2 vis2 ms2 idecs2 fs2 f2 es2 f0 llh LI :
   llfill llh [AI_call_host tf h vcs] = LI ->
-  host_reduce s vis ms idecs fs f0 LI s1 vis1 ms1 idecs1 fs1 f1 es1 ->
-  host_reduce s vis ms idecs fs f0 LI s2 vis2 ms2 idecs2 fs2 f2 es2 ->
-  (s1, vis1, ms1, idecs1, fs1, f1, es1) = (s2, vis2, ms2, idecs2, fs2, f2, es2).
+  host_reduce s vis ms idecs fs f0 LI me1 s1 vis1 ms1 idecs1 fs1 f1 es1 ->
+  host_reduce s vis ms idecs fs f0 LI me2 s2 vis2 ms2 idecs2 fs2 f2 es2 ->
+  (me1, s1, vis1, ms1, idecs1, fs1, f1, es1) = (me2, s2, vis2, ms2, idecs2, fs2, f2, es2).
 Proof.
   intros HLI Hred1 Hred2.
   induction Hred1.
@@ -300,11 +309,11 @@ Proof.
   - simplify_eq. by apply llfill_trap_singleton in HLI as [? ?].
 Qed.
 
-Lemma get_global_host_det he s vis ms fs f0 vs s1 vis1 ms1 idecs1 fs1 f1 vs1 vs2 s2 vis2 ms2 idecs2 fs2 f2 :
+Lemma get_global_host_det he s vis ms fs f0 vs me1 s1 vis1 ms1 idecs1 fs1 f1 vs1 vs2 me2 s2 vis2 ms2 idecs2 fs2 f2 :
   const_list vs ->
-  host_reduce s vis ms [H_get_global he] fs f0 vs s1 vis1 ms1 idecs1 fs1 f1 vs1 ->
-  host_reduce s vis ms [H_get_global he] fs f0 vs s2 vis2 ms2 idecs2 fs2 f2 vs2 ->
-  (s1, vis1, ms1, idecs1, fs1, f1, vs1) = (s2, vis2, ms2, idecs2, fs2, f2, vs2).
+  host_reduce s vis ms [H_get_global he] fs f0 vs me1 s1 vis1 ms1 idecs1 fs1 f1 vs1 ->
+  host_reduce s vis ms [H_get_global he] fs f0 vs me2 s2 vis2 ms2 idecs2 fs2 f2 vs2 ->
+  (me1, s1, vis1, ms1, idecs1, fs1, f1, vs1) = (me2, s2, vis2, ms2, idecs2, fs2, f2, vs2).
 Proof.
   intros Hconst Hred1 Hred2.
   inversion Hred1;simplify_eq;try done;try by (eapply call_host_reduce_det in Hred2;eauto). 
@@ -313,10 +322,10 @@ Proof.
   eapply values_no_reduce in H;auto. done.
 Qed.  
 
-Lemma trap_host_det g s vis ms fs f0 s1 vis1 ms1 idecs1 fs1 f1 vs1 vs2 s2 vis2 ms2 idecs2 fs2 f2 :
-  host_reduce s vis ms [g] fs f0 [AI_trap] s1 vis1 ms1 idecs1 fs1 f1 vs1 ->
-  host_reduce s vis ms [g] fs f0 [AI_trap] s2 vis2 ms2 idecs2 fs2 f2 vs2 ->
-  (s1, vis1, ms1, idecs1, fs1, f1, vs1) = (s2, vis2, ms2, idecs2, fs2, f2, vs2).
+Lemma trap_host_det g s vis ms fs f0 me1 s1 vis1 ms1 idecs1 fs1 f1 vs1 vs2 me2 s2 vis2 ms2 idecs2 fs2 f2 :
+  host_reduce s vis ms [g] fs f0 [AI_trap] me1 s1 vis1 ms1 idecs1 fs1 f1 vs1 ->
+  host_reduce s vis ms [g] fs f0 [AI_trap] me2 s2 vis2 ms2 idecs2 fs2 f2 vs2 ->
+  (me1, s1, vis1, ms1, idecs1, fs1, f1, vs1) = (me2, s2, vis2, ms2, idecs2, fs2, f2, vs2).
 Proof.
   intros Hred1 Hred2.
   remember [g]. remember [AI_trap].
@@ -346,7 +355,7 @@ Definition val_of_host_val hv :=
 
 Definition state : Type := store_record * vi_store * (list module) * (list host_action ) * frame.
 
-Definition observation := unit. 
+Definition observation := memory_event. 
 
 Definition of_val (v: host_val) : host_expr := ([::], iris.of_val (val_of_host_val v)).
 
@@ -373,7 +382,10 @@ Definition prim_step (e : host_expr) (s : state) (os : list observation) (e' : h
   let '(ws', vis', ms', fs', f') := s' in
   let '(hes, wes) := e in
   let '(hes', wes') := e' in
-    host_reduce ws vis ms hes fs f wes ws' vis' ms' hes' fs' f' wes' /\ os = [] /\ fork_es' = [].
+  match os with
+  | [me] => host_reduce ws vis ms hes fs f wes me ws' vis' ms' hes' fs' f' wes' /\ fork_es' = []
+  | _ => False
+  end .
 
 
 Lemma to_of_val v : to_val (of_val v) = Some v.
@@ -398,7 +410,8 @@ Lemma val_head_stuck : forall e1 s1 κ e2 s2 efs,
   to_val e1 = None.
 Proof.
   rewrite /prim_step.
-  move => [hes wes] [[[[ws vis] hprog] fs] f] κ [hes' wes'] [[[[ws' vis'] hprog'] fs'] f'] efs [HRed _].
+  move => [hes wes] [[[[ws vis] hprog] fs] f] κ [hes' wes'] [[[[ws' vis'] hprog'] fs'] f'] efs H.
+  destruct κ => //. destruct κ => //. destruct H as [HRed ->].
   induction HRed ; (try destruct idecs) => //=.
   - destruct (iris.to_val LI) eqn:Hwes => //.
     destruct v => //.
@@ -418,8 +431,11 @@ Qed.
 Lemma wasm_host_mixin : LanguageMixin of_val to_val prim_step.
 Proof. split; eauto using to_of_val, of_to_val, val_head_stuck. Qed.
 
-Canonical Structure wasm_host_lang := Language wasm_host_mixin.
 
+
+
+Canonical Structure wasm_host_lang := Language wasm_host_mixin.
+End host_reduce.
 Implicit Type σ : state.
 
 (* The host expands the memory model of Wasm by vi_store and a list of module declarations. *)
@@ -468,6 +484,8 @@ Proof. move => m m'. unfold Decision. destruct m, m' ; try by (left + right).
 
 End Iris_host_def.
 
+
+
 Notation " n ↦[ha]{ q } f" := (ghost_map_elem (V := host_action) haGName n q f%V)
                                 (at level 20, q at level 5, format " n ↦[ha]{ q } f") .
 Notation " n ↦[ha] f" := (ghost_map_elem (V := host_action) haGName n (DfracOwn 1) f%V)
@@ -484,7 +502,7 @@ Notation " n ↪[mods] v" := (ghost_map_elem (V := module) msGName n (DfracOwn 1
                             (at level 20, format " n ↪[mods] v").
 
 
-Global Instance host_heapG_irisG `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : weakestpre.irisGS wasm_host_lang Σ := {
+Global Instance host_heapG_irisG `{ (* HHB:HandleBytes, *) !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : weakestpre.irisGS wasm_host_lang Σ := {
   iris_invGS := func_invG; (* ??? *)
   state_interp σ _ κs _  :=
     let: (s, vis, ms, fs, f) := σ in
@@ -506,14 +524,13 @@ Global Instance host_heapG_irisG `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : w
     state_interp_mono _ _ _ _ := fupd_intro _ _
 }.
 
-
-
-
 Section Iris_host.
   
 
-Section host_lifting.
-Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Section host_lifting.
+(*    Context `{HHB' : HandleBytes}.  *)
+
+ Context `{ (* HHB: HandleBytes, *) !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}. 
 
 
 Lemma wp_call_host_action_no_state_change s E hes tf h hi f vcs (Φ : host_val -> iProp Σ) res llh LI LI' :
@@ -541,7 +558,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], (_,_), (_,_,_,_,_), [].
+    eexists [_], (_,_), (_,_,_,_,_), [].
     repeat split => //=.
     eapply HR_call_host_action => //.
   - iIntros "!>" (es σ2 efs HStep).
@@ -549,7 +566,7 @@ Proof.
     destruct es as [hes2 es2].
     iMod "Hfupd". iDestruct ("Hwp" with "Hhi") as "Hwp".
     iModIntro.
-    destruct HStep as [HStep [-> ->]].
+    prim_split κ HStep HStep. 
     eapply call_host_reduce_det in HStep ; last first.
     eapply HR_call_host_action => //=.
     exact HLI. inversion HStep ; subst.
@@ -572,13 +589,13 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    eexists [], (_,_), (_, _, _, _, _), [].
+    eexists [_], (_,_), (_, _, _, _, _), [].
     repeat split => //.
     apply HR_get_global;eauto. apply v_to_e_is_const_list.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[[[s1 vis1] ms1] fs1] f1] => // /=.
     destruct es as [? ?].
-    simpl in HStep. destruct HStep as [H [-> ->]].
+    simpl in HStep. prim_split κ HStep H. 
     eapply get_global_host_det in H;[..|apply HR_get_global;eauto];[|apply v_to_e_is_const_list..].
     inversion H;subst. iFrame. iSimpl.
     assert (iris.to_val (AI_basic (BI_const (g_val v)) :: v_to_e_list vs)%SEQ =
@@ -586,7 +603,7 @@ Proof.
     { rewrite separate1.
       assert ([AI_basic (BI_const (g_val v))] = v_to_e_list [(g_val v)]) as ->;auto.
       erewrite v_to_e_cat. rewrite to_val_cons_immV. auto. }
-    rewrite H0. iSimpl. iSplit =>//.  iApply "HΦ". iFrame.
+    rewrite H0. iSimpl. iSplit => //.  iApply "HΦ". iFrame.
 Qed.
 
 Lemma wp_get_global_trap_host s E g (Φ : host_val -> iProp Σ) :
@@ -602,13 +619,13 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    eexists [], (_,_), (_, _, _, _, _), [].
+    eexists [_], (_,_), (_, _, _, _, _), [].
     repeat split => //.
     apply HR_trap;eauto.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[[[s1 vis1] ms1] fs1] f1] => // /=.
     destruct es as [? ?].
-    simpl in HStep. destruct HStep as [H [-> ->]].
+    simpl in HStep. prim_split κ HStep H. 
     eapply trap_host_det in H;[..|apply HR_trap].
     inversion H;subst. iFrame. iSimpl. done.
 Qed.
@@ -637,7 +654,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], (_,_), (_,_,_,_,_), [].
+    eexists [_], (_,_), (_,_,_,_,_), [].
     repeat split => //=.
     eapply HR_call_host_instantiate => //.
   - iIntros "!>" (es σ2 efs HStep).
@@ -646,7 +663,7 @@ Proof.
     iMod "Hfupd".
     iModIntro.
     iDestruct ("Hwp" with "[$]") as "Hwp".
-    destruct HStep as [HStep [-> ->]].
+    prim_split κ HStep HStep. 
     eapply call_host_reduce_det in HStep ; last first.
     eapply HR_call_host_instantiate => //=.
     exact HLI. inversion HStep ; subst.
@@ -701,7 +718,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [], (_,_), (_,_,_,_,_), [].
+    eexists [_], (_,_), (_,_,_,_,_), [].
     repeat split => //=.
     eapply HR_call_host_action => //.
     eapply execute_modify_table => //.
@@ -714,7 +731,7 @@ Proof.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[[[s2 vi2] ms2] has2] f2].
     destruct es as [hes2 es2].
-    destruct HStep as [HStep [-> ->]].
+    prim_split κ HStep HStep. 
     eapply call_host_reduce_det in HStep ; last first.
     eapply HR_call_host_action => //=.
     eapply execute_modify_table => //.
@@ -805,18 +822,21 @@ forall (s E es Φ).
   iSplit.
   { destruct s => //.
     iPureIntro.
-    destruct Hs as (obs & es' & [[??]?] & efs & ? & -> & ->).
-    eexists [], (_,_), (_,_,_,_,_), [].
+    destruct Hs as (obs & es' & [[??]?] & efs & H).
+    prim_split obs H H.
+    eexists [_], (_,_), (_,_,_,_,_), [].
     repeat split => //.
     eapply HR_wasm_step.
     exact H. }
-  iIntros ([δ2 es2] [[[[s2 vis2] ms2] has2] f2] efs (Hred & -> & ->)).
-  destruct Hs as (obs & es' & [[??]?] & efs & Hredes & -> & ->).
+  iIntros ([δ2 es2] [[[[s2 vis2] ms2] has2] f2] efs Hred).
+  prim_split κ Hred Hred.
+  destruct Hs as (obs & es' & [[??]?] & efs & Hredes).
+  prim_split obs Hredes Hredes.
   inversion Hred ; simplify_eq ; 
     (try by exfalso ; eapply values_no_reduce) ;
     try by subst ; exfalso ; eapply call_host_no_reduce.
   destruct f2 as [l2 i2].
-  assert (iris.prim_step es (s0, loc, ins) [] es2 (s2, l2, i2) []) as Hstep.
+  assert (iris.prim_step es (s0, loc, ins) [o] es2 (s2, l2, i2) []) as Hstep.
   repeat split => //.
   iSpecialize ("He2" $! es2 (s2, l2, i2) [] Hstep).
   iMod "He2".
@@ -842,12 +862,12 @@ Lemma prim_step_inst_cons_reduce_nostart v_exps modi m v_imps ws1 vis1 ms1 ha1 f
   mod_start m = None ->
   const_list vs ->
   prim_step ((ID_instantiate v_exps modi v_imps :: es), vs) (ws1, vis1, ms1, ha1, f1) κ (es', wes) σ2 efs ->
-  prim_step ([ID_instantiate v_exps modi v_imps], []) (ws1, vis1, ms1, ha1, f1) [] ([], wes) σ2 [] /\ κ = [] /\ efs = [] /\ es' = es /\ (wes = [] \/ wes = [AI_trap]).
+  prim_step ([ID_instantiate v_exps modi v_imps], []) (ws1, vis1, ms1, ha1, f1) κ ([], wes) σ2 [] /\ (exists me, κ = [me]) /\ efs = [] /\ es' = es /\ (wes = [] \/ wes = [AI_trap]).
 Proof.
   move => Hmodi Hnostart Hconst HStep.
   destruct σ2 as [[[[ws2 vis2] ms2] ha2] f2].
   simpl in *.
-  destruct HStep as [HStep [-> ->]].
+  prim_split κ HStep HStep. 
   inversion HStep; subst; clear HStep.
   { repeat split => //; last first.
     { rewrite H3 in Hmodi.
@@ -859,11 +879,12 @@ Proof.
       move/eqP in Hstart.
       simpl in Hstart.
       by subst start; simpl; left.
-    }
+    } by eexists.
     by eapply HR_host_step => //.
   }
   { repeat split => //.
     { by eapply HR_host_step_init_oob. }
+    by eexists.
     { by right. }
   }
   { by eapply llfill_const in Hconst => //. }
@@ -907,10 +928,10 @@ Proof.
     unfold language.prim_step.
     simpl in HStep.
     destruct σ' as [[[[ws' vis'] ms'] fs'] f'].
-    destruct HStep as [HStep [-> ->]].
+    prim_split κ' HStep HStep. 
     inversion HStep; subst; clear HStep.
     { iPureIntro.
-      exists [::], ((es, map_start None): host_expr), (ws', vis', ms', fs', f'), [::].
+      eexists [::_], ((es, map_start None): host_expr), (ws', vis', ms', fs', f'), [::].
       repeat split => //.
       eapply HR_host_step => //.
       instantiate (1 := inst).
@@ -924,7 +945,7 @@ Proof.
       by simpl in Hstart.
     }
     { iPureIntro.
-      exists [::], ((es, [AI_trap]): host_expr), (ws', vis', ms', fs', f'), [::].
+      eexists [::_], ((es, [AI_trap]): host_expr), (ws', vis', ms', fs', f'), [::].
       repeat split => //.
       by eapply HR_host_step_init_oob => //.
     }
@@ -935,7 +956,7 @@ Proof.
   - iIntros (e2 σ2 efs HStep).
     destruct σ2 as [[[[ws2 vis2] ms2] fs2] f2].
     destruct e2 as [he2 we2].
-    eapply prim_step_inst_cons_reduce_nostart in HStep as [HStep [-> [-> [-> Hwsor]]]] => //.
+    eapply prim_step_inst_cons_reduce_nostart in HStep as [HStep [[? ->] [-> [-> Hwsor]]]] => //.
     destruct Hwsor.
     { subst we2.
       iSpecialize ("Hes1" $! ([], []) (ws2, vis2, ms2, fs2, f2) [] HStep).
@@ -1041,7 +1062,7 @@ Proof.
   destruct exps => //=.
   move => Hlen.
   inversion Hlen; clear Hlen.
-  simpl in H.
+  simpl in H. 
   destruct (insert_exports vis iexps exps) eqn:H0 => //.
   by eapply IHiexps in H1 => //.
 Qed.
@@ -1288,9 +1309,9 @@ Proof.
         rewrite map_app => /=.
         f_equal.
         apply alloc_glob_gen_index in Hallocglob as [-> ?]; last by lias.
-        apply alloc_mem_gen_index in Hallocmem as [? [? [? [? <-]]]].
-        apply alloc_tab_gen_index in Halloctab as [? [? [? [? <-]]]].
-        by apply alloc_func_gen_index in Hallocfunc as [? [? [? [? <-]]]].
+        apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [? [? <-]]]]]].
+        apply alloc_tab_gen_index in Halloctab as [? [? [? [? [? [? <-]]]]]].
+        by apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [? [? <-]]]]]].
     - (* global initializers *)
       unfold instantiation.instantiate_globals.
       rewrite Forall2_lookup.
@@ -1304,7 +1325,7 @@ Proof.
         simpl in *.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
-        simpl.
+        simpl. eexists.
         by repeat constructor.
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
@@ -1326,7 +1347,7 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        by repeat constructor.
+        eexists. by repeat constructor.
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -1347,7 +1368,7 @@ Proof.
         inversion Hmoddata; subst; clear Hmoddata.
         rewrite H0.
         simpl.
-        by repeat constructor.
+        eexists. by repeat constructor.
       + apply lookup_ge_None in Hmdata.
         rewrite Hdinitslen in Hmdata.
         apply lookup_ge_None in Hmdata.
@@ -1514,10 +1535,10 @@ Proof.
     - (* memory initializers bound check *)
 
       
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? ?]]]]; last by lias.
-      apply alloc_mem_gen_index in Hallocmem as [? [? [? [? ?]]]].
-      apply alloc_tab_gen_index in Halloctab as [? [? [? [? ?]]]].
-      apply alloc_func_gen_index in Hallocfunc as [? [? [? [? ?]]]].
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by lias.
+      apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[??]]]]]].
+      apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[??]]]]]].
+      apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[??]]]]]].
       destruct ws, s0, s1, s2, s3.
       simpl in *; subst; simpl in *.
 
@@ -1728,11 +1749,11 @@ Proof.
   - destruct s => //.
     iPureIntro.
     unfold language.reducible, language.prim_step.
-    exists [::], ([::], map_start None), (ws_res, vis', ms, has, f), [::].
+    eexists [::_], ([::], map_start None), (ws_res, vis', ms, has, f), [::].
     repeat split => //.
     by eapply HR_host_step.
   - iIntros ([hes' wes'] [[[[ws3 vis3] ms3] has3] f3] efs HStep).
-    destruct HStep as [HStep [-> ->]].
+    prim_split κ HStep HStep. 
     revert Heqinst_res.
     inversion HStep; subst; clear HStep; move => Heqinst_res.
     
@@ -1758,7 +1779,7 @@ Proof.
       specialize (Hwm Hvtlen).
       
       exfalso.
-      apply H20. clear H20.
+      apply H21. clear H21.
       rewrite Hmod in H3. 
       inversion H3; symmetry in H0; subst; clear H3. 
     
@@ -1809,18 +1830,18 @@ Proof.
     iFrame.
 
     rewrite <- H3.
-    rewrite <- H2 in H22.
+    rewrite <- H2 in H23.
 
     rewrite -> H1 in *.
 
     (* host state update *)
-    rewrite Hinsertexp in H22.
+    rewrite Hinsertexp in H23.
     revert Heqinst_res.
-    inversion H22; subst; clear H22.
+    inversion H23; subst; clear H23.
     move => Heqinst_res.
     
-    rewrite fmap_length in H20.
-    iDestruct (host_export_state_update $! H20 Hinsertexp with "[$] [$]") as "H".
+    rewrite fmap_length in H21.
+    iDestruct (host_export_state_update $! H21 Hinsertexp with "[$] [$]") as "H".
     
     iMod "H" as "(Hvis & Hexphost)".
     
@@ -2040,9 +2061,9 @@ Proof.
         rewrite map_app => /=.
         f_equal.
         apply alloc_glob_gen_index in Hallocglob as [-> ?]; last by lias.
-        apply alloc_mem_gen_index in Hallocmem as [? [? [? [? <-]]]].
-        apply alloc_tab_gen_index in Halloctab as [? [? [? [? <-]]]].
-        by apply alloc_func_gen_index in Hallocfunc as [? [? [? [? <-]]]].
+        apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[? <-]]]]]].
+        apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[? <-]]]]]].
+        by apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[? <-]]]]]].
     - (* global initializers *)
       unfold instantiation.instantiate_globals.
       rewrite Forall2_lookup.
@@ -2057,7 +2078,7 @@ Proof.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
         simpl.
-        by repeat constructor.
+        eexists; by repeat constructor.
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -2078,7 +2099,7 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        by repeat constructor.
+        eexists; by repeat constructor.
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -2099,7 +2120,7 @@ Proof.
         inversion Hmoddata; subst; clear Hmoddata.
         rewrite H0.
         simpl.
-        by repeat constructor.
+        eexists; by repeat constructor.
       + apply lookup_ge_None in Hmdata.
         rewrite Hdinitslen in Hmdata.
         apply lookup_ge_None in Hmdata.
@@ -2107,10 +2128,10 @@ Proof.
         by constructor.
     - (* table initializers bound check *)
 
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? ?]]]]; last by lias.
-      apply alloc_mem_gen_index in Hallocmem as [? [? [? [? ?]]]].
-      apply alloc_tab_gen_index in Halloctab as [? [? [? [? ?]]]].
-      apply alloc_func_gen_index in Hallocfunc as [? [? [? [? ?]]]].
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by lias.
+      apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[??]]]]]].
+      apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[??]]]]]].
+      apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[??]]]]]].
       destruct ws, s0, s1, s2, s3.
       simpl in *; subst; simpl in *.
 
@@ -2267,10 +2288,10 @@ Proof.
 
       
       (* Method is similar to table initialisers, but details are a bit simpler *)
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? ?]]]]; last by lias.
-      apply alloc_mem_gen_index in Hallocmem as [? [? [? [? ?]]]].
-      apply alloc_tab_gen_index in Halloctab as [? [? [? [? ?]]]].
-      apply alloc_func_gen_index in Hallocfunc as [? [? [? [? ?]]]].
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by lias.
+      apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[??]]]]]].
+      apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[??]]]]]].
+      apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[??]]]]]].
       destruct ws, s0, s1, s2, s3.
       simpl in *; subst; simpl in *.
 
@@ -2550,11 +2571,11 @@ Proof.
   - destruct s => //.
     iPureIntro.
     unfold language.reducible, language.prim_step.
-    exists [::], (idecls, map_start (Some idfstart)), (ws_res, vis', ms, has, f), [::].
+    eexists [::_], (idecls, map_start (Some idfstart)), (ws_res, vis', ms, has, f), [::].
     repeat split => //.
     by eapply HR_host_step.
   - iIntros ([hes' wes'] [[[[ws3 vis3] ms3] has3] f3] efs HStep).
-    destruct HStep as [HStep [-> ->]].
+    prim_split κ HStep HStep. 
     revert Heqinst_res.
     inversion HStep; subst; clear HStep; move => Heqinst_res.
     
@@ -2580,7 +2601,7 @@ Proof.
       specialize (Hwm Hvtlen).
       
       exfalso.
-      apply H20. clear H20.
+      apply H21. clear H21.
       rewrite Hmod in H3. 
       inversion H3; symmetry in H0; subst; clear H3. 
     
@@ -2631,18 +2652,18 @@ Proof.
     iFrame.
 
     rewrite <- H3.
-    rewrite <- H2 in H22.
+    rewrite <- H2 in H23.
 
     rewrite -> H1 in *.
 
     (* host state update *)
-    rewrite Hinsertexp in H22.
+    rewrite Hinsertexp in H23.
     revert Heqinst_res.
-    inversion H22; subst; clear H22.
+    inversion H23; subst; clear H23.
     move => Heqinst_res.
     
-    rewrite fmap_length in H20.
-    iDestruct (host_export_state_update $! H20 Hinsertexp with "[$] [$]") as "H".
+    rewrite fmap_length in H21.
+    iDestruct (host_export_state_update $! H21 Hinsertexp with "[$] [$]") as "H".
     
     iMod "H" as "(Hvis & Hexphost)".
     
@@ -2680,3 +2701,5 @@ Qed.
 End Instantiation_spec_operational.
 
 End Iris_host.
+End host.
+

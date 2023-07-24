@@ -62,7 +62,7 @@ Qed.
 
 Section fundamental.
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* ------------------------------ HELPER TACTICS AND LEMMAS ------------------------------ *)

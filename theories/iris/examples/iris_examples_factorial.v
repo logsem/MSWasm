@@ -16,7 +16,7 @@ Close Scope byte_scope.
 
 (* Example Programs *)
 Section Factorial.
-  Context `{!wasmG Σ}.
+  Context `{!wasmG Σ, HHB: HandleBytes}.
 
   (* --------------------------------------------------------------------------------------------- *)
   (* ------------------------- LOCAL STATE EXAMPLE: FACTORIAL ------------------------------------ *)
@@ -331,7 +331,7 @@ Section Factorial.
 End Factorial.
 
 Section Factorial.
-  Context `{!wasmG Σ}.
+  Context `{!wasmG Σ, HHB: HandleBytes}.
   
   (* --------------------------------------------------------------------------------------------- *)
   (* ------------------------- LANDIN'S KNOT EXAMPLE: FACTORIAL ---------------------------------- *)
@@ -649,7 +649,7 @@ Section Factorial.
 End Factorial.
 
 Section FactorialHostMain.
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, HHB: HandleBytes}.
 
   Definition main_instr fact glob :=
     [BI_get_global glob;
@@ -657,7 +657,9 @@ Section FactorialHostMain.
      BI_set_global glob].
   Definition main fact glob := to_e_list (main_instr fact glob).
 
-  Lemma main_host_spec fact glob F myrec tab mut_tab f_fact f_F f_myrec f_mut_tab g_glob t_fact_typ mt i tabval n idnstart f Φ :
+
+
+  Lemma main_host_spec fact glob F myrec tab mut_tab f_fact f_F f_myrec f_mut_tab g_glob t_fact_typ mt i tabval n idnstart f (Φ : language.val wasm_host_lang -> iPropI Σ) :
     inst_funcs i !! fact = Some f_fact ->
     inst_funcs i !! (Wasm_int.nat_of_uint i32m F) = Some f_F ->
     inst_funcs i !! myrec = Some f_myrec ->
@@ -858,7 +860,7 @@ Section FactorialHostMain.
 End FactorialHostMain.
 
 Section FactorialHost.
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, HHB: HandleBytes}.
 
   Definition factorial_module :=
     {|
@@ -966,10 +968,10 @@ Section FactorialHost.
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
 
-  Lemma instantiate_factorial hidx gidx mod_tab n :
+  Lemma instantiate_factorial hidx gidx mod_tab n (Ψ : language.val wasm_host_lang -> iProp Σ):
     (ssrnat.factorial (Wasm_int.nat_of_uint i32m n) < Wasm_int.Int32.modulus)%Z -> (* no overflow *)
     (0 <= (Wasm_int.Int32.intval n))%Z -> (* the parameter must be positive *)
-    
+    (Ψ = λ v, (⌜v = immHV []⌝ ∗ ∃ w, fact_val n (immV [w]) ∗ (N.of_nat gidx) ↦[wg] {| g_mut := MUT_mut; g_val := w |})%I) ->
     ⊢ {{{ (N.of_nat hidx) ↦[wf] (FC_func_host (Tf [T_i32; T_i32] []) (Mk_hostfuncidx mod_tab)) ∗
           (N.of_nat mod_tab) ↦[ha] HA_modify_table ∗
           (N.of_nat gidx) ↦[wg] {| g_mut := MUT_mut; g_val := VAL_int32 n |} ∗
@@ -979,9 +981,9 @@ Section FactorialHost.
           ↪[frame] empty_frame
       }}}
         ((factorial_module_instantiate,[]) : host_expr) 
-      {{{ v, ⌜v = immHV []⌝ ∗ ∃ w, fact_val n (immV [w]) ∗ (N.of_nat gidx) ↦[wg] {| g_mut := MUT_mut; g_val := w |} }}} .
+      {{{ v, Ψ v }}}. 
   Proof.
-    iIntros (Hoverflow Hpos Φ). iModIntro. iIntros "(Hmod_tab & HA & Hglob & Hmod & Hvis1 & Hvis2 & Hf) HΦ".
+    iIntros (Hoverflow Hpos -> Φ). iModIntro. iIntros "(Hmod_tab & HA & Hglob & Hmod & Hvis1 & Hvis2 & Hf) HΦ".
     iDestruct "Hvis1" as (name1) "Hvis1".
     iDestruct "Hvis2" as (name2) "Hvis2".
     iApply (instantiation_spec_operational_start_seq with "[$Hf] [$Hmod Hvis1 Hvis2 Hmod_tab Hglob] [HΦ HA]") => //.

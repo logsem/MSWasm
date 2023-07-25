@@ -10,9 +10,6 @@ Require Export type_preservation.
 
 Close Scope byte.
 
-(* Unsatisfying to have this host section, but removing it causes typeclass errors *)
-(* Section host.
-  Context `{ HHB : HandleBytes}.   *)
 Section Iris_host_def.
 
 (* Domain of the variable instantiation store *)

@@ -411,6 +411,9 @@ Proof.
   repeat iSplit => //; by iDestruct "Hs" as "(% & (% & %) & % & ?)".
 Qed.
 
+Section proofs.
+  Context `{ HHB : HandleBytes }.
+
 
 Lemma is_stack_valid (v : N) s n f E x:
     ⌜ (f_locs f) !! x = Some (value_of_uint v) ⌝ ∗ 
@@ -960,4 +963,5 @@ Proof.
     exact IHs.
 Qed.
 
+End proofs.
 End Stack.

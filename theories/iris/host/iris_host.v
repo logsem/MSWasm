@@ -10,9 +10,9 @@ Require Export type_preservation.
 
 Close Scope byte.
 
-(* Unsatisfying to have this host section, but getting rid of it causes typeclass errors *)
- Section host.
-  Context `{ HHB : HandleBytes}.  
+(* Unsatisfying to have this host section, but removing it causes typeclass errors *)
+(* Section host.
+  Context `{ HHB : HandleBytes}.   *)
 Section Iris_host_def.
 
 (* Domain of the variable instantiation store *)
@@ -107,7 +107,7 @@ Fixpoint innermost_frame llh defaultf :=
   end. 
 
 Section host_reduce.
- (* Context `{HHB : HandleBytes}.  *)
+  Context `{HHB : HandleBytes}. 
 
 Inductive host_reduce: store_record -> vi_store -> list module -> list host_e -> list host_action -> frame -> list administrative_instruction -> memory_event -> store_record -> vi_store -> list module -> list host_e -> list host_action -> frame -> list administrative_instruction -> Prop :=
 | HR_host_step:
@@ -486,6 +486,7 @@ End Iris_host_def.
 
 
 
+
 Notation " n ↦[ha]{ q } f" := (ghost_map_elem (V := host_action) haGName n q f%V)
                                 (at level 20, q at level 5, format " n ↦[ha]{ q } f") .
 Notation " n ↦[ha] f" := (ghost_map_elem (V := host_action) haGName n (DfracOwn 1) f%V)
@@ -502,7 +503,7 @@ Notation " n ↪[mods] v" := (ghost_map_elem (V := module) msGName n (DfracOwn 1
                             (at level 20, format " n ↪[mods] v").
 
 
-Global Instance host_heapG_irisG `{ (* HHB:HandleBytes, *) !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : weakestpre.irisGS wasm_host_lang Σ := {
+Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : weakestpre.irisGS wasm_host_lang Σ := {
   iris_invGS := func_invG; (* ??? *)
   state_interp σ _ κs _  :=
     let: (s, vis, ms, fs, f) := σ in
@@ -524,22 +525,22 @@ Global Instance host_heapG_irisG `{ (* HHB:HandleBytes, *) !wasmG Σ, !hvisG Σ,
     state_interp_mono _ _ _ _ := fupd_intro _ _
 }.
 
+
 Section Iris_host.
   
 
   Section host_lifting.
-(*    Context `{HHB' : HandleBytes}.  *)
 
- Context `{ (* HHB: HandleBytes, *) !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}. 
+    Context `{ HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.   
 
-
-Lemma wp_call_host_action_no_state_change s E hes tf h hi f vcs (Φ : host_val -> iProp Σ) res llh LI LI' :
+(* I removed the type annotation Φ : host_val -> iProp Σ, which gave a typeclass error *)
+Lemma wp_call_host_action_no_state_change s E hes tf h hi f vcs Φ res llh LI LI' :
   h = Mk_hostfuncidx hi ->
   llfill llh [AI_call_host tf h vcs] = LI ->
   llfill llh res = LI' ->
-  (forall s0 f0, execute_action f s0 f0 vcs s0 res) -> 
-  N.of_nat hi ↦[ha] f ∗
-  ▷ (N.of_nat hi ↦[ha] f -∗ WP ((hes, LI') : host_expr) @ s ; E {{ v, Φ v }})
+   (forall s0 f0, execute_action f s0 f0 vcs s0 res) ->  
+  N.of_nat hi ↦[ha] f ∗ 
+  ▷ (N.of_nat hi ↦[ha] f -∗ WP ((hes, LI') : host_expr) @ s ; E {{ v, Φ v }}) 
   ⊢ WP ((hes, LI) : host_expr) @ s ; E {{ v, Φ v }}.
 Proof.
   iIntros (Hh HLI HLI' Hexec) "(Hhi & Hwp)".
@@ -573,10 +574,21 @@ Proof.
     iFrame. done.  
 Qed.
 
-Lemma wp_get_global_host s E g v vs (Φ : host_val -> iProp Σ) :
+Lemma annotation_change_is_sound :
+  (host_val -> iProp Σ) = (language.val wasm_host_lang -> iPropI Σ).
+Proof.
+  done.
+Qed. 
+
+(* Not exactly sure why, but from now on just removing the Φ type annotation isn't enough
+   I have to force it to be language.val wasm_host_lang -> iPropI Σ 
+   Which is identical to the previous host_val -> iProp Σ, but whatever
+*)
+
+Lemma wp_get_global_host s E g v vs (Φ : language.val wasm_host_lang -> iPropI Σ) : (* (Φ : host_val -> iProp Σ) : *)
   N.of_nat g ↦[wg] v -∗
-  ▷ (N.of_nat g ↦[wg] v -∗ Φ (immHV ((g_val v) :: vs))) -∗
-  WP (([H_get_global g], v_to_e_list vs) : host_expr) @ s; E {{ Φ }}.
+    ▷ (N.of_nat g ↦[wg] v -∗ Φ (immHV ((g_val v) :: vs))) -∗ 
+    WP (([H_get_global g], v_to_e_list vs) : host_expr) @ s; E {{ Φ }}.
 Proof.
   iIntros "Hglob HΦ".
   iApply lifting.wp_lift_atomic_step => //=.
@@ -606,7 +618,7 @@ Proof.
     rewrite H0. iSimpl. iSplit => //.  iApply "HΦ". iFrame.
 Qed.
 
-Lemma wp_get_global_trap_host s E g (Φ : host_val -> iProp Σ) :
+Lemma wp_get_global_trap_host s E g (Φ : language.val wasm_host_lang -> iPropI Σ) :
   ▷ (Φ trapHV) -∗
   WP (([H_get_global g], [AI_trap]) : host_expr) @ s; E {{ Φ }}.
 Proof.
@@ -630,7 +642,8 @@ Proof.
     inversion H;subst. iFrame. iSimpl. done.
 Qed.
 
-Lemma wp_call_host_instantiate s E hes h hi f (Φ : host_val -> iProp Σ) llh LI LI' :
+
+Lemma wp_call_host_instantiate s E hes h hi f Φ llh LI LI' :
   h = Mk_hostfuncidx hi ->
   llfill llh [AI_call_host (Tf [] []) h []] = LI ->
   llfill llh [] = LI' ->
@@ -769,7 +782,7 @@ Definition reducible := @reducible wasm_host_lang.
 
 
 
-Lemma wp_value s E (e : host_expr) v Φ :
+Lemma wp_value s E (e : host_expr) v (Φ : language.val wasm_host_lang -> iPropI Σ) :
   to_val e = Some v ->
   Φ v ⊢ WP e @ s; E {{ Φ }}.
 Proof.
@@ -855,7 +868,7 @@ Qed.
 End host_lifting.
 
 Section host_structural.
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ }.
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ }.
 
 Lemma prim_step_inst_cons_reduce_nostart v_exps modi m v_imps ws1 vis1 ms1 ha1 f1 κ (es es': list host_e) wes σ2 efs vs:
   ms1 !! N.to_nat modi = Some m ->
@@ -892,7 +905,7 @@ Proof.
   { by eapply values_no_reduce in Hconst => //. }
 Qed.
   
-Lemma wp_seq_host_nostart (s : stuckness) (E : coPset) (Φ Ψ : host_val -> iProp Σ) v_exps modi v_imps m (es : list host_e) vs:
+Lemma wp_seq_host_nostart (s : stuckness) (E : coPset) (Φ Ψ : language.val wasm_host_lang -> iProp Σ) v_exps modi v_imps m (es : list host_e) vs:
   m.(mod_start) = None ->
   const_list vs ->
   ¬ Ψ (trapHV) -∗
@@ -1112,17 +1125,21 @@ Proof.
     by iExists (modexp_name m).
 Qed.
 
-Lemma instantiation_spec_operational_no_start (s: stuckness) E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs :
+Section instantiation_spec.
+  Context `{HHB : HandleBytes}.
+Lemma instantiation_spec_operational_no_start (s: stuckness) E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs (Φ : language.val wasm_host_lang -> iPropI Σ) :
   m.(mod_start) = None ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
+  (Φ = λ v, (⌜ v = immHV [] ⌝ ∗
+        instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps None)%I) ->
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E
-   {{ v, ⌜ v = immHV [] ⌝ ∗
-        instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps None }}.
+   {{ v, Φ v }}.
 Proof.
   
   move => Hmodstart Hmodtype Hmodrestr.
+  intros ->.
   assert (module_restrictions m) as Hmodrestr2 => //.
   
   iIntros "(Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp)".
@@ -1863,7 +1880,7 @@ Proof.
 Qed.
 
 (* Instantiating modules with a start function. We combine the handling of sequence here all in one. *)
-Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: host_val -> iProp Σ) idecls:
+Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls:
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
@@ -2685,7 +2702,7 @@ Proof.
     by iFrame.
 Qed.
     
-Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: host_val -> iProp Σ):
+Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ):
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
@@ -2697,9 +2714,10 @@ Proof.
   iIntros.
   by iApply (instantiation_spec_operational_start_seq with "[$] [$] [$]").
 Qed.
-  
+
+End instantiation_spec.
 End Instantiation_spec_operational.
 
 End Iris_host.
-End host.
+
 

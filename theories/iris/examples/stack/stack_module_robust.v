@@ -13,13 +13,15 @@ Unset Printing Implicit Defensive.
 
 
 Section RobustStack.
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ,
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
       !logrel_na_invs Σ, !hasG Σ}.
 
   Set Bullet Behavior "Strict Subproofs".
 
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
+    Notation "{{{ P }}} es {{{ Q }}}" :=
+    (□ ∀ Φ, P -∗ (∀ v, Q v -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
   
   Definition stack_adv_instantiate (exp_addrs: list N) (stack_mod_addr adv_mod_addr: N) :=
     [ ID_instantiate exp_addrs stack_mod_addr [] ;
@@ -85,7 +87,9 @@ Section RobustStack.
       tc_func_t := (ext_t_funcs impts ++ fts)%list;
       tc_global := (ext_t_globs impts ++ gts)%list;
       tc_table := (ext_t_tabs impts ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
-      tc_memory := (ext_t_mems impts ++ (mod_mems m))%list;
+          tc_memory := (ext_t_mems impts ++ (mod_mems m))%list;
+          tc_segment := {| lim_min := 0; lim_max := None |} ; (* is this correct? *)
+          tc_allocator := ALL_type;
       tc_local := [];
       tc_label := [];
       tc_return := None
@@ -133,7 +137,7 @@ Section RobustStack.
           ↪[frame] empty_frame
       }}}
         ((stack_adv_instantiate exp_addrs stack_mod_addr adv_mod_addr,[]) : host_expr) 
-        {{{ v, ((⌜v = trapHV ∨ v = immHV []⌝) ∗ na_own logrel_nais ⊤
+        {{{ λ v: language.val wasm_host_lang, ((⌜v = trapHV ∨ v = immHV []⌝) ∗ na_own logrel_nais ⊤
                   ∗ ∃ newStackAddrIs isStack, na_inv logrel_nais stkN (stackModuleInv (λ n0, isStack n0) newStackAddrIs))
                  ∗ ↪[frame] empty_frame }}} .
   Proof.

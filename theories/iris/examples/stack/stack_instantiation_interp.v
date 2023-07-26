@@ -11,7 +11,7 @@ Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
 Section StackModule.
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
 
   Set Bullet Behavior "Strict Subproofs".
 
@@ -48,7 +48,7 @@ Section StackModule.
         a take 1 in order to avoir rewriting the instantiation), yields the following : *)
      WP ((stack_instantiate_para exp_addrs stack_mod_addr, []) : host_expr)
      @ s ; E
-             {{ λ v : host_val,
+             {{ λ v : language.val wasm_host_lang,
                  (* Instantiation succeeds *)
                  ⌜ v = immHV [] ⌝ ∗
                  (* we still own the stack_module *)

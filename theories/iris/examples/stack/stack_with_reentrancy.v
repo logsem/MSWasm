@@ -14,7 +14,7 @@ Unset Printing Implicit Defensive.
 
 Section Client2.
 
- Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !logrel_na_invs Σ}. 
+ Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !logrel_na_invs Σ}. 
 
   
 (* Functions from the stack module are : 
@@ -216,7 +216,7 @@ Section Client2.
      
      WP ((stack_instantiate exp_addrs stack_mod_addr client_mod_addr , []) : host_expr)
      @ E
-     {{ v, ⌜ v = immHV [] ⌝ ∗
+     {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗
               ↪[frame] empty_frame ∗
                 stack_mod_addr ↪[mods] stack_module ∗
                  client_mod_addr ↪[mods] client_module ∗
@@ -1255,4 +1255,4 @@ Proof.
 Qed.
 
 End Client2.
-  
+

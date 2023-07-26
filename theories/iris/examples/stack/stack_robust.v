@@ -14,7 +14,7 @@ Unset Printing Implicit Defensive.
 
 
 Section Client.
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ}.
 
   Definition main :=
     [ BI_call 0 ;
@@ -151,7 +151,7 @@ Ltac take_drop_app_rewrite_twice n m :=
 
 Section Client_main.
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ }.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ }.
 
   Lemma main_spec C k idt locs es f a i idf0 l0 f0 idf4 l4 f4 idf5 l5 f5 idf6 l6 f6
         istack isStack newStackAddrIs stacktab :
@@ -490,11 +490,13 @@ End Client_main.
 
 Section Client_instantiation.
 
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ,
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
       !logrel_na_invs Σ, !hasG Σ}.
 
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
+    Notation "{{{ P }}} es {{{ Q }}}" :=
+    (□ ∀ Φ, P -∗ (∀ v, Q v -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
 
 
   Definition stack_adv_client_instantiate (exp_addrs: list N) (stack_mod_addr adv_mod_addr client_mod_addr: N) :=
@@ -502,7 +504,7 @@ Section Client_instantiation.
       ID_instantiate [(exp_addrs !!! 8)] adv_mod_addr [] ;
       ID_instantiate [] client_mod_addr exp_addrs ].
 
-  Lemma wp_wand_host s E (e : host_expr) (Φ Ψ : host_val -> iProp Σ) :
+  Lemma wp_wand_host s E (e : host_expr) (Φ Ψ : language.val wasm_host_lang -> iProp Σ) :
     WP e @ s; E {{ Φ }} -∗ (∀ v, Φ v -∗ Ψ v) -∗ WP e @ s; E {{ Ψ }}.
   Proof. iApply (weakestpre.wp_wand). Qed.
 
@@ -526,7 +528,7 @@ Section Client_instantiation.
           ↪[frame] empty_frame
       }}}
         ((stack_adv_client_instantiate exp_addrs stack_mod_addr adv_mod_addr client_mod_addr ,[]) : host_expr) 
-      {{{ v, ⌜v = (trapHV : host_val)⌝ ∨ g_ret ↦[wg] {| g_mut := MUT_mut; g_val := xx 2 |} }}} .
+      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ g_ret ↦[wg] {| g_mut := MUT_mut; g_val := xx 2 |} }}} .
   Proof.
     iIntros (Hexpaddrlen Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
     do 11 (destruct exp_addrs => //); clear Hexpaddrlen.

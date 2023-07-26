@@ -1124,19 +1124,17 @@ Qed.
 
 Section instantiation_spec.
   Context `{HHB : HandleBytes}.
-Lemma instantiation_spec_operational_no_start (s: stuckness) E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs (Φ : language.val wasm_host_lang -> iPropI Σ) :
+Lemma instantiation_spec_operational_no_start (s: stuckness) E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs:
   m.(mod_start) = None ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  (Φ = λ v, (⌜ v = immHV [] ⌝ ∗
-        instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps None)%I) ->
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E
-   {{ v, Φ v }}.
+   {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗
+        instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps None}}.
 Proof.
   
   move => Hmodstart Hmodtype Hmodrestr.
-  intros ->.
   assert (module_restrictions m) as Hmodrestr2 => //.
   
   iIntros "(Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp)".

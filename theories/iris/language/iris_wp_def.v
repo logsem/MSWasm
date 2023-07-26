@@ -42,6 +42,12 @@ Class wasmG Σ :=
 
       memlimit_hsG :> gen_heapGS N (option N) Σ;
 
+      seg_gen_hsG :> gen_heapGS N (byte * btag) Σ;
+
+      segsize_gen_hsG :> gen_heapGS unit N Σ;
+
+      seglimit_hsG :> gen_heapGS unit (option N) Σ;
+
       glob_gen_hsG :> gen_heapGS N global Σ;
 
       locs_gen_hsG :> ghost_mapG Σ unit frame;
@@ -63,14 +69,20 @@ Definition proph_id := positive. (* ??? *)
 Instance eqdecision_frame: EqDecision frame.
 Proof. decidable_equality. Qed.
 
+
+
+
 Definition gen_heap_wasm_store `{!wasmG Σ} (s: store_record) : iProp Σ :=
   ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
    (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
    (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
+   (gen_heap_interp (gmap_of_segment s.(s_segs))) ∗
    (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
    (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
+   (gen_heap_interp ({[ () := seg_length s.(s_segs).(seg_data)]} : gmap unit N)) ∗
    (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
    (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
+   (@gen_heap_interp _ _ _ _ _ seglimit_hsG ({[ () := seg_max_opt s.(s_segs)]} : gmap unit (option N))) ∗
    (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables)))))%I.
 
 Global Instance heapG_irisG `{!wasmG Σ} : irisGS wasm_lang Σ := {
@@ -80,11 +92,14 @@ Global Instance heapG_irisG `{!wasmG Σ} : irisGS wasm_lang Σ := {
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
       (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
       (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
+      (gen_heap_interp (gmap_of_segment s.(s_segs))) ∗
       (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
       (ghost_map_auth frameGName 1 (<[ tt := Build_frame locs inst ]> ∅)) ∗ 
       (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
+      (gen_heap_interp ({[ () := seg_length s.(s_segs).(seg_data) ]} : gmap unit N)) ∗
       (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
       (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
+      (@gen_heap_interp _ _ _ _ _ seglimit_hsG ({[ () := seg_max_opt s.(s_segs) ]} : gmap unit (option N))) ∗
       (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables))))
       
     )%I;
@@ -119,7 +134,15 @@ Notation "n ↦[wm][ i ] v" := (mapsto (L:=N*N) (V:=byte) (n, i) (DfracOwn 1) v%
 Notation "n ↦[wmlength] v" := (mapsto (L:=N) (V:=N) n (DfracOwn 1) v% V)
                            (at level 20, format "n ↦[wmlength] v") : bi_scope.
 Notation "n ↪[wmlimit] v" := (mapsto (L:=N) (V:=option N) (hG:=memlimit_hsG) n (DfracDiscarded) v% V)
-                           (at level 20, format "n ↪[wmlimit] v") : bi_scope.
+                               (at level 20, format "n ↪[wmlimit] v") : bi_scope.
+Notation " ↦[ws]{ q } [ i ] v" := (mapsto (L:=N) (V:=byte * btag) i q v%V)
+                                    (at level 20, q at level 5, format " ↦[ws]{ q } [ i ] v"): bi_scope.
+Notation " ↦[ws][ i ] v" := (mapsto (L:=N) (V:= byte * btag) i (DfracOwn 1) v%V)
+                              (at level 20, format " ↦[ws][ i ] v"): bi_scope.
+Notation " ↦[wslength] v" := (mapsto (L:=unit) (V:=N) () (DfracOwn 1) v%V)
+                               (at level 20, format " ↦[wslength] v"): bi_scope.
+Notation " ↪[wslimit] v" := (mapsto (L:=unit) (V:=option N) (hG:=seglimit_hsG) () (DfracDiscarded) v % V)
+                              (at level 20, format " ↪[wslimit] v") : bi_scope.
 Notation "n ↦[wg]{ q } v" := (mapsto (L:=N) (V:=global) n q v%V)
                            (at level 20, q at level 5, format "n ↦[wg]{ q } v").
 Notation "n ↦[wg] v" := (mapsto (L:=N) (V:=global) n (DfracOwn 1) v%V)
@@ -140,6 +163,13 @@ Definition mem_block `{!wasmG Σ} (n: N) (m: memory) :=
 Definition mem_block_at_pos `{!wasmG Σ} (n: N) (l:bytes) k :=
   ([∗ list] i ↦ b ∈ l, n ↦[wm][ (N.of_nat (N.to_nat k+i)) ] b)%I.
 
+Definition seg_block `{!wasmG Σ} (s: segment) :=
+  (([∗ list] i ↦ b ∈ (s.(seg_data).(segl_data)), ↦[ws][ (N.of_nat i) ] b ) ∗
+      ↦[wslength] seg_length s.(seg_data) ∗  ↪[wslimit] (seg_max_opt s))%I.
+
+Definition seg_block_at_pos `{!wasmG Σ} (l:list (byte * btag)) k :=
+  ([∗ list] i ↦ b ∈ l, ↦[ws][ (N.of_nat (N.to_nat k+i)) ] b)%I.
+
 
 Definition tab_block `{!wasmG Σ} (n: N) (tab: tableinst) :=
   (([∗ list] i ↦ tabelem ∈ (tab.(table_data)), n ↦[wt][ (N.of_nat i) ] tabelem ) ∗
@@ -150,7 +180,10 @@ Notation "n ↦[wmblock] m" := (mem_block n m)
 Notation "n ↦[wms][ i ] l" := (mem_block_at_pos n l i)                    
                                 (at level 20, format "n ↦[wms][ i ] l"): bi_scope.
 
-
+Notation " ↦[wsblock] s" := (seg_block s)
+                              (at level 20, format " ↦[wsblock] s"): bi_scope.
+Notation " ↦[wss][ i ] l" := (seg_block_at_pos l i)
+                               (at level 20, format " ↦[wss][ i ] l"): bi_scope.
 
 
 Notation "n ↦[wtblock] t" := (tab_block n t)
@@ -167,6 +200,20 @@ Proof.
   unfold mem_equiv, mem_block.
   destruct m1, m2.
   destruct mem_data, mem_data0 => //=.
+  by move => [-> ->] => //.
+Qed.
+
+Definition seg_equiv (s1 s2: segment) : Prop :=
+  s1.(seg_max_opt) = s2.(seg_max_opt) /\
+    s1.(seg_data).(segl_data) = s2.(seg_data).(segl_data).
+
+Lemma seg_equiv_wsblock_rewrite `{!wasmG Σ} (s1 s2: segment):
+  seg_equiv s1 s2 ->
+  ( ↦[wsblock] s1)%I ≡ ( ↦[wsblock] s2)%I.
+Proof.
+  unfold seg_equiv, seg_block.
+  destruct s1, s2.
+  destruct seg_data, seg_data0 => //=.
   by move => [-> ->] => //.
 Qed.
 

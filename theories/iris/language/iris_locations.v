@@ -6,7 +6,7 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Require Export common operations datatypes datatypes_properties memory_list stdpp_aux.
+Require Export common operations datatypes datatypes_properties memory_list stdpp_aux segment_list.
 From stdpp Require Import gmap.
 
 Definition create_table (len: N) : tableinst :=
@@ -73,6 +73,12 @@ Definition memory_to_list (m: memory) : list byte :=
 
 Definition gmap_of_memory (l: list memory) : gmap (N*N) byte :=
   gmap_of_list_2d (fmap memory_to_list l).
+
+Definition segment_to_list (s: segment) : list (byte * btag) :=
+  (s.(seg_data)).(segment_list.segl_data).
+
+Definition gmap_of_segment (s: segment) : gmap N (byte * btag) :=
+  gmap_of_list (segment_to_list s).
 
 Definition table_to_list (tab: tableinst) : list funcelem :=
   tab.(table_data).

@@ -147,7 +147,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] inst].
-  iDestruct "Hσ" as "(? & ? & ? & ? & Hl & ?)".
+  iDestruct "Hσ" as "(? & ? & ? & ? & ? & Hl & ?)".
   iDestruct (ghost_map_lookup with "Hl Hli") as "%Hli".
   simplify_map_eq.
   rewrite - nth_error_lookup in Hlook.
@@ -175,7 +175,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] inst].
-  iDestruct "Hσ" as "(? & ? & ? & ? & Hl & ?)".
+  iDestruct "Hσ" as "(? & ? & ? & ? & ? & Hl & ?)".
   iDestruct (ghost_map_lookup with "Hl Hli") as "%Hli".
   simplify_map_eq.
   iSplit.
@@ -213,7 +213,7 @@ Proof.
   destruct σ as [[ws locs ] inst ].
   iApply fupd_mask_intro ; first by solve_ndisj.
   iIntros "Hfupd".
-  iDestruct "Hσ" as "(? & ? & ? & ? & ? & ?)".
+  iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & ?)".
   iSplit.
   - iPureIntro.
     destruct s => //=.
@@ -243,7 +243,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & ? & Hg & Hi & ? & ?)".
+  iDestruct "Hσ" as "(? & ? & ? & ? & Hg & Hi & ? & ?)".
   iDestruct (gen_heap_valid with "Hg Hglob") as "%Hglob".
   iDestruct (ghost_map_lookup with "Hi Hinst") as "%Hli".
   simplify_map_eq.
@@ -282,7 +282,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & ? & Hg & Hi & ? & ?)".
+  iDestruct "Hσ" as "(? & ? & ? & ? & Hg & Hi & ? & ?)".
   iDestruct (gen_heap_valid with "Hg Hglob") as "%Hglob".
   iDestruct (ghost_map_lookup with "Hi Hinst") as "%Hli".
   simplify_map_eq.
@@ -1080,7 +1080,7 @@ Proof.
 Qed.
 
 
-Lemma those_map_Some (f : nat -> option byte) (l : list byte) :
+Lemma those_map_Some {A} (f : nat -> option A) (l : list A) :
   (forall x : nat, x < length l -> f x = l !! x) ->
   those (map f (iota 0 (length l))) = Some l.
 Proof.
@@ -1088,10 +1088,10 @@ Proof.
   induction n ; intros.
   { apply Logic.eq_sym, nil_length_inv in Heqn ; subst ; by unfold those. }
   destruct l ; first by inversion Heqn. 
-  cut (exists ys y, b :: l = ys ++ [y]) ;
+  cut (exists ys y, a :: l = ys ++ [y]) ;
   [ intro Htail ; destruct Htail as (ys & y & Htail) |
-    exists (removelast (b :: l)) ;
-    exists (List.last (b :: l) b) ;
+    exists (removelast (a :: l)) ;
+    exists (List.last (a :: l) a) ;
     apply app_removelast_last ;
     apply not_eq_sym ; apply nil_cons ].
   rewrite Htail. rewrite Htail in Heqn. rewrite Htail in H.
@@ -1792,7 +1792,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -1865,7 +1865,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -1916,7 +1916,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   iAssert (⌜is_Some (s_mems ws !! n)⌝)%I as %[m Hm].
   { iDestruct (gen_heap_valid with "Hγ Hwms") as %HH.
@@ -1965,7 +1965,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   iAssert (⌜is_Some (s_mems ws !! n)⌝)%I as %[m Hm].
   { iDestruct (gen_heap_valid with "Hγ Hwms") as %HH.
@@ -2016,7 +2016,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hmemlength & ? & Hmemlimit & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hmemlength & ? & Hmemlimit & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -2101,7 +2101,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hmemlength & ? & Hmemlimit & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hmemlength & ? & Hmemlimit & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -2168,7 +2168,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   iAssert (⌜is_Some (s_mems ws !! n)⌝)%I as %[m Hm].
   { iDestruct (gen_heap_valid with "Hγ Hwms") as %HH.
@@ -2216,7 +2216,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   iAssert (⌜is_Some (s_mems ws !! n)⌝)%I as %[m Hm].
   { iDestruct (gen_heap_valid with "Hγ Hwms") as %HH.
@@ -2263,7 +2263,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hframe & Hγ & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hframe & Hγ & ?)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hframe".
   iDestruct (gen_heap_valid with "Hγ Hmemlength") as "%Hmemlength".
   rewrite lookup_insert in Hframe.
@@ -2546,7 +2546,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws  locs ] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & Hf & Hmemlength & ? & Hmemlimit & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & Hf & Hmemlength & ? & ? & Hmemlimit & ?)".
   iDestruct (ghost_map_lookup with "Hf Hframe") as "%Hframe".
   iDestruct (gen_heap_valid with "Hmemlength Hmlength") as "%Hmemlength".
   rewrite lookup_insert in Hframe.

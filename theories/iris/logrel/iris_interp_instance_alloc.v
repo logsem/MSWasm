@@ -18,7 +18,7 @@ Close Scope byte_scope.
 
 Section InterpInstance.
 
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ,
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
         !logrel_na_invs Σ}.
 
   Definition interp_closure_pre τctx (fimps : gmap N function_closure) (i : instance) hl (n : N) (τf : function_type) :=
@@ -691,6 +691,8 @@ Section InterpInstance.
          tc_global := ext_t_globs impts;
          tc_table := [];
          tc_memory := [];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+         tc_allocator := ALL_type;
          tc_local := [];
          tc_label := [];
          tc_return := None
@@ -1161,6 +1163,8 @@ Section InterpInstance.
               tc_global := List.app igs gts;
               tc_table := List.app its (List.map (fun t => t.(modtab_type)) ts);
               tc_memory := List.app ims ms;
+              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct ?*)
+              tc_allocator := ALL_type ; (* This is correct but unsatisfying *)
               tc_local := nil;
               tc_label := nil;
               tc_return := None;
@@ -1171,13 +1175,15 @@ Section InterpInstance.
                tc_global := igs;
                tc_table := nil;
                tc_memory := nil;
+               tc_segment := {| lim_min := 0; lim_max := None |};
+               tc_allocator := ALL_type;
                tc_local := nil;
                tc_label := nil;
                tc_return := None;
              |} in
     List.Forall2 (module_func_typing c) fs fts /\
       seq.all module_tab_typing ts /\
-      seq.all module_mem_typing ms /\
+      seq.all module_mem_typing ms /\ (* Insert equivalent for seg? *)
       List.Forall2 (module_glob_typing c') gs gts /\
       List.Forall (module_elem_typing c) els /\
       List.Forall (module_data_typing c) ds /\
@@ -1982,6 +1988,8 @@ Section InterpInstance.
               tc_global := ((ext_t_globs t_imps) ++ gts)%list;
               tc_table := ((ext_t_tabs t_imps) ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
               tc_memory := ((ext_t_mems t_imps) ++ (mod_mems m))%list;
+              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct? *)
+              tc_allocator := ALL_type;
               tc_local := [];
               tc_label := [];
               tc_return := None;
@@ -1997,7 +2005,7 @@ Section InterpInstance.
        let v_imp_descs := map (fun mexp => mexp.(modexp_desc)) v_imps in
        prefix (ext_func_addrs v_imp_descs) inst.(inst_funcs) /\
          prefix (ext_tab_addrs v_imp_descs) inst.(inst_tab) /\
-         prefix (ext_mem_addrs v_imp_descs) inst.(inst_memory) /\
+         prefix (ext_mem_addrs v_imp_descs) inst.(inst_memory) /\ (* insert equivalent for seg? *)
          prefix (ext_glob_addrs v_imp_descs) inst.(inst_globs)) ->
     (* module_init_values m inst tab_inits mem_inits glob_inits -> *)
     typeof <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->

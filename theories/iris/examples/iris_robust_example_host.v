@@ -17,15 +17,15 @@ Close Scope byte_scope.
 
 
 Section Host_instance.
-  Context `{!wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
 
   Global Program Instance host_wp : host_program_logic Σ :=
     { host_function := host_expr ;
-      result := host_val;
+      result := language.val wasm_host_lang;
       host_ctx := list host_e;
       fill_host := λ decls es, (decls,es);
       val_of_host_val := iris_host.val_of_host_val;
-      wp_host := λ (s : stuckness), (λ (E : coPset) (he : host_expr) (Φ : host_val -d> iPropO Σ), (WP he @ s; E {{ Φ }})%I);
+      wp_host := λ (s : stuckness), (λ (E : coPset) (he : host_expr) (Φ : language.val wasm_host_lang -d> iPropO Σ), (WP he @ s; E {{ Φ }})%I);
       wp_host_bind := _;
       wp_host_wand := _;
       fupd_wp_host := _;
@@ -39,7 +39,7 @@ Section Host_instance.
 End Host_instance.
 
 Section Host_robust_example.
-  Context `{!wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
 
 Notation "{{{ P }}} es {{{ v , Q }}}" :=
   (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
@@ -57,7 +57,31 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
   Definition log : string := "logN".
   Definition logN : namespace := nroot .@ log.
 
-  Lemma lse_log_return_value f log log_func h w inst :
+  Lemma lse_log_return_value f log log_func h w inst (Φ Ψ Ξ : language.val wasm_lang -> iProp Σ) (Θ : language.val wasm_host_lang -> iProp Σ):
+    (Φ = λ v, (WP (iris.of_val v) CTX 1; LH_rec [] 0 [] (LH_base [] []) []
+                                           {{ w0, Ψ w0 }})%I) ->
+    (Ψ = λ w0, (∃ f0,
+                (↪[frame]f -∗
+                  WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
+                                                             {{ w1, Ξ w1 }}) ∗ ↪[frame] f0)%I) ->
+    (Ξ = λ w1, (WP (([], iris.of_val w1) : host_expr)
+                  {{ w2, Θ w2 }})%I) ->
+    (Θ = λ w2, ((⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
+                                                   ↪[frame]f)%I) ->
+    (inst_funcs inst) !! log = Some log_func ->
+
+    na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
+    interp_values [] w -∗
+
+    na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
+    na_own logrel_nais ⊤ -∗
+    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗
+
+    WP iris.of_val w
+    CTX
+    0; LH_base [] [AI_basic (BI_get_local 0); AI_basic (BI_call log)]
+    {{ v, Φ v }}. 
+(*  Lemma lse_log_return_value f log log_func h w inst:
     (inst_funcs inst) !! log = Some log_func ->
 
     na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
@@ -76,9 +100,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
                   WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
                   {{ w1, WP (([], iris.of_val w1) : host_expr)
                              {{ w2, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}.
+                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}. *)
   Proof.
-    iIntros (Hlog) "#Hh Hv #Hl Hown Hf".
+    iIntros (-> -> -> -> Hlog) "#Hh Hv #Hl Hown Hf".
     iDestruct "Hv" as (ws) "[-> #Hws]".
     iDestruct (big_sepL2_length with "Hws") as %Hlen. destruct ws;[|done].
     iApply wp_base_pull. iApply wp_wasm_empty_ctx.
@@ -156,8 +180,32 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     { destruct H0 as [? ?]. split;auto.
       apply iris_fundamental_composition.is_basic_app;auto. }
   Qed.
+  
+  Lemma lse_log_return_call_host f log log_func h w inst (Φ Ψ Ξ: language.val wasm_lang -> iProp Σ) (Θ: language.val wasm_host_lang -> iProp Σ):
+    (Φ = λ v, (WP (iris.of_val v) CTX 1; LH_rec [] 0 [] (LH_base [] []) []
+                                           {{ w0, Ψ w0 }})%I) ->
+    (Ψ = λ w0, (∃ f0,
+                (↪[frame]f -∗
+                  WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
+                                                             {{ w1, Ξ w1 }}) ∗ ↪[frame]f0)%I) ->
+    (Ξ = λ w1, (WP (([], iris.of_val w1) : host_expr)
+                  {{ w2, Θ w2 }})%I) ->
+    (Θ = λ w2, ((⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
+                                                   ↪[frame]f)%I) ->
+    (inst_funcs inst) !! log = Some log_func ->
 
-  Lemma lse_log_return_call_host f log log_func h w inst :
+    na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
+    ▷ interp_call_host_cls [(Mk_hostfuncidx h, Tf [T_i32] [])] [] w -∗
+
+    na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
+    na_own logrel_nais ⊤ -∗
+    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗
+
+    WP iris.of_val w
+    CTX
+    0; LH_base [] [AI_basic (BI_get_local 0); AI_basic (BI_call log)]
+    {{ v, Φ v }}. 
+  (* Lemma lse_log_return_call_host f log log_func h w inst :
     (inst_funcs inst) !! log = Some log_func ->
 
     na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
@@ -176,9 +224,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
                   WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
                   {{ w1, WP (([], iris.of_val w1) : host_expr)
                              {{ w2, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}.
+                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}. *)
   Proof.
-    iIntros (Hlog) "#Hh Hv #Hlog Hown Hf".
+    iIntros (-> -> -> -> Hlog) "#Hh Hv #Hlog Hown Hf".
     iLöb as "IH"
   forall (w).
     
@@ -283,8 +331,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
   Qed.    
 
     
-  Lemma lse_log_spec C i f g g_func es locs log log_func h idnstart inst :
-    
+  Lemma lse_log_spec C i f g g_func es locs log log_func h idnstart inst (Φ : language.val wasm_host_lang -> iProp Σ):
+    (Φ = λ w, ((⌜w = trapHV⌝ ∨ (⌜w = immHV []⌝ ∗ na_own logrel_nais ⊤))
+               ∗ ↪[frame] f)%I) ->
     (tc_label C) = [] ∧ (tc_return C) = None ->
     be_typing (upd_local_label_return C locs [[]] (Some [])) es (Tf [] []) ->
     (inst_funcs inst) !! g = Some g_func ->
@@ -299,10 +348,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
          ∗ na_inv logrel_nais (wfN (N.of_nat log_func))
          (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) }}}
       ([], [AI_invoke idnstart])
-      {{{ w, (⌜w = trapHV⌝ ∨ (⌜w = immHV []⌝ ∗ na_own logrel_nais ⊤))
-               ∗ ↪[frame] f }}}.
+      {{{ w, Φ w }}}. 
   Proof.
-    iIntros (HC Htyp Hg Hlog).
+    iIntros (-> HC Htyp Hg Hlog).
     iModIntro. iIntros (Φ) "(Hf & Hown & Hidnstart & #Hadv & #Hi & #Hh & #Hlog) HΦ".
     iApply (weakestpre.wp_wand with "[-HΦ] HΦ").
     iApply wp_lift_wasm.
@@ -474,7 +522,8 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       ID_instantiate [] 1 [1%N;0%N] ].
 
   
-  Lemma instantiate_lse adv_module log_func h :
+  Lemma instantiate_lse adv_module log_func h (Φ : language.val wasm_host_lang -> iProp Σ):
+    (Φ = λ v, ((⌜v = trapHV⌝ ∨ (⌜v = immHV []⌝ ∗ na_own logrel_nais ⊤)))%I) ->
     module_typing adv_module [ET_func (Tf [T_i32] [])] [ET_func (Tf [] [])] ->
     (* we assume the adversary module has an export of the () → () *)
     mod_start adv_module = None -> (* that it does not have a start function *)
@@ -494,9 +543,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
           (∃ name, 0%N ↪[vis] {| modexp_name := name; modexp_desc := MED_func (Mk_funcidx log_func) |}) ∗
           (∃ vs, 1%N ↪[vis] vs) }}}
         ((adv_lse_instantiate,[]) : host_expr)
-      {{{ v, (⌜v = trapHV⌝ ∨ (⌜v = immHV []⌝ ∗ na_own logrel_nais ⊤)) }}} .
+      {{{ v, Φ v }}}. 
   Proof.
-    iIntros (Htyp Hnostart Hrestrict Hboundst Hboundsm).
+    iIntros (-> Htyp Hnostart Hrestrict Hboundst Hboundsm).
     iModIntro. iIntros (Φ) "(Hemptyframe & Hlogfunc & Hh & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
     iDestruct "Hvis1" as (log) "Hvis1".
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_adv] [Hvis Hvis1 Hlogfunc] ") => //.

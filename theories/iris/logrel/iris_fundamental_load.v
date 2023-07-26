@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -165,7 +165,7 @@ Section fundamental.
         iSplitR;[by iLeft; iLeft|iExists _;iFrame].
         iExists _. eauto. 
       }
-      { iDestruct (mem_extract _ (Wasm_int.N_of_uint i32m z + off) (t_length t) with "Hmem") as (bv) "[Ha [Hmem %Hlenbv]]";[destruct t;simpl;lia|lia|].
+      { iDestruct (mem_extract _ (Wasm_int.N_of_uint i32m z + off) (t_length t) with "Hmem") as (bv) "[Ha [Hmem %Hlenbv]]";[destruct t;simpl;try lia; try apply hsnz|lia|].
         iApply wp_fupd.
         iApply (wp_wand _ _ _ (λ vs, (⌜vs = immV _⌝ ∗ _) ∗ _)%I with "[Ha Hf]").
         { iApply (wp_load_deserialize with "[$Hf $Ha]");eauto;by rewrite Hlocs /=. }

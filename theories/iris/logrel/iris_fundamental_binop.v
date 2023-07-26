@@ -14,7 +14,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -98,14 +98,14 @@ Section fundamental.
 
       destruct (app_binop op w1 w2) eqn:Hsome.
       
-      { iSimpl.
-        iApply (wp_wand _ _ _ (λ v, ⌜v = immV [from_option id w1 (app_binop op w1 w2)]⌝ ∗ ↪[frame] f)%I with "[Hf]").
+      { iSimpl. 
+        iApply (wp_wand _ _ _ ((λ v, ⌜v = immV [from_option (λ x, x) w1 (app_binop op w1 w2)]⌝ ∗ ↪[frame] f)%I : language.val wasm_lang -> iPropI Σ) with "[Hf]").
         { iApply (wp_binop with "Hf");eauto. rewrite Hsome. eauto. }
         iIntros (w0) "[-> Hf]".
         iSplitR;[|iExists _;iFrame].
         iLeft. iRight.
         iExists _. iSplit;auto.
-        iSimpl. iSplit =>//. iApply (binop_type_agree_interp with "Hv1 Hv2");eauto.
+        iSimpl. iSplit => //. iApply (binop_type_agree_interp with "Hv1 Hv2");eauto.
         rewrite Hsome. eauto. }
 
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").

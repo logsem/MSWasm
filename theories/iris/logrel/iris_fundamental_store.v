@@ -249,11 +249,7 @@ Section fundamental.
         iSplitR;[by iLeft; iLeft|iExists _;iFrame].
         iExists _. eauto. 
       }
-      { iDestruct (mem_extract_insert _ (Wasm_int.N_of_uint i32m z + off) (t_length t) with "Hmem") as (bv) "[Ha [Hmem %Hlenbv]]";[destruct t;simpl;try lia|lia|].
-        { destruct HHB. simpl.
-          destruct (gt_0_eq (ssrnat.nat_of_bin handle_size)) as [| Htv] => //.
-          assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
-          rewrite <- Htv in H. lias. }
+      { iDestruct (mem_extract_insert _ (Wasm_int.N_of_uint i32m z + off) (t_length t) with "Hmem") as (bv) "[Ha [Hmem %Hlenbv]]";[destruct t;simpl; try lia; try apply hsnz|lia|].
         iApply wp_fupd.
         iApply (wp_wand _ _ _ (λ vs, (⌜vs = immV _⌝ ∗ _) ∗ _)%I with "[Ha Hf]").
         { iApply (wp_store with "[$Hf $Ha]");eauto. by rewrite Hlocs /=. }

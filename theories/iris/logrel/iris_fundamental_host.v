@@ -13,7 +13,7 @@ Require Export iris_logrel iris_fundamental_helpers.
 Import uPred.
 
 Section fundamental.
-  Context `{!wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
 
     
   Lemma typing_local_host C es τ1 τ2 τs hctx hl :

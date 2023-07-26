@@ -2138,3 +2138,15 @@ Proof.
 *)
 
 End reduce_wellformed_proof.
+
+Section handle_size_non_zero.
+
+  Context `{ HHB: HandleBytes }.
+  Lemma hsnz: gt (ssrnat.nat_of_bin (@handle_size HHB)) O.
+  Proof.
+    destruct HHB. simpl.
+    destruct (Gt.gt_0_eq (ssrnat.nat_of_bin handle_size)) as [| Htv] => //.
+    assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
+    rewrite <- Htv in H. lias.
+  Qed.
+End handle_size_non_zero.

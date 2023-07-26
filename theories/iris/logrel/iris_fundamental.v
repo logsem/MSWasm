@@ -49,7 +49,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* ------------------------------- FTLR: simple typing ----------------------------------- *)
@@ -84,7 +84,13 @@ Section fundamental.
     { by apply typing_get_global. }
     { by eapply typing_set_global. }
     { by apply typing_load. }
+    { (* segload *) admit. }
     { by apply typing_store. }
+    { (* segstore *) admit. }
+    { (* slice *) admit. }
+    { (* segalloc *) admit. }
+    { (* handleadd *) admit. }
+    { (* segfree *) admit. }
     { by apply typing_current_memory. }
     { by apply typing_grow_memory. }
     { by apply typing_nil. }
@@ -94,7 +100,7 @@ Section fundamental.
       { apply IHbe_typing1. }
       { apply IHbe_typing2. } }
     { by apply typing_weakening. }
-  Qed.
+  Admitted. 
 
   
   Corollary be_fundamental_local C es τ1 τ2 τs : (tc_label C) = [] ∧ (tc_return C) = None ->
@@ -119,7 +125,7 @@ End fundamental.
 
 Section fundamental_host.
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
 
 
   Corollary be_fundamental_local_host C es τ1 τ2 τs hl hctx : (tc_label C) = [] ∧ (tc_return C) = None ->

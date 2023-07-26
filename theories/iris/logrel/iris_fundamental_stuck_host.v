@@ -13,7 +13,7 @@ Require Export iris_logrel iris_fundamental_helpers.
 Import uPred.
 
 Section fundamental.
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
 
     
   Lemma typing_local_stuck_host C es τ1 τ2 τs hl :

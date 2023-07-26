@@ -22,7 +22,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 
 
   Context `{!wasmG Σ,
-        !logrel_na_invs Σ}.
+        !logrel_na_invs Σ, HHB: HandleBytes}.
 
   Definition lse_expr a n :=
       [BI_const (xx 0);
@@ -244,7 +244,7 @@ Section Examples_host.
 
 
 
-  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ,
+  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ,
         !logrel_na_invs Σ}.
 
 
@@ -261,7 +261,7 @@ Section Examples_host.
   Notation " n ↪[mods] v" := (ghost_map_elem (V := module) msGName n (DfracOwn 1) v%V)
                                (at level 20, format " n ↪[mods] v").
 
-  Lemma wp_wand_host s E (e : host_expr) (Φ Ψ : host_val -> iProp Σ) :
+  Lemma wp_wand_host s E (e : host_expr) (Φ Ψ : language.val wasm_host_lang -> iProp Σ) :
     WP e @ s; E {{ Φ }} -∗ (∀ v, Φ v -∗ Ψ v) -∗ WP e @ s; E {{ Ψ }}.
   Proof. iApply (weakestpre.wp_wand). Qed.
   
@@ -346,7 +346,8 @@ Section Examples_host.
       H_get_global g ].
 
   
-  Lemma instantiate_lse adv_module g_ret wret :
+  Lemma instantiate_lse adv_module g_ret wret (Φ : language.val wasm_host_lang -> iProp Σ):
+    (Φ = λ v, (⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xx 42]⌝ )%I) ->
     module_typing adv_module [] lse_func_impts -> (* we assume the adversary module has an export of the () → () *)
     mod_start adv_module = None -> (* that it does not have a start function *)
     module_restrictions adv_module -> (* that it adheres to the module restrictions (i.e. only constant initializers for globals) *)
@@ -362,9 +363,9 @@ Section Examples_host.
           (∃ name, 1%N ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx g_ret) |}) ∗
           (∃ vs, 0%N ↪[vis] vs) }}}
         ((adv_lse_instantiate g_ret,[]) : host_expr)
-      {{{ v, ⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xx 42]⌝ }}} .
+      {{{ v, Φ v }}}. 
   Proof.
-    iIntros (Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
+    iIntros (-> Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
     iModIntro. iIntros (Φ) "(Hemptyframe & Hgret & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_adv] [Hvis] ") => //.
     2: { iIntros "Hmod_adv".

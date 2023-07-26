@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)

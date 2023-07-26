@@ -14,7 +14,7 @@ Unset Printing Implicit Defensive.
 
 Section stack.
 
- Context `{!wasmG Σ}. 
+ Context `{!wasmG Σ, HHB:HandleBytes}. 
 
 Section code.
 

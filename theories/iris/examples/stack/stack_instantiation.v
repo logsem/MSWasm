@@ -25,7 +25,7 @@ Set Bullet Behavior "Strict Subproofs".
 
 Section StackModule.
 
-Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}. 
+Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}. 
 
 
 Definition stack_module :=
@@ -133,6 +133,8 @@ Lemma validate_stack_typing x tt tf tloc tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := tloc;
       tc_label := tlab;
       tc_return := tret
@@ -157,6 +159,8 @@ Lemma validate_stack_bound_typing x tt tf tloc tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := tloc;
       tc_label := tlab;
       tc_return := tret
@@ -180,6 +184,8 @@ Lemma new_stack_typing tt tf :
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := [T_i32];
       tc_label := [[T_i32]];
       tc_return := Some [T_i32]
@@ -197,6 +203,8 @@ Lemma is_empty_typing tt tf tloc tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := tloc;
       tc_label := tlab;
       tc_return := tret
@@ -217,6 +225,8 @@ Lemma is_full_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := [T_i32];
       tc_label := tlab;
       tc_return := tret
@@ -235,6 +245,8 @@ Lemma pop_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := [T_i32; T_i32];
       tc_label := tlab;
       tc_return := tret;
@@ -254,6 +266,8 @@ Lemma push_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := [T_i32; T_i32; T_i32];
       tc_label := tlab;
       tc_return := tret
@@ -281,6 +295,8 @@ Lemma stack_map_typing tf:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := [T_i32; T_i32; T_i32; T_i32];
       tc_label := [[]];
       tc_return := Some []
@@ -310,6 +326,8 @@ Lemma stack_length_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
+         tc_segment := {| lim_min := 0; lim_max := None |};
+      tc_allocator := ALL_type;
       tc_local := [T_i32];
       tc_label := tlab;
       tc_return := tret;
@@ -558,7 +576,7 @@ Lemma instantiate_stack_spec `{!logrel_na_invs Σ} (s : stuckness) (E: coPset) (
      (* … instantiating the stack-module, yields the following : *)
      WP ((stack_instantiate_para exp_addrs stack_mod_addr, []) : host_expr)
      @ s ; E
-             {{ λ v : host_val,
+             {{ λ v : language.val wasm_host_lang,
                  (* Instantiation succeeds *)
                  ⌜ v = immHV [] ⌝ ∗
                  (* we still own the stack_module *)

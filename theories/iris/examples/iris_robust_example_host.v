@@ -57,31 +57,8 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
   Definition log : string := "logN".
   Definition logN : namespace := nroot .@ log.
 
-  Lemma lse_log_return_value f log log_func h w inst (Φ Ψ Ξ : language.val wasm_lang -> iProp Σ) (Θ : language.val wasm_host_lang -> iProp Σ):
-    (Φ = λ v, (WP (iris.of_val v) CTX 1; LH_rec [] 0 [] (LH_base [] []) []
-                                           {{ w0, Ψ w0 }})%I) ->
-    (Ψ = λ w0, (∃ f0,
-                (↪[frame]f -∗
-                  WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
-                                                             {{ w1, Ξ w1 }}) ∗ ↪[frame] f0)%I) ->
-    (Ξ = λ w1, (WP (([], iris.of_val w1) : host_expr)
-                  {{ w2, Θ w2 }})%I) ->
-    (Θ = λ w2, ((⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f)%I) ->
-    (inst_funcs inst) !! log = Some log_func ->
-
-    na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
-    interp_values [] w -∗
-
-    na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
-    na_own logrel_nais ⊤ -∗
-    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗
-
-    WP iris.of_val w
-    CTX
-    0; LH_base [] [AI_basic (BI_get_local 0); AI_basic (BI_call log)]
-    {{ v, Φ v }}. 
-(*  Lemma lse_log_return_value f log log_func h w inst:
+ 
+  Lemma lse_log_return_value f log log_func h w inst:
     (inst_funcs inst) !! log = Some log_func ->
 
     na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
@@ -99,10 +76,10 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
                 (↪[frame]f -∗
                   WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
                   {{ w1, WP (([], iris.of_val w1) : host_expr)
-                             {{ w2, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}. *)
+                           {{ λ w2: language.val wasm_host_lang, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
+                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}.
   Proof.
-    iIntros (-> -> -> -> Hlog) "#Hh Hv #Hl Hown Hf".
+    iIntros (Hlog) "#Hh Hv #Hl Hown Hf".
     iDestruct "Hv" as (ws) "[-> #Hws]".
     iDestruct (big_sepL2_length with "Hws") as %Hlen. destruct ws;[|done].
     iApply wp_base_pull. iApply wp_wasm_empty_ctx.

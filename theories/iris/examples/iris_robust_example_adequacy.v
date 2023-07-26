@@ -14,6 +14,7 @@ Class adv_module_record :=
   }.  
 
 Section adequacy.
+  Context `{HHB: HandleBytes}.
   Context (Σ: gFunctors).
   Context {inv_preg: invGpreS Σ}.
   Context {na_invg: na_invG Σ}.
@@ -31,7 +32,7 @@ Section adequacy.
   Context {has_preg: gen_heapGpreS N host_action Σ}.
 
 
-  Definition S := Build_store_record [] [] [] [ {| g_mut := MUT_mut; g_val := xx 0 |} ].
+  Definition S := Build_store_record [] [] [] dummy_segment {| allocated := [] |} [ {| g_mut := MUT_mut; g_val := xx 0 |} ].
   Definition V (vs : module_export) : vi_store :=
     <[0%N:=vs]> (<[1%N:={| modexp_name := [Byte.x00]; modexp_desc := MED_global (Mk_globalidx (N.to_nat 0)) |} ]> ∅).
   Definition M adv_module := [adv_module; lse_module].
@@ -107,7 +108,7 @@ Section adequacy.
           
 End adequacy.
 
-Theorem lse_adequacy `{adv_module_record}
+Theorem lse_adequacy `{adv_module_record, HHB: HandleBytes}
         he' S' V' M' HA' F vs :
   module_typing adv_module [] lse_func_impts ->
   rtc erased_step (([(adv_lse_instantiate 0,[])],
@@ -130,5 +131,5 @@ Proof.
               gen_heapΣ N module;
               gen_heapΣ N host_action
       ]).
-  eapply (@ex_adequacy Σ); typeclasses eauto.
+  eapply (@ex_adequacy HHB Σ); typeclasses eauto.
 Qed.

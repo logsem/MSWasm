@@ -244,12 +244,14 @@ Section Examples_host.
 
 
 
-  Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ,
-        !logrel_na_invs Σ}.
-
+  Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ,
+        !logrel_na_invs Σ, HHB: HandleBytes}.
 
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
+  Notation "{{{ P }}} es {{{ Q }}}" :=
+    (□ ∀ Φ, P -∗ (∀ v, Q v -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
+
 
   Notation " n ↪[vis]{ q } v" := (ghost_map_elem (V := module_export) visGName n q v%V)
                            (at level 20, q at level 5, format " n ↪[vis]{ q } v") .
@@ -345,9 +347,9 @@ Section Examples_host.
       ID_instantiate [] 1 [0%N;1%N] ;
       H_get_global g ].
 
+  Locate "{{{".
   
-  Lemma instantiate_lse adv_module g_ret wret (Φ : language.val wasm_host_lang -> iProp Σ):
-    (Φ = λ v, (⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xx 42]⌝ )%I) ->
+  Lemma instantiate_lse adv_module g_ret wret :
     module_typing adv_module [] lse_func_impts -> (* we assume the adversary module has an export of the () → () *)
     mod_start adv_module = None -> (* that it does not have a start function *)
     module_restrictions adv_module -> (* that it adheres to the module restrictions (i.e. only constant initializers for globals) *)
@@ -363,9 +365,9 @@ Section Examples_host.
           (∃ name, 1%N ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx g_ret) |}) ∗
           (∃ vs, 0%N ↪[vis] vs) }}}
         ((adv_lse_instantiate g_ret,[]) : host_expr)
-      {{{ v, Φ v }}}. 
+      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xx 42]⌝ }}} .
   Proof.
-    iIntros (-> Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
+    iIntros (Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
     iModIntro. iIntros (Φ) "(Hemptyframe & Hgret & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_adv] [Hvis] ") => //.
     2: { iIntros "Hmod_adv".

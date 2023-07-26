@@ -967,11 +967,12 @@ Section FactorialHost.
 
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
+  Notation "{{{ P }}} es {{{ Q }}}" :=
+    (□ ∀ Φ, P -∗ (∀ v, Q v -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
 
-  Lemma instantiate_factorial hidx gidx mod_tab n (Ψ : language.val wasm_host_lang -> iProp Σ):
+  Lemma instantiate_factorial hidx gidx mod_tab n:
     (ssrnat.factorial (Wasm_int.nat_of_uint i32m n) < Wasm_int.Int32.modulus)%Z -> (* no overflow *)
     (0 <= (Wasm_int.Int32.intval n))%Z -> (* the parameter must be positive *)
-    (Ψ = λ v, (⌜v = immHV []⌝ ∗ ∃ w, fact_val n (immV [w]) ∗ (N.of_nat gidx) ↦[wg] {| g_mut := MUT_mut; g_val := w |})%I) ->
     ⊢ {{{ (N.of_nat hidx) ↦[wf] (FC_func_host (Tf [T_i32; T_i32] []) (Mk_hostfuncidx mod_tab)) ∗
           (N.of_nat mod_tab) ↦[ha] HA_modify_table ∗
           (N.of_nat gidx) ↦[wg] {| g_mut := MUT_mut; g_val := VAL_int32 n |} ∗
@@ -981,9 +982,9 @@ Section FactorialHost.
           ↪[frame] empty_frame
       }}}
         ((factorial_module_instantiate,[]) : host_expr) 
-      {{{ v, Ψ v }}}. 
+      {{{ λ v: language.val wasm_host_lang, ⌜v = immHV []⌝ ∗ ∃ w, fact_val n (immV [w]) ∗ (N.of_nat gidx) ↦[wg] {| g_mut := MUT_mut; g_val := w |} }}}. 
   Proof.
-    iIntros (Hoverflow Hpos -> Φ). iModIntro. iIntros "(Hmod_tab & HA & Hglob & Hmod & Hvis1 & Hvis2 & Hf) HΦ".
+    iIntros (Hoverflow Hpos Φ). iModIntro. iIntros "(Hmod_tab & HA & Hglob & Hmod & Hvis1 & Hvis2 & Hf) HΦ".
     iDestruct "Hvis1" as (name1) "Hvis1".
     iDestruct "Hvis2" as (name2) "Hvis2".
     iApply (instantiation_spec_operational_start_seq with "[$Hf] [$Hmod Hvis1 Hvis2 Hmod_tab Hglob] [HΦ HA]") => //.

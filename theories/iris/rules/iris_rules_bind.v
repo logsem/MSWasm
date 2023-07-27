@@ -24,7 +24,7 @@ Context `{!wasmG Σ, HHB: HandleBytes}.
       unfold wp_pre. simpl language.to_val. rewrite Hetov'; simpl.
       iIntros (σ ns κ κs nt) "Hσ".
       destruct σ as [[ ? ?] ?].
-      iDestruct "Hσ" as "(H1&H2&H3&H4&Hff&H5&H6)".
+      iDestruct "Hσ" as "(H1&H2&H3&H4&H7&H8&Hff&H5&H6)".
       iDestruct (ghost_map_lookup with "Hff Hframe") as %Hlook.
       iMod (ghost_map_update f with "Hff Hframe") as "[Hff Hframe]".
       iDestruct ("H" with "Hframe") as "H".
@@ -42,12 +42,12 @@ Context `{!wasmG Σ, HHB: HandleBytes}.
       apply of_to_val in Hetov as Heq. rewrite Heq.
       subst f. rewrite Hetov'.
       rewrite lookup_insert in Hlook;inversion Hlook.
-      iSpecialize ("H" $! (_,_,_) 0 κ [] 0 with "[$H1 $H2 $H3 $H4 $H5 $H6 $Hff]").
+      iSpecialize ("H" $! (_,_,_) 0 κ [] 0 with "[$H1 $H2 $H3 $H4 $H5 $H6 $H7 $H8 $Hff]").
       iMod "H" as "[? H]". iModIntro. iFrame. }
     { iApply wp_unfold. unfold wp_pre. simpl. rewrite Hetov'.
       iIntros (σ ns κ κs nt) "Hσ".
       destruct σ as [[ ? ?] ?].
-      iDestruct "Hσ" as "(H1&H2&H3&H4&Hff&H5&H6)".
+      iDestruct "Hσ" as "(H1&H2&H3&H4&H7&H8&Hff&H5&H6)".
       iDestruct (ghost_map_lookup with "Hff Hframe") as %Hlook.
       rewrite lookup_insert in Hlook;inversion Hlook.
       
@@ -56,7 +56,7 @@ Context `{!wasmG Σ, HHB: HandleBytes}.
       iDestruct ("H" with "Hframe") as "H". destruct f.
       iDestruct (wp_unfold with "H") as "H". rewrite /wp_pre /= Hetov.
       iSpecialize ("H" $! (_,_,_) 0 κ [] 0). 
-      iDestruct ("H" with "[$H1 $H2 $H3 $H4 $H5 $H6 $Hff]") as "H".
+      iDestruct ("H" with "[$H1 $H2 $H3 $H4 $H5 $H6 $H7 $H8 $Hff]") as "H".
 
       iMod "H" as "[%Hred H]".
       iModIntro. iSplit.
@@ -80,7 +80,7 @@ Context `{!wasmG Σ, HHB: HandleBytes}.
       repeat iMod "H". simpl.
       iDestruct "H" as "[H Hf]".
       iDestruct "Hf" as (f1) "[Hf Hcont]".
-      iDestruct "H" as "(H1&H2&H3&H4&Hff&H5&H6)".
+      iDestruct "H" as "(H1&H2&H3&H4&H7&H8&Hff&H5&H6)".
       iDestruct (ghost_map_lookup with "Hff Hf") as %Hlook'.
       rewrite lookup_insert in Hlook'. inversion Hlook'.
       iDestruct "Hcont" as "[Hcont _]".

@@ -112,7 +112,7 @@ Section trap_rules.
   }
   { destruct σ as [[ ??]?].
     set (σ:=(s0,l,i)).
-    iDestruct "Hσ" as "(?&?&?&?&Hfr&?)".
+    iDestruct "Hσ" as "(?&?&?&?&?&?&Hfr&?)".
     iDestruct (ghost_map_lookup with "Hfr Hf") as %Heq1.
     iSpecialize ("Hes1" with "[$]").
     iSpecialize ("Hes1" $! σ ns κ κs nt with "[$]").
@@ -157,7 +157,7 @@ Section trap_rules.
         iDestruct "H2" as "[Hσ H]".
         iDestruct "H" as (f1) "(Hf1 & Hes'' & Hefs)".
         iApply bi.sep_exist_l.  iExists f1.
-        iDestruct "Hσ" as "(?&?&?&?&Hfr&?)".
+        iDestruct "Hσ" as "(?&?&?&?&?&?&Hfr&?)".
         iDestruct (ghost_map_lookup with "Hfr Hf1") as %Heq.
         iDestruct ("Hes''" with "Hf1") as "Hes''".
         rewrite wp_unfold /wp_pre /=.
@@ -451,7 +451,7 @@ Section trap_rules.
     { iApply (wp_lift_atomic_step with "[H Hframe]"); simpl ; trivial;eauto.
       iIntros (σ ns κ κs nt) "Hσ".
       destruct σ as [[? ?] ?].
-      iDestruct "Hσ" as "(?&?&?&?&Hff&?&?)".
+      iDestruct "Hσ" as "(?&?&?&?&?&?&Hff&?&?)".
       iDestruct (ghost_map_lookup with "Hff Hframe") as %Hlook.
       iMod (ghost_map_update f with "Hff Hframe") as "[Hff Hframe]".
       iDestruct ("H" with "Hframe") as "H".
@@ -476,7 +476,7 @@ Section trap_rules.
     { iApply wp_unfold. unfold wp_pre. simpl. rewrite Hnone.
       iIntros (σ ns κ κs nt) "Hσ".
       destruct σ as [[ ? ?] ?].
-      iDestruct "Hσ" as "(H1&H2&H3&H4&Hff&H5&H6)".
+      iDestruct "Hσ" as "(H1&H2&H3&H4&H7&H8&Hff&H5&H6)".
       iDestruct (ghost_map_lookup with "Hff Hframe") as %Hlook.
       rewrite lookup_insert in Hlook. inversion Hlook.
       iMod (ghost_map_update f with "Hff Hframe") as "[Hff Hframe]".
@@ -484,7 +484,7 @@ Section trap_rules.
       destruct f.
       iDestruct (wp_unfold with "H") as "H". rewrite /wp_pre /= Hetov.
       iSpecialize ("H" $! (s0,f_locs,f_inst) 0 κ [] 0).
-      iDestruct ("H" with "[$H1 $H2 $H3 $H4 $H5 $H6 $Hff]") as "H".
+      iDestruct ("H" with "[$H1 $H2 $H3 $H4 $H5 $H6 $H7 $H8 $Hff]") as "H".
       iMod "H" as "[%Hred H]".
       iModIntro.
 
@@ -507,7 +507,7 @@ Section trap_rules.
       repeat iMod "H". iModIntro. iNext.
       repeat iMod "H". iDestruct "H" as "[H Hf]".
       iDestruct "Hf" as (f1) "[Hf Hcont]".
-      iDestruct "H" as "(H1&H2&H3&H4&Hff&H5&H6)".
+      iDestruct "H" as "(H1&H2&H3&H4&H7&H8&Hff&H5&H6)".
       iDestruct (ghost_map_lookup with "Hff Hf") as %Hlook'.
       rewrite lookup_insert in Hlook'. inversion Hlook'.
       iDestruct "Hcont" as "[Hcont _]".
@@ -528,7 +528,7 @@ Section trap_rules.
       iMod (ghost_map_update {| f_locs := l; f_inst := i |} with "Hff Hf") as "[Hff Hframe]".
       rewrite insert_insert.
       simpl. iApply fupd_mask_intro_subseteq;[solve_ndisj|].
-      iFrame "H1 H2 H3 H4 H5 H6". simplify_eq. iFrame "Hff".
+      iFrame "H1 H2 H3 H4 H5 H6 H7 H8". simplify_eq. iFrame "Hff".
       iExists _. iFrame. iSplit => //. iIntros "Hframe".
       iDestruct ("IH" with "[] Hframe Hcont") as "Hcont".
       all: auto.

@@ -349,7 +349,7 @@ Proof.
 
     iIntros (σ ns κ κs nt) "Hσ".
     destruct σ as [[s1 locs] inst].
-    iDestruct "Hσ" as "(Hfuncs&Htables&Hmems&Hsegs&Hglobals&Hframe&Hlen)".
+    iDestruct "Hσ" as "(Hfuncs&Htables&Hmems&Hsegs&Halls&Hglobals&Hframe&Hlen)".
     iDestruct (ghost_map_lookup with "Hframe Hf0") as %Hlook;rewrite lookup_insert in Hlook;inversion Hlook.
     iMod (ghost_map_update f with "Hframe Hf0") as "[Hframe Hf]"; rewrite insert_insert.
     iDestruct ("Hes1" with "Hf") as "Hes1".
@@ -393,7 +393,7 @@ Proof.
       repeat iMod "H2".
       iDestruct "H2" as "(Hσ & H)".
       iDestruct "H" as (f) "(Hf1 & Hes'' & Hefs)".
-      iDestruct "Hσ" as "(Hfuncs&Htables&Hmems&Hsegs&Hglobals&Hframe&Hlen)".
+      iDestruct "Hσ" as "(Hfuncs&Htables&Hmems&Hsegs&Halls&Hglobals&Hframe&Hlen)".
       iDestruct (ghost_map_lookup with "Hframe Hf1") as %Hlook';rewrite lookup_insert in Hlook';inversion Hlook'.
       subst f.
       apply lfilled_to_sfill in Hfill as Hsh.
@@ -475,7 +475,7 @@ Proof.
     repeat iMod "H2".
     iDestruct "H2" as "(Hσ & H )".
     iDestruct "H" as (f2) "(Hf1 & Hes'' & Hefs)".
-    iDestruct "Hσ" as "(Hfuncs&Htables&Hmems&Hsegs&Hglobals&Hframe&Hlen)".
+    iDestruct "Hσ" as "(Hfuncs&Htables&Hmems&Hsegs&Halls&Hglobals&Hframe&Hlen)".
     iDestruct (ghost_map_lookup with "Hframe Hf1") as %Hlook';rewrite lookup_insert in Hlook';inversion Hlook'.
     iSpecialize ("Hes''" with "[$]").
     replace [AI_trap] with (iris.of_val trapV) => //=.

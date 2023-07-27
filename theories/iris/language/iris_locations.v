@@ -80,6 +80,13 @@ Definition segment_to_list (s: segment) : list (byte * btag) :=
 Definition gmap_of_segment (s: segment) : gmap N (byte * btag) :=
   gmap_of_list (segment_to_list s).
 
+
+Definition allocator_to_list (a: allocator) : list (N * (N * N)) :=
+  List.map (λ '(a,b,c), (a,(b,c))) a.(allocated).
+
+Definition gmap_of_allocator (a: allocator) : gmap N (N * N) :=
+  list_to_map (allocator_to_list a).
+
 Definition table_to_list (tab: tableinst) : list funcelem :=
   tab.(table_data).
 

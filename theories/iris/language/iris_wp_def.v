@@ -48,6 +48,8 @@ Class wasmG Σ :=
 
       seglimit_hsG :> gen_heapGS unit (option N) Σ;
 
+      alloc_gen_hsG :> gen_heapGS N (N*N) Σ;
+
       glob_gen_hsG :> gen_heapGS N global Σ;
 
       locs_gen_hsG :> ghost_mapG Σ unit frame;
@@ -77,6 +79,7 @@ Definition gen_heap_wasm_store `{!wasmG Σ} (s: store_record) : iProp Σ :=
    (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
    (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
    (gen_heap_interp (gmap_of_segment s.(s_segs))) ∗
+   (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗
    (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
    (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
    (gen_heap_interp ({[ () := seg_length s.(s_segs).(seg_data)]} : gmap unit N)) ∗
@@ -93,6 +96,7 @@ Global Instance heapG_irisG `{!wasmG Σ} : irisGS wasm_lang Σ := {
       (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
       (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
       (gen_heap_interp (gmap_of_segment s.(s_segs))) ∗
+      (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗
       (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
       (ghost_map_auth frameGName 1 (<[ tt := Build_frame locs inst ]> ∅)) ∗ 
       (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
@@ -143,6 +147,10 @@ Notation " ↦[wslength] v" := (mapsto (L:=unit) (V:=N) () (DfracOwn 1) v%V)
                                (at level 20, format " ↦[wslength] v"): bi_scope.
 Notation " ↪[wslimit] v" := (mapsto (L:=unit) (V:=option N) (hG:=seglimit_hsG) () (DfracDiscarded) v % V)
                               (at level 20, format " ↪[wslimit] v") : bi_scope.
+Notation "n ↣[allocated]{ q } v" := (mapsto (L:=N) (V:=N*N) n q v%V)
+                                      (at level 20, q at level 5, format "n ↣[allocated]{ q } v") : bi_scope.
+Notation "n ↣[allocated] v" := (mapsto (L:=N) (V:=N*N) n (DfracOwn 1) v%V)
+                                 (at level 20, format "n ↣[allocated] v") : bi_scope.
 Notation "n ↦[wg]{ q } v" := (mapsto (L:=N) (V:=global) n q v%V)
                            (at level 20, q at level 5, format "n ↦[wg]{ q } v").
 Notation "n ↦[wg] v" := (mapsto (L:=N) (V:=global) n (DfracOwn 1) v%V)

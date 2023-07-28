@@ -200,28 +200,32 @@ Definition seg_grow :=
       segl_data := sl.(segl_data) ++ List.repeat (#00,Numeric) (N.to_nat len_delta)
     |}.
 
-Definition isSound_aux T (l : list (N * N * N)) : Prop :=
-  List.forallb (fun '(a,b,c) => N.leb (b + c) (seg_length T)) l.
+(* Definition isSound_aux T (l : list (N * N * N)) : Prop :=
+  List.forallb (fun '(a,b,c) => N.leb (b + c) (seg_length T)) l. *)
+
+Fixpoint isSound_aux T (l : list (N * N * N)) : Prop :=
+  match l with
+  | [::] => True
+  | (a,b,c) :: q => N.leb (b + c) (seg_length T) /\ compatible b c q /\
+                    ~(List.In a (List.map (fun '(x,_,_) => x) q)) /\ isSound_aux T q
+  end. 
 
 Definition isSound T A : Prop :=
   isSound_aux T A.(allocated).
+
+
 
 Lemma data_length_is_compatible_aux :
   forall l T size, isSound_aux T l -> compatible (seg_length T) size l.
 Proof.
   intro l. induction l => //=.
   intros. destruct a. destruct p.
+  destruct H as (Hlim & Hcomp & Hdup & H).
   split.
-  right.
-  unfold isSound_aux in H.
-  simpl in H.
-  apply andb_prop in H as [? _].
-  apply N.leb_le in H. lia.
-  apply IHl.
-  unfold isSound_aux in H.
-  simpl in H.
-  apply andb_prop in H as [_ ?].
-  done.
+  - right. 
+    apply N.leb_le in Hlim. lia.
+  - apply IHl.
+    done. 
 Qed. 
 
 Lemma data_length_is_compatible :
@@ -233,6 +237,38 @@ Proof.
 Qed.
 
 
+Lemma find_and_remove_compatible:
+  forall l nid l' a n add size,
+    compatible add size l -> find_and_remove nid l = Some (l', a, n) -> compatible add size l'.
+Proof.
+  induction l => //=.
+  intros * Hcomp Hfr. destruct a as [[??]?].
+  destruct (n0 =? nid)%N.
+  - inversion Hfr; subst. by destruct Hcomp.
+  - destruct Hcomp as [??]. destruct (find_and_remove nid l) eqn:Hfr' => //.
+    destruct p as [[??]?]. eapply IHl in Hfr' => //; last exact H0.
+    inversion Hfr; subst. simpl. split => //.
+Qed.
+
+Lemma find_and_remove_nodup:
+  forall l nid l' a n nid',
+    (~ List.In nid' (List.map (fun '(x,_,_) => x) l)) ->
+    find_and_remove nid l = Some (l', a, n) ->
+    (~ List.In nid' (List.map (fun '(x,_,_) => x) l')).
+Proof.
+  induction l => //=.
+  intros * Hdup Hfr. destruct a as [[??]?].
+  intro Habs.
+  destruct (n0 =? nid)%N eqn:Hn.
+  - apply N.eqb_eq in Hn as ->. inversion Hfr; subst.
+    apply Hdup. by right.
+  - destruct (find_and_remove nid l) eqn:Hfr' => //.
+    destruct p as [[??]?]. eapply IHl in Hfr' => //.
+    2:{ intro Habs'. apply Hdup. right. exact Habs'. }
+    inversion Hfr; subst. apply Hfr'. simpl in Habs.
+    destruct Habs => //. rewrite H in Hdup.
+    exfalso. apply Hdup. left. done.
+Qed.
   
 Lemma find_and_remove_isSound :
   forall T l nid l' a n,
@@ -243,21 +279,19 @@ Proof.
   intros nid l' a0 n HSound.
   destruct a.
   destruct p.
+  destruct HSound as (Hlim & Hcomp & Hdup & HSound).
   destruct (n1 =? nid)%N eqn:Hn.
-  intro H; inversion H; subst.
-  unfold isSound_aux.
-  unfold isSound_aux in HSound.
-  apply Bool.andb_true_iff in HSound as [??] => //.
-  destruct (find_and_remove nid l) eqn:Hl => //.
-  destruct p.
-  destruct p.
-  intro H; inversion H; subst.
-  unfold isSound_aux.
-  unfold isSound_aux in HSound.
-  apply Bool.andb_true_iff in HSound as [??].
-  apply Bool.andb_true_iff; split => //.
-  assert (isSound_aux T l); first done.
-  eapply IHl in H2; last exact Hl.
-  done.
+  - intro H; inversion H; subst.
+    done. 
+  - destruct (find_and_remove nid l) eqn:Hl => //.
+    destruct p.
+    destruct p.
+    intro H; inversion H; subst.
+    unfold isSound_aux.
+    repeat split => //.
+    eapply find_and_remove_compatible. exact Hcomp.
+    exact Hl.
+    eapply find_and_remove_nodup. exact Hdup. exact Hl.
+    eapply IHl. exact HSound. exact Hl.
 Qed. 
 

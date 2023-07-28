@@ -1435,14 +1435,14 @@ Lemma same_length_is_Sound T T' A :
   isSound T A -> isSound T' A.
 Proof.
   intros Hlen HS.
-  unfold isSound, isSound_aux.
-  unfold isSound, isSound_aux in HS.
-  apply List.forallb_forall.
-  intros [[??]?] Hx.
-  edestruct List.forallb_forall as [? _].
-  specialize (H HS (n, n0, n1) Hx) as H'.
-  simpl in H'.
-  rewrite Hlen in H' => //.
+  unfold isSound.
+  unfold isSound in HS.
+  remember (allocated A) as l. clear Heql.
+  induction l => //=.
+  destruct a as [[??]?]. simpl in HS.
+  destruct HS as (?&?&?&?).
+  repeat split => //. rewrite Hlen in H => //.
+  by apply IHl.
 Qed.
 
 
@@ -1623,39 +1623,48 @@ Lemma salloc_sound T A a n nid T' A' :
   isSound T.(seg_data) A -> salloc T A a n nid T' A' -> isSound T'.(seg_data) A'.
 Proof.
   intros HSound Halloc.
-  inversion Halloc; subst.
+  inversion Halloc; subst; clear Halloc.
   unfold isSound => /=.
-  unfold isSound_aux => /=.
-  apply/andP. split.
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size.
-  rewrite size_takel.
-  rewrite List.repeat_length.
-  apply BinNat.N.leb_le. lias.
-  rewrite - length_is_size.
-  lias.
-  unfold isSound, isSound_aux in HSound.
-  apply List.forallb_forall.
-  edestruct List.forallb_forall as [??].
-  intros x Hx.
-  apply (H4 HSound x) in Hx.
-  destruct x as [??].
-  destruct p as [??].
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size size_takel.
-  rewrite List.repeat_length.
-  rewrite length_is_size size_drop.
-  apply N.leb_le.
-  unfold segment_list.seg_length in Hx.
-  apply N.leb_le in Hx.
-  repeat rewrite Nnat.Nat2N.inj_add.
-  rewrite Nnat.Nat2N.inj_sub.
-  repeat rewrite Nnat.N2Nat.id. 
-  rewrite - length_is_size.
-  lia.
-  rewrite - length_is_size. lias.
+  unfold isSound in HSound. unfold isFree in H2.
+  remember (allocated A) as l.
+  clear Heql. induction l => //=.
+  - repeat split => //=.
+    unfold segment_list.seg_length => /=.
+    repeat rewrite List.app_length.
+    rewrite length_is_size size_takel.
+    rewrite List.repeat_length.
+    rewrite length_is_size size_drop.
+    apply N.leb_le.
+    unfold segment_list.seg_length in H.
+    apply N.leb_le in H.
+    repeat rewrite Nnat.Nat2N.inj_add.
+    rewrite Nnat.Nat2N.inj_sub.
+    repeat rewrite Nnat.N2Nat.id. 
+    rewrite - length_is_size.
+    lia.
+    rewrite - length_is_size. lias.
+  - destruct a0 as [[??]?].
+    destruct HSound as (? & ? & ? & HSound).
+    destruct H3 as [? Hcomp]. simpl in H2.
+    destruct (n0 =? nid)%N eqn:Hn => //.
+    destruct (IHl HSound H2 Hcomp) as (? & ? & ? & ?).
+    repeat split => //=.
+    intro Habs; destruct Habs => //=.
+    subst. rewrite N.eqb_refl in Hn => //.
+    unfold segment_list.seg_length => /=.
+    repeat rewrite List.app_length.
+    rewrite length_is_size size_takel.
+    rewrite List.repeat_length.
+    rewrite length_is_size size_drop.
+    apply N.leb_le.
+    unfold segment_list.seg_length in H4.
+    apply N.leb_le in H4.
+    repeat rewrite Nnat.Nat2N.inj_add.
+    rewrite Nnat.Nat2N.inj_sub.
+    repeat rewrite Nnat.N2Nat.id. 
+    rewrite - length_is_size.
+    lia.
+    rewrite - length_is_size. lias.
 Qed.
 
 
@@ -1663,8 +1672,7 @@ Lemma sfree_sound T A a nid T' A' :
   isSound T.(seg_data) A -> sfree T A a nid T' A' -> isSound T'.(seg_data) A'.
 Proof.
   intros HSound Hfree.
-  inversion Hfree; subst.
-  unfold isSound.
+  inversion Hfree; subst; clear Hfree.
   eapply find_and_remove_isSound => //.
   exact HSound.
   exact H.
@@ -1716,33 +1724,23 @@ Lemma salloc_sound_local T A a n nid T' A' A0 :
   isSound T.(seg_data) A0 -> salloc T A a n nid T' A' -> isSound T'.(seg_data) A0.
 Proof.
   intros HSound Halloc.
-  inversion Halloc; subst.
+  inversion Halloc; subst; clear Halloc.
   unfold isSound => /=.
-  unfold isSound_aux => /=.
-(*  apply/andP. split.
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size.
-  rewrite size_takel.
-  rewrite List.repeat_length.
-  apply BinNat.N.leb_le. lias.
-  rewrite - length_is_size.
-  lias. *)
-  unfold isSound, isSound_aux in HSound.
-  apply List.forallb_forall.
-  edestruct List.forallb_forall as [??].
-  intros x Hx.
-  apply (H4 HSound x) in Hx.
-  destruct x as [??].
-  destruct p as [??].
+  unfold isSound in HSound. unfold isFree in H2.
+  remember (allocated A0) as l.
+  clear Heql. induction l => //=.
+  destruct a0 as [[??]?].
+  destruct HSound as (? & ? & ? & HSound).
+  apply IHl in HSound.
+  repeat split => //=.
   unfold segment_list.seg_length => /=.
   repeat rewrite List.app_length.
   rewrite length_is_size size_takel.
   rewrite List.repeat_length.
   rewrite length_is_size size_drop.
   apply N.leb_le.
-  unfold segment_list.seg_length in Hx.
-  apply N.leb_le in Hx.
+  unfold segment_list.seg_length in H4.
+  apply N.leb_le in H4.
   repeat rewrite Nnat.Nat2N.inj_add.
   rewrite Nnat.Nat2N.inj_sub.
   repeat rewrite Nnat.N2Nat.id. 
@@ -1750,6 +1748,7 @@ Proof.
   lia.
   rewrite - length_is_size. lias.
 Qed.
+
   
 Lemma sfree_sound_local T A a nid T' A' A0 :
   isSound T.(seg_data) A0 -> sfree T A a nid T' A' -> isSound T'.(seg_data) A0.

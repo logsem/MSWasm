@@ -507,14 +507,18 @@ Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
       (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
       (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
+      (gen_heap_interp (gmap_of_segment s.(s_segs))) ∗
+      (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗
       (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
       (ghost_map_auth visGName 1 vis) ∗ 
       (ghost_map_auth msGName 1 (gmap_of_list ms)) ∗
       (ghost_map_auth haGName 1 (gmap_of_list fs)) ∗
       (ghost_map_auth frameGName 1 (<[ tt := f ]> ∅)) ∗ 
       (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
+      (gen_heap_interp (<[ () := seg_length s.(s_segs).(seg_data) ]> ∅)) ∗
       (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
       (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
+      (@gen_heap_interp _ _ _ _ _ seglimit_hsG (<[ () := seg_max_opt s.(s_segs) ]> ∅)) ∗
       (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables))))
     )%I;
     num_laters_per_step _ := 0;
@@ -549,7 +553,7 @@ Proof.
     iApply fupd_mask_intro ; first by solve_ndisj.
     iIntros "Hfupd".
     destruct σ as [[[[ws vi] ms] has] f0].
-    iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & Hha & ? & ? & ? & ? & ?)".
+    iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & ? & ? & Hha & ? & ? & ? & ? & ?)".
     iDestruct (ghost_map_lookup with "Hha Hhi") as "%Hf0".
     rewrite gmap_of_list_lookup Nat2N.id in Hf0.
     iSplit.
@@ -591,7 +595,7 @@ Proof.
   iApply lifting.wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[[[s0 vis] ms] fs] f].
-  iDestruct "Hσ" as "(? & ? & ? & Hg & ?)".
+  iDestruct "Hσ" as "(? & ? & ? & ? & ? & Hg & ?)".
   iDestruct (gen_heap_valid with "Hg Hglob") as "%Hglob".
   rewrite gmap_of_list_lookup Nat2N.id in Hglob.
   iSplit.
@@ -657,7 +661,7 @@ Proof.
     iApply fupd_mask_intro ; first by solve_ndisj.
     iIntros "Hfupd".
     destruct σ as [[[[ws vi] ms] has] f0].
-    iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & Hha & ? & ? & ? & ? & ?)".
+    iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & ? & ? & Hha & ? & ? & ? & ? & ?)".
     iDestruct (ghost_map_lookup with "Hha Hhi") as "%Hf0".
     rewrite gmap_of_list_lookup Nat2N.id in Hf0.
     iSplit.
@@ -702,7 +706,7 @@ Proof.
     rewrite iris.to_of_val => //. 
   - iIntros (σ ns κ κs nt) "Hσ".
     destruct σ as [[[[ws vi] ms] has] f1].
-    iDestruct "Hσ" as "(Hfunc & Htab & ? & ? & ? & ? & Hha & Hf1 & ? & Htabsize & ? & ?)".
+    iDestruct "Hσ" as "(Hfunc & Htab & ? & ? & ? & ? & ? & ? & Hha & Hf1 & ? & Htabsize & ? & ?)".
     iDestruct (ghost_map_lookup with "Hha Hhi") as "%Hha".
     rewrite gmap_of_list_lookup Nat2N.id in Hha.
     rewrite - nth_error_lookup in Ha.
@@ -918,7 +922,7 @@ Proof.
 
   iIntros (σ ns κ κs nt) "Hσ".
   destruct σ as [[[[ws vis] ms] ha] f].
-  iDestruct "Hσ" as "(Hf & Ht & Hm & Hg & Hvis & Hms & Hha & Hframe & Hmemlen & Htabsize & Hmemlim & Htablim)".
+  iDestruct "Hσ" as "(Hf & Ht & Hm & Hs & Ha & Hg & Hvis & Hms & Hha & Hframe & Hmemlen & Hseglen & Htabsize & Hmemlim & Hseglim & Htablim)".
   iDestruct (ghost_map_lookup with "Hms Hmod") as "%Hmodlookup".
   iSpecialize ("Hes1" with "Hmod").
   iSpecialize ("Hes1" $! (ws, vis, ms, ha, f) ns κ κs nt).
@@ -1143,7 +1147,7 @@ Proof.
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
   
   iIntros ([[[[ws vis] ms] has] f] ns κ κs nt) "Hσ".
-  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Htsize & Hmlimit & Htlimit)".
+  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit)".
 
   (* module declaration *)
   iDestruct (ghost_map_lookup with "Hms Hmod") as "%Hmod".
@@ -1826,7 +1830,7 @@ Proof.
 
     (* Wasm state update, using the instantiation characterisation lemma *)
     iDestruct (instantiation_wasm_spec with "") as "H" => //.
-    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hwg Hmsize Htsize Hmlimit Htlimit]") as "Hq".
+    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hws Hwa Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
     { unfold instantiation_resources_pre_wasm.
       by iFrame.
     }
@@ -1893,7 +1897,7 @@ Proof.
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
   
   iIntros ([[[[ws vis] ms] has] f] ns κ κs nt) "Hσ".
-  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Htsize & Hmlimit & Htlimit)".
+  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit)".
 
   (* module declaration *)
   iDestruct (ghost_map_lookup with "Hms Hmod") as "%Hmod".
@@ -2648,7 +2652,7 @@ Proof.
 
     (* Wasm state update, using the instantiation characterisation lemma *)
     iDestruct (instantiation_wasm_spec with "") as "H" => //.
-    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hwg Hmsize Htsize Hmlimit Htlimit]") as "Hq".
+    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hws Hwa Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
     { unfold instantiation_resources_pre_wasm.
       by iFrame.
     }

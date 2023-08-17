@@ -515,12 +515,13 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                       let: l := operations.seg_length s.(s_segs) in
                       let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
                       if seg' is Some seg'' then
-                        ret (upd_s_seg (upd_s_all s ({| allocated := (fresh_nid s.(s_alls), l, Wasm_int.N_of_uint i32m c) :: allocated s.(s_alls) |})) seg'', f,
+                        let: fsh := next_free s.(s_alls) in
+                        ret (upd_s_seg (upd_s_all s ({| allocated := base.insert fsh (l, Wasm_int.N_of_uint i32m c) (allocated s.(s_alls)); next_free := fsh + 1 |})) seg'', f,
                             RS_normal (vs_to_es (VAL_handle {| base := l;
                                                               offset := N.of_nat 0;
                                                               bound := Wasm_int.N_of_uint i32m c;
                                                               valid := true;
-                                                              id := fresh_nid s.(s_alls) |} :: ves')))
+                                                              id := fsh |} :: ves')))
                       else ret (s, f, crash_error)
 (*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
@@ -543,7 +544,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                           (find_and_remove h.(id) s.(s_alls).(allocated))
                           (fun '(l, a, n) =>
                              if (a == h.(base))%N then
-                               ret (upd_s_all s {| allocated := l |}, f, RS_normal (vs_to_es ves'))
+                               ret (upd_s_all s {| allocated := l; next_free := next_free s.(s_alls) |}, f, RS_normal (vs_to_es ves'))
                              else ret (s, f, crash_error))
                           (ret (s, f, crash_error))
                       else ret (s, f, crash_error)

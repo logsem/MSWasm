@@ -2,7 +2,7 @@
 (* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 
 From Wasm Require Import common memory_list segment_list.
-From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
+From mathcomp Require Import ssreflect ssrfun (*  ssrnat *) ssrbool eqtype  seq.
 From compcert Require lib.Floats.
 From Wasm Require Export datatypes_properties list_extra.
 From Coq Require Import BinNat Eqdep_dec.
@@ -172,6 +172,8 @@ Definition seg_grow (s : segment) (len_delta : N) : option segment :=
   end
   else None.
 
+Section alloc.
+  Import gmap.
 
 Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -> Prop
   :=
@@ -186,12 +188,18 @@ Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -
       T' = {| seg_data :=
                {| segl_data := take (N.to_nat a) (segl_data (seg_data T)) ++ List.repeat (#00, Numeric) (N.to_nat n) ++ drop (N.to_nat (a + n)) (segl_data (seg_data T)) |};
              seg_max_opt := seg_max_opt T |} ->
-      A' = {| allocated := (nid, a, n) :: allocated A |} ->
+      A' = {| allocated := <[ nid := (a, n) ]> (allocated A) ;
+             next_free := N.max (next_free A) (nid + 1) |} ->
       salloc T A a n nid T' A'.
+End alloc.
+
+Section l_is_s.
+  Import ssrnat.
 
 Lemma length_is_size {A} (l : list A) : length l = size l.
 Proof. done. Qed.
 
+End l_is_s.
 
 
   
@@ -204,7 +212,7 @@ Proof. done. Qed.
 Inductive sfree : segment -> allocator -> N -> N -> segment -> allocator -> Prop :=
   Free : forall T A a nid l n A',
       find_and_remove nid A.(allocated) = Some (l, a, n) ->
-      A' = {| allocated := l |} ->
+      A' = {| allocated := l; next_free := next_free A |} ->
       sfree T A a nid T A'.
 
 
@@ -287,6 +295,7 @@ Proof.
 
 
 Section WasmBytes.
+  Import ssrnat.
   Context `{HandleBytes}.
 Definition wasm_deserialise (bs : bytes) (vt : value_type) : value :=
   match vt with
@@ -697,6 +706,8 @@ Proof.
       end.
 Defined.
 
+Section extensions.
+  Import ssrnat.
 Definition tab_extension (t1 t2 : tableinst) :=
   (tab_size t1 <= tab_size t2) &&
   (t1.(table_max_opt) == t2.(table_max_opt)).
@@ -716,7 +727,9 @@ Definition store_extension (s s' : store_record) : bool :=
     (all2 mem_extension s.(s_mems) s'.(s_mems)) &&
     (seg_extension s.(s_segs) s'.(s_segs)) &&
     (all_extension s.(s_alls) s'.(s_alls)) &&
-  (all2 glob_extension s.(s_globals) s'.(s_globals)).
+    (all2 glob_extension s.(s_globals) s'.(s_globals)).
+
+
 
 Definition vs_to_vts (vs : seq value) := map typeof vs.
 
@@ -798,6 +811,7 @@ Fixpoint split_n (es : seq value) (n : nat) : seq value * seq value :=
     let: (es', es'') := split_n esX n in
     (e :: es', es'')
   end.
+
 
 Definition expect {A B : Type} (ao : option A) (f : A -> B) (b : B) : B :=
   match ao with
@@ -905,6 +919,8 @@ Fixpoint lfill_exact (k : nat) (lh : lholed) (es : seq administrative_instructio
       else None
     else None
   end.
+
+End extensions.
 
 Definition lfilled_exact (k : nat) (lh : lholed) (es : seq administrative_instruction) (es' : seq administrative_instruction) : bool :=
   if lfill_exact k lh es is Some es'' then es' == es'' else false.

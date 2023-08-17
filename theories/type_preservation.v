@@ -2699,13 +2699,12 @@ Proof.
     injection H1. move => H2. clear H1. subst.
     unfold seg_length => /=.
     repeat eexists.
-    repeat rewrite length_is_size.
-    repeat rewrite size_cat => /=. 
-    rewrite size_take. rewrite size_drop.
+    repeat rewrite List.app_length => /=. 
+    rewrite List.firstn_length_le. rewrite List.skipn_length.
+    lias.
 (*    apply is_Some_is_not_None, List.nth_error_Some in HMemSize.  *)
-    assert (N.to_nat (pos+N.of_nat n1) < size (segl_data m3)); first by lias.
-    rewrite H0.
-    by lias. 
+    assert (N.to_nat (pos+N.of_nat n1) < length (segl_data m3)); first by lias.
+    lias.
   - move => a HP. destruct a as [n1 m1].
     destruct HP as [m2 HP]. subst.
     unfold mem_type_proj2_preserve.
@@ -2843,12 +2842,9 @@ Proof.
   intros seg A a b c seg' A' H.
   inversion H.
   subst => /=.
-  repeat rewrite length_is_size.
-  repeat rewrite size_cat.
-  rewrite length_is_size in H0.
-  rewrite size_takel; last lias.
-  rewrite size_drop.
-  repeat rewrite -length_is_size.
+  repeat rewrite List.app_length.
+  rewrite List.firstn_length_le; last lias.
+  rewrite List.skipn_length.
   rewrite List.repeat_length.
   lias.
 Qed.  
@@ -2923,7 +2919,7 @@ Proof.
   unfold seg_size, operations.seg_length, seg_length.
   destruct m => /=.
   destruct seg_data => /=.
-  simpl in H'.
+  simpl in H'. 
   apply N.leb_le. 
   admit.
 Admitted. (*lia.
@@ -3203,11 +3199,9 @@ Proof.
   unfold seg_agree in H.
   destruct (seg_max_opt (s_segs s)) => //.
   unfold seg_size, operations.seg_length, seg_length => /=.
-  rewrite length_is_size.
-  repeat rewrite size_cat.
-  rewrite size_takel; last by rewrite length_is_size in H0; lias.
-  rewrite size_drop.
-  rewrite -length_is_size.
+  repeat rewrite List.app_length.
+  rewrite List.firstn_length_le; last by lias.
+  rewrite List.skipn_length.
   rewrite List.repeat_length.
   repeat rewrite Nat2N.inj_add.
   rewrite Nat2N.inj_sub.

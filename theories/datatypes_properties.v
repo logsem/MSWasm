@@ -2,8 +2,11 @@
 (* (C) M. Bodin, J. Pichon - see LICENSE.txt *)
 
 Require Import bytes common.
-Require Export datatypes.
+Require Export datatypes segment_list.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
+
+
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -19,6 +22,7 @@ Canonical Structure memaddr_eqType :=
   Eval hnf in EqType memaddr nat_eqMixin.
 Canonical Structure globaladdr_eqType :=
   Eval hnf in EqType globaladdr nat_eqMixin.
+
 
 Definition ascii_eq_dec : forall tf1 tf2 : Ascii.ascii,
   {tf1 = tf2} + {tf1 <> tf2}.
@@ -253,6 +257,14 @@ Definition eqglobalP : Equality.axiom global_eqb :=
 
 Canonical Structure global_eqMixin := EqMixin eqglobalP.
 Canonical Structure global_eqType := Eval hnf in EqType global global_eqMixin.
+
+Definition allocated_eqb v1 v2 : bool := allocated_eq_dec v1 v2.
+Definition eqallocatedP : Equality.axiom allocated_eqb :=
+  eq_dec_Equality_axiom allocated_eq_dec.
+
+Canonical Structure allocated_eqMixin := EqMixin eqallocatedP.
+Canonical Structure allocated_eqType := Eval hnf in EqType (gmap.gmap BinNums.N (BinNums.N * BinNums.N)) allocated_eqMixin.
+
 
 Definition store_record_eq_dec : forall v1 v2 : store_record, {v1 = v2} + {v1 <> v2}.
 Proof. decidable_equality. Defined.

@@ -3,7 +3,8 @@
 
 From Wasm Require Import common.
 From Coq Require Import ZArith.BinInt.
-From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
+From stdpp Require Import gmap.
+From mathcomp Require Import ssreflect ssrfun (* ssrnat *) ssrbool eqtype seq.
 From Wasm Require Export operations (* host *) type_checker segment_list handle.
 Require Import BinNat.
 
@@ -153,11 +154,12 @@ Qed.*)
 Section interpreter_func.
   Context `{HHB: HandleBytes}.
 
+   
 Fixpoint run_step_with_fuel (fuel : fuel) (d : depth) (cfg : config_tuple) : res_tuple :=
   let: (s, f, es) := cfg in
   match fuel with
   | 0 => (s, f, RS_crash C_exhaustion)
-  | fuel.+1 =>
+  | S fuel =>
     let: (ves, es') := split_vals_e es in (** Framing out constants. **)
     match es' with
     | [::] => (s, f, crash_error)
@@ -179,7 +181,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
   let: (s, f, ves) := cfg in
   match fuel with
   | 0 => (s, f, RS_crash C_exhaustion)
-  | fuel.+1 =>
+  | S fuel =>
     match e with
     (* unop *)
     | AI_basic (BI_unop t op) =>
@@ -238,14 +240,14 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         else (s, f, RS_normal (vs_to_es (v1 :: ves')))
       else (s, f, crash_error)
     | AI_basic (BI_block (Tf t1s t2s) es) =>
-      if length ves >= length t1s
+      if Nat.leb (length t1s) (length ves)
       then
         let: (ves', ves'')  := split_n ves (length t1s) in
         (s, f, RS_normal (vs_to_es ves''
                 ++ [::AI_label (length t2s) [::] (vs_to_es ves' ++ to_e_list es)]))
       else (s, f, crash_error)
     | AI_basic (BI_loop (Tf t1s t2s) es) =>
-      if length ves >= length t1s
+      if Nat.leb (length t1s) (length ves)
       then
         let: (ves', ves'') := split_n ves (length t1s) in
         (s, f, RS_normal (vs_to_es ves''
@@ -268,7 +270,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
     | AI_basic (BI_br_table js j) =>
       if ves is VAL_int32 c :: ves' then
         let: k := Wasm_int.nat_of_uint i32m c in
-        if k < length js
+        if Nat.ltb k (length js)
         then
           expect (List.nth_error js k) (fun js_at_k =>
               (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_br js_at_k)])))
@@ -295,7 +297,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
     | AI_basic BI_return => (s, f, RS_return ves)
     | AI_basic (BI_get_local j) =>
-      if j < length f.(f_locs)
+      if Nat.ltb j (length f.(f_locs))
       then
         expect (List.nth_error f.(f_locs) j) (fun vs_at_j =>
             (s, f, RS_normal (vs_to_es (vs_at_j :: ves))))
@@ -303,7 +305,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
     | AI_basic (BI_set_local j) =>
       if ves is v :: ves' then
-        if j < length f.(f_locs)
+        if Nat.ltb j (length f.(f_locs))
         then (s, Build_frame (update_list_at f.(f_locs) j v) f.(f_inst), RS_normal (vs_to_es ves'))
         else (s, f, crash_error)
       else (s, f, crash_error)
@@ -499,7 +501,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         (smem_ind s f.(f_inst))
         (fun j =>
            if List.nth_error s.(s_mems) j is Some s_mem_s_j then
-             (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (mem_size s_mem_s_j))) :: ves)))
+             (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (N.to_nat (mem_size s_mem_s_j)))) :: ves)))
            else (s, f, crash_error))
         (s, f, crash_error)
     | AI_basic BI_grow_memory =>
@@ -512,7 +514,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
               let: mem' := mem_grow s_mem_s_j (Wasm_int.N_of_uint i32m c) in
               if mem' is Some mem'' then
                 (upd_s_mem s (update_list_at s.(s_mems) j mem''), f,
-                 RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat l)) :: ves')))
+                 RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (N.to_nat l))) :: ves')))
               else (s, f, crash_error)
             else (s, f, crash_error))
           (s, f, crash_error)
@@ -530,12 +532,13 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                       let: l := operations.seg_length s.(s_segs) in
                       let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
                       if seg' is Some seg'' then
-                        (upd_s_seg (upd_s_all s {| allocated := (fresh_nid s.(s_alls), l, Wasm_int.N_of_uint i32m c) :: allocated s.(s_alls) |}) seg'', f,
+                        let: fsh := next_free s.(s_alls) in
+                        (upd_s_seg (upd_s_all s {| allocated := <[ fsh := (l, Wasm_int.N_of_uint i32m c) ]> (allocated s.(s_alls)); next_free := fsh + 1 |}) seg'', f,
                             RS_normal (vs_to_es (VAL_handle {| base := l;
                                                               offset := N.of_nat 0;
                                                               bound := Wasm_int.N_of_uint i32m c;
                                                               valid := true;
-                                                              id := fresh_nid s.(s_alls) |} :: ves')))
+                                                              id := fsh |} :: ves')))
                       else (s, f, crash_error)
 (*                    else (s, f, crash_error)
                   else (s, f, crash_error))
@@ -553,12 +556,12 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some s_seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
-                      if h.(valid) && (h.(offset) == N.zero)%N then
+                      if h.(valid) && (N.eqb h.(offset) N.zero) then
                         expect
                           (find_and_remove h.(id) s.(s_alls).(allocated))
                           (fun '(l, a, n) =>
-                             if (a == h.(base))%N then
-                               (upd_s_all s {| allocated := l |}, f, RS_normal (vs_to_es ves'))
+                             if (N.eqb a h.(base)) then
+                               (upd_s_all s {| allocated := l; next_free := next_free s.(s_alls) |}, f, RS_normal (vs_to_es ves'))
                              else (s, f, crash_error))
                           ((s, f, crash_error))
                       else (s, f, crash_error)
@@ -578,7 +581,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         | FC_func_native i (Tf t1s t2s) ts es =>
             let: n := length t1s in
             let: m := length t2s in
-            if length ves >= n
+            if Nat.leb n (length ves)
             then
             let: (ves', ves'') := split_n ves n in
             let: zs := n_zeros ts in
@@ -588,7 +591,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         | FC_func_host (Tf t1s t2s) cl' =>
             let: n := length t1s in
             let: m := length t2s in
-            if length ves >= n
+            if Nat.leb n (length ves)
             then
               let: (ves', ves'') := split_n ves n in
               (s, f, RS_call_host (Tf t1s t2s) cl' (rev ves'))
@@ -611,10 +614,10 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
           let: (s', f', res) := run_step_with_fuel fuel d (s, f, es) in
           match res with
           | RS_break 0 bvs =>
-            if length bvs >= ln
+            if Nat.leb ln (length bvs)
             then (s', f', RS_normal ((vs_to_es ((take ln bvs) ++ ves)) ++ les))
             else (s', f', crash_error)
-          | RS_break (n.+1) bvs => (s', f', RS_break n bvs)
+          | RS_break (S n) bvs => (s', f', RS_break n bvs)
           | RS_return rvs => (s', f', RS_return rvs)
           | RS_normal es' =>
             (s', f', RS_normal (vs_to_es ves ++ [::AI_label ln les es']))
@@ -627,14 +630,14 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else
         if const_list es
         then
-          if length es == ln
+          if Nat.eqb (length es) ln
           then (s, f, RS_normal (vs_to_es ves ++ es))
           else (s, f, crash_error)
         else
           let: (s', f', res) := run_step_with_fuel fuel d (s, lf, es) in
           match res with
           | RS_return rvs =>
-            if length rvs >= ln
+            if Nat.leb ln (length rvs)
             then (s', f, RS_normal (vs_to_es (take ln rvs ++ ves)))
             else (s', f, crash_error)
           | RS_normal es' =>
@@ -660,7 +663,7 @@ Proof.
         let n := fresh "n" in
         move=> n;
         aux (n + v)
-      | |- _ => exact (v.+1)
+      | |- _ => exact (S v)
       end in
     aux (1 : nat).
 Defined.
@@ -677,7 +680,7 @@ Fixpoint run_v (fuel : fuel) (d : depth) (cfg : config_tuple) : ((store_record *
   let: (s, f, es) := cfg in
   match fuel with
   | 0 => (s, R_crash C_exhaustion)
-  | fuel.+1 =>
+  | S fuel =>
     if es_is_trap es
     then (s, R_trap)
     else

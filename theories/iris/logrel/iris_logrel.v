@@ -79,7 +79,7 @@ Section logrel.
   Definition interp_value_i64 : WR := λne w, ⌜∃ z, w = VAL_int64 z⌝%I.
   Definition interp_value_f32 : WR := λne w, ⌜∃ z, w = VAL_float32 z⌝%I.
   Definition interp_value_f64 : WR := λne w, ⌜∃ z, w = VAL_float64 z⌝%I.
-  Definition intepr_value_handle: WR := λne w, ⌜∃ z, w = VAL_handle z⌝%I.
+  Definition intepr_value_handle: WR := λne w, ⌜∃ z, w = VAL_handle z⌝%I. (* Probably not strong enough. Define an invt with a points-to inside *)
       
 
    Definition interp_value (τ : value_type) : WR :=

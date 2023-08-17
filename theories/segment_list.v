@@ -1,6 +1,8 @@
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
 Require Import BinNat Lia.
 From Wasm Require Import numerics bytes memory.
+From stdpp Require Import gmap.
+
 
 Inductive btag := Numeric | Handle.
 
@@ -10,9 +12,9 @@ Record segment_list : Type := {
   }.
 
 
-
 Record allocator : Type := {
-    allocated : list (N * N * N);
+    allocated : (* list (N * N * N) *) gmap N (N * N);
+    next_free : N;
   }.
 
 
@@ -39,6 +41,15 @@ Definition count_some (x : N) l :=
                     | Some y => if (y =? x)%N then acc + 1 else acc
                     | None => acc end) l 0. *) 
 
+Definition find (nid : N) (l : gmap N (N * N)) : option (N * N) :=
+  l !! nid.
+Definition find_and_remove (nid : N) (l : gmap N (N * N)) : option (gmap N (N * N) * N * N) :=
+  match l !! nid with
+  | Some (b, c) => Some (delete nid l, b, c)
+  | None => None
+  end. 
+
+(*
 Fixpoint find (nid : N) (l: list (N * N * N)) : option (N * N) :=
   match l with
   | [::] => None
@@ -56,28 +67,37 @@ Fixpoint find_and_remove (nid : N) (l: list (N * N * N)) : option (list (N * N *
         | Some (l, d, e) => Some ((a,b,c) :: l, d, e)
         | None => None
         end
-  end.
+  end. *)
+
+
+
 
 Definition find_address nid l := match find_and_remove nid l.(allocated) with
                                  | Some (_,a, _) => Some a
-                                 | None => None end.
+                                 | None => None end. 
+
+
 Definition isAlloc nid s : Prop :=
+(*  exists x, s.(allocated) !! nid = Some x. *)
   match find nid s.(allocated) with
   | None => False
   | Some _ => True
-  end.
+  end. 
 
 Definition isAllocb nid s :=
   match find nid s.(allocated) with
   | None => false
   | _ => true
-  end.
+  end. 
 
-Definition isFree nid s : Prop := find nid s.(allocated) = None.
+Definition isFree nid s : Prop :=
+(*  s.(allocated) !! nid = None.*) find nid s.(allocated) = None. 
 
 
-
-
+Definition compatible addr size (s : gmap N (N * N)) : Prop :=
+  forall nid addr' size', s !! nid = Some (addr', size') ->
+                     (addr + size <= addr')%N \/ (addr >= addr' + size')%N.
+(*
 Fixpoint compatible addr size (l : list (N * N * N)) : Prop :=
   match l with
   | [::] => True
@@ -98,10 +118,10 @@ Proof.
     apply (H (n2, n3, n4)).
     by right.
 Qed. 
+*)
 
 
-
-  
+(*  
 Fixpoint fresh_nid_aux (l : list (N * N * N)) :=
   match l with
   | [::] => 0%N
@@ -109,8 +129,8 @@ Fixpoint fresh_nid_aux (l : list (N * N * N)) :=
                     if (x <=? id)%N then (id + 1)%N else x
   end.
 
-Definition fresh_nid A := fresh_nid_aux A.(allocated).
-
+Definition fresh_nid A := fresh_nid_aux A.(allocated). *)
+(*
 Lemma fresh_nid_is_free_aux: forall l n, (n >= fresh_nid_aux l)%N -> isFree n {| allocated := l |}.
 Proof.
   induction l; intros => //=.
@@ -134,7 +154,7 @@ Proof.
   simpl. lia.
 Qed. 
   
-
+*)
 (*
 Lemma fresh_nid: forall A, exists nid, forall nid', (nid' >= nid)%N -> isFree nid' A.
 Proof.
@@ -203,21 +223,33 @@ Definition seg_grow :=
 (* Definition isSound_aux T (l : list (N * N * N)) : Prop :=
   List.forallb (fun '(a,b,c) => N.leb (b + c) (seg_length T)) l. *)
 
+Definition isSound_aux T (m : gmap N (N * N)) : Prop :=
+  forall a b c, m !! a = Some (b,c) ->
+           (b + c <= seg_length T)%N /\ compatible b c (delete a m).
+(*
 Fixpoint isSound_aux T (l : list (N * N * N)) : Prop :=
   match l with
   | [::] => True
   | (a,b,c) :: q => N.leb (b + c) (seg_length T) /\ compatible b c q /\
                     ~(List.In a (List.map (fun '(x,_,_) => x) q)) /\ isSound_aux T q
-  end. 
+  end.  *)
 
 Definition isSound T A : Prop :=
-  isSound_aux T A.(allocated).
+  isSound_aux T A.(allocated) /\
+    forall k, (k >= A.(next_free))%N -> A.(allocated) !! k = None.
 
 
 
 Lemma data_length_is_compatible_aux :
   forall l T size, isSound_aux T l -> compatible (seg_length T) size l.
 Proof.
+  intros l T size Hsound.
+  unfold compatible. unfold isSound_aux in Hsound.
+  intros a b c Ha.
+  apply Hsound in Ha.
+  right. lia.
+Qed.
+(*
   intro l. induction l => //=.
   intros. destruct a. destruct p.
   destruct H as (Hlim & Hcomp & Hdup & H).
@@ -227,20 +259,36 @@ Proof.
   - apply IHl.
     done. 
 Qed. 
+*)
 
 Lemma data_length_is_compatible :
   forall T A size, isSound T A -> compatible (seg_length T) size A.(allocated).
 Proof.
   intros.
   apply data_length_is_compatible_aux.
-  exact H.
+  by destruct H.
 Qed.
 
 
 Lemma find_and_remove_compatible:
   forall l nid l' a n add size,
-    compatible add size l -> find_and_remove nid l = Some (l', a, n) -> compatible add size l'.
+    compatible add size l ->
+    find_and_remove nid l = Some (l', a, n) ->
+    compatible add size l'.
 Proof.
+  intros l nid l' a n add size Hcomp Hrem nid' b c Hnid'.
+  unfold find_and_remove in Hrem.
+  destruct (l !! nid) eqn:Hnid => //.
+  destruct p as [??].
+  inversion Hrem; subst; clear Hrem.
+  destruct (nid =? nid')%N eqn:Hn.
+  - apply N.eqb_eq in Hn as ->.
+    by rewrite lookup_delete in Hnid'.
+  - apply N.eqb_neq in Hn.
+    rewrite lookup_delete_ne in Hnid' => //.
+    by apply Hcomp in Hnid'.
+Qed.
+(*  
   induction l => //=.
   intros * Hcomp Hfr. destruct a as [[??]?].
   destruct (n0 =? nid)%N.
@@ -248,8 +296,9 @@ Proof.
   - destruct Hcomp as [??]. destruct (find_and_remove nid l) eqn:Hfr' => //.
     destruct p as [[??]?]. eapply IHl in Hfr' => //; last exact H0.
     inversion Hfr; subst. simpl. split => //.
-Qed.
+Qed. *)
 
+(*
 Lemma find_and_remove_nodup:
   forall l nid l' a n nid',
     (~ List.In nid' (List.map (fun '(x,_,_) => x) l)) ->
@@ -268,12 +317,33 @@ Proof.
     inversion Hfr; subst. apply Hfr'. simpl in Habs.
     destruct Habs => //. rewrite H in Hdup.
     exfalso. apply Hdup. left. done.
-Qed.
+Qed. 
+*)
   
 Lemma find_and_remove_isSound :
   forall T l nid l' a n,
     isSound_aux T l -> find_and_remove nid l = Some (l', a, n) -> isSound_aux T l'.
 Proof.
+  intros T l nid l' a n Hsound Hrem nid' b c Hnid'.
+  unfold find_and_remove in Hrem.
+  destruct (l !! nid) eqn:Hnid => //.
+  destruct p.
+  inversion Hrem; subst; clear Hrem.
+  destruct (nid =? nid')%N eqn:Hn.
+  apply N.eqb_eq in Hn as ->.
+  by rewrite lookup_delete in Hnid'.
+  apply N.eqb_neq in Hn.
+  rewrite lookup_delete_ne in Hnid' => //.
+  apply Hsound in Hnid' as [??] => //.
+  split => //. Search compatible.
+  eapply find_and_remove_compatible.
+  exact H0. instantiate (3 := nid).
+  unfold find_and_remove.
+  rewrite lookup_delete_ne => //.
+  rewrite Hnid.
+  by rewrite delete_commute.
+Qed.
+(*  
   intros T l.
   induction l => //=.
   intros nid l' a0 n HSound.
@@ -294,4 +364,8 @@ Proof.
     eapply find_and_remove_nodup. exact Hdup. exact Hl.
     eapply IHl. exact HSound. exact Hl.
 Qed. 
+*)
+
+Definition allocated_eq_dec : forall v1 v2 : gmap N (N * N), {v1 = v2} + {v1 <> v2}.
+Proof. intros. solve_decision. Qed.
 

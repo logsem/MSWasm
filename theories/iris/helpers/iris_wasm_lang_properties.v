@@ -1773,6 +1773,9 @@ Section wasm_lang_properties.
 
   Section to_val_None.
     Context `{HHB: HandleBytes}.
+
+    Definition dummy_all := {| allocated := gmap.gmap_empty; next_free := 0%N |}.
+    
   Lemma to_val_brV_None vs n i lh es LI :
     const_list vs ->
     length vs = n ->
@@ -1783,7 +1786,7 @@ Section wasm_lang_properties.
     eapply val_head_stuck_reduce.
     apply rm_silent, r_simple. eapply rs_br;eauto.
     Unshelve. apply (Build_store_record [] [] []).
-    apply dummy_segment. apply {| allocated := [] |}. apply [].
+    apply dummy_segment. apply dummy_all. apply [].
     apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.
 
@@ -1795,7 +1798,7 @@ Section wasm_lang_properties.
     eapply val_head_stuck_reduce.
     eapply rm_silent, r_simple, rs_label_const. eapply to_val_const_list;eauto.
     Unshelve. apply (Build_store_record [] [] []). apply dummy_segment.
-    apply {| allocated := [] |}. apply [].
+    apply dummy_all. apply [].
     apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.  
   
@@ -1808,7 +1811,7 @@ Section wasm_lang_properties.
     eapply val_head_stuck_reduce.
     eapply rm_silent, r_simple, rs_label_trap.
     Unshelve. apply (Build_store_record [] [] []). apply dummy_segment.
-    apply {| allocated :=  [] |}. apply [].
+    apply dummy_all. apply [].
     apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.
 

@@ -25,6 +25,10 @@ Section adequacy.
   Context {mem_preg: gen_heapGpreS (N*N) byte Σ}.
   Context {memsize_preg: gen_heapGpreS N N Σ}.
   Context {memlimit_preg: gen_heapGpreS N (option N) Σ}.
+  Context {seg_preg: gen_heapGpreS N (byte * btag) Σ}.
+  Context {segsize_preg: gen_heapGpreS unit N Σ}.
+  Context {seglimit_preg: gen_heapGpreS unit (option N) Σ}.
+  Context {all_preg: gen_heapGpreS N (N * N) Σ}.
   Context {glob_preg: gen_heapGpreS N global Σ}.
   Context {locs_preg: gen_heapGpreS unit frame Σ}.
   Context {vis_preg: gen_heapGpreS N module_export Σ}.
@@ -63,6 +67,10 @@ Section adequacy.
       iMod (gen_heap_init (∅:gmap (N*N) byte)) as (mem_heapg) "[Hmem_ctx _]".
       iMod (gen_heap_init (∅:gmap N N)) as (memsize_heapg) "[Hmemsize_ctx _]".
       iMod (@gen_heap_init _ _ _ _ _ memlimit_preg (∅:gmap N (option N))) as (memlimit_heapg) "[Hmemlimit_ctx _]".
+      iMod (gen_heap_init (∅: gmap N (N * N))) as (all_heapg) "[Hall_ctx _]".
+      iMod (gen_heap_init (∅: gmap N (byte * btag))) as (seg_heapg) "[Hseg_ctx _]".
+      iMod (gen_heap_init (<[():=seg_length {| segl_data := [] |}]> ∅: gmap unit N)) as (segsize_heapg) "[Hsegsize_ctx _]".
+      iMod (@gen_heap_init _ _ _ _ _ seglimit_preg (<[ () := None ]> ∅: gmap unit (option N))) as (seglimit_heapg) "[Hseglimit_ctx _]".
       iMod (gen_heap_init (∅:gmap N global)) as (global_heapg) "[Hglobal_ctx _]".
       
       apply (@gen_heapGpreS_heap) in locs_preg as frame_heapg.
@@ -76,7 +84,8 @@ Section adequacy.
 
       iMod (@na_alloc Σ na_invg) as (logrel_nais) "Hna".
       pose wasmg := WasmG Σ Hinv func_heapg tab_heapg tabsize_heapg
-                          tablimit_heapg mem_heapg memsize_heapg memlimit_heapg
+                      tablimit_heapg mem_heapg memsize_heapg memlimit_heapg
+                      seg_heapg segsize_heapg seglimit_heapg all_heapg
                           global_heapg frame_heapg γframe.
       pose visgg := HVisG Σ vis_heapg γvis.
       pose msgg := HMsG Σ ms_heapg γms.
@@ -99,7 +108,7 @@ Section adequacy.
       { iSplitL "Hv1";[iExists _;iFrame|]. iExists _;iFrame. }
       iDestruct ("HH" with "[]") as "HH";[auto|].
       iModIntro.
-      iExists _,_. iFrame "HH". iFrame.
+      iExists _,_. iFrame "HH". iFrame. 
     }
     intros v Hval.
     destruct X. eapply adequate_result with (t2 := []).
@@ -125,6 +134,10 @@ Proof.
               gen_heapΣ (N*N) byte;
               gen_heapΣ N N;
               gen_heapΣ N (option N);
+              gen_heapΣ N (byte * btag);
+              gen_heapΣ unit N;
+              gen_heapΣ unit (option N);
+              gen_heapΣ N (N * N);
               gen_heapΣ N global;
               gen_heapΣ unit frame;
               gen_heapΣ N module_export;

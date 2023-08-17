@@ -372,7 +372,8 @@ Definition dummy_seg := {|
   seg_max_opt := None
                        |}.
 
-Definition dummy_all := {| allocated := [::] |}.
+
+Definition dummy_all := {| allocated := gmap.gmap_empty; next_free := 0%N |}.
 
 (* Definition init_seg (s : store_record) (inst : instance) (d_ind : N) (d : module_segdata) : store_record :=
   let s_ind := List.nth (match d.(modsegdata_data) with Mk_segidx i => i end) inst.(inst_segment) 0 in

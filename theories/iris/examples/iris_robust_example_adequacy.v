@@ -36,7 +36,7 @@ Section adequacy.
   Context {has_preg: gen_heapGpreS N host_action Σ}.
 
 
-  Definition S := Build_store_record [] [] [] dummy_segment {| allocated := [] |} [ {| g_mut := MUT_mut; g_val := xx 0 |} ].
+  Definition S := Build_store_record [] [] [] dummy_segment dummy_all [ {| g_mut := MUT_mut; g_val := xx 0 |} ].
   Definition V (vs : module_export) : vi_store :=
     <[0%N:=vs]> (<[1%N:={| modexp_name := [Byte.x00]; modexp_desc := MED_global (Mk_globalidx (N.to_nat 0)) |} ]> ∅).
   Definition M adv_module := [adv_module; lse_module].

@@ -380,5 +380,56 @@ Proof.
     prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
-    
+
+
+
+Lemma wp_slice (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h v1 v2 h' f0 :
+  slice_handle h (Wasm_int.N_of_uint i32m v1) (Wasm_int.N_of_uint i32m v2) = Some h' ->
+  ↪[frame] f0 -∗
+  ▷Φ (immV [VAL_handle h']) -∗ WP [AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_const (VAL_int32 v1)) ;
+                      AI_basic (BI_const (VAL_int32 v2)) ; AI_basic (BI_slice) ] @ s;
+E {{ w, Φ w ∗ ↪[frame] f0}}.
+Proof.
+  iIntros (Hn) "Hf0 HΦ".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  iSplit.
+  - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
+    exists [ME_empty], [AI_basic (BI_const (VAL_handle h'))], σ, [].
+    destruct σ as [[ws  locs ] inst].
+    unfold iris.prim_step => /=. repeat split => //.
+    apply rm_silent, r_simple ; by eapply rs_slice_success.
+  - destruct σ as [[ ws  locs ] inst].
+    iIntros "!>" (es σ2 efs HStep) "!>".
+    destruct σ2 as [[ ws'  locs' ] inst'].
+    prim_split κ HStep H.
+    only_one_reduction H. iFrame.
+Qed.
+
+Lemma wp_handleadd (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h c f0 :
+  ↪[frame] f0 -∗
+  ▷Φ (immV [VAL_handle  {| base := h.(base) ;
+           offset := h.(offset) + Wasm_int.N_of_uint i32m c ;
+           bound := h.(bound) ;
+           valid := h.(valid) ; id := h.(id) |}]) -∗ WP [AI_basic (BI_const (VAL_int32 c)) ; 
+                      AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
+E {{ w, Φ w ∗ ↪[frame] f0}}.
+Proof.
+  iIntros "Hf0 HΦ".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  iSplit.
+  - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
+    eexists [ME_empty], [AI_basic (BI_const (VAL_handle _))], σ, [].
+    destruct σ as [[ws  locs ] inst].
+    unfold iris.prim_step => /=. repeat split => //.
+    apply rm_silent, r_simple ; by eapply rs_handleadd.
+  - destruct σ as [[ ws  locs ] inst].
+    iIntros "!>" (es σ2 efs HStep) "!>".
+    destruct σ2 as [[ ws'  locs' ] inst'].
+    prim_split κ HStep H.
+    only_one_reduction H. iFrame.
+Qed.
+
+
 End iris_rules_pure.

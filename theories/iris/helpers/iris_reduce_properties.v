@@ -1848,7 +1848,7 @@ Section reduce_properties_lemmas.
     Unshelve.
     
     apply (Build_store_record [] [] []). apply dummy_segment.
-    apply {| allocated := [] |}. apply [].
+    apply dummy_all. apply [].
     apply (Build_frame [] (Build_instance [] [] [] [] [])).
   Qed.
 

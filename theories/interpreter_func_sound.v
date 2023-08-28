@@ -636,7 +636,7 @@ Proof.
     move=> d [[tt_s tt_f] tt_es] s' f' r //.
   - simpl. destruct b; (try destruct v); explode_and_simplify; pattern_match => //.
     destruct p. destruct p.
-    destruct (n0 == base h); 
+    destruct (BinNat.N.eqb n0 (base h));
       by inversion H1; subst. 
   - by pattern_match.
   - simpl. explode_and_simplify; try pattern_match => //.
@@ -726,7 +726,7 @@ Proof.
       exists (AI_basic (BI_br n)). exists es2'.
       (* unused ones *) exists 0. exists [::]. exists [::].
       move=> /=. apply/andP. split => //=. apply/orP. left. apply/andP. by split => //=.
-    + destruct p. destruct p. destruct (n1 == base h).
+    + destruct p. destruct p. destruct (BinNat.N.eqb n1 (base h)).
       intro H; inversion H.
       all: try by unfold crash_error; intro Habs; inversion Habs.
   - move:H. by explode_and_simplify.
@@ -741,12 +741,12 @@ Proof.
     unfold run_one_step, run_step_with_fuel in HDestruct.
     rewrite HDestruct.
     destruct r'' as [ |n' rvs'| | |]=> //. destruct n' ; last by pattern_match.
-    by destruct (n0 <= length rvs').
+    by destruct (NPeano.Nat.leb n0 (length rvs')).
   - (* Local *)
     move:H. explode_and_simplify.
     destruct (run_step_with_fuel fuel d (s, l, l0)) as [[[hs'' s''] f''] r''] eqn:HDestruct.
     unfold run_step_with_fuel in HDestruct. rewrite HDestruct.
-    destruct r'' as [ | |rvs'| |]=> //. by destruct (n0 <= length rvs').
+    destruct r'' as [ | |rvs'| |]=> //. by destruct (NPeano.Nat.leb n0 (length rvs')).
 Qed.
 
 (** Similar to [rs_break_trace_bool], but in [Prop]. **)
@@ -797,7 +797,7 @@ Proof.
       exists (AI_basic BI_return). exists es2'.
       exists 0. exists [::]. exists [::].
       split => //. left. split => //. by inversion H.
-    + destruct p. destruct p. destruct (n0 == base h).
+    + destruct p. destruct p. destruct (BinNat.N.eqb n0 (base h)).
       all: try by unfold crash_error; intro Habs; inversion Habs.
   - move:H. by explode_and_simplify.
   - move:H. by explode_and_simplify;
@@ -810,13 +810,13 @@ Proof.
     unfold run_step_with_fuel in HDestruct; rewrite HDestruct.
     destruct r'' as [ |n' rvs'| | |]=> //; try pattern_match.
     destruct n' => //.
-    by destruct (n <= length rvs').
+    by destruct (NPeano.Nat.leb n (length rvs')).
   - (* Local *)
     move:H. explode_and_simplify.
     destruct (run_step_with_fuel fuel d (s, f0, l)) as [[[hs'' s''] f''] r''] eqn:HDestruct => //.
     unfold run_step_with_fuel in HDestruct; rewrite HDestruct.
     destruct r'' as [ | |rvs'| |]=> //; try pattern_match.
-    by destruct (n <= length rvs').
+    by destruct (NPeano.Nat.leb n (length rvs')).
 Qed.
 
 (** If the result of the interpreter is a [RS_break], then we must have
@@ -1219,8 +1219,9 @@ Proof.
         + by eauto.
         + repeat rewrite length_is_size.
           rewrite v_to_e_drop_exchange. rewrite size_drop. rewrite v_to_e_size.
-          by rewrite subKn.
-        + by [].
+          rewrite subKn. done. apply Compare_dec.leb_complete in if_expr0.
+          lias. done.
+(*        + by []. *)
 
       - (** [AI_basic loop] **)
         simpl. explode_and_simplify. pattern_match. auto_frame.
@@ -1242,7 +1243,8 @@ Proof.
         +(*1*) by apply: v_to_e_is_const_list.
         +(*2*) repeat rewrite length_is_size.
           rewrite v_to_e_drop_exchange. rewrite size_drop. rewrite v_to_e_size.
-          by rewrite subKn.
+          rewrite subKn => //.
+          apply Compare_dec.leb_complete in if_expr0. lias.
 
       - (** [AI_basic If] **)
         simpl. explode_and_simplify; pattern_match; stack_frame; subst_rev_const_list; auto_frame.
@@ -1305,7 +1307,10 @@ Proof.
         rewrite v_to_e_is_const_list.
         rewrite (catA [:: AI_basic _]).
         done.
-        by repeat econstructor.
+        econstructor.
+        econstructor.
+        econstructor => //.
+        apply Compare_dec.leb_complete in if_expr0. lias.
         split; last by subst.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -1317,8 +1322,9 @@ Proof.
         done.
         
         + apply: rm_silent. apply: r_simple. apply: rs_br_table_length.
-          rewrite length_is_size. move/ltP in if_expr0.
-          apply/leP => /=. by lias.
+          rewrite length_is_size.
+          apply NPeano.Nat.ltb_ge in if_expr0; lias.
+
 
       - (** [AI_basic Return] **)
         by pattern_match.
@@ -1396,7 +1402,10 @@ Proof.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ; _]) => //=.
         subst.
-        by apply: rm_silent; apply: r_set_local.
+        apply NPeano.Nat.ltb_lt in if_expr0.
+        apply: rm_silent; apply: r_set_local => //.
+        lias.
+        apply NPeano.Nat.ltb_lt in if_expr0. lias.
 
       - (** [AI_basic (Tee_local i0)] **)
         simpl. explode_and_simplify. pattern_match. subst_rev_const_list.
@@ -1867,18 +1876,10 @@ Proof.
                assert (forall a b, s_segs (upd_s_seg a b) = b).
                intros a1 b; by destruct a1.
                unfold wellFormedState. rewrite H4.
-               unfold isSound, isSound_aux.
-               unfold wellFormedState in HWF. unfold isSound, isSound_aux in HWF.
-               apply List.forallb_forall.
-               intros x Hx.
-               edestruct List.forallb_forall as [??].
-               specialize (H5 HWF x Hx) as Hlex. 
-               destruct x as [[??]?].
-               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //. 
-               unfold segstore in Hsegload.
-               destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
-               apply write_segbytes_preserve_type in Hsegload as [??].
-               exact H7.
+(*               unfold isSound, isSound_aux. *)
+               unfold wellFormedState in HWF.
+               eapply segstore_sound.
+               exact HWF. exact Hsegload.
             -- intro Htuple; inversion Htuple; subst.
                split; last by subst. exists ME_trap.
                apply rev_move in Hlconst.
@@ -2017,74 +2018,16 @@ Proof.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
                by inversion Hv.
 
-               destruct v; inversion Htuple; subst.
-               repeat split => //.
+
                assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
                intros a1 b ; by destruct a1.
-               unfold wellFormedState. rewrite Hupd.
-               unfold isSound, isSound_aux.
-               unfold wellFormedState, isSound, isSound_aux in HWF.
-               apply List.forallb_forall.
-               intros x Hx.
-               edestruct List.forallb_forall as [Hfl _].
-               specialize (Hfl HWF x Hx) as Hlex.
-               destruct x as [[??]?].
-               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
-               unfold segstore in Hsegload.
-               destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
-               apply write_segbytes_preserve_type in Hsegload as [Hdone _].
-               exact Hdone.
-               repeat split => //.
-               assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros a1 b ; by destruct a1.
-               unfold wellFormedState; rewrite Hupd.
-               unfold update_list_at.
-               unfold isSound, isSound_aux.
-               unfold wellFormedState, isSound, isSound_aux in HWF.
-               apply List.forallb_forall.
-               intros x Hx.
-               edestruct List.forallb_forall as [Hfl _].
-               specialize (Hfl HWF x Hx) as Hlex.
-               destruct x as [[??]?].
-               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
-               unfold segstore in Hsegload.
-               destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
-               apply write_segbytes_preserve_type in Hsegload as [Hdone _].
-               exact Hdone.
-               repeat split => //.
-               assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros a1 b ; by destruct a1.
-               unfold wellFormedState; rewrite Hupd.
-               unfold update_list_at.
-               unfold isSound, isSound_aux.
-               unfold wellFormedState, isSound, isSound_aux in HWF.
-               apply List.forallb_forall.
-               intros x Hx.
-               edestruct List.forallb_forall as [Hfl _].
-               specialize (Hfl HWF x Hx) as Hlex.
-               destruct x as [[??]?].
-               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
-               unfold segstore in Hsegload.
-               destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
-               apply write_segbytes_preserve_type in Hsegload as [Hdone _].
-               exact Hdone.
-               assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
-               intros a1 b ; by destruct a1.
-               unfold wellFormedState; rewrite Hupd.
-               unfold update_list_at.
-               unfold isSound, isSound_aux.
-               unfold wellFormedState, isSound, isSound_aux in HWF.
-               apply List.forallb_forall.
-               intros x Hx.
-               edestruct List.forallb_forall as [Hfl _].
-               specialize (Hfl HWF x Hx) as Hlex.
-               destruct x as [[??]?].
-               replace (seg_length (seg_data s0)) with (seg_length (seg_data (s_segs s))) => //.
-               unfold segstore in Hsegload.
-               destruct (BinNat.N.leb _ (operations.seg_length _)) => //.
-               apply write_segbytes_preserve_type in Hsegload as [Hdone _].
-               exact Hdone.
-               by inversion Hv.
+               unfold wellFormedState. 
+               unfold wellFormedState in HWF.
+               eapply segstore_sound.
+               destruct v; inversion Htuple; subst; simpl; try exact HWF.
+               done.
+               destruct v; inversion Htuple; subst; simpl; try exact Hsegload.
+               done.
             -- intro Htuple. split; last by destruct v; inversion Htuple; subst.
                exists ME_trap.
                apply rev_move in Hlconst.
@@ -2252,15 +2195,18 @@ Proof.
         by repeat econstructor.
       - (** [AI_basic BI_segalloc] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
-         unfold operations.seg_grow in option_expr.
+        unfold operations.seg_grow in option_expr.
         destruct (BinNat.N.leb _ page_limit) eqn:Hlimit; try by inversion option_expr.
         assert (salloc (s_segs s) (s_alls s) (operations.seg_length (s_segs s)) (Wasm_int.N_of_uint i32m s0) 
-    (fresh_nid (s_alls s)) v0
+    (next_free (s_alls s)) v0
     {|
       allocated :=
-        [:: (fresh_nid (s_alls s), operations.seg_length (s_segs s),
-            BinInt.Z.to_N (Wasm_int.Int32.unsigned s0))] ++ 
-          allocated (s_alls s)
+        base.insert (next_free (s_alls s))
+                   (operations.seg_length (s_segs s),
+                   BinInt.Z.to_N (Wasm_int.Int32.unsigned s0)) 
+                   (allocated (s_alls s));
+      next_free :=
+                 BinNat.N.add (next_free (s_alls s)) (BinNums.Npos BinNums.xH)
     |}) as Halloc.
         { apply Alloc => //.
           (*        clear - Hlimit. unfold operations.seg_length, seg_length. lias. *)
@@ -2268,25 +2214,19 @@ Proof.
           destruct (seg_max_opt (s_segs s)) => //.
           destruct (BinNat.N.leb _ n) eqn:Hpagesize; try by inversion option_expr.
           apply BinNat.N.leb_le in Hpagesize => //.
-          by apply fresh_nid_is_free.
-          apply compatible_forall.
-          intros x. destruct x as [[x addr] size].
-          intros Hin.
-          unfold wellFormedState, isSound, isSound_aux in HWF.
-          edestruct List.forallb_forall as [Hfl _].
-          eapply Hfl in HWF; last exact Hin.
-          simpl in HWF.
-          unfold operations.seg_length.
-          apply BinNat.N.leb_le in HWF; lia.
+          unfold wellFormedState in HWF.
+          destruct HWF as [_ Hfree].
+          unfold isFree, find.
+          apply Hfree. lias.
+          apply data_length_is_compatible. exact HWF.
           destruct (seg_max_opt (s_segs s)).
           destruct (BinNat.N.leb _ n).
           inversion option_expr ; subst.
           unfold seg_grow.
           unfold operations.seg_length, seg_length.
-          rewrite Nnat.Nat2N.id.
-          rewrite length_is_size.
-          rewrite take_size.
-          rewrite drop_oversize.
+          rewrite Nnat.Nat2N.id. 
+          rewrite List.firstn_all.
+          rewrite List.skipn_all2.
           by rewrite cats0.
           lias.
           by inversion option_expr.
@@ -2294,10 +2234,11 @@ Proof.
           unfold seg_grow.
           unfold operations.seg_length, seg_length.
           rewrite Nnat.Nat2N.id.
-          rewrite length_is_size.
-          rewrite take_size.
-          rewrite drop_oversize.
-          by rewrite cats0. lias.  }
+          rewrite List.firstn_all.
+          rewrite List.skipn_all2.
+          by rewrite cats0. lias.
+          rewrite BinNat.N.max_r. done. lias.
+        }
         split.
         eexists (ME_salloc _).
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
@@ -2338,11 +2279,11 @@ Proof.
       - (** [AI_basic BI_segfree] **)
         simpl; explode_and_simplify; pattern_match; auto_frame.
         destruct p as [[??]?].
-        destruct (n == base h) eqn:Hn0; try by inversion H2.
+        destruct (BinNat.N.eqb n (base h)) eqn:Hn0; try by inversion H2.
         inversion H2; subst.
-        assert (sfree (s_segs s) (s_alls s) h.(base) h.(id) (s_segs s) {| allocated := l0 |}) as Hfree.
+        assert (sfree (s_segs s) (s_alls s) h.(base) h.(id) (s_segs s) {| allocated := g; next_free := next_free s.(s_alls) |}) as Hfree.
         { eapply Free; last done.
-          apply b2p in Hn0 as ->.
+          apply BinNat.N.eqb_eq in Hn0 as ->.
           exact HExpect. }
         split.
         exists (ME_sfree h).
@@ -2356,7 +2297,7 @@ Proof.
         apply: rm_segfree_success; eauto.
         apply Bool.andb_true_iff in if_expr0 as [??] => //=.
         apply Bool.andb_true_iff in if_expr0 as [??] => //=.
-        apply b2p in H3 => //.
+        apply (BinNat.N.eqb_eq) in H3 => //.
         destruct s => /=.
         unfold upd_s_seg, upd_s_all => /=.
         eapply sfree_sound; last exact Hfree.
@@ -2375,9 +2316,12 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ]) => //=.
-        subst.
-        by apply: rm_silent; apply: r_current_memory; eauto.
+        subst. 
+        
+        apply: rm_silent. rewrite - nat_bin. 
+        eapply r_current_memory => //. exact HExpect. done.
 
+        
       - (** [AI_basic Grow_memory] **)
         simpl. explode_and_simplify. pattern_match. auto_frame.
         split; last by subst. exists ME_empty.
@@ -2388,7 +2332,7 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
-        subst.
+        subst. rewrite - nat_bin.
         by apply rm_silent; apply: r_grow_memory_success => //=.
 
       - (** [AI_basic (Econst _)] **)
@@ -2559,7 +2503,8 @@ Proof.
 
         subst.
         apply: rm_silent; apply: r_invoke_native => //=; eauto.
-        simplify_lists. by rewrite subKn. }
+        simplify_lists. rewrite subKn => //.
+    apply Compare_dec.leb_complete in if_expr0.  lias. }
 (*      - (** [Func_host] **)
         destruct host_application_impl eqn:HHost; explode_and_simplify; try pattern_match; try frame_cat.
         + auto_frame.
@@ -2603,7 +2548,7 @@ Proof.
         destruct r as [|nd es''| |es'' |] => //.
         * (** [RS_break] **)
           destruct nd => //. simpl. explode_and_simplify.
-          destruct (n <= length es'') eqn:Hn => //.
+          destruct (NPeano.Nat.leb n (length es'')) eqn:Hn => //.
           inversion H2 ; subst.
           split. exists ME_empty.
           eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
@@ -2623,7 +2568,8 @@ Proof.
           rewrite (catA _ es1).
           done.
           subst.
-          eapply reduce_label_break => // ; by eauto.
+          apply Compare_dec.leb_complete in Hn.
+          eapply reduce_label_break => // ; by eauto; lias.
           apply rs_break_wellfounded in EH as (-> & -> & _). done.
              
         * (** [RS_normal] **)
@@ -2662,13 +2608,13 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ]) => //=.
-        subst.
-        by repeat econstructor.
+        subst. 
+        do 3 econstructor => //. apply NPeano.Nat.eqb_eq in if_expr2. done.
       + destruct run_step_with_fuel as [[s'' f''] r] eqn: EH.
         destruct r as [| |vs'''|es''| ] => //.
         * (** [RS_return] **)
           explode_and_simplify.
-           destruct (n <= length vs''') eqn:Hn => //.
+           destruct (NPeano.Nat.leb n (length vs''')) eqn:Hn => //.
            inversion H2 ; subst.
            split.
            exists ME_empty.
@@ -2688,7 +2634,8 @@ Proof.
           repeat rewrite - catA.
           done.
           subst.
-          eapply reduce_label_return => //; by eauto.
+          apply Compare_dec.leb_complete in Hn.
+          eapply reduce_label_return => //; by eauto; lias.
           apply rs_return_wellfounded in EH as (-> & -> & _) => //.
         * (** [RS_normal] **)
           inversion H2 ; subst. auto_frame. apply H in EH as [??]; try by lias.

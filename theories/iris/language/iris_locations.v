@@ -756,6 +756,38 @@ Proof.
     by repeat destruct (_ !! _) => //=.
 Qed.
 
+
+Lemma take_seq_take {A} n (l: list A) : take n l = seq.take n l.
+Proof.
+  generalize dependent n. induction l => //=. destruct n => //.
+  destruct n => //=. by rewrite IHl.
+Qed.
+
+Lemma drop_seq_drop {A} n (l: list A) : drop n l = seq.drop n l.
+Proof.
+  generalize dependent n. induction l => //=. destruct n => //.
+  destruct n => //=. 
+Qed. 
+
+Lemma gmap_of_segment_insert i x m md':
+  N.to_nat i < length m.(seg_data).(segment_list.segl_data) ->
+  segment_list.seg_update i x m.(seg_data) = Some md' ->
+  <[i := x]> (gmap_of_segment m) = gmap_of_segment ( {| seg_data := md'; seg_max_opt := m.(seg_max_opt)|} ).
+Proof.
+  unfold gmap_of_segment.
+  move => HLen Hmemupd.
+  unfold segment_list.seg_update in Hmemupd.
+  destruct (i <? _)%N eqn:HiLen => //; clear HiLen.
+  inversion Hmemupd; subst; clear Hmemupd => /=.
+  erewrite <- gmap_of_list_insert.
+  + repeat f_equal.
+    unfold segment_to_list => /=.
+    rewrite take_seq_take drop_seq_drop.
+    by apply insert_take_drop.
+  + done. 
+Qed.
+
+
 Lemma mem_length_divisible (m: memory_list):
   ml_valid m ->
   ((N.div (mem_length m) page_size) * page_size)%N = mem_length m.

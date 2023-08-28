@@ -393,7 +393,7 @@ Section control_rules.
       apply rm_silent, r_simple. eapply rs_br.
       apply Hvs. auto. apply lfilled_Ind_Equivalent. eauto.
       Unshelve. apply (Build_store_record [] [] []).
-      apply dummy_segment. apply {| allocated := [] |}. apply [].
+      apply dummy_segment. apply dummy_all. apply [].
       apply (Build_frame [] (Build_instance [] [] [] [] [])). }
     iApply wp_lift_step => //=.
     iIntros (σ ns κ κs nt) "Hσ".

@@ -1556,7 +1556,7 @@ Proof.
   f_equiv.
   { simpl. f_equiv. unfold mem_length, memory_list.mem_length.
     rewrite Hstore. auto. }
-  { rewrite ssrnat.addn1. auto. }
+  { replace (n + 1) with (S n); last lias. done. }
 Qed.
 
 

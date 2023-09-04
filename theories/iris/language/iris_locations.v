@@ -74,18 +74,75 @@ Definition memory_to_list (m: memory) : list byte :=
 Definition gmap_of_memory (l: list memory) : gmap (N*N) byte :=
   gmap_of_list_2d (fmap memory_to_list l).
 
-Definition segment_to_list (s: segment) : list (byte * btag) :=
+(* Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
+  map_fold (fun i '(addr, lim) res =>
+              fold_left (fun res i =>
+                           match s.(seg_data).(segment_list.segl_data) !! i with
+                           | Some v => <[ N.of_nat i := v]> res
+                           | None => ∅ (* Should not happen *)
+                           end
+                ) (iota (N.to_nat addr) (N.to_nat lim)) res
+    ) ∅ a.(allocated). *)
+
+Definition live_locations (a: allocator) : gmap N () :=
+  map_fold (fun i '(addr, lim) res =>
+              fold_left (fun res j =>
+                        <[ N.of_nat j := () ]> res
+                ) (iota (N.to_nat addr) (N.to_nat lim)) res
+    ) ∅ a.(allocated).
+(*
+Lemma decision_in_gmap (m: gmap N ()) :
+  forall (x: (N * (byte * btag))), Decision (let '(x,_) := x in m !! x = Some ()).
+Proof.
+  intro x. destruct x as [x ?]. destruct (m !! x). left. destruct u. done. right. done.
+Qed.
+ *)
+
+
+
+Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
+  let locs := live_locations a in
+(*  map_imap (fun i '(x, t) => match locs !! i with
+                          | Some id => Some (id, x, t)
+                          | Non => None end) (gmap_of_list (segl_data (seg_data s))). *)
+  filter (fun '(i,_) => locs !! i = Some ()) (gmap_of_list (segl_data (seg_data s))). 
+
+(*
+Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
+  fold_left (fun res '(_,(addr,lim)) =>
+               fold_left (fun res i =>
+                            match list_lookup i s.(seg_data).(segment_list.segl_data) with 
+                              Some v => <[ N.of_nat i := v ]> res
+                            | None => res (* Should not happen *)
+                            end
+                 ) (iota (N.to_nat addr) (N.to_nat lim)) res
+    ) (gmap_to_list a.(allocated)) ∅.
+ *)
+
+(* Lemma decide_segment_liveness a :
+  forall i, Decision (exists id addr size, a.(allocated) !! id = Some (addr, size) /\
+                                   (addr <= i)%N /\ (i < addr + size)%N).
+Proof.
+  intros i. Search Decision. Search "exists". apply gmap_exists_dec.
+
+Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
+  filter
+    (fun i => exists id addr size, a.(allocated) !! id = Some (addr, size) /\
+                             (addr <= i)%N /\  (i < addr + size)%N
+    ) gmap_of_list s.(seg_data).(segl_data). *)
+
+(* Definition segment_to_list (s: segment) : list (byte * btag) :=
   (s.(seg_data)).(segment_list.segl_data).
 
 Definition gmap_of_segment (s: segment) : gmap N (byte * btag) :=
-  gmap_of_list (segment_to_list s).
+  gmap_of_list (segment_to_list s). *)
 
 
 (* Definition allocator_to_list (a: allocator) : list (N * (N * N)) :=
   List.map (λ '(a,b,c), (a,(b,c))) a.(allocated). *)
 
 Definition gmap_of_allocator (a: allocator) : gmap N (N * N) :=
-  a.(allocated). (* list_to_map (allocator_to_list a). *)
+  a.(allocated). (* list_to_map (allocator_to_list a). *) 
 
 Definition table_to_list (tab: tableinst) : list funcelem :=
   tab.(table_data).
@@ -769,23 +826,25 @@ Proof.
   destruct n => //=. 
 Qed. 
 
-Lemma gmap_of_segment_insert i x m md':
+
+Lemma gmap_of_segment_insert i x m md' a:
   N.to_nat i < length m.(seg_data).(segment_list.segl_data) ->
   segment_list.seg_update i x m.(seg_data) = Some md' ->
-  <[i := x]> (gmap_of_segment m) = gmap_of_segment ( {| seg_data := md'; seg_max_opt := m.(seg_max_opt)|} ).
+  live_locations a !! i = Some () ->
+  <[i := x]> (gmap_of_segment m a) = gmap_of_segment ( {| seg_data := md'; seg_max_opt := m.(seg_max_opt)|} ) a.
 Proof.
   unfold gmap_of_segment.
-  move => HLen Hmemupd.
+  move => HLen Hmemupd Hlive.
   unfold segment_list.seg_update in Hmemupd.
   destruct (i <? _)%N eqn:HiLen => //; clear HiLen.
   inversion Hmemupd; subst; clear Hmemupd => /=.
+  rewrite - map_filter_insert_True => //.
   erewrite <- gmap_of_list_insert.
   + repeat f_equal.
-    unfold segment_to_list => /=.
     rewrite take_seq_take drop_seq_drop.
     by apply insert_take_drop.
   + done. 
-Qed.
+Qed. 
 
 
 Lemma mem_length_divisible (m: memory_list):

@@ -507,7 +507,7 @@ Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
       (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
       (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
-      (gen_heap_interp (gmap_of_segment s.(s_segs))) ∗
+      (gen_heap_interp (gmap_of_segment s.(s_segs) s.(s_alls))) ∗
       (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗
       (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
       (ghost_map_auth visGName 1 vis) ∗ 

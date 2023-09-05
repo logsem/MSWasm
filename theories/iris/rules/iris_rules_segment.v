@@ -25,83 +25,33 @@ Proof.
   lia.
 Qed.
 
-(*
-Definition commutes1 {A B C} (f: A -> B -> C -> C) : Prop :=
-  forall x1 y1 x2 y2 z, f x1 y1 (f x2 y2 z) = f x2 y2 (f x1 y1 z).
-Definition commutes2 { A B } (f: A -> B -> A) : Prop :=
-  forall x1 x2 y, f (f y x1) x2 = f (f y x2) x1.
-*)
-
-(* Lemma map_fold_commute: ∀ (A B C M: Type) (H: FinMapToList A B M) (L: Lookup A B M) (I: Insert A B M) (m: M) (i:A) (v:B) f (acc:C),
-  commutes1 f ->
-  map_fold f acc (<[ i := v ]> m) = f i v (map_fold f acc m).
+Lemma commutes nid addr size (a: gmap N (N * N)):
+  ∀ (j1 j2 : N) (z1 z2 : N * N) (y : gmap N ()),
+    j1 ≠ j2
+    → <[nid:=(addr, size)]> a !! j1 = Some z1
+      → <[nid:=(addr, size)]> a !! j2 = Some z2
+        → (let
+           '(addr0, lim) := z1 in
+            λ res : gmap N (),
+              fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
+                (iota (N.to_nat addr0) (N.to_nat lim)) res)
+            ((let
+              '(addr0, lim) := z2 in
+               λ res : gmap N (),
+                 fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
+                   (iota (N.to_nat addr0) (N.to_nat lim)) res) y) =
+          (let
+           '(addr0, lim) := z2 in
+            λ res : gmap N (),
+              fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
+                (iota (N.to_nat addr0) (N.to_nat lim)) res)
+            ((let
+              '(addr0, lim) := z1 in
+               λ res : gmap N (),
+                 fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
+                   (iota (N.to_nat addr0) (N.to_nat lim)) res) y).
 Proof.
-  intros A B C M H L I m i v f acc Hcomm.
-  Search map_fold. 
-  unfold map_fold. 
-  Search (<[ _ := _ ]> (delete _ _)).
-  iàsniau
-Admitted. *)
-
-(*
-Lemma fold_left_commute: ∀ (B C: Type) (m: list B) (i:nat) (v:B) f (acc:C),
-  m !! i = Some v ->
-  commutes2 f ->
-  fold_left f m acc = f (fold_left f (take i m ++ drop (S i) m) acc) v.
-Proof.
-  intros * Hi Hcomm.
-  generalize dependent i. generalize dependent acc.
-  induction m => //=.
-  intros * Hi.
-  destruct i.
-  - simpl in Hi. inversion Hi; subst. simpl. unfold drop.
-    clear - Hcomm.
-    generalize dependent acc. induction m => //=.
-    intros *. rewrite - IHm. by rewrite Hcomm.
-  - simpl in Hi.
-    eapply IHm in Hi. simpl. exact Hi.
-Qed.
-
-
-Lemma lookup_iota a b c: c < b -> iota a b !! c = Some (a + c).
-Proof.
-  generalize dependent a; generalize dependent c.
-  induction b => //=.
-  by intros * Habs; lia.
-  intros * Hc. destruct c => //=.
-  replace (a + 0) with a; [done | lia].
-  rewrite IHb. replace (S a + c) with (a + S c); [done | lia].
-  lia.
-Qed.
-
-
-Lemma alloc_live a id addr size :
-  allocated a !! id = Some (addr, size) ->
-   forall i, (i >= addr)%N -> (i < addr + size)%N ->
-        live_locations a !! i = Some ().
-Proof.
-  intros Halloc i Hi1 Hi2. 
-  unfold live_locations. 
-  apply insert_delete in Halloc.
-  rewrite - Halloc.
-  erewrite map_fold_insert => //=. 
-  - simpl.
-    remember (map_fold _ _ _) as m.
-    erewrite (fold_left_commute _ _ _ _ (N.to_nat i)).
-    rewrite N2Nat.id.
-    rewrite lookup_insert => //.
-    rewrite lookup_iota.
-    instantiate (1 := N.to_nat i - N.to_nat addr).
-    rewrite - le_plus_minus => //.
-    lias. lias.
-  - intros x y z.
-    destruct (Nat.eqb x y) eqn:Hxy.
-    apply Nat.eqb_eq in Hxy as ->. by repeat rewrite insert_insert.
-    apply Nat.eqb_neq in Hxy. rewrite insert_commute. done.
-    intro Habs. apply Nat2N.inj in Habs => //.
-  - econstructor. done. by intros ? ? ? ? ?; subst.
-  - intros. unfold Proper. destruct z. done.
-  - intros x1 x2 [y1 z1] [y2 z2] z _ _ _.
+  intros x1 x2 [y1 z1] [y2 z2] z _ _ _.
     remember (N.to_nat y1) as y1'.
     remember (N.to_nat y2) as y2'.
     remember (N.to_nat z1) as z1'.
@@ -121,28 +71,8 @@ Proof.
     apply Nat.eqb_eq in Hy as ->; by repeat rewrite insert_insert. 
     apply Nat.eqb_neq in Hy. rewrite insert_commute. done.
     intro Habs. apply Nat2N.inj in Habs => //.
-  - apply lookup_delete.
 Qed.
-  *)  
-    
-    
-    
-(*
-Lemma alloc_interp a s id addr size :
-  allocated a !! id = Some (addr, size) ->
-  forall i, (i >= addr)%N -> (i < addr + size)%N ->
-       gmap_of_segment s a !! i = s.(seg_data).(segl_data) !! (N.to_nat i).
-Proof.
-  intros Halloc i Hi1 Hi2.
-  unfold gmap_of_segment.
-  destruct (segl_data _ !! _) eqn:Hdata.
-  - erewrite map_filter_lookup_Some_2 => //.
-    rewrite gmap_of_list_lookup => //.
-    by eapply alloc_live.
-  - erewrite map_filter_lookup_None.
-    left. rewrite gmap_of_list_lookup => //.
-Qed.
-*)
+
 
 Lemma was_not_added addr lim r j :
   (j < addr)%N \/ (j >= addr + lim)%N ->
@@ -211,18 +141,15 @@ Definition all_live lo hi a : Prop :=
 Definition one_live i a : Prop :=
   live_locations a !! i = Some ().
 
-Lemma wss_is_segload h bv ws (* addr size *) : 
+Lemma wss_is_segload h bv ws : 
   length bv > 0 ->
-(*   allocated (s_alls ws) !! h.(id) = Some (addr, size) ->
-  (h.(base) + h.(offset) >= addr)%N ->
-  (h.(base) + h.(offset) + N.of_nat (length bv) < addr + size)%N -> *)
   ( ↦[wss][ h.(base) + h.(offset) ] bv -∗
             ghost_map_auth segGName 1 (gmap_of_segment (s_segs ws) (s_alls ws))
             -∗ ⌜ segload (ws.(s_segs)) h (length bv) = Some bv /\
       all_live (base h + offset h)%N (base h + offset h + N.of_nat (length bv))%N
         (s_alls ws)⌝).
 Proof.
-  iIntros (Ht (* Hall Hsize1 Hsize2 *) ) "Hwss Hs".
+  iIntros (Ht) "Hwss Hs".
   iAssert ( (∀ i, ⌜ i < length bv ⌝ -∗
                           ⌜ (segl_data (seg_data (s_segs ws))) !! (N.to_nat (h.(base) + h.(offset) + N.of_nat i))
                   = bv !! i /\ one_live (base h + offset h + N.of_nat i)%N (s_alls ws) ⌝)%I ) as "%Hseq".
@@ -232,8 +159,6 @@ Proof.
     lia.
     iDestruct (ghost_map_lookup with "Hs H") as "%H".
     apply gmap_of_segment_some in H as (Hdata & Hlive & id & addr & size & Hid & Hsize1 & Hsize2).
-(*    erewrite alloc_interp in H => //.
-    simpl in H. *)
     iPureIntro. replace (N.to_nat (h.(base) + h.(offset) + N.of_nat i)) with
       (N.to_nat (h.(base) + h.(offset)) + i). rewrite Nat2N.id in Hdata. rewrite Hdata.
     split => //. apply Logic.eq_sym.
@@ -269,34 +194,6 @@ Proof.
 Qed.
 
 
-(* Lemma allocated_implies_is_in_allocator s a i x y:
-  isSound s a ->
-  gen_heap_interp (gmap_of_allocator a) -∗
-    i ↣[allocated] (x,y) -∗ ⌜ find i a.(allocated) = Some (x,y) ⌝.
-Proof.
-  iIntros (HSound) "Ha Hi".
-  iDestruct (gen_heap_valid with "Ha Hi") as "%H".
-  iPureIntro.
-  unfold gmap_of_allocator in H.
-  apply elem_of_list_to_map_2 in H.
-  unfold allocator_to_list in H.
-  unfold isSound in HSound.
-  remember (allocated a) as a'.
-  clear - H HSound. induction a' => //=.
-  simpl in H. inversion H.
-  simpl in H. inversion H; subst.
-  destruct a as [[??]?]. inversion H2; subst.
-  rewrite N.eqb_refl. done.
-  destruct a as [[??]?].
-  destruct HSound as (_ & _ & Hdup & HSound).
-  destruct (n =? i)%N eqn:Hn => //; last by apply IHa'.
-  apply N.eqb_eq in Hn as ->.
-  exfalso. apply Hdup.
-  clear -H2.
-  induction a' => //=; inversion H2.
-  destruct a as [[??]?]; inversion H1; subst; by left.
-  destruct a as [[??]?]. right. apply IHa'. exact H1.
-Qed. *)
 
 Lemma allocated_implies_is_in_allocator a i x:
   ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
@@ -306,30 +203,12 @@ Proof.
   iDestruct (ghost_map_lookup with "Ha Hi") as "%H".
   iPureIntro.
   done.
-(*  unfold gmap_of_allocator in H.
-  apply elem_of_list_to_map_2 in H.
-  unfold allocator_to_list in H.
-  remember (allocated a) as a'.
-  clear - H. induction a' => //=.
-  simpl in H. inversion H.
-  simpl in H. inversion H; subst.
-  destruct a as [[??]?]. inversion H2; subst.
-  by left. 
-  destruct a as [[??]?].
-  right. apply IHa' => //. *)
 Qed.
 
  Lemma in_allocated_implies_isAlloc i x a:
   a.(allocated) !! i = Some x -> isAlloc i a.
  Proof.
    unfold isAlloc, find. intro H; rewrite H; done.
-   (*remember (allocated a) as l.
-  clear Heql. induction l => //=.
-  intros [-> | H].
-  rewrite N.eqb_refl => //.
-  destruct a0 as [[??]?].
-  destruct (n =? i)%N => //.
-  by apply IHl. *)
 Qed. 
 
 
@@ -939,7 +818,6 @@ Proof.
   destruct o ; inversion Hm0.
   simpl.
   assert (s = seg_data m0) ; first by rewrite - H5.
-  (*    simpl in Hfl. *)
   cut (forall i dat datf n,
           i <= length bs ->
           length (segl_data dat) = N.to_nat (operations.seg_length m) ->
@@ -1114,12 +992,6 @@ Proof.
   unfold write_segbytes, fold_lefti in Hb ; simpl in Hb.
   rewrite N.add_0_r in Hb.
   destruct (seg_update (base h + offset h)%N p (seg_data m'')) eqn:Hupd ; inversion Hb; clear Hb.
-  (*
-  rewrite update_list_at_insert ; last by apply lookup_lt_Some in Hmemsn.
-  rewrite update_list_at_insert in Hmems ; last by apply lookup_lt_Some in Hmemsn.
-
-  rewrite <- Hmems. 
-  rewrite <- H1. *)
   erewrite gmap_of_segment_insert => //.
   - apply N.leb_le in Hlen0. unfold operations.seg_length, seg_length in Hlen0.
     subst; lias.
@@ -1149,21 +1021,6 @@ Proof.
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
-  (*
-  erewrite <- (bits_deserialise bs) => //=.
-  remember (wasm_deserialise bs t) as vinit.
-  assert (types_agree t vinit) as Hvinit.
-  { rewrite Heqvinit. by apply deserialise_type. }
-  destruct (bits vinit) eqn:Hb. destruct vinit ; inversion Hb.
-  assert (length (serialise_handle h) = 0) as Habs ; first by rewrite H0.
-  destruct HHB. simpl in Habs. rewrite length_serialise in Habs.
-  assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
-  rewrite Habs in H. lias.
-   *)
-  (*
-  iDestruct (wss_implies_ssegs_is_Some with "Hm Hwms") as "(Hwms & Hm & %Hm)".
-  destruct Hm as [m Hm].
-  rewrite <- Hb. *)
   destruct tbs; first by destruct t => //.
   iDestruct (wss_is_segload with "Hwss Hs") as "%Hsegload" => //=.
   lia.
@@ -1188,7 +1045,6 @@ Proof.
     iMod (ghost_map_update_big_ws (p :: tbs) (List.map (fun x => (x, Numeric)) (bits v)) with "Hs Hwss") as "[Hs Hwss]".
     rewrite map_length. erewrite length_bits => //=. eauto.
     rewrite map_length. erewrite length_bits => //=.
-    (*    rewrite nth_error_lookup in Hm => //=. *)
     exact Hlive.
     iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
@@ -1197,8 +1053,6 @@ Proof.
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
-    (* rewrite update_list_at_insert; last by rewrite nth_error_lookup in Hm; apply lookup_lt_Some in Hm. *)
-(*    repeat rewrite list_fmap_insert. *)
     assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
     { rewrite <- (length_bits v) in Hsomeseg => //=. 
       rewrite - (map_length (fun x => (x, Numeric)) (bits v)) in Hsomeseg.
@@ -1341,37 +1195,13 @@ Lemma ghost_map_delete_big_ws bs (m : segment) a s addr size id:
                                                                next_free := next_free a |}).
 Proof.
   iIntros (Hlen Ha HWF) "Hσ Hwms".  
-(*   intros Hlen Ha.  *)
   unfold gmap_of_segment.
   unfold live_locations. simpl.
   erewrite <- (insert_delete (allocated a)) => //=.
   rewrite map_fold_insert; last first.
   { apply lookup_delete. }
-  { intros x1 x2 [y1 z1] [y2 z2] z _ _ _.
-    remember (N.to_nat y1) as y1'.
-    remember (N.to_nat y2) as y2'.
-    remember (N.to_nat z1) as z1'.
-    remember (N.to_nat z2) as z2'. 
-    clear Heqy1' y1 Heqy2' y2 Heqz1' z1 Heqz2' z2.
-    generalize dependent y1'. generalize dependent z.
-    induction z1' => //=.
-    intros. rewrite - IHz1'.
-    clear.
-    generalize dependent y2'. generalize dependent z.
-    induction z2' => //=.
-    intros.
-    replace (<[ N.of_nat y2':=() ]> (<[ N.of_nat y1' := () ]> z))
-      with (<[ N.of_nat y1':=() ]> (<[ N.of_nat y2' := () ]> z)).
-    rewrite - IHz2'. done.
-    destruct (Nat.eqb y1' y2') eqn:Hy.
-    apply Nat.eqb_eq in Hy as ->; by repeat rewrite insert_insert. 
-    apply Nat.eqb_neq in Hy. rewrite insert_commute. done.
-    intro Habs. apply Nat2N.inj in Habs => //.
-  }
+  { apply commutes. } 
   rewrite insert_delete => //.
-  (* need to clear Ha else induction will need allocated a !! id to change values *)
-  (* But need to remember Ha *)
-  (* Solution: introduce an intermediate state i *)
   iAssert (∀ k,
               ⌜ k <= N.to_nat size ⌝ -∗
                       |==> ghost_map_auth segGName 1
@@ -1384,23 +1214,11 @@ Proof.
                                   fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                     (iota (N.to_nat addr0) (N.to_nat lim)) res) ∅ (delete id (allocated a))) !! i =
                              Some ()) (gmap_of_list (segl_data (seg_data m)))) ∗
-                      ↦[wss][addr + N.of_nat k](drop k bs))%I with "[Hσ Hwms]" as "H".  (* ==∗
-  ghost_map_auth segGName 1
-    (filter
-       (λ '(i, _),
-         map_fold
-            (λ (_ : N) '(addr0, lim) (res : gmap N ()),
-               fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
-                 (iota (N.to_nat addr0) (N.to_nat lim)) res) ∅ (delete id (allocated a)) !! i =
-              Some ()) (gmap_of_list (segl_data (seg_data m))))
-         ) as Hk. *)
+                      ↦[wss][addr + N.of_nat k](drop k bs))%I with "[Hσ Hwms]" as "H".  
   2:{ iDestruct ("H" $! (N.to_nat size) (Nat.le_refl _)) as "[H _]".
       rewrite Nat.sub_diag. done. }
   iIntros (k).
   iInduction k as [|k] "IHk"; iIntros "%Hk".
-(*  induction k; iIntros (Hk) "Hσ Hwms" => //=. *)
-  (*   iInduction bs as [|b bs] "IHbs" forall (addr size Hlen). *)
-  (*  { simpl in Hlen. destruct size; last lias. done. } *)
   { rewrite Nat.add_0_r. rewrite Nat.sub_0_r. rewrite N.add_0_r. unfold drop.
     iFrame. done. }
   iSpecialize ("IHk" with "Hσ Hwms").
@@ -1413,9 +1231,6 @@ Proof.
   simpl.
   iMod (ghost_map_delete with "Hσ Hwm") as "Hσ".
   rewrite - map_filter_delete.
-(*  rewrite - N2Nat.inj_succ.
-  replace n with (N.to_nat (size - 1)%N); last lias.
-  remember (filter _ _) as f. *)
   edestruct (map_filter_ext (K := N) (A := byte * btag) (λ '(i, _),
                  fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                    (iota (N.to_nat addr + k) (N.to_nat size - k))
@@ -1434,7 +1249,6 @@ Proof.
             !! i = Some ()) (delete (addr + N.of_nat k)%N (gmap_of_list (segl_data (seg_data m))))) as [H0 _].
   rewrite H0; clear H0. 
   rewrite map_filter_delete_not.
-  (*  replace (addr + 1)%N with (N.succ addr); last lia. *)
   replace (addr + N.pos (Pos.of_succ_nat k))%N with (addr + N.of_nat k + 1)%N; last lia.
   replace (S k) with (k + 1); last lia.
   rewrite - drop_drop.
@@ -1567,9 +1381,18 @@ Proof.
 Admitted.
 
 
+Lemma fold_left_last {A B} f l (x:A) (acc:B):
+  fold_left f (l ++ [x]) acc = f (fold_left f l acc) x.
+Proof.
+  generalize dependent acc.
+  induction l => //=.
+Qed.
+
 
 Lemma ghost_map_insert_wss addr size nid a s :
   compatible addr size a.(allocated) ->
+  isFree nid a ->
+  N.to_nat addr ≤ length (segl_data (seg_data s)) ->
   ghost_map_auth segGName 1 (gmap_of_segment s a) ==∗
     ghost_map_auth segGName 1 (gmap_of_segment
                                  {| seg_data :=
@@ -1584,7 +1407,162 @@ Lemma ghost_map_insert_wss addr size nid a s :
     ↦[wss][addr] repeat (#00%byte, Numeric)
     (N.to_nat size).
 Proof.
-Admitted.
+  iIntros (Hcomp Hfree Haddr) "Hs".
+  rewrite - (N2Nat.id size). rewrite - (N2Nat.id size) in Hcomp.
+  remember (N.to_nat size) as size'.
+  clear Heqsize' size.
+  iInduction size' as [|size] "IH".
+  { rewrite N.add_0_r.
+    simpl. rewrite cat_app. rewrite list.take_drop.
+    destruct s => /=.
+    unfold gmap_of_segment, live_locations.
+    rewrite map_fold_insert. iFrame.
+    unfold seg_block_at_pos. simpl. done.
+    apply commutes. done. }
+  assert (compatible addr (N.of_nat size) (allocated a)).
+  { intros x addr' size' Hx.
+    apply Hcomp in Hx as [?|?].
+    left; lia. right; lia. }
+  iSpecialize ("IH" $! H).
+  iMod ("IH" with "Hs") as "[Hs Hwss]".
+  iMod (ghost_map_insert (addr + N.of_nat size)%N (#00%byte, Numeric) with "Hs")
+    as "[Hs Hws]".
+  { unfold gmap_of_segment.
+    apply map_filter_lookup_None_2.
+    right. intros x Hx Habs.
+    unfold live_locations in Habs.
+    apply map_fold_grows in Habs as (j & [addr' lim'] & res & Hres & Hall & Hj) => //.
+    apply fold_left_grows in Hj as (j' & y & () & res' & Hres' & Hall' & Hj') => //.
+    destruct (N.of_nat y =? addr + N.of_nat size)%N eqn:Hy.
+    2:{ apply N.eqb_neq in Hy. rewrite lookup_insert_ne in Hj' => //.
+        rewrite Hres' in Hj' => //. } 
+    apply N.eqb_eq in Hy. assert (y = N.to_nat addr + size) as ->; first lia.
+    apply lookup_iota in Hall' as [??].
+    simpl in Hall.
+    destruct (j =? nid)%N eqn:Hjnid.
+    apply N.eqb_eq in Hjnid as ->.
+    rewrite lookup_insert in Hall. inversion Hall; subst; lia.
+    apply N.eqb_neq in Hjnid. rewrite lookup_insert_ne in Hall => //.
+    apply Hcomp in Hall as [?|?]; lia. }
+  iSplitL "Hs"; last first.
+  { repeat rewrite Nat2N.id.
+    replace (S size) with (size + 1); last lia.
+    rewrite repeat_app.
+    simpl. iApply big_sepL_app.
+    iFrame. iSimpl. rewrite repeat_length. rewrite Nat.add_0_r.
+    replace (N.of_nat (N.to_nat addr + size)) with (addr + N.of_nat size)%N; last lia.
+    iFrame. done. }
+  replace (<[(addr + N.of_nat size)%N:=(#00%byte, Numeric)]>
+              (gmap_of_segment
+                 {|
+                   seg_data :=
+                     {|
+                       segl_data :=
+                         take (N.to_nat addr) (segl_data (seg_data s)) ++
+                         repeat (#00%byte, Numeric) (N.to_nat (N.of_nat size)) ++
+                         drop (N.to_nat (addr + N.of_nat size)) (segl_data (seg_data s))
+                     |};
+                   seg_max_opt := seg_max_opt s
+                 |}
+                 {|
+                   allocated := <[nid:=(addr, N.of_nat size)]> (allocated a);
+                   next_free := next_free a `max` (nid + 1)
+                 |})) with
+    (gmap_of_segment
+         {|
+           seg_data :=
+             {|
+               segl_data :=
+                 take (N.to_nat addr) (segl_data (seg_data s)) ++
+                 repeat (#00%byte, Numeric) (N.to_nat (N.of_nat (S size))) ++
+                 drop (N.to_nat (addr + N.of_nat (S size))) (segl_data (seg_data s))
+             |};
+           seg_max_opt := seg_max_opt s
+         |}
+         {|
+           allocated := <[nid:=(addr, N.of_nat (S size))]> (allocated a);
+           next_free := next_free a `max` (nid + 1)
+         |}); first by iFrame.
+  unfold gmap_of_segment.
+  unfold live_locations. simpl.
+  rewrite map_fold_insert; [| apply commutes | done].
+  replace (N.to_nat (N.pos (Pos.of_succ_nat size))) with (S size); last lia.
+  replace (iota (N.to_nat addr) (S size)) with (iota (N.to_nat addr) size ++ [N.to_nat addr + size]).
+  2:{ remember (N.to_nat addr) as x. clear.
+      generalize dependent x. induction size => //. intro; by rewrite Nat.add_0_r.
+      intro. replace (iota x (S (S size))) with (x :: iota (S x) (S size)) => //.
+      rewrite - (IHsize (S x)). simpl. replace (x + S size) with (S (x + size)).
+      done. lia. } 
+  simpl.
+  rewrite fold_left_last.
+  rewrite map_fold_insert; [| apply commutes|done]. rewrite Nat2N.id.
+  apply map_eq.
+  intros i. destruct (i =? N.of_nat (N.to_nat addr + size))%N eqn:Hi.
+  { apply N.eqb_eq in Hi as ->.
+    erewrite map_filter_lookup_Some_2.
+    replace (N.of_nat (N.to_nat addr + size)) with (addr + N.of_nat size)%N ; last lia.
+    rewrite lookup_insert. done.
+    rewrite gmap_of_list_lookup.
+    rewrite Nat2N.id.
+    rewrite lookup_app_r.
+    rewrite lookup_app_l.
+    apply repeat_lookup.
+    rewrite take_length_le. 
+    lia. done. rewrite repeat_length. rewrite take_length_le. lia.
+    done. rewrite take_length_le. lia. done.
+    rewrite lookup_insert. done. }
+  apply N.eqb_neq in Hi. rewrite lookup_insert_ne; last lia.
+  destruct (filter _ _ !! _) eqn: Hfil.
+  { symmetry. apply map_filter_lookup_Some.
+    apply map_filter_lookup_Some in Hfil as [??].
+    rewrite lookup_insert_ne in H1; last done.
+    split => //. rewrite gmap_of_list_lookup. rewrite gmap_of_list_lookup in H0.
+    destruct (i <? addr)%N eqn:Hi'.
+    { apply N.ltb_lt in Hi'.
+        rewrite lookup_app_l; last by rewrite take_length_le; lia.
+        rewrite lookup_app_l in H0; last by rewrite take_length_le; lia.
+        done. } 
+      apply N.ltb_ge in Hi'.
+      rewrite lookup_app_r; last by rewrite take_length_le; lia.
+      rewrite lookup_app_r in H0; last by rewrite take_length_le; lia.
+      destruct (i <? N.of_nat (N.to_nat addr + size))%N eqn:Hi''.
+      { apply N.ltb_lt in Hi''.
+        rewrite lookup_app_l; last by rewrite repeat_length take_length_le; lia.
+        rewrite lookup_app_l in H0; last by rewrite repeat_length take_length_le; lia.
+        rewrite take_length_le; last lia.
+        rewrite take_length_le in H0; last lia.
+        assert (N.to_nat i - N.to_nat addr < Pos.to_nat (Pos.of_succ_nat size)); first lia.
+        apply (repeat_lookup (#00%byte, Numeric)) in H2.
+        rewrite H2 in H0. 
+        inversion H0; subst. apply repeat_lookup. lia. } 
+      rewrite take_length_le; last lia.
+      apply N.ltb_ge in Hi''.
+      rewrite lookup_app_r; last by rewrite repeat_length; lia.
+      rewrite lookup_app_r in H0; last by rewrite repeat_length take_length_le; lia.
+      rewrite repeat_length. rewrite repeat_length in H0.
+      rewrite lookup_drop. rewrite lookup_drop in H0.
+      rewrite take_length_le in H0; last lia.
+      replace (N.to_nat (addr + N.of_nat size) + (N.to_nat i - N.to_nat addr - size))
+        with (N.to_nat (addr + N.pos (Pos.of_succ_nat size)) +
+                (N.to_nat i - N.to_nat addr - Pos.to_nat (Pos.of_succ_nat size)));
+        [done | lia]. } 
+    symmetry. apply map_filter_lookup_None.
+    apply map_filter_lookup_None in Hfil.
+    destruct (gmap_of_list _ !! _) eqn:gmi.
+    2:{ left.
+        rewrite gmap_of_list_lookup. rewrite gmap_of_list_lookup in gmi.
+        apply lookup_ge_None in gmi.
+        apply lookup_ge_None.
+        repeat rewrite app_length. repeat rewrite app_length in gmi.
+        rewrite take_length_le; last lia. rewrite take_length_le in gmi; last lia.
+        rewrite repeat_length. rewrite repeat_length in gmi.
+        rewrite drop_length. rewrite drop_length in gmi. lia. }
+    destruct Hfil as [? | Hfil] => //.
+    right. intros x Hsome.
+    rewrite lookup_insert_ne in Hfil; last done.
+    apply (Hfil p) => //.
+Qed. 
+
 
 Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (len: N) (s: stuckness) (E: coPset) (* Φ : iris.val -> iProp Σ *):
   n = Wasm_int.N_of_uint i32m c ->
@@ -1637,7 +1615,7 @@ Proof.
       iMod (gen_heap_update with "Hslen Hlen") as "[Hslen Hlen]".
       rewrite insert_insert.
       iMod (ghost_map_insert_wss with "Hs") as "[Hs Hwss]".
-      done.
+      done. done. lia.
       iModIntro.
       iSplitL "Ha Hs Hslen".
       iSplitL "Hs".

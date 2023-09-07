@@ -1182,12 +1182,12 @@ Proof.
   intros [-> H]. apply IHb. lia.
 Qed.
   
-  
 
-Lemma ghost_map_delete_big_ws bs (m : segment) a s addr size id:
+Lemma ghost_map_delete_big_ws bs (m : segment) a addr size id:
   length bs = N.to_nat size ->
   a.(allocated) !! id = Some (addr, size) ->
-  isSound s a ->
+  (*  isSound s a -> *)
+  compatible addr size (delete id a.(allocated)) ->
   ghost_map_auth segGName 1 (gmap_of_segment m a) -∗
                   ↦[wss][addr] bs ==∗
                   ghost_map_auth segGName 1 (gmap_of_segment m
@@ -1255,7 +1255,7 @@ Proof.
   rewrite Hbs. 
   unfold drop.
   iFrame. done.
-  { intros y Hy Habs. unfold base.uncurry, Datatypes.uncurry in Habs.
+  { intros y Hy Habs.
     remember (map_fold _ _ _) as mf.
     replace ((fold_left (λ (res : gmap N ()) (j: nat), <[ N.of_nat j :=()]> res)
                (iota (N.to_nat addr + S k) (N.to_nat size - S k)) mf) !! (addr + N.of_nat k)%N)
@@ -1281,15 +1281,7 @@ Proof.
     apply N.eqb_eq in Hx. assert (x = N.to_nat addr + k) as ->; first lia.
     clear Hx.
     apply lookup_iota in Hin' as [Hx Hj'].
-    destruct HWF as [HWF _].
-    unfold isSound_aux in HWF.
-    apply lookup_delete_Some in Hin as [Hidj Hj].
-    apply HWF in Hj as [_ Hcomp].
-    unfold compatible in Hcomp.
-    assert (j <> id /\ allocated a !! id = Some (addr, size)) as Hds; first by split.
-    apply lookup_delete_Some in Hds.
-    apply Hcomp in Hds as [Hds | Hds].
-    lia. lia.
+    apply HWF in Hin as [?|?]; lia.
   }
 
   intros i x Hi.
@@ -1337,6 +1329,26 @@ Proof.
 Qed.
 
 
+(*
+Lemma point_to_implies_compatible id addr size bs s a:
+    length bs = N.to_nat size ->
+    ↦[wss][ addr ] bs -∗
+      id ↣[allocated] (addr, size) -∗
+      ghost_map_auth segGName 1 (gmap_of_segment s a) -∗
+      ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
+      ⌜ compatible addr size (delete id a.(allocated)) ⌝.
+Proof.
+  iIntros (Hbs) "Hwss Hall Hs Ha".
+  unfold compatible.
+  iIntros (nid addr' size' H).
+
+  iAssert (∀ nid addr' size', ⌜ delete id (allocated a) !! nid = Some (addr', size') ⌝ -∗
+                                                                   ⌜ (addr + size <= addr')%N \/ (addr >= addr' + size')%N ⌝)%I
+    with "[Hwss Hall Hs Ha]" as "H".
+  2:{ iIntros (nid).
+*)
+
+
 Lemma wp_segfree h f0 bts Φ s E:
   valid h = true ->
   offset h = 0%N ->
@@ -1350,6 +1362,10 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
   iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & Hγ)".
+
+
+
+  
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -1692,3 +1708,4 @@ Proof.
 Qed.
 
 
+End iris_rules_segment.

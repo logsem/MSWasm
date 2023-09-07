@@ -752,7 +752,10 @@ Definition instantiate
     check_start m inst start /\
     let s'' := init_tabs s' inst (map (fun o => BinInt.Z.to_nat o.(Wasm_int.Int32.intval)) e_offs) m.(mod_elem) in
     (s_end : store_record_eqType)
-      == init_mems s'' inst (map (fun o => BinInt.Z.to_N o.(Wasm_int.Int32.intval)) d_offs) m.(mod_data). (* MAXIME : this last line, need to add something for segments? *)
+    == init_mems s'' inst (map (fun o => BinInt.Z.to_N o.(Wasm_int.Int32.intval)) d_offs) m.(mod_data)
+    /\ s_segs s = s_segs s_end /\ s_alls s = s_alls s_end
+
+. (* MAXIME : this last line, need to add something for segments? *)
 
 
 End module_instantiation.

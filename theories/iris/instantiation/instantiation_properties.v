@@ -1191,8 +1191,8 @@ Proof.
   destruct res as [[[s1 inst1] exp1] start1].
   destruct res' as [[[s2 inst2] exp2] start2].
   unfold instantiate, instantiation.instantiate in *.
-  destruct Hinst1 as (t_imps1 & t_exps1 & ws1 & g_inits1 & e_offs1 & d_offs1 & Hmodtype1 & Hexttype1 & Hallocmodule1 & Hinstglob1 & Hinstelem1 & Hinstdata1 & Hcbelem1 & Hcbdata1 & Hcstart1 & Hws1).
-  destruct Hinst2 as (t_imps2 & t_exps2 & ws2 & g_inits2 & e_offs2 & d_offs2 & Hmodtype2 & Hexttype2 & Hallocmodule2 & Hinstglob2 & Hinstelem2 & Hinstdata2 & Hcbelem2 & Hcbdata2 & Hcstart2 & Hws2). 
+  destruct Hinst1 as (t_imps1 & t_exps1 & ws1 & g_inits1 & e_offs1 & d_offs1 & Hmodtype1 & Hexttype1 & Hallocmodule1 & Hinstglob1 & Hinstelem1 & Hinstdata1 & Hcbelem1 & Hcbdata1 & Hcstart1 & Hws1 & ? & ?).
+  destruct Hinst2 as (t_imps2 & t_exps2 & ws2 & g_inits2 & e_offs2 & d_offs2 & Hmodtype2 & Hexttype2 & Hallocmodule2 & Hinstglob2 & Hinstelem2 & Hinstdata2 & Hcbelem2 & Hcbdata2 & Hcstart2 & Hws2 & ? & ?). 
 
   specialize (module_typing_det _ _ _ _ _ Hmodtype1 Hmodtype2) as Hvteq.
   inversion Hvteq; subst; clear Hvteq.

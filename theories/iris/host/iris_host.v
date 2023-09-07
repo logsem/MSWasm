@@ -507,8 +507,8 @@ Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
       (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
       (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
-      (gen_heap_interp (gmap_of_segment s.(s_segs) s.(s_alls))) ∗
-      (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗
+      (ghost_map_auth segGName 1 (gmap_of_segment s.(s_segs) s.(s_alls))) ∗
+      (ghost_map_auth allGName 1 (gmap_of_allocator s.(s_alls))) ∗ 
       (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
       (ghost_map_auth visGName 1 vis) ∗ 
       (ghost_map_auth msGName 1 (gmap_of_list ms)) ∗
@@ -828,7 +828,11 @@ forall (s E es Φ).
     iSpecialize ("Hwp" $! σ ns κ κs nt with "[$]").
     by iApply "Hwp". }
   destruct σ as [[[[s0 vis] ms] has] f].
-  iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?)".
+(*  iDestruct "Hσ" as "(H1 & H2 & H3 & H4 & H5 & H6 & H7 & H8 & H9 & H10 & H11 & H12 & H13 & H14)".
+  destruct f as [loc ins].
+  iSpecialize ("Hwp" $! (s0, loc, ins) ns κ κs nt).
+  iSpecialize ("Hwp" with "[$]"). *)
+  iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?)".
   destruct f as [loc ins].
   iSpecialize ("Hwp" $! (s0, loc, ins) ns κ κs nt with "[$]").
   iMod "Hwp" as "[%Hs He2]".
@@ -1842,7 +1846,7 @@ Proof.
 
     iMod "Hq" as "(Hwasmpost & Hσ)".
     unfold gen_heap_wasm_store => /=.
-    iDestruct "Hσ" as "(?&?&?&?&?&?&?&?)".
+    iDestruct "Hσ" as "(?&?&?&?&?&?&?&?&?&?)".
     iFrame.
 
     rewrite <- H3.

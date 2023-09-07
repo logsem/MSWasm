@@ -1300,10 +1300,13 @@ Lemma import_resources_wasm_lookup v_imps t_imps wfs wts wms wgs ws:
   ⊢ gen_heap_interp (gmap_of_list (s_funcs ws)) -∗
     gen_heap_interp (gmap_of_table (s_tables ws)) -∗
     gen_heap_interp (gmap_of_memory (s_mems ws)) -∗
+(*    ghost_map_auth segGName 1 (gmap_of_segment (s_segs ws) (s_alls ws)) -∗
+    ghost_map_auth allGName 1 (gmap_of_allocator (s_alls ws)) -∗ *)
     gen_heap_interp (gmap_of_list (s_globals ws)) -∗
     gen_heap_interp (gmap_of_list (fmap tab_size (s_tables ws))) -∗
     @gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt (s_tables ws))) -∗
     gen_heap_interp (gmap_of_list (fmap mem_length (s_mems ws))) -∗
+(*    gen_heap_interp ({[ () := seg_length ws.(s_segs).(seg_data) ]}: gmap unit N) -∗  *)
     @gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt (s_mems ws))) -∗
     import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs -∗
     ⌜ length v_imps = length t_imps /\ ∀ k v t, v_imps !! k = Some v -> t_imps !! k = Some t ->
@@ -3723,7 +3726,7 @@ Proof.
   move => Hmodtype Hmodrestr Hinstantiate.
   iIntros "(Himpwasm & %Hebound & %Hdbound)".
   iIntros "Hσ".
-  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit)".
+  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hwg & Hmsize & Hssize & Htsize & Hmlimit & Hslimit  & Htlimit)".
   
   iDestruct (import_resources_wasm_lookup with "Hwf Hwt Hwm Hwg Htsize Htlimit Hmsize Hmlimit Himpwasm") as "%Himpwasm".
   
@@ -3734,7 +3737,7 @@ Proof.
 
   unfold instantiate in Hinstantiate.
 
-  destruct Hinstantiate as [t_imps' [t_exps' [s'' [g_inits [e_offs [d_offs [Hmodtype' [Hexttype [Hallocmod [Hinstglob [Hinstelem [Hinstdata [Helemcb [Hdatacb [Hcheckstart Hs']]]]]]]]]]]]]]].
+  destruct Hinstantiate as [t_imps' [t_exps' [s'' [g_inits [e_offs [d_offs [Hmodtype' [Hexttype [Hallocmod [Hinstglob [Hinstelem [Hinstdata [Helemcb [Hdatacb [Hcheckstart [Hs' [Hseg Hall]]]]]]]]]]]]]]]]].
 
   specialize (module_typing_det m t_imps t_exps t_imps' t_exps' Hmodtype Hmodtype') as Hteq.
   inversion Hteq as [H].

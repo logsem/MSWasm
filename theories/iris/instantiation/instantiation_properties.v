@@ -1226,5 +1226,87 @@ Qed.
   
 End Instantiation_det.
 
+
+Lemma instantiate_segs_alls s0 s1 s2 s3 s4 s5 s6 f0 f1 f2 t0 t1 m0 m1 g0 g1 g2 im0 im1 im2 it0 it1 it2:
+  alloc_funcs s0 f0 f1 = (s1, f2) ->
+  alloc_tabs s1 t0 = (s2, t1) ->
+  alloc_mems s2 m0 = (s3, m1) ->
+  alloc_globs s3 g0 g1 = (s4, g2) ->
+  init_tabs s4 it0 it1 it2 = s5 ->
+  init_mems s5 im0 im1 im2 = s6 ->
+  s_segs s0 = s_segs s6 /\ s_alls s0 = s_alls s6.
+Proof.
+  intros Hf Ht Hm Hg Hit Him.
+  assert (s_segs s0 = s_segs s1 /\ s_alls s0 = s_alls s1) as [-> ->].
+  { unfold alloc_funcs in Hf.
+    unfold alloc_Xs in Hf.
+    remember [] as f3 in Hf. clear Heqf3.
+    generalize dependent s0.
+    generalize dependent f3.
+    induction f0 => //; intros; simpl in Hf. by inversion Hf.
+    simpl in IHf0.
+    apply IHf0 in Hf as [<- <-].
+    simpl. done. }
+  assert (s_segs s1 = s_segs s2 /\ s_alls s1 = s_alls s2) as [-> ->].
+  { clear - Ht. unfold alloc_tabs in Ht.
+    unfold alloc_Xs in Ht.
+    remember [] as t2 in Ht.
+    clear Heqt2.
+    generalize dependent s1; generalize dependent t2.
+    induction t0 => //; intros; simpl in Ht.
+    by inversion Ht.
+    destruct (alloc_tab s1 a) eqn:Hall.
+    apply IHt0 in Ht as [<- <-].
+    unfold alloc_tab in Hall.
+    destruct a. destruct tt_limits. unfold add_table in Hall.
+    inversion Hall; subst => //. }
+  assert (s_segs s2 = s_segs s3 /\ s_alls s2 = s_alls s3) as [-> ->].
+  { clear - Hm. unfold alloc_mems in Hm.
+    unfold alloc_Xs in Hm.
+    remember [] as m2 in Hm. clear Heqm2.
+    generalize dependent s2; generalize dependent m2.
+    induction m0 => //; intros; simpl in Hm.
+    by inversion Hm.
+    destruct (alloc_mem _ _) eqn:Hall.
+    apply IHm0 in Hm as [<- <-].
+    unfold alloc_mem in Hall. destruct a. inversion Hall; subst => //.
+  }
+  assert (s_segs s3 = s_segs s4 /\ s_alls s3 = s_alls s4) as [-> ->].
+  { clear - Hg. unfold alloc_globs in Hg. unfold alloc_Xs in Hg.
+    remember [] as g3 in Hg. clear Heqg3.
+    generalize dependent g1; generalize dependent s3; generalize dependent g3.
+    induction g0 => //; intros; simpl in Hg.
+    by inversion Hg.
+    destruct g1.
+    specialize (IHg0 g3 s3 []).
+    rewrite combine_nil in IHg0.
+    apply IHg0 in Hg as [<- <-].
+    done.
+    simpl in Hg. apply IHg0 in Hg as [<- <-].
+    done.
+  }
+  assert (s_segs s4 = s_segs s5 /\ s_alls s4 = s_alls s5) as [-> ->].
+  {   clear - Hit.
+      unfold init_tabs in Hit. remember (combine it1 it2) as l.
+      clear Heql.
+      generalize dependent s4. induction l; intros; simpl in Hit.
+      by subst. destruct a. apply IHl in Hit as [<- <-].
+      unfold init_tab => /=.
+      destruct (nth _ _) => /=. done.
+  }
+  clear - Him.
+  unfold init_mems in Him. remember (combine im1 im2) as l.
+  clear Heql.
+  generalize dependent s5. induction l; intros; simpl in Him.
+  by subst. destruct a. apply IHl in Him as [<- <-].
+  done.
+  
+
+Qed. 
+    
+
+
+
+
 End Instantiation_properties.
 

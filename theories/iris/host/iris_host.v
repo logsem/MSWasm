@@ -1245,6 +1245,10 @@ Proof.
        (mod_elem m)) inst_res
     [seq Z.to_N (Wasm_int.Int32.intval o) | o <- d_inits] 
     (mod_data m)) as ws_res.
+
+  assert (s_segs ws = s_segs ws_res /\ s_alls ws = s_alls ws_res) as [Hsegs Halls].
+  { eapply instantiate_segs_alls. exact Hallocfunc. exact Halloctab.
+    exact Hallocmem. exact Hallocglob. done. symmetry. exact Heqws_res. } 
   
   (* Prove that the instantiation predicate holds *)
   assert ((instantiate ws m (fmap modexp_desc v_imps) ((ws_res, inst_res, v_exps), None))) as Hinst.
@@ -1256,9 +1260,9 @@ Proof.
     exists t_imps, t_exps, s3, g_inits.
 
     exists e_inits, d_inits.
-    repeat split.
-    - (* module_typing *)
-      by apply Hmodtype.
+    repeat split => //.
+(*    - (* module_typing *)
+      by apply Hmodtype. *)
     - (* import types *)
       apply Forall2_same_length_lookup.
       split => //; first by rewrite fmap_length.
@@ -1834,7 +1838,7 @@ Proof.
 
     (* Wasm state update, using the instantiation characterisation lemma *)
     iDestruct (instantiation_wasm_spec with "") as "H" => //.
-    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hws Hwa Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
+    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
     { unfold instantiation_resources_pre_wasm.
       by iFrame.
     }
@@ -1844,12 +1848,14 @@ Proof.
 
     iClear "H".
 
+
     iMod "Hq" as "(Hwasmpost & Hσ)".
     unfold gen_heap_wasm_store => /=.
+    rewrite Halls Hsegs H0 => /=.
     iDestruct "Hσ" as "(?&?&?&?&?&?&?&?&?&?)".
     iFrame.
 
-    rewrite <- H3.
+    (* rewrite <- H3. *)
     rewrite <- H2 in H23.
 
     rewrite -> H1 in *.
@@ -1997,6 +2003,10 @@ Proof.
     (mod_data m)) as ws_res.
   
   remember (nth_error (inst_funcs inst_res) nstart) as ostart.
+
+  assert (s_segs ws = s_segs ws_res /\ s_alls ws = s_alls ws_res) as [Hsegs Halls].
+  { eapply instantiate_segs_alls. exact Hallocfunc. exact Halloctab. exact Hallocmem.
+    exact Hallocglob. done. symmetry. exact Heqws_res. } 
   
   (* Prove that the instantiation predicate holds *)
   assert ((instantiate ws m (fmap modexp_desc v_imps) ((ws_res, inst_res, v_exps), ostart ))) as Hinst.
@@ -2471,6 +2481,8 @@ Proof.
     - (* putting initlialized items into the store *)
       apply/eqP.
       by eauto.
+    - done.
+    - done.
   }
 
   assert (length hs_exps = length v_exps) as Hlenexp2.
@@ -2656,7 +2668,7 @@ Proof.
 
     (* Wasm state update, using the instantiation characterisation lemma *)
     iDestruct (instantiation_wasm_spec with "") as "H" => //.
-    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hws Hwa Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
+    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
     { unfold instantiation_resources_pre_wasm.
       by iFrame.
     }
@@ -2668,10 +2680,11 @@ Proof.
 
     iMod "Hq" as "(Hwasmpost & Hσ)".
     unfold gen_heap_wasm_store => /=.
+    rewrite Halls Hsegs H0 => /=.
     iDestruct "Hσ" as "(?&?&?&?&?&?&?&?)".
     iFrame.
 
-    rewrite <- H3.
+    (* rewrite <- H3. *)
     rewrite <- H2 in H23.
 
     rewrite -> H1 in *.

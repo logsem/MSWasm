@@ -26,6 +26,7 @@
 .lia.cache
 .nia.cache
 *.travis.yml
+*.txt
 
 /theories/extract.ml
 /theories/extract.mli

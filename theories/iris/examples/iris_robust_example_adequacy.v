@@ -112,7 +112,8 @@ Section adequacy.
       { iSplitL "Hv1";[iExists _;iFrame|]. iExists _;iFrame. }
       iDestruct ("HH" with "[]") as "HH";[auto|].
       iModIntro.
-      iExists _,_. iFrame "HH". iFrame. 
+      iExists _,_. iFrame "HH". iFrame.
+      done.
     }
     intros v Hval.
     destruct X. eapply adequate_result with (t2 := []).

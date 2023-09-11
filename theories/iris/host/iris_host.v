@@ -519,7 +519,8 @@ Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG
       (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
       (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
       (@gen_heap_interp _ _ _ _ _ seglimit_hsG (<[ () := seg_max_opt s.(s_segs) ]> ∅)) ∗
-      (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables))))
+      (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables)))) ∗
+      ⌜ wellFormedState s ⌝
     )%I;
     num_laters_per_step _ := 0;
     fork_post _ := True%I;
@@ -1151,7 +1152,7 @@ Proof.
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
   
   iIntros ([[[[ws vis] ms] has] f] ns κ κs nt) "Hσ".
-  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit)".
+  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit & %HWF)".
 
   (* module declaration *)
   iDestruct (ghost_map_lookup with "Hms Hmod") as "%Hmod".
@@ -1877,6 +1878,10 @@ Proof.
 
 
     iModIntro.
+    iSplit.
+    iPureIntro.
+    unfold wellFormedState.
+    rewrite - Halls - Hsegs. done.
 
     iApply weakestpre.wp_value; first by instantiate (1 := immHV []) => //.
 
@@ -1907,7 +1912,7 @@ Proof.
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
   
   iIntros ([[[[ws vis] ms] has] f] ns κ κs nt) "Hσ".
-  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit)".
+  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hws & Hwa & Hwg & Hvis & Hms & Hhas & Hframe & Hmsize & Hssize & Htsize & Hmlimit & Hslimit & Htlimit & %HWF)".
 
   (* module declaration *)
   iDestruct (ghost_map_lookup with "Hms Hmod") as "%Hmod".
@@ -2681,7 +2686,7 @@ Proof.
     iMod "Hq" as "(Hwasmpost & Hσ)".
     unfold gen_heap_wasm_store => /=.
     rewrite Halls Hsegs H0 => /=.
-    iDestruct "Hσ" as "(?&?&?&?&?&?&?&?)".
+    iDestruct "Hσ" as "(?&?&?&?&?&?&?&?&?&?)".
     iFrame.
 
     (* rewrite <- H3. *)
@@ -2706,6 +2711,8 @@ Proof.
 
 
     iModIntro.
+    iSplit.
+    iPureIntro. unfold wellFormedState. rewrite - Halls - Hsegs. done.
     iSplit => //.
 
     (* Apply the wp spec premise for start function *)

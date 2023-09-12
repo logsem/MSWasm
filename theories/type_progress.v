@@ -14,7 +14,7 @@ Unset Printing Implicit Defensive.
 Global Hint Constructors opsem.reduce_simple : core. 
 
 Section type_progress.
-
+  Set Bullet Behavior "Strict Subproofs".
   Context `{HHB: HandleBytes}.
 
 Definition terminal_form (es: seq administrative_instruction) :=
@@ -791,13 +791,13 @@ Proof.
     destruct (List.nth_error (s_segs s) n) eqn:HN => //=.
     destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=. *)
     destruct h.(valid) eqn:Hvalid.
-    destruct (0 <=? h.(offset))%N eqn:Hlo; [apply N.leb_le in Hlo| apply N.leb_gt in Hlo].
-    destruct (nat_of_bin h.(offset) + t_length t <=? nat_of_bin h.(bound)) eqn:Hhi;
+    destruct (0 <=? h.(offset))%Z eqn:Hlo; [apply Z.leb_le in Hlo| apply Z.leb_gt in Hlo].
+    destruct (nat_of_bin (Z.to_N h.(offset)) + t_length t <=? nat_of_bin h.(bound)) eqn:Hhi;
       [ apply Nat.leb_le in Hhi | apply Nat.leb_gt in Hhi].
     destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
     destruct (is_handle_t t) eqn:Ht.
     destruct t => //=.
-    destruct (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
+    destruct (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
     move/eqP in Hallign.
     destruct (segload (s_segs s) h (t_length T_handle)) eqn:HLoadResult.
     repeat eexists.
@@ -855,14 +855,14 @@ Proof.
     destruct (List.nth_error (s_segs s) n) eqn:HN => //=.
     destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=. *)
     destruct h.(valid) eqn:Hvalid.
-    destruct (0 <=? h.(offset))%N eqn:Hlo; [apply N.leb_le in Hlo| apply N.leb_gt in Hlo].
-    destruct (nat_of_bin h.(offset) + t_length (typeof v0) <=? nat_of_bin h.(bound)) eqn:Hhi;
+    destruct (0 <=? h.(offset))%Z eqn:Hlo; [apply Z.leb_le in Hlo| apply Z.leb_gt in Hlo].
+    destruct (nat_of_bin (Z.to_N h.(offset)) + t_length (typeof v0) <=? nat_of_bin h.(bound)) eqn:Hhi;
       [ apply Nat.leb_le in Hhi | apply Nat.leb_gt in Hhi].
     destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
     destruct (segstore (s_segs s) h (List.map (fun x => (x, match typeof v0 with T_handle => Handle | _ => Numeric end)) (bits v0)) (t_length (typeof v0))) eqn:HStoreResult.
     destruct (is_handle_t (typeof v0)) eqn:Hhandle.
     destruct v0 => //=.
-    destruct (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
+    destruct (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
     move/eqP in Hallign.
     repeat eexists.
     eapply rm_segstore_handle_success; eauto; try lias.
@@ -883,24 +883,15 @@ Proof.
  - (* Slice *)
    right. subst.
    invert_typeof_vcs. destruct v, v0, v1 => //=. 
-   destruct (0 <=? Wasm_int.N_of_uint i32m s0)%N eqn:Hlo.  (*;
-     [ apply N.leb_le in Hlo | apply N.leb_gt in Hlo].  *)
-   destruct ( Wasm_int.N_of_uint i32m s0 <? h.(bound) )%N eqn:Hhi. (* ;
-     [ apply N.ltb_lt in Hhi | apply N.ltb_ge in Hhi]. *)
-   destruct (0 <=? Wasm_int.N_of_uint i32m s1)%N eqn:Hlo'. (* ;
-     [ apply N.leb_le in Hlo' | apply N.leb_gt in Hlo']. *)
+   destruct ( Wasm_int.N_of_uint i32m s0 <? h.(bound) )%N eqn:Hhi. 
    repeat eexists.
    eapply rm_silent, r_simple, rs_slice_success; eauto.
    unfold slice_handle.
-   rewrite Hlo Hhi Hlo' => //.
+   rewrite Hhi => //.
    repeat eexists.
    eapply rm_silent, r_simple, rs_slice_failure; eauto.
-   unfold slice_handle. rewrite Hlo Hhi Hlo' => //. 
-   repeat eexists; eapply rm_silent, r_simple, rs_slice_failure; eauto.
-   unfold slice_handle; rewrite Hlo Hhi => //. 
-   repeat eexists; eapply rm_silent, r_simple, rs_slice_failure; eauto.
-   unfold slice_handle; rewrite Hlo => //.
-   
+   unfold slice_handle. rewrite Hhi => //. 
+      
  - (* Segalloc *)
    right. subst.
    invert_typeof_vcs. destruct v => //.
@@ -934,11 +925,11 @@ Proof.
    destruct (add =? base h)%N eqn:Hadd.
    move/eqP in Hadd. subst.
    destruct (h.(valid)) eqn:Hvalid.
-   destruct (h.(offset)) eqn:Hoff.
+   destruct (h.(offset) == 0)%Z eqn:Hoff.
    repeat eexists. eapply rm_segfree_success; eauto.
-   eapply Free => //. exact Halloc.
+   eapply Free => //. exact Halloc. by apply b2p in Hoff.
    repeat eexists. eapply rm_segfree_failure; eauto.
-   by rewrite Hoff; right; left.
+   right; left; intros Habs. rewrite Habs in Hoff. done.
    repeat eexists. eapply rm_segfree_failure; eauto.
    repeat eexists. eapply rm_segfree_failure; eauto.
    left. intro Habs. unfold find_address in Habs.
@@ -1649,7 +1640,7 @@ Proof.
         exists ME_empty, s, f, [::AI_trap].
         apply rm_silent, r_simple.
         by apply rs_label_trap.
-        by apply v_to_e_is_const_list.
+      * by apply v_to_e_is_const_list.
     + (* reduce *)
       destruct H as [me [s' [f' [es' HReduce]]]].
       right.
@@ -1705,9 +1696,9 @@ Proof.
   by repeat eexists.
   all: eapply t_progress_e with (vcs := [::]) (ret := None) (lab := [::]) in H7; eauto.
   all: try by destruct H7 ; [left | right ; right].
-  - all: try by rewrite Hes.
-  - all: try by eapply s_typing_lf_br; eauto.
-  - all: try by eapply s_typing_lf_return; eauto.
+  all: try by rewrite Hes.
+  all: try by eapply s_typing_lf_br; eauto.
+  all: try by eapply s_typing_lf_return; eauto.
   - assert (E : tc_local C1 = [::]).
     { by eapply inst_t_context_local_empty; eauto. }
     rewrite E. simpl.

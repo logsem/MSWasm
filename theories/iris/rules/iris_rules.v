@@ -7,6 +7,7 @@ Require Export iris_rules_structural
         iris_rules_pure
         iris_rules_control
         iris_rules_resources
+        iris_rules_segment
         iris_rules_calls
         iris_rules_trap
         iris_rules_bind.

@@ -127,7 +127,7 @@ Definition pp_f64 (f : float) : string :=
 
 
 Definition pp_handle (h : handle) : string :=
-  "base = " ++ of_N h.(base) ++ ", offset = " ++ of_N h.(offset) ++ ", bound = " ++ of_N h.(bound) ++ ", valid = " ++ (if h.(valid) then "true" else "false") ++ ", id = " ++ of_N h.(id).
+  "base = " ++ of_N h.(base) ++ ", offset = " ++ of_Z h.(offset) ++ ", bound = " ++ of_N h.(bound) ++ ", valid = " ++ (if h.(valid) then "true" else "false") ++ ", id = " ++ of_N h.(id).
 
 
 Definition pp_value (v : value) : string :=

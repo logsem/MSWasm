@@ -5,7 +5,7 @@ From Wasm Require Import common memory_list segment_list.
 From mathcomp Require Import ssreflect ssrfun (*  ssrnat *) ssrbool eqtype  seq.
 From compcert Require lib.Floats.
 From Wasm Require Export datatypes_properties list_extra.
-From Coq Require Import BinNat Eqdep_dec.
+From Coq Require Import ZArith.BinInt BinNat Eqdep_dec.
 Require Import Lia Coq.Program.Equality handle.
 
 Set Implicit Arguments.
@@ -227,8 +227,11 @@ Definition load (m : memory) (n : N) (off : static_offset) (l : nat) : option by
 
 
 Definition segload (s : segment) (h : handle) (l : nat) :=
-  if N.leb (N.add h.(base) (N.add h.(offset) (N.of_nat l))) (seg_length s)
-  then read_segbytes s (N.add h.(base) h.(offset)) l
+  let addr := (Z.of_N h.(base) + h.(offset))%Z in
+  if Z.leb Z.zero addr then
+    if N.leb (N.add (Z.to_N addr) (N.of_nat l)) (seg_length s)
+    then read_segbytes s (Z.to_N addr) l
+    else None
   else None.
 
 
@@ -262,8 +265,11 @@ Fixpoint tagged_bytes_takefill (a : (byte * btag)) (n : nat) aas :=
 
 
 Definition segstore (s : segment) (h : handle) bs (l : nat) : option segment :=
-  if N.leb (h.(base) + h.(offset) + N.of_nat l) (seg_length s)
-  then write_segbytes s (h.(base) + h.(offset)) (tagged_bytes_takefill (#00, Numeric) l bs)
+  let addr := (Z.of_N h.(base) + h.(offset))%Z in
+  if Z.leb Z.zero addr then
+    if N.leb ((Z.to_N addr) + (N.of_nat l)) (seg_length s)
+    then write_segbytes s (Z.to_N addr) (tagged_bytes_takefill (#00, Numeric) l bs)
+    else None
   else None.
 
 (*

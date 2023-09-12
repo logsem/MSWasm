@@ -1474,12 +1474,12 @@ Qed.
 Section using_ssrnat.
   Import ssrnat.
 
-Lemma segstore_is_None_aux_aux b c' k:
+Lemma segstore_is_None_aux_aux addr c' k:
    List.fold_left
     (fun '(k0, acc) (x : byte * btag) =>
      ((k0 + 1)%coq_nat,
      match acc with
-     | Some dat => seg_update (base b + offset b + N.of_nat k0) x dat
+     | Some dat => seg_update (addr + N.of_nat k0) x dat
      | None => None
      end)) c' (k, None) = (k + length c', None).
 Proof.
@@ -1490,14 +1490,14 @@ Proof.
 Qed.
   
 
-Lemma segstore_is_None_aux a a' b c c' k k':
+Lemma segstore_is_None_aux a a' addr c c' k k':
   length c = length c' ->
   length a.(segl_data) = length a'.(segl_data) ->
 List.fold_left
         (fun '(k, acc) (x : byte * btag) =>
          ((k + 1)%coq_nat,
          match acc with
-         | Some dat => seg_update (base b + offset b + N.of_nat k) x dat
+         | Some dat => seg_update (addr + N.of_nat k) x dat
          | None => None
          end)) c (k, Some a)
 = (k', None) -> 
@@ -1505,7 +1505,7 @@ List.fold_left
         (fun '(k, acc) (x : byte * btag) =>
          ((k + 1)%coq_nat,
          match acc with
-         | Some dat => seg_update (base b + offset b + N.of_nat k) x dat
+         | Some dat => seg_update (addr + N.of_nat k) x dat
          | None => None
          end)) c' (k, Some a') = (k', None).
 Proof.
@@ -1531,6 +1531,7 @@ Lemma segstore_is_None a b c c' d :
   segstore a b c d = None -> segstore a b c' d = None.
 Proof.
   unfold segstore. destruct (N.leb _ _) => //.
+  destruct (BinInt.Z.leb _ _) => //.
   unfold write_segbytes. unfold fold_lefti.
   destruct (List.fold_left _ _ _) eqn:Hfl => //.
   destruct o => //. erewrite segstore_is_None_aux. done. 3: exact Hfl.
@@ -1539,14 +1540,14 @@ Qed.
 
 
  Lemma segstore_same_length_aux:
-  forall l h s s' k k',
-    BinNat.N.leb (BinNat.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat (k + length l))) (seg_length s) = true ->        
+  forall l addr s s' k k',
+    BinNat.N.leb (BinNat.N.add addr (BinNat.N.of_nat (k + length l))) (seg_length s) = true ->        
       List.fold_left
         (fun '(off, dat_o) (b : byte * btag) =>
         (off + 1, match dat_o with
            | Some dat =>
                seg_update
-                 (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat off))
+                 (BinNatDef.N.add addr (BinNat.N.of_nat off))
                  b dat
            | None => None
        end)) l (k, Some s) = (k', Some s') ->
@@ -1558,7 +1559,7 @@ Proof.
   intros h s s' k k' Hlen H.
   unfold seg_update in H at 2.
   replace (BinNat.N.ltb
-             (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat k))
+             (BinNatDef.N.add h (BinNat.N.of_nat k))
              (BinNat.N.of_nat (length (segl_data s)))) with true in H.
   apply IHl in H.
   rewrite - H.
@@ -1566,7 +1567,7 @@ Proof.
   rewrite List.app_length => /=.
   rewrite List.firstn_length_le.
   rewrite List.skipn_length.
-  remember (BinNat.N.to_nat (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat k))) as x.
+  remember (BinNat.N.to_nat (BinNatDef.N.add h (BinNat.N.of_nat k))) as x.
   replace (x + 1)%coq_nat with x.+1; last lias. 
   rewrite subnSK.
   replace (Nat.add x (subn (length (segl_data s)) x)) with
@@ -1582,7 +1583,7 @@ Proof.
   unfold seg_length => /=. 
   rewrite List.app_length => /=.
   rewrite List.firstn_length_le. rewrite List.skipn_length.
-  remember (BinNat.N.to_nat (BinNatDef.N.add (BinNat.N.add (base h) (offset h)) (BinNat.N.of_nat k))) as x.
+  remember (BinNat.N.to_nat (BinNatDef.N.add h (BinNat.N.of_nat k))) as x.
   replace (x + 1)%coq_nat with x.+1; last lias.
   rewrite subnSK.
     replace (Nat.add x (subn (length (segl_data s)) x)) with
@@ -1608,7 +1609,8 @@ Lemma segstore_same_length s h l i s' :
   segstore s h l i = Some s' -> operations.seg_length s = operations.seg_length s'.
 Proof.
   unfold segstore.
-  destruct (BinNat.N.leb _ _) eqn:Hlen => //.
+  destruct (BinInt.Z.leb _ _) eqn:Hlen => //.
+  destruct (_ <=? _)%num eqn:Hlen' => //.
   unfold write_segbytes.
   unfold fold_lefti.
   destruct (List.fold_left _ _ _) eqn:Hfl.
@@ -1620,7 +1622,7 @@ Proof.
   done.
   rewrite length_is_size size_tagged_bytes_takefill.
   replace (0 + i) with i; last lias.
-  exact Hlen.
+  assumption.
 Qed.
 
 

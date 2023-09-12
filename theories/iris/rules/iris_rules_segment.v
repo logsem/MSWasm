@@ -268,7 +268,8 @@ Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_typ
   types_agree t v ->
   List.map fst tbv = (bits v) ->
   valid h = true ->
-  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) ->
+  (offset h + N.of_nat (t_length t) <= bound h)%N ->
+(*  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) -> *)
   (▷ Φ (immV [v]) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
      ↦[wss][ base h + offset h ]

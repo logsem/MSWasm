@@ -2747,7 +2747,8 @@ Proof.
   move => m h bs tlen mem HStore.
   unfold seg_extension.
   unfold segstore in HStore.
-  destruct ((base h + offset h + N.of_nat tlen <=? operations.seg_length m)%N) eqn:HMemSize => //.
+  destruct (_ <=? _)%Z => //.
+  destruct ((_ <=? operations.seg_length m)%N) eqn:HMemSize => //.
   remove_bools_options.
   apply write_segbytes_preserve_type in HStore; destruct HStore as (_ & H1 & H2).
   rewrite H1 H2.
@@ -3260,7 +3261,8 @@ Lemma segstore_seg_agree: forall s m h vs tl mem,
 Proof.
   move => s m h vs tl mem HST HN HStore HTL.
   unfold segstore in HStore.
-  destruct ((base h+offset h+N.of_nat tl <=? operations.seg_length m)%N) eqn:H => //=.
+  destruct (_ <=? _)%Z => //.
+  destruct ((_ <=? operations.seg_length m)%N) eqn:H => //=.
   apply write_segbytes_preserve_type in HStore.
   destruct HStore as (_ & HMemSize & HMemLim).
   assert (seg_agree m); first by eapply segstore_typed_seg_agree; eauto.
@@ -3903,9 +3905,9 @@ Proof.
       invert_be_typing.
       apply Segstore_typing in H10.
       apply concat_cancel_last_n in H10 => //.
-      move/andP in H10. destruct H10. move/eqP in H3. subst.
+      move/andP in H10. destruct H10. move/eqP in H0. subst.
       apply ety_a'; auto_basic => //=.
-      apply b2p in H0 as ->. apply bet_weakening_empty_both.
+      apply b2p in H1. inversion H1; subst. apply bet_weakening_empty_both.
       by apply bet_empty.
   - (* Store None *)
     + convert_et_to_bet.
@@ -3916,7 +3918,7 @@ Proof.
       invert_be_typing.
       apply Segstore_typing in H1000 as H11 .
       apply concat_cancel_last_n in H11 => //.
-      move/andP in H11. destruct H11. move/eqP in H3. subst.
+      move/andP in H11. destruct H11. move/eqP in H0. subst.
       apply ety_a'; auto_basic => //=.
       apply b2p in H as ->. apply bet_weakening_empty_both.
       by apply bet_empty.

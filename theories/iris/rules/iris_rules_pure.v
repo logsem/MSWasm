@@ -408,11 +408,9 @@ Qed.
 
 Lemma wp_handleadd (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h c f0 :
   ↪[frame] f0 -∗
-  ▷Φ (immV [VAL_handle  {| base := h.(base) ;
-           offset := h.(offset) + Wasm_int.N_of_uint i32m c ;
-           bound := h.(bound) ;
-           valid := h.(valid) ; id := h.(id) |}]) -∗ WP [AI_basic (BI_const (VAL_int32 c)) ; 
-                      AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
+    ▷Φ (immV [VAL_handle  (handle_add h (Wasm_int.Z_of_sint i32m c))]) -∗
+    WP [AI_basic (BI_const (VAL_int32 c)) ; 
+        AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros "Hf0 HΦ".

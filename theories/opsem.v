@@ -142,11 +142,8 @@ Inductive reduce_simple : seq administrative_instruction -> seq administrative_i
         reduce_simple [::v; AI_basic (BI_tee_local i)] [::v; v; AI_basic (BI_set_local i)]
 | rs_handleadd :
   forall h c n h',
-    n = Wasm_int.N_of_uint i32m c ->
-    h' = {| base := h.(base) ;
-           offset := h.(offset) + n ;
-           bound := h.(bound) ;
-           valid := h.(valid) ; id := h.(id) |} ->
+    n = Wasm_int.Z_of_sint i32m c ->
+    h' = handle_add h n -> 
     reduce_simple [:: AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_const (VAL_handle h)) ; AI_basic BI_handleadd ] [:: AI_basic (BI_const (VAL_handle h'))]
 
 | rs_slice_success :
@@ -335,8 +332,8 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
-      (0 <= h.(offset))%N ->
-      (h.(offset) + (t_length t) <= h.(bound))%N ->
+      (0 <= h.(offset))%Z ->
+      (Z.to_N h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A -> 
       segload m h (t_length t) = Some tbs ->
       List.map fst tbs = bs ->
@@ -353,10 +350,10 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
-      (0 <= h.(offset))%N ->
-      (h.(offset) + (t_length t) <= h.(bound))%N ->
+      (0 <= h.(offset))%Z ->
+      (Z.to_N h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A ->
-      (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+      (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
       segload m h (t_length t) = Some tbs ->
       List.map fst tbs = bs ->
       List.map snd tbs = ts ->
@@ -375,11 +372,11 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       m = s.(s_segs) ->
       A = s.(s_alls) -> 
       (h.(valid) = false \/
-      (0 > h.(offset))%N \/
-      (h.(offset) + (t_length t) > h.(bound))%N \/
+      (0 > h.(offset))%Z \/
+      (Z.to_N h.(offset) + (t_length t) > h.(bound))%N \/
         (isFree h.(id) A) \/ 
          segload m h (t_length t) = None \/
-      t = T_handle /\ (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
+      t = T_handle /\ (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] ME_trap s f [:: AI_trap]
 
              
@@ -393,8 +390,8 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
-      (0 <= h.(offset))%N ->
-      (h.(offset) + (t_length t) <= h.(bound))%N ->
+      (0 <= h.(offset))%Z ->
+      (Z.to_N h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A ->
       tbs = List.map (fun x => (x, Numeric)) (bits v) ->
       segstore m h tbs (t_length t) = Some seg' ->
@@ -410,10 +407,10 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
-      (0 <= h.(offset))%N ->
-      (h.(offset) + (t_length t) <= h.(bound))%N ->
+      (0 <= h.(offset))%Z ->
+      (Z.to_N h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A ->
-      (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+      (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
       tbs = List.map (fun x => (x, Handle)) (bits v) ->
       segstore m h tbs (t_length t) = Some seg' ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] (ME_write t h v) (upd_s_seg s seg') f [::]
@@ -427,11 +424,11 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       (h.(valid) = false \/
-         (0 > h.(offset))%N \/
-         (h.(offset) + (t_length t) > h.(bound))%N \/
+         (0 > h.(offset))%Z \/
+         (Z.to_N h.(offset) + (t_length t) > h.(bound))%N \/
          (isFree h.(id) A) \/
          segstore m h (List.map (fun x => (x, match t with T_handle => Handle | _ => Numeric end)) (bits v)) (t_length t) = None \/
-      t = T_handle /\ (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
+      t = T_handle /\ (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] ME_trap s f [::AI_trap]
 
   | rm_segalloc_success : forall s f m A a n c nid seg' A' s' h,
@@ -444,7 +441,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       n = (Wasm_int.N_of_uint i32m c) ->
       salloc m A a n nid seg' A' ->
       s' = upd_s_seg (upd_s_all s A') seg' ->
-      h = {| base := a ; offset := N.of_nat 0 ; bound := n ; valid := true ; id := nid |} ->
+      h = new_handle a n nid -> 
       reduce s f [::AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_segalloc]
         (ME_salloc h) s' f
         [:: AI_basic (BI_const (VAL_handle h))]
@@ -469,7 +466,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       A = s.(s_alls) ->
       sfree m A h.(base) h.(id) seg' A' ->
       h.(valid) = true ->
-      h.(offset) = N.zero ->
+      h.(offset) = Z.zero ->
       s' = upd_s_seg (upd_s_all s A') seg' ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)) ; AI_basic BI_segfree]
         (ME_sfree h) s' f
@@ -482,7 +479,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
       A = s.(s_alls) ->
-      find_address h.(id) A <> Some h.(base) \/ h.(offset) <> N.zero \/ h.(valid) = false ->
+      find_address h.(id) A <> Some h.(base) \/ h.(offset) <> Z.zero \/ h.(valid) = false ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)) ; AI_basic BI_segfree]
              ME_trap s f [::AI_trap]
         

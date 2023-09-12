@@ -159,11 +159,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
 
   | AI_basic BI_handleadd =>
       if ves is VAL_handle h :: VAL_int32 c :: ves' then
-        (ret (s, f, RS_normal (vs_to_es (VAL_handle {| base := h.(base);
-                                                     offset := h.(offset) + Wasm_int.N_of_uint i32m c;
-                                                     bound := h.(bound);
-                                                     valid := h.(valid);
-                                                     id := h.(id) |} :: ves'))))
+        (ret (s, f, RS_normal (vs_to_es (VAL_handle (handle_add h (Wasm_int.Z_of_sint i32m c)) :: ves'))))
       else ret (s, f, crash_error)
           
   (** testops **)
@@ -354,7 +350,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segload s.(s_segs) h (t_length T_handle))
                              (fun bs =>
@@ -379,7 +375,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
                              (fun seg' =>
@@ -405,7 +401,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
+                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
                              (segload s.(s_segs) h (t_length t))
                              (fun bs => ret (s, f, RS_normal (vs_to_es (wasm_deserialise (List.map fst bs) t :: ves'))))
@@ -427,7 +423,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (N.leb 0 h.(offset)) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
+                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Numeric)) (bits v)) (t_length t))
                              (fun seg' =>
@@ -517,11 +513,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                       if seg' is Some seg'' then
                         let: fsh := next_free s.(s_alls) in
                         ret (upd_s_seg (upd_s_all s ({| allocated := base.insert fsh (l, Wasm_int.N_of_uint i32m c) (allocated s.(s_alls)); next_free := fsh + 1 |})) seg'', f,
-                            RS_normal (vs_to_es (VAL_handle {| base := l;
-                                                              offset := N.of_nat 0;
-                                                              bound := Wasm_int.N_of_uint i32m c;
-                                                              valid := true;
-                                                              id := fsh |} :: ves')))
+                            RS_normal (vs_to_es (VAL_handle (new_handle l (Wasm_int.N_of_uint i32m c) fsh) :: ves')))
                       else ret (s, f, crash_error)
 (*                    else ret (s, f, crash_error)
                   else ret (s, f, crash_error))
@@ -539,7 +531,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some s_seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
-                      if h.(valid) && (h.(offset) == N.zero)%N then
+                      if h.(valid) && (h.(offset) == Z.zero)%Z then
                         expect
                           (find_and_remove h.(id) s.(s_alls).(allocated))
                           (fun '(l, a, n) =>

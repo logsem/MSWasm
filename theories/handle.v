@@ -46,6 +46,9 @@ Definition handle_add h (n: Z) :=
 Definition new_handle a n id :=
   {| base := a ; offset := 0%Z ; bound := n ; valid := true ; id := id |}.
 
+Definition handle_addr h :=
+  Z.to_N (Z.of_N (base h) + offset h)%Z.
+
 Class HandleBytes : Type := {
     handle_size : N;
     serialise_handle : handle -> bytes;

@@ -1092,13 +1092,21 @@ Ltac frame_cat :=
   end.
 
 Lemma plus_binnat_leq : forall x z y, BinNat.N.le (BinNat.N.add x (BinNat.N_of_nat z)) y -> nat_of_bin (x) + z <= nat_of_bin y.
-Proof. admit. Admitted.
+Proof.
+  intros x z y.
+  repeat rewrite nat_bin.
+  lias.
+Qed.
 
 Lemma plus_binnat_lt : forall x y z, BinNat.N.lt x (BinNat.N.add y (BinNat.N_of_nat z)) -> nat_of_bin x < nat_of_bin y + z.
-Proof. admit. Admitted.
+Proof.
+  intros x y z. repeat rewrite nat_bin. lias.
+Qed. 
 
 Lemma binnat_lt : forall a b, BinNat.N.lt a b -> nat_of_bin a < nat_of_bin b.
-Proof. admit. Admitted.
+Proof.
+  intros x y z. repeat rewrite nat_bin. lias.
+Qed. 
 
 
 

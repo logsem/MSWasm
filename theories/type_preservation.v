@@ -2747,7 +2747,6 @@ Proof.
   move => m h bs tlen mem HStore.
   unfold seg_extension.
   unfold segstore in HStore.
-  destruct (_ <=? _)%Z => //.
   destruct ((_ <=? operations.seg_length m)%N) eqn:HMemSize => //.
   remove_bools_options.
   apply write_segbytes_preserve_type in HStore; destruct HStore as (_ & H1 & H2).
@@ -3261,7 +3260,6 @@ Lemma segstore_seg_agree: forall s m h vs tl mem,
 Proof.
   move => s m h vs tl mem HST HN HStore HTL.
   unfold segstore in HStore.
-  destruct (_ <=? _)%Z => //.
   destruct ((_ <=? operations.seg_length m)%N) eqn:H => //=.
   apply write_segbytes_preserve_type in HStore.
   destruct HStore as (_ & HMemSize & HMemLim).
@@ -4068,3 +4066,4 @@ Qed.
 
 
 End type_preservation.
+

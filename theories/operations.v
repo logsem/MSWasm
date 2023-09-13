@@ -227,13 +227,10 @@ Definition load (m : memory) (n : N) (off : static_offset) (l : nat) : option by
 
 
 Definition segload (s : segment) (h : handle) (l : nat) :=
-  let addr := (Z.of_N h.(base) + h.(offset))%Z in
-  if Z.leb Z.zero addr then
-    if N.leb (N.add (Z.to_N addr) (N.of_nat l)) (seg_length s)
-    then read_segbytes s (Z.to_N addr) l
+    if N.leb (N.add (handle_addr h) (N.of_nat l)) (seg_length s)
+    then read_segbytes s (handle_addr h) l
     else None
-  else None.
-
+.
 
 Definition sign_extend (s : sx) (l : nat) (bs : bytes) : bytes :=
   (* TODO: implement sign extension *) bs.
@@ -265,12 +262,10 @@ Fixpoint tagged_bytes_takefill (a : (byte * btag)) (n : nat) aas :=
 
 
 Definition segstore (s : segment) (h : handle) bs (l : nat) : option segment :=
-  let addr := (Z.of_N h.(base) + h.(offset))%Z in
-  if Z.leb Z.zero addr then
-    if N.leb ((Z.to_N addr) + (N.of_nat l)) (seg_length s)
-    then write_segbytes s (Z.to_N addr) (tagged_bytes_takefill (#00, Numeric) l bs)
+    if N.leb (handle_addr h + (N.of_nat l)) (seg_length s)
+    then write_segbytes s (handle_addr h) (tagged_bytes_takefill (#00, Numeric) l bs)
     else None
-  else None.
+.
 
 (*
 Lemma segstore_same_length s h bs l s' :

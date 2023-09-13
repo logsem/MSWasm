@@ -353,7 +353,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       (0 <= h.(offset))%Z ->
       (Z.to_N h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A ->
-      (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+      (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
       segload m h (t_length t) = Some tbs ->
       List.map fst tbs = bs ->
       List.map snd tbs = ts ->
@@ -376,7 +376,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       (Z.to_N h.(offset) + (t_length t) > h.(bound))%N \/
         (isFree h.(id) A) \/ 
          segload m h (t_length t) = None \/
-      t = T_handle /\ (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
+      t = T_handle /\ (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] ME_trap s f [:: AI_trap]
 
              
@@ -410,7 +410,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       (0 <= h.(offset))%Z ->
       (Z.to_N h.(offset) + (t_length t) <= h.(bound))%N ->
       isAlloc h.(id) A ->
-      (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+      (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
       tbs = List.map (fun x => (x, Handle)) (bits v) ->
       segstore m h tbs (t_length t) = Some seg' ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] (ME_write t h v) (upd_s_seg s seg') f [::]
@@ -428,7 +428,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
          (Z.to_N h.(offset) + (t_length t) > h.(bound))%N \/
          (isFree h.(id) A) \/
          segstore m h (List.map (fun x => (x, match t with T_handle => Handle | _ => Numeric end)) (bits v)) (t_length t) = None \/
-      t = T_handle /\ (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
+      t = T_handle /\ (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] ME_trap s f [::AI_trap]
 
   | rm_segalloc_success : forall s f m A a n c nid seg' A' s' h,

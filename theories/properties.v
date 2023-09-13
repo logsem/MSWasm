@@ -170,6 +170,7 @@ Qed.
 Section using_ssrnat.
   Import ssrnat.
 
+  
 Lemma update_list_at_is_set_nth: forall {X:Type} (l:list X) n x,
     n < size l ->
     set_nth x l n x = update_list_at l n x.
@@ -1531,7 +1532,6 @@ Lemma segstore_is_None a b c c' d :
   segstore a b c d = None -> segstore a b c' d = None.
 Proof.
   unfold segstore. destruct (N.leb _ _) => //.
-  destruct (BinInt.Z.leb _ _) => //.
   unfold write_segbytes. unfold fold_lefti.
   destruct (List.fold_left _ _ _) eqn:Hfl => //.
   destruct o => //. erewrite segstore_is_None_aux. done. 3: exact Hfl.
@@ -1609,7 +1609,6 @@ Lemma segstore_same_length s h l i s' :
   segstore s h l i = Some s' -> operations.seg_length s = operations.seg_length s'.
 Proof.
   unfold segstore.
-  destruct (BinInt.Z.leb _ _) eqn:Hlen => //.
   destruct (_ <=? _)%num eqn:Hlen' => //.
   unfold write_segbytes.
   unfold fold_lefti.

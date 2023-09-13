@@ -1,10 +1,11 @@
 From mathcomp Require Import ssreflect eqtype seq ssrbool.
-From iris.program_logic Require Import language.
+From iris.program_logic Require Import language. 
 From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map.
 From iris.base_logic.lib Require Export fancy_updates.
 Require Import Coq.Program.Equality.
 Require Export iris_wp_def iris_rules_resources.
+From Coq Require Import BinNat.
 
 Import uPred.
 
@@ -141,52 +142,53 @@ Definition all_live lo hi a : Prop :=
 Definition one_live i a : Prop :=
   live_locations a !! i = Some ().
 
-Lemma wss_is_segload h bv ws : 
+Lemma wss_is_segload h bv ws :
   length bv > 0 ->
-  ( ↦[wss][ h.(base) + h.(offset) ] bv -∗
+  ( ↦[wss][ handle_addr h ] bv -∗
             ghost_map_auth segGName 1 (gmap_of_segment (s_segs ws) (s_alls ws))
             -∗ ⌜ segload (ws.(s_segs)) h (length bv) = Some bv /\
-      all_live (base h + offset h)%N (base h + offset h + N.of_nat (length bv))%N
+      all_live (handle_addr h) (handle_addr h + N.of_nat (length bv))%N
         (s_alls ws)⌝).
 Proof.
   iIntros (Ht) "Hwss Hs".
   iAssert ( (∀ i, ⌜ i < length bv ⌝ -∗
-                          ⌜ (segl_data (seg_data (s_segs ws))) !! (N.to_nat (h.(base) + h.(offset) + N.of_nat i))
-                  = bv !! i /\ one_live (base h + offset h + N.of_nat i)%N (s_alls ws) ⌝)%I ) as "%Hseq".
+                          ⌜ (segl_data (seg_data (s_segs ws))) !! (N.to_nat (handle_addr h + N.of_nat i))
+                  = bv !! i /\ one_live (handle_addr h + N.of_nat i)%N (s_alls ws) ⌝)%I ) as "%Hseq".
   { iIntros (i) "%Hi".
     iDestruct (big_sepL_lookup with "Hwss") as "H" => //.
     destruct (nth_lookup_or_length bv i (bytes.encode 1, Numeric)) => //=.
     lia.
     iDestruct (ghost_map_lookup with "Hs H") as "%H".
     apply gmap_of_segment_some in H as (Hdata & Hlive & id & addr & size & Hid & Hsize1 & Hsize2).
-    iPureIntro. replace (N.to_nat (h.(base) + h.(offset) + N.of_nat i)) with
-      (N.to_nat (h.(base) + h.(offset)) + i). rewrite Nat2N.id in Hdata. rewrite Hdata.
+    iPureIntro. replace (N.to_nat (handle_addr h + N.of_nat i)) with
+      (N.to_nat (handle_addr h) + i). rewrite Nat2N.id in Hdata. rewrite Hdata.
     split => //. apply Logic.eq_sym.
     destruct (nth_lookup_or_length bv i (bytes.encode 1, Numeric)) => //=.
-    lia. replace (base h + offset h + N.of_nat i)%N with
-      (N.of_nat (N.to_nat (base h + offset h) + i)) => //.
+    lia. replace (handle_addr h + N.of_nat i)%N with
+      (N.of_nat (N.to_nat (handle_addr h) + i)) => //.
     lia. lia. }
   
   iPureIntro.
   unfold segload.
-  replace (h.(base) + (h.(offset) + N.of_nat (length bv)) <=? operations.seg_length (s_segs ws))%N with true.
+
+  replace (handle_addr h + N.of_nat (length bv) <=? operations.seg_length (s_segs ws))%N with true.
   split.
   - unfold read_segbytes, seg_lookup.
     apply those_map_Some => //=.
     intros.
     rewrite nth_error_lookup. by apply Hseq.
   - intros i Hi1 Hi2.
-    replace i with (base h + offset h + N.of_nat (N.to_nat (i - base h - offset h)))%N.
+    replace i with (handle_addr h + N.of_nat (N.to_nat (i - handle_addr h)))%N.
     apply Hseq. lia. lia.
   - apply Logic.eq_sym, N.leb_le.
-    assert (segl_data (seg_data (s_segs ws)) !! N.to_nat (h.(base) + h.(offset) + N.of_nat (length bv - 1)) =
+    assert (segl_data (seg_data (s_segs ws)) !! N.to_nat (handle_addr h + N.of_nat (length bv - 1)) =
               bv !! (length bv - 1)).
     + apply Hseq ; first lia.
     + destruct (nth_lookup_or_length bv (length bv - 1) (bytes.encode 1, Numeric)) => //=. 
       rewrite e in H.
       apply segment_in_bounds in H. unfold lt in H.
-      replace (S (N.to_nat (h.(base) + h.(offset) + N.of_nat (length bv - 1)))) with
-        (N.to_nat (h.(base) + (h.(offset) + N.of_nat (length bv)))) in H.
+      replace (S (N.to_nat (handle_addr h + N.of_nat (length bv - 1)))) with
+        (N.to_nat (handle_addr h + N.of_nat (length bv))) in H.
       unfold operations.seg_length. lia.
       rewrite <- N2Nat.inj_succ. 
       rewrite <- N.add_succ_r. 
@@ -220,14 +222,16 @@ Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) 
   length tbv = t_length t ->
   List.map fst tbv = bv ->
   valid h = true ->
-  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) ->
+  (0 <= offset h)%Z ->
+  (Z.to_N (offset h) + N.of_nat (t_length t) <= bound h)%N ->
+(*  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) -> *)
   (▷ Φ (immV [wasm_deserialise bv t]) ∗
    ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗ 
-      ↦[wss][ N.add h.(base) h.(offset) ] tbv ⊢
+      ↦[wss][ handle_addr h ] tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ N.add h.(base) h.(offset) ]tbv) ∗ ↪[frame] f0 }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})).
 Proof.
-  iIntros (Ht Htv Hfst Hvalid Hoff) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Hfst Hvalid Hlo Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -251,7 +255,8 @@ Proof.
     eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    by eapply rm_segload_success.
+    eapply rm_segload_success => //.
+    repeat rewrite nat_bin. lias.
   - iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ws' locs'] inst'] => //=.
     prim_split κ HStep H.
@@ -260,6 +265,7 @@ Proof.
       last (eapply rm_segload_success => //=);
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H;subst. iFrame. done.
+    repeat rewrite nat_bin. lias.
 Qed.
 
 Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (v:value)
@@ -268,16 +274,17 @@ Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_typ
   types_agree t v ->
   List.map fst tbv = (bits v) ->
   valid h = true ->
-  (offset h + N.of_nat (t_length t) <= bound h)%N ->
+  (0 <= offset h)%Z ->
+  (Z.to_N (offset h) + N.of_nat (t_length t) <= bound h)%N ->
 (*  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) -> *)
   (▷ Φ (immV [v]) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
-     ↦[wss][ base h + offset h ]
+     ↦[wss][ handle_addr h ]
      tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ base h + offset h ]tbv) ∗ ↪[frame] f }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f }})).
 Proof.
-  iIntros (Ht Htv Htbv Hvalid Hoff) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Htbv Hvalid Hlo Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_segload_deserialize;auto.
   { rewrite - (map_length fst). rewrite Htbv. erewrite length_bits;eauto. }
   rewrite Htbv deserialise_bits;auto. iFrame.
@@ -290,17 +297,18 @@ Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:c
   List.map fst tbv = bv ->
   List.map snd tbv = ts ->
   valid h = true ->
-  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) ->
-  (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+  (0 <= offset h)%Z ->
+  (Z.to_N (offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   wasm_deserialise bv t = VAL_handle hmem ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
   (▷ Φ (immV [VAL_handle (upd_handle_validity hmem bc)]) ∗
    ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗
-      ↦[wss][ N.add h.(base) h.(offset) ] tbv ⊢
+      ↦[wss][ handle_addr h ] tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ N.add h.(base) h.(offset) ]tbv) ∗ ↪[frame] f0 }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})).
 Proof.
-  iIntros (Ht Htv Hfst Hsnd Hvalid Hoff Hmod Hser Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Hfst Hsnd Hvalid Hlo Hhi Hmod Hser Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -327,16 +335,20 @@ Proof.
     eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
-    by eapply rm_segload_handle_success.
+    eapply rm_segload_handle_success => //.
+    repeat rewrite nat_bin. lias.
+    
   - iIntros "!>" (es σ2 efs HStep) "!>".
-    destruct σ2 as [[ws' locs'] inst'] => //=.
+    destruct σ2 as [[ws' locs'] inst'] => //.
     prim_split κ HStep H.
     eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) |  [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
                                                                   Hfirst3 & Hσ & Hme)]]];
-      last (eapply rm_segload_handle_success => //=);
+      last (eapply rm_segload_handle_success => //);
       try by unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H;subst. unfold wasm_deserialise in Hser.
-    inversion Hser; subst. simpl. iFrame.
+    inversion Hser; subst. iFrame.
+    done.
+    repeat rewrite nat_bin. lias.
 Qed.
 
 Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) hmem
@@ -345,17 +357,18 @@ Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:va
   List.map fst tbv = (bits (VAL_handle hmem)) ->
   List.map snd tbv = ts ->
   valid h = true ->
-  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) ->
-  (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+  (0 <= offset h)%Z ->
+  (Z.to_N (offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
   (▷ Φ (immV [VAL_handle (upd_handle_validity hmem bc)]) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
-     ↦[wss][ base h + offset h ]
+     ↦[wss][ handle_addr h ]
      tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ base h + offset h ]tbv) ∗ ↪[frame] f }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f }})).
 Proof.
-  iIntros (Ht Htv Hts Hvalid Hoff Hmod Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Hts Hvalid Hlo Hhi Hmod Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_segload_handle_deserialize;auto.
   { rewrite - (map_length fst). rewrite Htv. erewrite length_bits;eauto. by rewrite Ht. }
   rewrite Htv deserialise_bits;auto. by rewrite Ht.
@@ -386,21 +399,20 @@ Proof.
   intros Hlen Hload.
   unfold segstore, write_segbytes, fold_lefti.
   unfold segload, read_segbytes in Hload.
-  rewrite N.add_assoc in Hload.
   rewrite - Hlen.
   destruct (_ <=? _)%N eqn:Hklen ; try by inversion Hload.
   cut (forall i dat,
           length (segl_data dat) = length (segl_data (seg_data m)) ->
           i <= length bs ->
           let j := length bs - i in
-          those (map (λ off0, seg_lookup (base h + offset h + N.of_nat off0)%N (seg_data m))
+          those (map (λ off0, seg_lookup (handle_addr h + N.of_nat off0)%N (seg_data m))
                      (iota j i)) = Some (drop j bs) ->
           exists dat', (let '(_, acc_end) :=
                      fold_left
                        (λ '(k0, acc) x,
                          (k0 + 1,
                            match acc with
-                           | Some dat => seg_update (base h + offset h + N.of_nat k0)%N x dat
+                           | Some dat => seg_update (handle_addr h + N.of_nat k0)%N x dat
                            | None => None
                            end)) (tagged_bytes_takefill (#00%byte, Numeric) i (drop j bs'))
                        (j, Some dat) in acc_end) = Some dat').
@@ -428,10 +440,10 @@ Proof.
       * destruct (drop (length bs - S i) bs) eqn:Hdrop0.
         **  assert (length (drop (length bs - S i) bs) = 0) ; first by rewrite Hdrop0.
             rewrite drop_length in H3. lia.
-        ** assert (exists dat0, seg_update (base h + offset h + N.of_nat (length bs - S i))%N p dat =
+        ** assert (exists dat0, seg_update (handle_addr h + N.of_nat (length bs - S i))%N p dat =
                              Some dat0) as [dat0 Hdat0].
            { unfold seg_update.
-             assert (base h + offset h + N.of_nat (length bs - S i) <
+             assert (handle_addr h + N.of_nat (length bs - S i) <
                        N.of_nat (length (segl_data dat)))%N.
              rewrite H.
              unfold operations.seg_length, segment_list.seg_length in Hklen.
@@ -459,7 +471,7 @@ Proof.
            rewrite those_those0 in H1.
            destruct (seg_lookup _ _) ; try by inversion H1.
            unfold option_map in H1.
-           destruct (those (map (λ off0, seg_lookup (base h + offset h + N.of_nat off0)%N
+           destruct (those (map (λ off0, seg_lookup (handle_addr h + N.of_nat off0)%N
                                 (seg_data m))
                                 (iota (S (length bs - S i)) i)) )
                     eqn:Hth ; try by inversion H1.
@@ -497,6 +509,13 @@ Qed.
 Definition plus_one h :=
   {| base := base h ; offset := offset h + 1 ; bound := bound h ; valid := valid h;
                                                                   id := id h |}.
+
+Lemma handle_addr_plus_one h :
+  (0 <= offset h)% Z ->
+  handle_addr (plus_one h) = (handle_addr h + 1)%N.
+Proof.
+  unfold handle_addr, plus_one => /=. lia.
+Qed. 
                                                
 
 Lemma segstore_length (m m': segment) h bs :
@@ -514,7 +533,7 @@ Proof.
               (λ '(k, acc) x,
                 (k + 1,
                   match acc with
-                  | Some dat => seg_update (base h + offset h + N.of_nat k)%N x dat
+                  | Some dat => seg_update (handle_addr h + N.of_nat k)%N x dat
                   | None => None
                   end)) (tagged_bytes_takefill (#00%byte, Numeric) j (drop i bs))
               (i, Some dat) in acc_end) = Some dat' ->
@@ -536,10 +555,10 @@ Proof.
       destruct (drop (length bs - S j) bs) eqn:Hdrop.
       * assert (length (drop (length bs - S j) bs) = 0) ; first by rewrite Hdrop.
         rewrite drop_length in H4. lia.
-      * assert (exists dat0, seg_update (base h + offset h + N.of_nat (length bs - S j))%N
+      * assert (exists dat0, seg_update (handle_addr h + N.of_nat (length bs - S j))%N
                                    p dat = Some dat0) as [dat0 Hdat0].
          { unfold seg_update. apply N.leb_le in Hlen.
-           assert (base h + offset h + N.of_nat (length bs - S j) <
+           assert (handle_addr h + N.of_nat (length bs - S j) <
                      N.of_nat (length (segl_data dat)))%N.
            rewrite H2.
            unfold operations.seg_length, segment_list.seg_length in Hlen.
@@ -571,18 +590,19 @@ Qed.
 
 
 Lemma segstore_append1 m h b bs m':
+  (0 <= offset h)%Z ->
   segstore m h (b :: bs) (length (b :: bs)) = Some m' ->
   exists m'', segstore m'' (plus_one h) bs (length bs) = Some m' /\
            segstore m h [b] 1 = Some m''.
 Proof.
-  intro Hstore.
+  intros Hoff Hstore.
   unfold segstore.
   unfold segstore in Hstore.
-  destruct (base h + offset h + N.of_nat (length (b :: bs)) <=? operations.seg_length m)%N eqn:Hlen ;
+  destruct (handle_addr h + N.of_nat (length (b :: bs)) <=? operations.seg_length m)%N eqn:Hlen ;
     try by inversion Hstore.
   apply N.leb_le in Hlen.
   simpl in Hlen.
-  assert (base h + offset h + N.of_nat 1 <= operations.seg_length m)%N ; first lia.
+  assert (handle_addr h + N.of_nat 1 <= operations.seg_length m)%N ; first lia.
   apply N.leb_le in H.
   rewrite H.
   unfold write_segbytes, fold_lefti => //=.
@@ -590,7 +610,7 @@ Proof.
   unfold seg_update.
   unfold operations.seg_length, segment_list.seg_length in H.
   apply N.leb_le in H.
-  assert (base h + offset h < N.of_nat (length (segl_data (seg_data m))))%N ; first lia.
+  assert (handle_addr h < N.of_nat (length (segl_data (seg_data m))))%N ; first lia.
   apply N.ltb_lt in H0.
   rewrite H0.
   eexists _ ; split => //=.
@@ -607,26 +627,27 @@ Proof.
   assert (seg_max_opt m'' = seg_max_opt m) as Hmax; first by 
     eapply Logic.eq_sym, segstore_seg_max_opt.  
   rewrite H2.
-  assert (base (plus_one h) + offset (plus_one h) + N.of_nat (length bs) <= operations.seg_length m)%N ; first by unfold plus_one; simpl; lias.
+  assert (handle_addr (plus_one h) + N.of_nat (length bs) <= operations.seg_length m)%N.
+  { rewrite handle_addr_plus_one => //. lia. } 
   apply N.leb_le in H3. rewrite H3.
   unfold write_segbytes, fold_lefti in Hstore.
   simpl in Hstore.
   rewrite N.add_0_r in Hstore.
-  replace (seg_update (base h + offset h)%N b (seg_data m)) with (Some (seg_data m'')) in Hstore.
+  replace (seg_update (handle_addr h) b (seg_data m)) with (Some (seg_data m'')) in Hstore.
   rewrite <- (plus_O_n 1) in Hstore.
   destruct (fold_left _ _ (0 + 1, _)) eqn:Hfl ; try by inversion Hstore.
   rewrite (fold_left_lift _ (λ '(k0, acc) x,
                               (k0 + 1,
                                 match acc with
                                 | Some dat =>
-                                    if (base h + (offset h + 1) + N.of_nat k0 <?
+                                    if (handle_addr (plus_one h) + N.of_nat k0 <?
                                           N.of_nat (length (segl_data dat)))%N
                                     then
                                       Some {| segl_data :=
-                                             take (N.to_nat (base h + (offset h + 1) +
+                                             take (N.to_nat (handle_addr (plus_one h) +
                                                                    N.of_nat k0))
                                                       (segl_data dat) ++
-                                                      x :: drop (N.to_nat (base h + (offset h + 1) + N.of_nat k0) + 1)
+                                                      x :: drop (N.to_nat (handle_addr (plus_one h) + N.of_nat k0) + 1)
                                                       (segl_data dat)
                                            |}
                                     else None
@@ -639,7 +660,8 @@ Proof.
   done.
   intros. unfold incr_fst => //=.
   unfold mem_update.
-  replace (base h + offset h + N.of_nat (i+1))%N with (base h + (offset h + 1) + N.of_nat i)%N ; last lia.
+  replace (handle_addr h + N.of_nat (i+1))%N with (handle_addr (plus_one h) + N.of_nat i)%N.
+  2:{ rewrite handle_addr_plus_one => //. lia. } 
   done.
   unfold segstore in H1.
   apply N.leb_le in H.
@@ -647,11 +669,11 @@ Proof.
   unfold write_segbytes, fold_lefti in H1.
   simpl in H1.
   rewrite N.add_0_r in H1.
-  destruct (seg_update (base h + offset h)%N b (seg_data m)) eqn:Hupd ; try by inversion H1.
+  destruct (seg_update (handle_addr h) b (seg_data m)) eqn:Hupd ; try by inversion H1.
 Qed.
 
 Lemma enough_space_to_segstore m h bs :
-  (base h + offset h + N.of_nat (length bs) <= operations.seg_length m)%N ->
+  (handle_addr h + N.of_nat (length bs) <= operations.seg_length m)%N ->
   exists mf, segstore m h bs (length bs) = Some mf.
 Proof.
   intros Hmlen.
@@ -667,7 +689,7 @@ Proof.
                       fold_left (λ '(k0,acc) x,
                                   (k0 + 1,
                                     match acc with
-                                    | Some dat => seg_update (base h + offset h + N.of_nat k0)%N x dat
+                                    | Some dat => seg_update (handle_addr h + N.of_nat k0)%N x dat
                                     | None => None
                                     end)) (tagged_bytes_takefill (#00%byte, Numeric) (length (drop j bs))
                                                           (drop j bs))
@@ -690,11 +712,11 @@ Proof.
       * assert (length (drop (length bs - S i) bs) = 0) ; first by rewrite Hdrop.
         rewrite drop_length in H2. lia.
       * assert (exists datupd,
-                   seg_update (base h + offset h + N.of_nat (length bs - S i))%N p dat =
+                   seg_update (handle_addr h + N.of_nat (length bs - S i))%N p dat =
                      Some datupd ) as [datupd Hdatupd].
         { unfold seg_update.
            apply N.leb_le in Hmlen.
-           assert ( base h + offset h + N.of_nat (length bs - S i) <
+           assert ( handle_addr h + N.of_nat (length bs - S i) <
                       N.of_nat (length (segl_data dat)))%N ;
              first lia.
            apply N.ltb_lt in H2 ; rewrite H2.
@@ -769,17 +791,18 @@ Proof.
 Qed.
   
 Lemma swap_segstores m m' m'' h b bs :
+  (0 <= offset h)%Z ->
   segstore m h [b] 1 = Some m' ->
   segstore m' (plus_one h) bs (length bs) = Some m'' ->
   exists m0, segstore m (plus_one h) bs (length bs) = Some m0 /\
           segstore m0 h [b] 1 = Some m''.
 Proof.
-  intros.
+  intro Hoff; intros.
   assert (operations.seg_length m = operations.seg_length m') as Hmlen ;
     first (unfold operations.seg_length, segment_list.seg_length ; erewrite segstore_length => //= ;
           by instantiate (1:=[b]) => //=).
   unfold segstore in H0.
-  destruct (base (plus_one h) + offset (plus_one h) + N.of_nat (length (bs)) <=? operations.seg_length m')%N eqn:Hlen;
+  destruct (handle_addr (plus_one h) + N.of_nat (length (bs)) <=? operations.seg_length m')%N eqn:Hlen;
     last by inversion H0.
   apply N.leb_le in Hlen.
   rewrite <- Hmlen in Hlen.
@@ -790,12 +813,13 @@ Proof.
     first by unfold operations.seg_length, segment_list.seg_length ; erewrite segstore_length.
   rewrite Hmlen0 in Hlen.
   unfold plus_one in Hlen; simpl in Hlen.
-  assert (base h + offset h + 1 <= operations.seg_length m0)%N ; first lia.
+  assert (handle_addr h + 1 <= operations.seg_length m0)%N. 
+  { rewrite handle_addr_plus_one in Hlen => //. lia. }
   apply N.leb_le in H1 ; rewrite H1.
   rewrite N.add_0_r.
   unfold seg_update.
   apply N.leb_le in H1.
-  assert (base h + offset h < N.of_nat (length (segl_data (seg_data m0))))%N ;
+  assert (handle_addr h < N.of_nat (length (segl_data (seg_data m0))))%N ;
     first by unfold operations.seg_length, segment_list.seg_length in H1 ; lia.
   apply N.ltb_lt in H2.
   rewrite H2.
@@ -826,7 +850,7 @@ Proof.
           fold_left (λ '(k0, acc) x,
                       (k0 + 1,
                         match acc with
-                        | Some dat => seg_update (base h + (offset h + 1) + N.of_nat k0)%N x dat
+                        | Some dat => seg_update (handle_addr (plus_one h) + N.of_nat k0)%N x dat
                         | None => None
                         end)) (tagged_bytes_takefill (#00%byte, Numeric) (length (drop j bs))
                                               (drop j bs))
@@ -834,13 +858,13 @@ Proof.
           exists m, fold_left (λ '(k0, acc) x,
                            (k0 + 1,
                              match acc with
-                             | Some dat => seg_update (base h + (offset h + 1) + N.of_nat k0)%N
+                             | Some dat => seg_update (handle_addr (plus_one h) + N.of_nat k0)%N
                                                      x dat
                              | None => None
                              end)) (tagged_bytes_takefill (#00%byte, Numeric) (length (drop j bs))
                                                    (drop j bs))
-                         (j, seg_update (base h + offset h)%N b dat) =
-                 (m, seg_update (base h + offset h)%N b datf)).
+                         (j, seg_update (handle_addr h) b dat) =
+                 (m, seg_update (handle_addr h) b datf)).
   - intros Hi.
     assert (length bs <= length bs) as Hlbs; first lia.
     apply (Hi _ (seg_data m) s n) in Hlbs as [nn Hia].
@@ -871,23 +895,28 @@ Proof.
       destruct (drop (length bs - S i) bs) eqn:Hdrop.
       * assert (length (drop (length bs - S i) bs) = 0) ; first by rewrite Hdrop.
         rewrite drop_length in H10. lia.
-      * assert (exists dat', seg_update (base h + offset h)%N b dat = Some dat') as [dat' Hdat'].
+      * assert (exists dat', seg_update (handle_addr h) b dat = Some dat') as [dat' Hdat'].
         { unfold seg_update. rewrite H7 Nat2N.id H2. by eexists _. }
         assert (exists dat'',
-                   seg_update (base h + (offset h + 1) + N.of_nat (length bs - S i))%N p dat'
+                   seg_update (handle_addr (plus_one h) + N.of_nat (length bs - S i))%N p dat'
                    = Some dat'') as [dat'' Hdat''].
         { unfold seg_update.
           erewrite <- seg_update_length => //=.
           rewrite H7 Nat2N.id.
           apply N.leb_le in Hlen.
-          assert (base h + (offset h + 1) + N.of_nat (length bs - S i) < N.of_nat (length (segl_data (seg_data m))))%N.
+          assert (handle_addr (plus_one h) + N.of_nat (length bs - S i) < N.of_nat (length (segl_data (seg_data m))))%N.
           { unfold operations.seg_length, segment_list.seg_length in Hlen.
-            assert (N.of_nat (length bs - S i) < N.of_nat (length bs))%N ; try lia. }
+            assert (N.of_nat (length bs - S i) < N.of_nat (length bs))%N ; try lia.
+            rewrite handle_addr_plus_one => //. 
+            unfold handle_addr in Hlen.
+            simpl in Hlen. unfold handle_addr. lias.
+          }
           apply N.ltb_lt in H10.
           rewrite H10.
           by eexists _. }
         rewrite - Hdrop.
-        assert (base h + offset h <> base h + (offset h + 1) + N.of_nat (length bs - S i))%N ; first lia.
+        assert (handle_addr h <> handle_addr (plus_one h) + N.of_nat (length bs - S i))%N.
+        { rewrite handle_addr_plus_one => //. lia. }
         destruct (seg_update_swap _ _ _ _ _ _ _ H10 Hdat' Hdat'')
           as (dat0 & Hdat0 & Hdat0'') => //=.
         eapply (IHi dat0) in H9 as [nn Hflf].
@@ -922,81 +951,86 @@ Proof.
 Qed.
 
 Lemma segstore_append m h b bs m':
+  (0 <= offset h)%Z ->
   segstore m h (b :: bs) (length (b :: bs)) = Some m' ->
   exists m'', segstore m (plus_one h) bs (length bs) = Some m'' /\
            segstore m'' h [b] 1 = Some m'.
 Proof.
-  intros Hm.
-  apply segstore_append1 in Hm as (m0 & Hm0 & Hm0').
+  intros Hoff Hm.
+  apply segstore_append1 in Hm as (m0 & Hm0 & Hm0') => //.
   eapply swap_segstores => //=.
 Qed.
 
 Lemma segload_append m h b bs :
+  (0 <= offset h)%Z ->
   segload m h (length (b :: bs)) = Some (b :: bs) ->
   segload m (plus_one h) (length bs) = Some bs.
 Proof.
-  unfold segload ; intros Hm.
-  replace (offset h + N.of_nat (length (b :: bs)))%N with
-    (offset (plus_one h) + N.of_nat (length bs))%N in Hm ; last by simpl ; lia.
-  destruct (base h + (offset (plus_one h) + N.of_nat (length bs)) <=? operations.seg_length m)%N eqn:Hleq; try by inversion Hm.
-  simpl. rewrite Hleq.
+  unfold segload ; intros Hoff Hm.
+  replace (handle_addr h + N.of_nat (length (b :: bs)))%N with
+    (handle_addr (plus_one h) + N.of_nat (length bs))%N in Hm.
+  2:{ rewrite handle_addr_plus_one => //. simpl. lia. }
+  destruct (handle_addr (plus_one h) + N.of_nat (length bs) <=? operations.seg_length m)%N eqn:Hleq; try by inversion Hm.
   unfold read_segbytes. unfold read_segbytes in Hm. simpl in Hm.
-  destruct (seg_lookup (base h + offset h + 0)%N (seg_data m)) ; inversion Hm.
+  destruct (seg_lookup (handle_addr h + 0)%N (seg_data m)) ; inversion Hm.
   rewrite list_extra.cons_app in H0.
   destruct (those_app_inv [Some p] _ _ H0) as (tl1 & tl2 & Htl1 & Htl2 & Htl).
   unfold those in Htl1. simpl in Htl1. inversion Htl1 ; subst ; clear Htl1.
   inversion Htl ; subst ; clear Htl.
   erewrite <- map_iota_lift => //=.
-  intros. replace (base h + offset h + N.of_nat (x+1))%N with
-    (base h + (offset h + 1) + N.of_nat x)%N => //=.
-  lia.
+  intros. replace (handle_addr h + N.of_nat (x+1))%N with
+    (handle_addr (plus_one h) + N.of_nat x)%N => //=.
+  rewrite handle_addr_plus_one => //. lia.
 Qed.
 
 Lemma ghost_map_update_big_ws bs bs' h (m m' : segment) a:
+  (0 <= offset h)%Z ->
   length bs = length bs' -> 
   segload m h (length bs) = Some bs ->
   segstore m h bs' (length bs') = Some m' ->
-  (forall i, (i >= base h + offset h)%N -> (i < base h + offset h + N.of_nat (length bs))%N ->
+  (forall i, (i >= handle_addr h)%N -> (i < handle_addr h + N.of_nat (length bs))%N ->
         live_locations a !! i = Some ()) ->
   ghost_map_auth segGName 1 (gmap_of_segment m a) -∗
-                  ↦[wss][N.add (base h) (offset h)] bs ==∗
+                  ↦[wss][handle_addr h] bs ==∗
                   ghost_map_auth segGName 1 (gmap_of_segment m' a) ∗
-                  ↦[wss][N.add (base h) (offset h)] bs'.
+                  ↦[wss][handle_addr h] bs'.
 Proof.
   move : m' h bs'.
-  induction bs ; iIntros (m' h bs' Hlen Hm Hm' Ha) "Hσ Hwms".
+  induction bs ; iIntros (m' h bs' Hoff Hlen Hm Hm' Ha) "Hσ Hwms".
   { simpl in Hlen. apply Logic.eq_sym, nil_length_inv in Hlen ; subst.
     iSplitR "Hwms" => //=. 
     simpl in Hm'. unfold segstore in Hm'.
     simpl in Hm. unfold segload in Hm.
-    rewrite <- N.add_assoc in Hm'.
-    destruct (base h + (offset h + N.of_nat 0) <=? operations.seg_length m)%N ; try by inversion Hm.
+    destruct (_ + N.of_nat 0 <=? operations.seg_length m)%N ; try by inversion Hm.
     unfold write_segbytes in Hm'. simpl in Hm'.
     destruct m ; simpl in Hm'.
     by inversion Hm'; subst.
   }
   destruct bs' ; inversion Hlen.
   iDestruct (wss_append with "Hwms") as "[Hwm Hwms]".
-  rewrite <- N.add_assoc.
-  destruct (segstore_append _ _ _ _ _ Hm') as (m'' & Hm'' & Hb).
+  destruct (segstore_append _ _ _ _ _ Hoff Hm') as (m'' & Hm'' & Hb).
   remember (plus_one h) as h'.
   replace (base h) with (base h'); last by subst; unfold plus_one.
-  replace (offset h + 1)%N with (offset h'); last by subst; unfold plus_one.
-  iMod (IHbs with "Hσ Hwms") as "[Hσ Hwms]" => //; first by subst; eapply segload_append.
-  subst h'; simpl; intros. apply Ha. lia. simpl. lia.
+  replace (handle_addr h + 1)%N with (handle_addr h').
+  2:{ subst; rewrite handle_addr_plus_one => //. }
+  iMod (IHbs with "Hσ Hwms") as "[Hσ Hwms]" => //.
+  subst; unfold plus_one; simpl; lia.
+  by subst; eapply segload_append.
+  subst h'; simpl; intros. apply Ha.
+  rewrite handle_addr_plus_one in H; lia.
+  rewrite handle_addr_plus_one in H1; simpl; lia.
   iMod (ghost_map_update with "Hσ Hwm") as "[Hσ Hwm]". 
   iIntros "!>".
-  iSplitR "Hwms Hwm"; last by subst; iApply wss_append ; rewrite N.add_assoc ; iFrame.
-
+  iSplitR "Hwms Hwm".
+  2:{ subst; rewrite handle_addr_plus_one => //; iApply wss_append ; iFrame. }
   unfold segstore in Hb.
-  destruct (base h + offset h + N.of_nat 1 <=? operations.seg_length m'')%N eqn: Hlen0; try by inversion Hb.
+  destruct (handle_addr h + N.of_nat 1 <=? operations.seg_length m'')%N eqn: Hlen0; try by inversion Hb.
   unfold write_segbytes, fold_lefti in Hb ; simpl in Hb.
   rewrite N.add_0_r in Hb.
-  destruct (seg_update (base h + offset h)%N p (seg_data m'')) eqn:Hupd ; inversion Hb; clear Hb.
+  destruct (seg_update (handle_addr h) p (seg_data m'')) eqn:Hupd ; inversion Hb; clear Hb.
   erewrite gmap_of_segment_insert => //.
   - apply N.leb_le in Hlen0. unfold operations.seg_length, seg_length in Hlen0.
     subst; lias.
-  - by subst.
   - subst h'; simpl. apply Ha. lia. simpl. lia.
 Qed.
 
@@ -1008,13 +1042,14 @@ Lemma wp_segstore (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: valu
   types_agree t v ->
   length tbs = t_length t ->
   valid h = true ->
-  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) ->
+  (0 <= offset h)%Z ->
+  (Z.to_N (offset h) + N.of_nat (t_length t) <= bound h)%N ->
   (▷ ϕ (immV []) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
-  ↦[wss][ base h + offset h ] tbs) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ base h + offset h ] (List.map (fun b => (b, Numeric)) (bits v))) ∗ ↪[frame] f }}).
+  ↦[wss][ handle_addr h ] tbs) ⊢
+  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Numeric)) (bits v))) ∗ ↪[frame] f }}).
 Proof.
-  iIntros (Ht Hvt Htbs Hval Hbound) "(HΦ & Hf0 & Hid & Hwss)".
+  iIntros (Ht Hvt Htbs Hval Hlo Hhi) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -1038,15 +1073,15 @@ Proof.
     eexists [_], [], (_, locs, winst), [].
     repeat split => //.
     eapply rm_segstore_success => //=.
+    repeat rewrite nat_bin. lias.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     edestruct (if_segload_then_segstore (p :: tbs) (List.map (fun x => (x, Numeric)) (bits v))) as [seg Hsomeseg] ; eauto;
       repeat rewrite map_length; repeat erewrite length_bits => //=.
     rewrite map_length in Hsomeseg. erewrite length_bits in Hsomeseg => //=.
-    iMod (ghost_map_update_big_ws (p :: tbs) (List.map (fun x => (x, Numeric)) (bits v)) with "Hs Hwss") as "[Hs Hwss]".
+    iMod (ghost_map_update_big_ws (p :: tbs) (List.map (fun x => (x, Numeric)) (bits v)) with "Hs Hwss") as "[Hs Hwss]" => //.
     rewrite map_length. erewrite length_bits => //=. eauto.
     rewrite map_length. erewrite length_bits => //=.
-    exact Hlive.
     iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & Hme) ]]] ;
@@ -1065,6 +1100,8 @@ Proof.
     iFrame. iPureIntro.
     eapply (reduce_preserves_wellformedness (f := {| f_inst := winst2; f_locs := locs2 |})).
     exact HWF. eapply rm_segstore_success => //=.
+    repeat rewrite nat_bin. lias.
+    repeat rewrite nat_bin. lias.
 Qed.
 
 Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: value_type) (v: value)
@@ -1073,14 +1110,15 @@ Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (
   types_agree t v ->
   length tbs = t_length t ->
   valid h = true ->
-  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) ->
-  (N.modulo (h.(base) + h.(offset)) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+  (0 <= offset h)%Z ->
+  (Z.to_N (offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   (▷ ϕ (immV []) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
-  ↦[wss][ base h + offset h ] tbs) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ base h + offset h ] (List.map (fun b => (b, Handle)) (bits v))) ∗ ↪[frame] f }}).
+  ↦[wss][ handle_addr h ] tbs) ⊢
+  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v))) ∗ ↪[frame] f }}).
 Proof.
-  iIntros (Ht Hvt Htbs Hval Hbound Hallign) "(HΦ & Hf0 & Hid & Hwss)".
+  iIntros (Ht Hvt Htbs Hval Hlo Hhi Hallign) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -1103,20 +1141,20 @@ Proof.
     rewrite map_length in Hsomeseg; erewrite length_bits in Hsomeseg => //=. 
     eexists [_], [], (_, locs, winst), [].
     repeat split => //.
-    eapply rm_segstore_handle_success => //=.
+    eapply rm_segstore_handle_success => //.
+    repeat rewrite nat_bin. lias.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
     edestruct (if_segload_then_segstore (p :: tbs) (List.map (fun x => (x, Handle)) (bits v))) as [seg Hsomeseg] ; eauto;
       repeat rewrite map_length; repeat erewrite length_bits => //=.
     rewrite map_length in Hsomeseg. erewrite length_bits in Hsomeseg => //=.
-    iMod (ghost_map_update_big_ws (p :: tbs) (List.map (fun x => (x, Handle)) (bits v)) with "Hs Hwss") as "[Hs Hwss]".
+    iMod (ghost_map_update_big_ws (p :: tbs) (List.map (fun x => (x, Handle)) (bits v)) with "Hs Hwss") as "[Hs Hwss]" => //.
     rewrite map_length. erewrite length_bits => //=. eauto.
     rewrite map_length. erewrite length_bits => //=.
-    exact Hlive.
     iModIntro. prim_split κ HStep HStep.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & Hme) ]]] ;
-      last (eapply rm_segstore_handle_success => //=) ;
+      last (eapply rm_segstore_handle_success => //) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
@@ -1130,7 +1168,9 @@ Proof.
     rewrite - Hseglimit.
     iFrame.  iPureIntro.
     eapply (reduce_preserves_wellformedness (f := {| f_inst := winst2; f_locs := locs2 |})).
-    exact HWF. eapply rm_segstore_handle_success => //=.
+    exact HWF. eapply rm_segstore_handle_success => //.
+    repeat rewrite nat_bin. lias.
+    repeat rewrite nat_bin. lias.
 Qed.
 
 
@@ -1356,7 +1396,7 @@ Proof.
 
 Lemma wp_segfree h f0 bts Φ s E:
   valid h = true ->
-  offset h = 0%N ->
+  offset h = 0%Z ->
   length bts = N.to_nat (bound h) ->
   (▷ Φ (immV []) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] (base h, bound h)
      ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
@@ -1367,15 +1407,10 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
   iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & Hγ & ? & ? & ? & ? & ? & %HWF)".
-
-
-
-  
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
   iDestruct (allocated_implies_is_in_allocator with "Ha Halloc") as "%Halloc".
-
   iSplit.
   - iPureIntro.
     destruct s => //=.
@@ -1593,7 +1628,7 @@ Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (len: N) (s: stuckness) (E: coPset
   n = Wasm_int.N_of_uint i32m c ->
   ((* (∀ h, ▷ Φ (immV [VAL_handle h])) ∗ *) ↪[frame] f0 ∗ ↦[wslength] len ⊢
      (WP [AI_basic (BI_const (VAL_int32 c)) ;
-          AI_basic BI_segalloc] @ s; E {{ w, ((* Φ w ∗ *) ∃ h len', ⌜ w = immV [VAL_handle h] ⌝ ∗ ↦[wslength] len' ∗ (⌜ len = len' ⌝ ∗ ⌜ h = dummy_handle ⌝ ∨ ⌜ (len <= len')%N ⌝ ∗ h.(id) ↣[allocated] (base h, n) ∗ ⌜ bound h = n ⌝ ∗ ⌜ offset h = 0%N ⌝ ∗ ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗ ↪[frame] f0 }})).
+          AI_basic BI_segalloc] @ s; E {{ w, ((* Φ w ∗ *) ∃ h len', ⌜ w = immV [VAL_handle h] ⌝ ∗ ↦[wslength] len' ∗ (⌜ len = len' ⌝ ∗ ⌜ h = dummy_handle ⌝ ∨ ⌜ (len <= len')%N ⌝ ∗ h.(id) ↣[allocated] (base h, n) ∗ ⌜ bound h = n ⌝ ∗ ⌜ offset h = 0%Z ⌝ ∗ ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗ ↪[frame] f0 }})).
 Proof.
   iIntros (Hn) "(Hf0 & Hlen)".
   iApply wp_lift_atomic_step => //=.

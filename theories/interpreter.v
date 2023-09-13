@@ -350,7 +350,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segload s.(s_segs) h (t_length T_handle))
                              (fun bs =>
@@ -375,7 +375,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
                              (fun seg' =>

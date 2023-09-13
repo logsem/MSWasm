@@ -797,7 +797,7 @@ Proof.
     destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
     destruct (is_handle_t t) eqn:Ht.
     destruct t => //=.
-    destruct (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
+    destruct (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
     move/eqP in Hallign.
     destruct (segload (s_segs s) h (t_length T_handle)) eqn:HLoadResult.
     repeat eexists.
@@ -862,7 +862,7 @@ Proof.
     destruct (segstore (s_segs s) h (List.map (fun x => (x, match typeof v0 with T_handle => Handle | _ => Numeric end)) (bits v0)) (t_length (typeof v0))) eqn:HStoreResult.
     destruct (is_handle_t (typeof v0)) eqn:Hhandle.
     destruct v0 => //=.
-    destruct (N.modulo (h.(base) + Z.to_N h.(offset)) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
+    destruct (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
     move/eqP in Hallign.
     repeat eexists.
     eapply rm_segstore_handle_success; eauto; try lias.

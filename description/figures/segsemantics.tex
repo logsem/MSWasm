@@ -4,7 +4,7 @@
 \footnotesize
 
 \[ \inferrule{a\leq\mathrm{length}(\V{seg}.\xxfield{segdata})\and \V{allocator}.\xxfield{allocated}(n)=\mathrm{None} \and\mathrm{noInterferences}(a,c,\V{allocator}) \and\\ \V{seg}'=\{ \xxfield{segdata} = \V{seg}.\xxfield{segdata}[a..a+c := 0],\;\;\xxfield{max}=\V{seg}.\xxfield{max} \} \and \V{allocator}'=\mathrm{addBinding}(\V{allocator}, n \mapsto (a,c))}{\xxsalloc{\V{seg}}{\V{allocator}}acn{\V{seg}'}{\V{allocator}'}} \]
-Note: if \( a =\mathrm{length}(\V{seg}.\xxfield{segdata}) \), we are actually growing the segment memory by appending zeros at the end
+Note: we do not require that \( a + c \leq \mathrm{length}(\V{seg}.\xxfield{segdata}) \), so in cases like \( a =\mathrm{length}(\V{seg}.\xxfield{segdata}) \), we are actually growing the segment memory by appending zeros at the end
 
 \[ \inferrule{\V{allocator}.\xxfield{allocated}(n)=\mathrm{Some}(a,c)\and \V{allocator}'=\mathrm{removeBinding}(\V{allocator}, n)}{\xxsfree{\V{seg}}{\V{allocator}}an{\V{seg}}{\V{allocator}'}} \]
 

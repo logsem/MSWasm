@@ -1,0 +1,35 @@
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+\footnotesize
+
+\[ \inferrule{a\leq\mathrm{length}(\V{seg}.\xxfield{segdata})\and \V{allocator}.\xxfield{allocated}(n)=\mathrm{None} \and\mathrm{noInterferences}(a,c,\V{allocator}) \and\\ \V{seg}'=\{ \xxfield{segdata} = \V{seg}.\xxfield{segdata}[a..a+c := 0],\;\;\xxfield{max}=\V{seg}.\xxfield{max} \} \and \V{allocator}'=\mathrm{addBinding}(\V{allocator}, n \mapsto (a,c))}{\xxsalloc{\V{seg}}{\V{allocator}}acn{\V{seg}'}{\V{allocator}'}} \]
+Note: if \( a =\mathrm{length}(\V{seg}.\xxfield{segdata}) \), we are actually growing the segment memory by appending zeros at the end
+
+\[ \inferrule{\V{allocator}.\xxfield{allocated}(n)=\mathrm{Some}(a,c)\and \V{allocator}'=\mathrm{removeBinding}(\V{allocator}, n)}{\xxsfree{\V{seg}}{\V{allocator}}an{\V{seg}}{\V{allocator}'}} \]
+
+
+\[ \inferrule{t\neq\xxWhandle\and 0\leq h.\xxfield{offset} \and h.\xxfield{offset}+\mathrm{sizeof}(t)< h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and\\ \mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \\ \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t)]=\V{tbs}\and \mathrm{deserialise}(t, \mathrm{untag}(\V{tbs}))=\V{c}}{(S,F,[\xxWhandle.\xxWconst~h;~\xxWsegload~t]\hookrightarrow(S,F,[t.\xxWconst~c])} \]
+
+\[ \inferrule{t=\xxWhandle\and 0\leq h.\xxfield{offset} \and h.\xxfield{offset}+\mathrm{sizeof}(t)<h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and \\ \mathrm{isSome}(S.\xxfield{allocator}.{allocated}(h.\xxfield{id}))\and \\ \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t)]=\V{tbs}\and \mathrm{deserialise}(t, \mathrm{untag}(\V{tbs}))=\V{h'} \\
+\mathrm{aligned}(\V{addr}, \xxWhandlesize) \and b = \mathrm{allHandle}(\mathrm{tags}(\V{tbs})) \and h_f = \mathrm{updateValid}(h', b \wedge h'.\xxfield{valid})}{(S,F,[\xxWhandle.\xxWconst~h;~\xxWsegload~t]\hookrightarrow(S,F,[t.\xxWconst~h_f])} \]
+
+\[ \inferrule{t\neq\xxWhandle\and 0\leq h.\xxfield{offset} \and h.\xxfield{offset}+\mathrm{sizeof}(t)<  h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and \\\mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and \mathrm{serialise}(t, \V{v}) = \V{bs} \and \\ \V{seg'} = S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t) := \mathrm{addTag}(\V{bs},\xxWNumeric)] \and
+  S' = \{ S\text{ with } \xxfield{seg}=\V{seg'} \}}{(S,F,[\xxWhandle.\xxWconst~h;t.\xxWconst~\V{v};~\xxWsegstore~t]\hookrightarrow(S',F,[])} \]
+
+\[ \inferrule{t=\xxWhandle\and 0\leq h.\xxfield{offset} \and h.\xxfield{offset}+\mathrm{sizeof}(t)< h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and\\ \mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and \mathrm{serialise}(t, h') = \V{bs} \and \\ \V{seg'} = S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t) := \mathrm{addTag}(\V{bs},\xxWHandle)] \and
+  S' = \{ S\text{ with } \xxfield{seg}=\V{seg'} \} \and \mathrm{aligned}(\V{addr}, \xxWhandlesize)}{(S,F,[\xxWhandle.\xxWconst~h;t.\xxWconst~h';~\xxWsegstore~t]\hookrightarrow(S',F,[])} \]
+
+\[ \inferrule{\xxsalloc{S.\xxfield{seg}}{S.\xxfield{allocator}}{a}{c}{n_{id}}{\V{seg}'}{\V{allocator}'}\and S'=\{ S\text{ with } \xxfield{seg}=\V{seg}',\;\; \xxfield{allocator}=\V{allocator}'\} \\
+  h = \{ \xxfield{base} = a,\;\; \xxfield{offset} = 0, \;\; \xxfield{bound}=c, \;\; \xxWvalid = \xxCtrue, \;\; \xxWid=n_{id} \} }{(S,F,[\xxWithirtytwo.\xxWconst~c;~\xxWsegalloc])\hookrightarrow(S',F,[\xxWhandle.\xxWconst~h])} \]
+
+\[ \inferrule{h=\{ \xxWbase=0,\;\;\xxWoffset=0,\;\;\xxWbound=0,\;\;\xxWvalid=\xxCfalse,\;\;\xxWid=0\}}{(S,F,[\xxWithirtytwo.\xxWconst~c;~\xxWsegalloc])\hookrightarrow(S,F,[\xxWhandle.\xxWconst~h])} \]
+
+\[ \inferrule{\xxsfree{S.\xxfield{seg}}{S.\xxfield{allocator}}{a}{h.\xxfield{id}}{\V{seg}'}{\V{allocator}'}\and S' = \{ S\text{ with }\xxfield{seg}=\V{seg}', \;\; \xxfield{allocator}=\V{allocator}'\}\\
+h.\xxfield{base} = a\and h.\xxfield{offset} = 0 \and h.\xxfield{valid}=\xxCtrue}{(S, F, [\xxWhandle.\xxWconst~h;~\xxWsegfree])\hookrightarrow(S', F, [])} \]
+
+\[ \inferrule{h' = \{ \xxWbase = h.\xxWbase,\;\; \xxWoffset = h.\xxWoffset + c,\;\; \xxWbound=h.\xxWbound,\;\; \xxWvalid = h.\xxWvalid,\;\; \xxWid = h.\xxWid \} }{(S,F,[\xxWithirtytwo.\xxWconst~c;~\xxWhandle.\xxWconst~h;~\xxWhandleadd])\hookrightarrow(S,F,[\xxWhandle.\xxWconst~h'])} \]
+
+\[ \inferrule{0\leq c_1 < h.\xxWbound\and 0\leq c_2 \and \\h'=\{ \xxWbase = h.\xxWbase + c_1,\;\;\xxWoffset = h.\xxWoffset,\;\; \xxWbound = h.\xxWbound - c_2,\;\; \xxWvalid = h.\xxWvalid,\;\; \xxWid = h.\xxWid \} }{(S,F,[\xxWhandle.\xxWconst~h;~\xxWithirtytwo.\xxWconst~c_1;~\xxWithirtytwo.\xxWconst~c_2;~\xxWslice])\hookrightarrow(S,F,[\xxWhandle.\xxWconst~h'])} \]
+
+\end{document}

@@ -1,8 +1,9 @@
-\documentclass[a4paper]{article}
+\documentclass[acmsmall,screen]{acmart}\settopmatter{}
+%\documentclass[a4paper]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
-\usepackage{amsfonts, amssymb}
+\usepackage{amsfonts}
 
 \usepackage{booktabs}   %% For formal tables:
                         %% http://ctan.org/pkg/booktabs
@@ -17,20 +18,28 @@
 %% issue of PACMPL.
 \citestyle{acmauthoryear}   %% For author/year citations
 
+\usepackage{booktabs}   %% For formal tables:
+                        %% http://ctan.org/pkg/booktabs
+\usepackage{subcaption} %% For complex figures with subfigures/subcaptions
+                        %% http://ctan.org/pkg/subcaption
 
 
 \usepackage{includes}
 \usepackage{todonotes}
 \usepackage{iris}
-\usepackage{xcolor}
+\usepackage{xcolor} 
 \usepackage{mathtools}
-\usepackage{amsmath}
+\usepackage{amsmath} 
 \usepackage{csquotes}
 \usepackage{mathrsfs}
 \usepackage{placeins}
 \usepackage[inline]{enumitem}
 \usepackage{rotating}
 \usepackage{multirow}
+\usepackage{prftree}
+\usepackage{graphicx}
+
+
 
 %% Other packages
 
@@ -57,101 +66,180 @@
 \input{macros}
 \hyphenation{WebAssembly}
 
+ 
+
 \begin{document}
-
-
-
-%
-% Add assumptions we made on HandleBytes
-% Proofmode
-% Example with stacks in segment-memory
-%
 
 \maketitle
 
-MSWasm \cite{mswasm} is a proposal for an extension of WebAssembly \cite{wasm} with
-a simple form of capabilities \cite{capabilities}. In this document, we describe \irismswasm,
-an effort to describe and mechanize proofs for this proposed extension in the Coq proof assistant,
-building on \iriswasm \cite{iriswasm}, a previous mechanization of WebAssembly. In the following, all references to MSWasm mean the work of \citet{mswasm}, all references to \iriswasm mean the work of \citet{iriswasm}, and all references to \irismswasm mean my current ongoing work.
+\wasm~\cite{wasm} is a compact and portable bytecode designed to be an appropriate compilation target for versatile usage on the web. Its design focuses on compactness, portability, and on safety features like module encapsulation. Within each \wasm module, however, all bets are off when it comes to memory access, as reads and writes are performed using raw \xxWithirtytwo integers as addresses and thus all accesses performed within the module are permitted. All that the encapsulation properties guarantee is that adversary modules can only interact with this module's memory via the objects it explicitely exports: if the module explicitely declares that it wishes to export its memory, any adversary can import it and perform reads and writes freely; else adversary modules are restricted to performing function calls to functions explicitely exported.
 
-In this document, we first describe the idea behind the operational semantics of MSWasm, then how details about the implementation of the segment were implemented in \irismswasm, and finally we give an overview of the structure of \irismswasm, to help the interested reader to locate where to find the code for everything described in this document.
+\mswasm~\cite{mswasm} is a proposal of a modification to \wasm's operational semantics, where memory would be accessed not by a raw \xxWithirtytwo integer as an address, but rather via use of a \emph{handle}, which is a pointer enriched with meta-information such as bounds that this pointer is allowed to access and an ID that allows the machine that runs \mswasm to check that the handle hasn't yet been freed. Importantly, handles are unforgeable, so the only way to access memory at a given location is to have been given the handle for that location by the entity that created that handle via memory allocation. Handles (also refered to as \emph{capabilities}) have already been shown~\cite{capabilities} to be a reliable way of obtaining fine-grained memory safety properties, which makes \mswasm a promising project that could bring additional fine-grained safety to the existing coarse-grained safety properties of \wasm.
 
-\section{Updating the operational semantics}
+In this document, we present \irismswasm, an effort to describe and mechanise a program logic for \mswasm in the Coq proof assistant, via use of the Iris separation logic~\cite{iris}. This allows us to prove numerous properties of \mswasm in the Coq proof assistant, and showcase \mswasm's safety properties on small examples making use of the new features. We build \irismswasm on top of \iriswasm~\cite{iriswasm}, an existing mechanisation of simple \wasm in Coq and Iris. We provide examples contrasting what is obtainable in simple \wasm with more sophisticated examples allowed by \mswasm.
 
-The proposal of \citet{mswasm} is to add a second kind of memory to WebAssembly, called
-a \emph{segment}. Where the heap of WebAssembly is an array of raw bytes that is accessed to by
-the \xxWload and \xxWstore instructions, using normal \xxWithirtytwo integers, the segment
-is an array of tagged bytes that is accessed to by the \xxWsegload and \xxWsegstore instructions,
-using a \emph{handle}. Handles are a new value type (in addition to the four that WebAssembly
-already has, namely \xxWithirtytwo, \xxWisixtyfour, \xxWfthirtytwo and \xxWfsixtyfour),
-defined as a record:
-
-\[ \xxWhandle := \{ \xxWbase : \xxCN; \quad \xxWoffset : \xxCN;\quad \xxWbound : \xxCN;\quad \xxWvalid : \xxCbool;\quad \xxWid : \xxCN \} \]
-
-When reading or writing using the \xxWsegload and \xxWsegstore operations, dynamic checks ensure that the address given by \( \xxWbase + \xxWoffset \) is between \xxWbase and \xxWbound, that the \xxWvalid tag is \xxCtrue, and that the handle is live, using its identifier \xxWid (we will come back to how this last check is performed).
-Provided all these checks succeed, the segment is read or written to at address \( \xxWbase + \xxWoffset \). The only subtlelty pertains to reading and writing handles, where extra checks are performed. The bytes in a segment are tagged as either \xxWNumeric or \xxWHandle, to forbid interpreting as a handle bytes that where not originally a handle (reading a handle from a memory location that contains even a single byte tagged as \xxWNumeric sets the \xxWvalid field of the resulting handle to \xxCfalse). Checks are also made to ensure that reading and writing handles always occurs from offsets that are aligned.
-
-As is custom when working with handles, one can change a handle's bounds using a \xxWslice instruction and perform pointer arithmetics using a \xxWhandleadd instruction. Lastly, handles can be obtained by calling a \xxWsegalloc instruction and freed using a \xxWsegfree instruction. \citet{mswasm} do not go into much detail into how these should be implemented, stating that the details are irrelevant as long as some unspecified properties hold. They only mention \emph{allocators}, an opaque object such that two operations \xxsalloc{T}{A}{a}{n}{n_{id}}{T'}{A'} and \xxsfree{T}{A}{a}{n_{id}}{T'}{A'} allocate and free segments with \xxWid \( n_{id} \) at address \( a \), modifying the segment \( T \) and the allocator \( A \). The allocation also takes an extra argument \( n \) corresponding to the size of the allocated handle. We will come back to how these two operations where implemented in \irismswasm.
-
-In MSWasm \cite{mswasm}, the program store is augmented from having just a heap memory to now also having a segment and an allocator. In actual WebAssembly, however, the store contains not one heap memory but a list of heap memories, as several modules could instantiate memories and these are all kept in the store. \citet{mswasm} seems to only address the case where a single module runs and where the store can be limited to one heap memory. In the case of the segments, instead of generalizing one memory to a list of memories like we would for the heap memory, we keep one single segment and one single allocator even in the general case where several modules might be running. In other words, all modules share the same segment memory, which is completely safe given the guarantees provided by the usage of handles.
+In the rest of this document, we provide an overview of the \wasm and \mswasm operational semantics, we describe the program logic defined by \irismswasm, and we illustrate our work with examples that showcase the strength of \mswasm.
 
 
-MSWasm defines new operational semantics rules for \xxWsegload, \xxWsegstore, \xxWslice, \xxWhandleadd, \xxWsegalloc and \xxWsegfree. Unlike the already existing WebAssembly rules, these new rules all are decorated with a \emph{memory event} that indicate where reads, writes, allocations, frees and fails of dynamic checks occur. This makes program executions decorated with a trace.
+\section{The semantics of \mswasm}
 
+In this section, we present the operational semantics of \mswasm. We begin by giving an overview of the operational semantics of plain \wasm. If this overview is too succinct, we refer the interested reader to existing more detailed documentation~\cite{wasm}. In \S\ref{sec:memory}, we present in detail the point of separition between \wasm and \mswasm. We will be using the notations of \citet{iriswasm} (which are quite similar to those of~\citet{wasm}), and the semantics we present here includes their one-point departure from the official \wasm semantics.
 
+\subsection{A stack-based language}
 
-Since \iriswasm \cite{iriswasm} does not use memory events, the operation semantics they defined had to be adjusted. Where \iriswasm defines two inductives properties \[ \tt reduce\_simple~es~es' \] and \[ \tt reduce~s~f~es~s'~f'~es' \] \irismswasm defines 3: \[ \tt reduce\_simple~es~es' \] corresponding to \iriswasm's {\tt reduce\_simple}, \[ \tt reduce\_silent~s~f~es~s'~f'~es' \] which corresponds to the \iriswasm's \( \tt reduce \), and \[ \tt reduce~s~f~es~me~s'~f'~es' \] which contains the new rules that produce memory events. The names of the inductive cases for {\tt reduce\_simple} start with {\tt rs\_} (e.g. {\tt rs\_binop}), the cases for {\tt reduce\_silent} start with {\tt r\_} (to mimic the cases in \iriswasm's {\tt reduce}, e.g. {\tt r\_call}), and the cases for {\tt reduce} start with {\tt rm\_} (e.g. {\tt rm\_segload}).
+At its core, \wasm is a stack-based language. The state of execution is represented by a triplet \( (S, F, \V{es}) \): a \emph{store}, a \emph{frame} and a stack of \emph{administrative instructions}\footnote{to avoid confusion with the separating conjuction \( \ast \) used in separation logic, we denote by \( \V{es} \) a list of \( e \), rather than the \( e^\ast \) notation used in the original \wasm documentation~\cite{wasm}}.
+We will progressively introduce the meaning of these; a full account of the syntax can be found in Figure~\ref{fig:wasmast}. For now, we focus on the third component, the stack of administrative instructions, since the simplest \wasm instructions do not make use of or modify the store or frame.
 
+This stack represents the \wasm code being executed. Administrative instructions are \emph{basic instruction}, i.e. instructions that can appear in a \wasm program, enriched with a number of extra contructs that appear only during execution, and which we shall introduce later when relevant. At the beginning of execution, the stack \( \V{es} \) represents the full \wasm program, and as the execution is carried out, the first non-value instructions in the stack are executed one by one, and their results are put back into the same stack. Let us consider the simple case of a binary operation, say, \xxWithirtytwo addition:
+\[ (S,F, [\xxWithirtytwo.\xxWconst~c_1;~\xxWithirtytwo.\xxWconst~c_2;~\xxWithirtytwo.\xxWadd]) \hookrightarrow (S,F, [\xxWithirtytwo.\xxWconst~(c_1 + c_2)]) \]
+In order for this rule to be applicable in the context of a larger program in which the addition is only the first instruction, \wasm comes with a frame rule that allows for execution inside a context:
+\[ \inferrule{(S,F,\V{es})\hookrightarrow(S',F',\V{es}')}{(S,F, \V{vs}\cat\V{es}\cat\V{es_2})\hookrightarrow(S',F',\V{vs}\cat\V{es}'\cat\V{es}_2)} \]
+We will later introduce a more general notion of context and a stronger frame rule.
 
-\irismswasm's {\tt reduce\_simple} is almost identical to \iriswasm's, with just new rules for \xxWhandleadd and \xxWslice, that do not produce a memory event. Just like in \iriswasm, the first case of {\tt reduce\_silent} is \[ \tt r\_simple:~forall~e~e'~s~f,~reduce\_simple~e~e'\to reduce\_silent~s~f~e~s~f~e' \] and all the cases of {\tt reduce\_silent} are exactly those of \iriswasm's {\tt reduce}, minus {\tt r\_label} and {\tt r\_local}. Finally, \irismswasm's {\tt reduce} also has a case that embeds {\tt reduce\_silent} (adding the silent \xxCMEempty memory event). The other cases define the rules for \xxWsegload, \xxWsegstore, \xxWsegalloc and \xxWsegfree, as well as cases {\tt rm\_label} and {\tt rm\_local} that correspond to \iriswasm's {\tt r\_label} and {\tt r\_local}.
+\wasm defines 4 simple types for its values: \xxWithirtytwo, \xxWisixtyfour, \xxWfthirtytwo and \xxWfsixtyfour, to which \mswasm adds one extra type \xxWhandle which we discuss in \S\ref{sec:memory}. \wasm defines a simple notion of typing for all instructions, of the form \( \KK{insn}\colon\V{t1s}\to\V{t2s} \) where \( \V{t1s} \) are the types of the values consumed by the instruction and \( \V{t2s} \) are the types of the values produced. For instance, \( \xxWithirtytwo.\xxWadd\colon[\xxWithirtytwo;\xxWithirtytwo]\to[\xxWithirtytwo] \). We will not enter farther into details about this type system and refer the interested reader to existing documentation~\cite{wasm}.
 
-The implementation of the rules of MSWasm follow precisely the ones defined by \citet{mswasm}, the only thing remaining to implement is the meaning of \xxsalloc{T}{A}{a}{n}{n_{id}}{T'}{A'}, \xxsfree{T}{A}{a}{n_{id}}{T'}{A'}, as well as the meaning of \( n_{id}\in A \), that is one of the dynamic checks when reading and writing from the segment, to check that the segment with \xxWid \( n_{id} \) is live.
+Aside for addition shown above, \wasm defines other binary operations on its four base types, as well as comparison and conversion operations. There is also a \xxWselect instruction (\( [a;b;c;\xxWselect] \) should be read as ``if \( a \) then \( b \) else \( c \)'') and other trivial operations such as \xxWdrop, \xxWnop and \xxWunreachable. All of these have corresponding operational semantics rules that mirror intuition.
 
-\section{Defining the segment in Coq}
+Lastly, let us mention local and global variables. Access to both of these is done through integer indexes \( i \) rather than variable names. To explain where their values are stored, let us take a closer look at the frame \( F \) that forms the state of a \wasm execution:
+\[  F::=\{ \xxfield{locs} : \V{vs}, \quad \xxfield{inst} : \V{inst} ~ \} \]
+The first component \xxfield{locs} is a list of values representing the values of the local variables, enabling reading and writing local variables.
 
-For the most part, defining the segment mimics \iriswasm's definition of the heap memory, i.e. we distinguish the type {\tt segment\_list} that is a record with one field that contains an array of bytes (represented by a Coq list), and the type {\tt segment}, a record whose two field are a {\tt segment\_list} and an optional maximal size that can be set to restrict the always-present maximal size dictated by the architecture.
-
-Apart from minor differences like the fact that the segment bytes are tagged, the biggest difference is the presence of the Allocator object, that keeps track of the areas of memory that have been allocated, and allows for allocation and freeing of handle via usage of the \xxWsegalloc and \xxWsegfree instructions.
-
-The Allocator is implemented as a list of allocated handles. For every handle, we keep track of its \xxWid, its base address and its original length. Concretely, an Allocator is the following record type:
-\[ \tt Allocator := \{ Allocated : list (N * N * N) \} \]
-
-Given this, \( n_{id}\in A \) is defined as the existence of an entry \( (n_{id}, -, -) \) in \( A \), as captured by the Coq Proposition {\tt isAlloc}.
-
-We can now define an inductive proposition corresponding to \xxsalloc{T}{A}{a}{n}{n_{id}}{T'}{A'}, which holds when:
-\begin{itemize}
-\item The newly allocated handle is in bounds in \( T' \)
-\item The \xxWid \( n_{id} \) is free in \( A \)
-\item The newly allocated handle does not overlap with any handle already allocated in \( A \)
-\item \( T \) and \( T' \) differ only on the newly allocated hande, which is zeroed out in \( T' \)
-\item \( A' \) is \( A \) with the newly allocated handle added
-\item Some extra requirements pertaining to the total length of \( T' \) being lower than the maximum value (dictated either by a user-set limit or the architecture)
-\end{itemize}
-The inductive proposition is written so as to allow both allocating a new handle inside the segment \( T \) if space is available, or grow \( T \) dynamically to gain more space, as long as no condition of maximum size is violated. When calling \xxWsegalloc, the programmer only specifies the size \( n \) of the allocated handle, and any address \( a \) and \xxWid \( n_{id} \) together with any \( T' \) and \( A' \) that satisfies the properties above is allowed. The operational semantics of \xxWsegalloc can also nondeterministically fail to account for the possibility of an Out-of-memory.
-
-\iriswasm also defines an interpreter for WebAssembly. Here, a strategy must be adopted for allocation. For simplicity, the strategy \irismswasm uses is to simply always grow the segment when possible and fail otherwise. In other words, no effort is ever made to check if space is available in the segment.
-
-For \xxsfree{T}{A}{a}{n_{id}}{T'}{A'}, we define similarly an inductive proposition that holds when:
-\begin{itemize}
-\item The handle \xxWid \( n_{id} \) is present in \( A \) and its associated address is \( a \)
-\item \( A' \) is \( A \) without the entry for \( n_{id} \)
-\item \( T = T' \)
-\end{itemize}
-In the operational semantics rule for \xxWsegfree, the instruction takes one handle as an argument. To stay close to the MSWasm semantics \cite{mswasm}, we enforce that the \xxWoffset must be 0, the \xxWbase must be the one present in \( A \) (i.e. one cannot free a handle if one has changed the value off its \xxWbase via use of the \xxWslice instruction), and the \xxWvalid tag must be \xxCtrue. 
+For global variables, the process is a little more involved. The values of global variables of the current module are located in the store \( S \), together with the global variables of all other modules that have been instantiated so far. This is in order to allow a module to export some its global variables, and import those of other modules. One of the components of the store \( S \) is a list of global variable instances (metadata on mutability together with the variable's value). In order to know what index in that list correspond the the \( i-\)th global variable of the current module, one uses the second component of the frame \( F \): the \emph{instance} \( \xxfield{inst} \). This object contains a field \xxfield{globs} which is a list of indices: the \( i-\)th index in that list is the location in the store of the wanted global variable. Thus we have the rule \[ \inferrule{F.\xxfield{inst}.\xxfield{globs}[i]=k\and S.\xxfield{globs}[k].\xxfield{value} = \V{v}}{(S,F,[\KK{global.get}~i])\hookrightarrow(S,F,[\V{v}])} \]
+And a similar rule for \( \KK{global.set} \) albeit with an extra check that the mutability of the variable is allowed. This \emph{indirection} handled by the instance will also be a feature of function calls, memory access, and all other instructions involving exportable features, as those are bookkept in the store together with those of other modules, in order to allow for exports and imports. 
 
 
 
+\begin{figure}
+  \import{figures/}{wasm-ast}
+\caption{\wasm Abstract Syntax in black, and the \mswasm additions in red}
+\label{fig:wasmast}
+\end{figure}
 
 
-\section{Structure of \irismswasm}
 
-\irismswasm is structured exactly like \iriswasm: the datatypes (including {\tt segment} and the updated version of the {\tt store}) are defined in {\tt datatypes.v}, a file which depends on {\tt segment\_list.v} where basic segment operations are defined (mirroring {\tt memory\_list.v} where basic operations on the heap memory are defined in \iriswasm). {\tt operations.v} contains a number of helper-functions to manipulate the datatypes, including functions that read and write from the segment ({\tt read\_segbytes}, {\tt segload}, {\tt write\_segbytes} and {\tt segstore} all mirror the functions {\tt read\_bytes}, {\tt load}, {\tt write\_bytes} and {\tt store} from \iriswasm) as well as the definitions of the inductive properties {\tt salloc} and {\tt sfree}. {\tt opsem.v} contains the operational semantics rules, and {\tt typing.v} contains the code pertaining to typing MSWasm code.
+\subsection{Control flow}
 
-The rest of the files mostly contain tools like an interpreter or a binary format represntation, or lemmas pertaining to how the operational semantics or the aforementioned tools behave. These have been updated to take into account the new operational semantics.
+\wasm is somewhat unusual as an assembly-like language in that it features no general jump instruction. The only control flow operations allowed are direct or indirect function calls, and \emph{break} (or \emph{branch}) instructions \( \xxWbr{i} \) which allows to exit a group of instructions enclosed in a \KK{block}, \KK{loop} or \KK{if} instruction. Let us first discuss the later.
 
-Adapting the proofs of all lemmas of \iriswasm is done in most cases by simply mirroring what happens for the heap memory.
+The instruction \( \xxWif~{\V{tf}}~{\V{bs}_t}~{\V{bs}_f} \) takes one argument from the stack and desugars to either \( \xxWblock~{\V{tf}}~{\V{bs}_t} \) or \( \xxWblock~{\V{tf}}~{\V{bs}_f} \) depending on whether the value was 0. Let us have a closer look at the instructions \( \xxWblock~{\V{tf}}~{\V{bs}} \) and \( \xxWloop~{\V{tf}}~{\V{bs}} \). Here, \V{bs} is the content of the \KK{block} or \KK{loop}, and \V{tf} is the type signature, i.e. \( \V{tf} = \V{t1s}\to\V{t2s} \) where \( \V{t1s} \) is the list of the types that are expected to be on the stack upon entering the \KK{block} or \KK{loop}, and \( \V{t2s} \) is the list of the types that will be on the stack upon exiting. The exact contents of these lists are only useful for typing, and the operational semantics cares only about the length of these lists.
 
-One difficulty is that we now have a condition we would like the WebAssembly state to follow at all times: the handles listed in the Allocator should be in-bounds in the segment they live in. In some proofs, like the proof of soundness of the interpreter, it now becomes necessary to add this as an invariant and prove it is maintained at every step of the operational semantics.
+Both the \xxWblock and \xxWloop instructions take the required number of arguments \( \V{vs} \) from the stack, and execute to the administrative instruction \( \xxWlabel{n}{\V{es}_{cont}}{\V{es}} \), where \( n \) represents the number of values that will exit the \KK{label} if it reaches a break instruction, \( \V{es}_{cont} \) is the \emph{continuation} of the label, i.e. the code to be executed in case a break instruction is met, and finally \( \V{es} \) is the contents of the \KK{label}. \( \V{es} \) is initially equal to \( \V{vs}\cat\V{bs} \); as for the value of \( n \) and \( \V{es}_{cont} \), they depend on whether the original instruction was a \KK{block} or a \KK{loop}. When breaking out of a \KK{block}, the block's execution is done and one carries on with whatever code followed the original \KK{block} instruction, hence \( \V{es}_{cont} = [] \) and \( n \) is the length of \V{t2s}; but when breaking out of a \KK{loop}, the whole original loop is repeated, i.e. \( \V{es}_{cont} = [ \xxWloop{\V{tf}}{\V{bs}} ] \) and \( n \) is the length of \( \V{t1s} \). 
+
+Once the \KK{block} or \KK{loop} has executed to a \KK{label} instruction, the execution continues inside of the \KK{label}, meaning the context rule introduced earlier can now be enriched to executing inside of a \KK{label}. In fact, as \KK{block}s and \KK{loop}s can be nested, resulting in nested \KK{label}s, execution can in fact be carried out under an indefinite amount of nested \KK{labels}. To capture this formally, let us define \emph{lholes}:
+
+\[ \V{lh}_0 ::= \V{vs}\cat[\_]\cat\V{es}\qquad\V{lh}_{k+1}::= \V{vs}\cat\xxWlabel{n}{\V{es}_{cont}}{\V{lh}_k}\cat\V{es} \]
+
+Our frame rule now becomes
+\[ \inferrule{(S,F,\V{es})\hookrightarrow(S', F', \V{es}')}{(S,F,\V{lh}_k[\V{es}])\hookrightarrow(S',F',\V{lh}_k[\V{es}'])} \]
+Taking \( k=0 \) yields the rule introduced earlier.
+
+Execution continues inside the \KK{label} until either the contents are a list of values, in which case the \KK{label} is exited
+\[ (S,F,[\xxWlabel{n}{\V{es}_{cont}}{\V{vs}}])\hookrightarrow(S,F,\V{vs}) \]
+or until a break instruction is met. This break instruction \( \xxWbr{i} \) has an integer \( i \) as an immediate argument, indicating how many \KK{labels} should be exited. In that case, the last \( n \) values from the stack are kept, and the continuation code is executed:
+\[ \inferrule{k=i \and |\V{vs}|=n}{(S,F,[\xxWlabel{n}{\V{es}_{cont}}{\V{lh}_k(\V{vs}\cat\xxWbr{i})}])\hookrightarrow(S,F,\V{vs}\cat\V{es}_{cont})} \]
+Crucially, this requires the index \( i \) of the lhole and of the break instruction to be equal: if \( i > k \), the instruction is stuck and can only be unstuck if placed in a deeper context. If \( i < k \), then the break only breaks out of a smaller amount of \KK{label}s, and one can use the frame rule together with the break rule to show that this reduces to something of the form \( \V{lh}_{k-i}(\V{vs}\cat\V{es}) \).
+
+Aside from \( \xxWbr{i} \), the instructions \( \xxWbrif{i} \) and \( \xxWbrtable~{\V{is}} \) desugar to a \KK{br} instruction according the last value on the stack.
+
+
+Finally, let us describe the way function calls work in \wasm. Function calls can be to a statically know function with the \xxWcall instruction, or to a dynamically determined function with the \( \KK{call\_indirect} \) instruction. In the first case, the immediate argument \V{i} of instruction \( \xxWcall~\V{i} \) refers to the index of the function to be called, were if a module imports \( k \) functions and defines \( \ell \) ones, the imported functions have indices 0 to \( k - 1 \) and the functions defined in the module have indices \( k \) to \( k + \ell - 1 \), in the order in which they appear. Just like the values of global variables, the closures for the functions are all in the store \( S \) together with the closures for functions defined elsewhere, and the frame \( F \) keeps track of the indirection.
+
+For indirect calls, a table in the store contains indices toward functions closures in the store. The \( \KK{call\_indirect}~\V{i} \) instruction takes one argument from the stack indicating which element of that table is to be called, and the immediate argument \( \V{i} \) refers to the type of the function to be called. Since the store may also contain tables for other modules, the frame \( F \) keeps track of the address of the current module's table in the store.\footnote{in \wasm 1.0, each module can at most have one table, so the frame's \xxfield{tables} field is a list of length at most 1}
+
+After the computation of the index of the function closure in the store, the way direct and indirect function calls work is identical, so \wasm defines an administrative instruction \( \xxWinvoke~\V{a} \) which represents a call to the closure number \V{a} in the store. Both \xxWcall and \KK{call\_indirect} desugar to this \xxWinvoke instruction:
+
+\[ \inferrule{F.\xxfield{inst}.\xxfield{funcs}[\V{i}]=\V{a}}{(S,F,[\xxWcall~\V{i}])\hookrightarrow(S,F,[\xxWinvoke~\V{a}])} \]
+
+
+\[
+\inferrule{F.\xxfield{inst}.\xxfield{tables}[0]=\V{j}\and S.\xxfield{tabs}[\V{j}].\xxfield{elem}[\V{c}]=\V{a}\and F.\xxfield{inst}.\xxfield{types}[\V{i}] = \V{tf} \and \mathrm{typeof}(S.\xxfield{funcs}[\V{a}])=\V{tf}}{(S,F,[\xxWithirtytwo.\xxWconst~\V{c};\KK{call\_indirect}~\V{i}])\hookrightarrow(S,F,[\xxWinvoke~\V{a}])}
+\]
+
+Once reduced to an \xxWinvoke instruction, we can look up the function closure in the store. This closure can have two forms: a \emph{native closure} \( \NCl{\V{tf}}{(\V{inst};\V{ts})}{\V{es}} \) represents a function that has been defined in \wasm (either in this module or in another module from which it was imported), and a \emph{host closure} \( \HCl{\V{tf}}{\V{hidx}} \) represents a function defined outside of \wasm by the host language that embeds it (see~\S\ref{sec:host}). In both cases, the function type is \V{tf}. For a host closure, \V{hidx} is an index used to determine what function to execute. For a native closure, \V{es} represents the \wasm code that is the body of the function, \V{ts} is a list of the types of the function's local variables aside from its arguments, and \V{inst} is the instance in the module that defined the function -- i.e. the context of the closure.
+
+In the case of a native closure, the \xxWinvoke instruction reduces as follows:
+
+\[ \inferrule{S.\xxfield{funcs}[i]=\NCl{\V{ts}_1\to\V{ts}_2}{(\V{inst}; \V{ts})}{\V{es}}\and
+  |\V{vs}| = |\V{ts}_1| \and F' = \{ \xxfield{locs} := \V{vs}\cat\KK{zeros}(\V{ts}); \xxfield{inst} := \V{inst} \}
+}{(S,F, \V{vs}\cat\xxWinvoke~\V{i})\hookrightarrow(S,F,\xxWlocal{|\V{ts}_2|}{F'}{\xxWblock~([]\to\V{ts}_2)~\V{es}})} \]
+
+An appropriate amount of arguments is taken from the stack; a new frame \( F' \) is created for the execution of the function body; and the function body is place inside a \xxWblock and a \KK{local}. The frame \( F' \) defines the local variables the caller will be able to use: first all arguments of the function, and then local variables declared by the function, initialised to zero. The instance in \( F' \) is \V{inst} from the closure, symbolising that the body will execute with the context from the closure.
+
+Let us now explain what the \KK{local} instruction means. This administrative instruction is used to symbolise a function call being executed, and allows execution of the code inside the instruction to execute with the frame in brackets:
+
+\[ \inferrule{(S,F_1,\V{es})\hookrightarrow(S', F_1', \V{es}')}{(S,F,[\xxWlocal{n}{F_1}{\V{es}}])\hookrightarrow(S',F,[\xxWlocal{n}{F_1'}{\V{es}'}])} \]
+
+Just like for a \KK{label} instruction, the \KK{local} is exited if the code inside is a list of values
+\[ (S, F, [\xxWlocal{n}{F_1}{\V{vs}}]) \hookrightarrow (S,F,\V{vs}) \]
+or if a \xxWreturn instruction is met. In that case, the subscript \( n \) indicated how many values to take from the stack before exiting. Unlike for break instructions, a \xxWreturn instruction should always target the closest \KK{local}, and thus does not need to take an immediate argument:
+\[ \inferrule{|\V{vs}|=n}{(S,F,[\xxWlocal{n}{F_1}{\V{lh}_k(\V{vs}\cat\xxWreturn)}])\hookrightarrow(S,F,\V{vs})} \]
+
+When reducing a native call, the code of the closure is placed inside a \KK{local} and inside a \xxWblock, meaning one use a \( \xxWbr{i} \) instruction with a carefully chosen \( i \) instead of a \xxWreturn instruction.
+
+Finally, in case of a host closure, the approach of \citet{iriswasm} is to use a specially defined \xxWcallhost administrative instruction:
+
+\[ \inferrule{S.\xxfield{funcs}[i]=\HCl{\V{ts}_1\to\V{ts}_2}{\V{hidx}}\and|\V{ts}_1|=|\V{vs}|}{(S,F,\V{vs}\cat[\xxWinvoke~i])\hookrightarrow(S,F,\xxWcallhost~(\V{ts}_1\to\V{ts}_2)~\V{hidx}~\V{vs})} \]
+
+This differs from the \wasm standard~\cite{wasm} synactically, but behaves the same way semantically and allows for an easier mechanisation in the Coq proof assistant. The instruction \xxWcallhost is stuck and needs outside intervention to carry on executing. We present this outside intervention in the next section.
+
+
+
+\subsection{Coarse-grain encapsulation and module instantiation via host language}
+\label{sec:host}
+
+\wasm code is organised in \emph{modules}, which have been formally shown~\cite{iriswasm} to provide encapsulation, as a module can only interact with another module's state via what that module explicitely exports.
+
+A module can declare (or import) a memory and a function table,\footnote{\wasm 2.0 lifts the restriction of only one memory and function table being allowed in each module} and any number of function types (hence allowing types in \KK{call\_indirect} instructions to be referenced by indexing), global variables and functions. Any function, global variable, memory or function table can be exported if this is specified explicitely. Finally, the module can decide to initialise parts of the memory via the \xxfield{data} directive, parts of the function table via the \xxfield{elem} directive, and can specify a start function to be executed immediately when the module is instantiated.
+
+By \emph{instantiation}, we mean the process by which a module is typechecked, its imports are satisfied, its initial memory and table are created, its initial function is executed, and its exports are prepared for subsequent exports.
+
+This process is crucial for \wasm's modular encapsulation, but cannot be performed by \wasm itself. Instead, \wasm is embedded in another language called the \emph{host language}, which aside from performing instantiation, can access all of the components a \wasm module exports, and thus can read or modify an exported memory or table, or call \wasm functions.
+
+Conversely, \wasm code can call functions defined by the host language -- which is what we have called host closures in the previous section --, opening the possibility for reentrancy. In the way we have presented this earlier, it is assumed that the host language can decode an index \V{hidx} into a function, and can thus unstuck a program where the first non-constant on the stack (possibly inside nested \KK{local} or \KK{label} instructions) is a \( \xxWcallhost~\V{ft}~\V{hidx}~\V{vs} \) instruction, which it simply replaces by the return value of the call.
+
+\subsection{Memory access}
+\label{sec:memory}
+
+The last features we haven't mentionned are those that relate to memory access. This is where \mswasm departs from \wasm by proposing a novel way to deal with reading and writing to memory.
+
+In \wasm, the \emph{memory} of a module, which we shall call \emph{heap memory} to contrast it later with another memory \mswasm introduces, is an array of raw uninterpreted bytes, that is accessed to via \xxWload and \xxWstore instructions that take an \xxWithirtytwo argument from the stack and treat it as an address into memory. The instructions take a type as an immediate argument as to know which encoding or decoding mechanism to apply; two functions \xxWserialise and \xxWdeserialise can be quite naturally defined to encode and decode all four numerical types. The instructions also can take additional information (such as an offset) as an immediate argument to allow for simple pointer arithmetics. We showcase here a simple version of usage of the \xxWload instruction, where the only immediate argument is the type to read.
+
+\[ \inferrule{F.\xxfield{inst}.\xxfield{mems}[0]=\V{i}\and S.\xxfield{mems}[\V{i}][c..c+\mathrm{sizeof}(t)]=\V{bs}\and \xxWdeserialise(t, \V{bs}) =c'}{(S,F,[\xxWithirtytwo.\xxWconst~c;~\xxWload~t])\hookrightarrow(S,F,[t.\xxWconst~c'])} \]
+
+Just like for the function table, each module can have at most one in \wasm 1.0, so the instance's \xxfield{mems} field is a list of length at most 1, and we look up there which of the memories in the store is this module's one, since the store might keep track of memories of other modules too.
+
+Here, it is clear that \wasm's encapsulation property is limited to coarse-grained encapsulation at the scale of the module: all bets are off when inside a module, since any function can access any part of the memory. Likewise, if a module decides to export its memory, any other module can import it and read and write to it freely. In a effort to obtain fine-grained encapsulation, \mswasm~\cite{mswasm} proposes using \emph{handles} rather than \xxWithirtytwo addresses. Using handles (also called capabilities) has been shown~\cite{capabilities} to provide strong fine-grained encapsulation properties in broader contexts, so are a good bet to achieve this goal in \wasm.
+
+The new features of \mswasm are represented in red in Figure~\ref{fig:wasmast}. We add an extra type to the four numerical types of \wasm: \xxWhandle, representing a capability. This form of enriched pointer consists of a base address, an offset, a bound, a validity bit and an \xxWid, and is intended to mean a pointer to address \( \xxWbase+\xxWoffset \) as long as the offset is between 0 and \( \xxWbound - 1 \), the validity bit is \xxCtrue, and the handle's \xxWid is still live (we come back to how this last point is checked a few paragraphs below). If that is the case, \xxWsegload and \xxWsegstore instructions are permitted to read and write from the \emph{segment memory}, a new kind of memory that can only be accessed via pointers. These instructions take a type as an immediate argument to know how to interpret the bytes in the segment memory.
+
+One subtlety arises from reading handles, which necessitates tagging the bytes to forbid something written as a numerical value to later be read as a handle, which would effectively forge a handle. In that case, we allow the read but set the validity tag to \xxCfalse. We also restrict reading and writing handles to addresses that are aligned with the length of a handle, in order to disallow writing two handles consecutively in the segment memory, and then attempt to read a handle which would start midway through the first. We abstract over what mechanism is used to serialise a handle into a byte representation, and simply assume we have two functions \xxWserialisehandle and \xxWdeserialisehandle (which we use to complete the \xxWserialise and \xxWdeserialise functions with the new \xxWhandle type) as well as one constant \xxWhandlesize such that \xxWserialisehandle and \xxWdeserialisehandle are inverses to one another, \( \xxWhandlesize > 0 \) and the output value of \xxWserialisehandle is always a list of bytes of length \xxWhandlesize.
+
+Previous works on \mswasm~\cite{mswasm} limit themselves to the case of one single module. In \irismswasm, we generalise to the full module system. Rather than operating as for heap memory with several memories in the store and the frame remembering which memory each module uses, we choose to only keep one segment memory present in the store, and that segment memory is shared by all modules. This helps to underline that the encapsulation properties no longer stem from \wasm's module system, but from the handles themselves providing fine-grained memory safety. As a result, the frame doesn't need to keep track of any additional information in order to accomodate \mswasm.
+
+To keep track of live handles, we use an \emph{allocator}. \citet{mswasm} do not go into much detail about how this allocator should be implemented, only stating it should allow for the definition of allocation and freeing functions that have some propertes which they only define intuitively. When implementing \irismswasm, our implementation defines the allocator as an asosciative map from the space of handle \xxWid{}s to pairs of integers representing the handle's original base address and bound.
+
+This means allocating and freeing simply mean adding and removing from this map, and these operations can be performed with the \xxWsegalloc and \xxWsegfree instructions. Basing ourselves on \citet{mswasm}, we impose several conditions on the handle to be freed, like its base to be the original address the handle got allocated as (i.e. it cannot have been sliced, see next paragraph) and its offset to be zero. As for allocation, \irismswasm introduces a second operational semantics rule for \xxWsegalloc, allowing the allocation to randomly fail to represent realistic machine behaviour.
+
+Finally, two operations on handles are defined to allow for pointer arithmetics and restrictions on the accessible area of a handle: \xxWhandleadd and \xxWslice. As is custom when working with capabilities, these instructions are allowed to create corrupt handles with an \xxWoffset pointing outside the handle's allowed range; an exception is only raised if one later tries to read or write using this handle. This is to reflect real-world behaviour where a forbidden pointer might often be created but never used e.g. right before a loop is exited.
+
+The operational semantics rules for all these operations are presented in Figure~\ref{fig:segsemantics}. These rules are identical to those of \citet{mswasm}, with the addition of the rule allowing \xxWsegalloc to fail. We also provide our own definitions for the \( \xxsalloc{\V{seg}}{\V{allocator}}acn{\V{seg'}}{\V{allocator}'} \) and \( \xxsfree{\V{seg}}{\V{allocator}}an{\V{seg}'}{\V{allocator}'} \) predicates used in the allocation and freeing rules, as these are not defined by \citet{mswasm}.
+
+\begin{figure}
+  \import{figures/}{segsemantics}
+\caption{Operational semantics for the new instructions in \mswasm}
+\label{fig:segsemantics}
+\end{figure}
+
+
+
+
+
+
+\section{\irismswasm: a program logic for \mswasm}
+
+\section{Examples}
+
+
 
 
 \bibliography{irismswasm}

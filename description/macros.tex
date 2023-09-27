@@ -11,6 +11,8 @@
 
 \newcommand{\iriswasm}{Iris-Wasm\xspace}
 \newcommand{\irismswasm}{Iris-MSWasm\xspace}
+\newcommand{\mswasm}{MSWasm\xspace}
+\newcommand{\wasm}{WebAssembly\xspace}
 
 % colors
 \newcommand{\textblue}[1]{\textcolor{RoyalBlue}{#1}}
@@ -156,6 +158,13 @@
 \newcommand\xxCfalse{\ensuremath{\mathbf{false}}\xspace}
 \newcommand\xxCMEempty{\ensuremath{\mathbf{ME\_empty}}\xspace}
 
+\newcommand\xxWserialisehandle{\ensuremath{\mathrm{serialise\_handle}}\xspace}
+\newcommand\xxWdeserialisehandle{\ensuremath{\mathrm{deserialise\_handle}}\xspace}
+\newcommand\xxWserialise{\ensuremath{\mathrm{serialise}}\xspace}
+\newcommand\xxWdeserialise{\ensuremath{\mathrm{deserialise}}\xspace}
+\newcommand\xxWhandlesize{\ensuremath{\mathrm{handle\_size}}\xspace}
+
+\newcommand\rr[1]{\textcolor{red}{#1}}
 
 % Wasm commands and constructors
 \newcommand\xxWmodule{\ensuremath{\mathbf{module}}\xspace}\newcommand\xxWtype{\ensuremath{\mathbf{type}}\xspace}
@@ -169,11 +178,6 @@
 \newcommand\xxWisixtyfour{\ensuremath{\mathbf{i64}}\xspace}
 \newcommand\xxWfsixtyfour{\ensuremath{\mathbf{f64}}\xspace}
 \newcommand\xxWhandle{\ensuremath{\mathbf{handle}}\xspace}
-\newcommand\xxWbase{\ensuremath{\mathbf{base}}\xspace}
-\newcommand\xxWoffset{\ensuremath{\mathbf{offset}}\xspace}
-\newcommand\xxWbound{\ensuremath{\mathbf{bound}}\xspace}
-\newcommand\xxWvalid{\ensuremath{\mathbf{valid}}\xspace}
-\newcommand\xxWid{\ensuremath{\mathbf{id}}\xspace}
 \newcommand\xxWloop{\ensuremath{\mathbf{loop}}\xspace}
 \newcommand\xxWend{\ensuremath{\mathbf{end}}\xspace}
 \newcommand\xxWstore{\ensuremath{\mathbf{store}}\xspace}
@@ -269,6 +273,11 @@
 \newcommand\xxHgetglobal[1]{\ensuremath{\mathbf{get\_global}~\mathsf{#1}}}
 
 \newcommand\xxfield[1]{\ensuremath{\mathsf{#1}}}
+\newcommand\xxWbase{\xxfield{base}\xspace}
+\newcommand\xxWoffset{\xxfield{offset}\xspace}
+\newcommand\xxWbound{\xxfield{bound}\xspace}
+\newcommand\xxWvalid{\xxfield{valid}\xspace}
+\newcommand\xxWid{\xxfield{id}\xspace}
 
 
 \newcommand\xxsalloc[7]{\ensuremath{\langle #1, #2 \rangle\overset{\mathrm{salloc}(#3, #4, #5)}{\hookrightarrow}\langle #6, #7 \rangle}\xspace}

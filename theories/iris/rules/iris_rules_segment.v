@@ -1628,7 +1628,18 @@ Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (len: N) (s: stuckness) (E: coPset
   n = Wasm_int.N_of_uint i32m c ->
   ((* (∀ h, ▷ Φ (immV [VAL_handle h])) ∗ *) ↪[frame] f0 ∗ ↦[wslength] len ⊢
      (WP [AI_basic (BI_const (VAL_int32 c)) ;
-          AI_basic BI_segalloc] @ s; E {{ w, ((* Φ w ∗ *) ∃ h len', ⌜ w = immV [VAL_handle h] ⌝ ∗ ↦[wslength] len' ∗ (⌜ len = len' ⌝ ∗ ⌜ h = dummy_handle ⌝ ∨ ⌜ (len <= len')%N ⌝ ∗ h.(id) ↣[allocated] (base h, n) ∗ ⌜ bound h = n ⌝ ∗ ⌜ offset h = 0%Z ⌝ ∗ ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗ ↪[frame] f0 }})).
+          AI_basic BI_segalloc] @ s; E
+    {{ w, ((* Φ w ∗ *)
+            ∃ h len', ⌜ w = immV [VAL_handle h] ⌝ ∗ ↦[wslength] len' ∗
+                              (⌜ len = len' ⌝ ∗ ⌜ h = dummy_handle ⌝ ∨
+                                 ⌜ (len <= len' (* <= page_limit * page_size *) )%N ⌝ ∗
+                                   h.(id) ↣[allocated] (base h, n) ∗
+                                       ⌜ (base h <= len)%N ⌝ ∗
+                                       ⌜ bound h = n ⌝ ∗
+                                                     ⌜ offset h = 0%Z ⌝ ∗
+                                                                   ⌜ valid h = true ⌝ ∗
+                                       ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗
+            ↪[frame] f0 }})).
 Proof.
   iIntros (Hn) "(Hf0 & Hlen)".
   iApply wp_lift_atomic_step => //=.
@@ -1700,6 +1711,8 @@ Proof.
       iSimpl.
       iSplitL "Hid".
       iExact "Hid".
+      iSplit. done.
+      iSplit. done.
       iSplit. done.
       iSplit. done.
       iExact "Hwss".

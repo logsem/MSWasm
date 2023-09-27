@@ -4,7 +4,7 @@
 /_esy/
 /esy.lock/
 
-/description/.out/
+/.out/
 /Presentation/
 
 .merlin
@@ -27,6 +27,18 @@
 .nia.cache
 *.travis.yml
 *.txt
+*.aux
+*.bbl
+*.blg
+*.dvi
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.xcp
+irismswasm_old.tex
+*.cls
 
 /theories/extract.ml
 /theories/extract.mli

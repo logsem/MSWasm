@@ -745,10 +745,8 @@ Definition instantiate
     instantiate_globals inst s' m g_inits /\
     instantiate_elem inst s' m e_offs /\
       instantiate_data inst s' m d_offs /\
-      (* instantiate_segdata inst s' m sd_offs /\ *)
     check_bounds_elem inst s' m e_offs /\
       check_bounds_data inst s' m d_offs /\
-      (* check_bounds_segdata inst s' m sd_offs /\ *)
     check_start m inst start /\
     let s'' := init_tabs s' inst (map (fun o => BinInt.Z.to_nat o.(Wasm_int.Int32.intval)) e_offs) m.(mod_elem) in
     (s_end : store_record_eqType)

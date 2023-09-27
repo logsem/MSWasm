@@ -1,0 +1,136 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+\footnotesize
+
+% \vspace{1\baselineskip}
+\[
+  \begin{array}{rl}
+    \text{(value type)} ~ t &\dotdoteq \xxWithirtytwo~|~\xxWisixtyfour~|~\xxWfthirtytwo~|~\xxWfsixtyfour~\rr{|~\xxWhandle}\\
+    \text{(value)} ~\V{v} &\dotdoteq t.\xxWconst~c~\rr{|~\xxWhandle.\xxWconst~h}\\
+    \rr{\text{(byte tag)}~\V{tag}} & \rr{\dotdoteq \xxWNumeric ~|~\xxWHandle}
+  \end{array}\qquad
+  \begin{array}{rl}
+    \text{(function type)} ~ \textit{ft} &\dotdoteq \textit{ts} \to \textit{ts}\\
+    \text{(immediate)} ~ i,\textit{min},\textit{max} &\dotdoteq \textit{nat}\\
+    \rr{\text{(tagged byte)}~\V{tbyte}} & \rr{\dotdoteq \V{byte}\times\V{tag}} 
+  \end{array}
+  \]
+  \[ \rr{\text{(handles)}~h\dotdoteq~\{ \xxWbase:\xxCN,\;\; \xxWoffset:\xxCN,\;\; \xxWbound:\xxCN,\;\; \xxWvalid:\xxCbool,\;\; \xxWid:\xxCN~\}} \]
+\[
+  \begin{array}{@{}l@{}}
+    \text{(basic instructions)}~b \dotdoteq
+    \begin{array}[t]{@{}l@{}}
+      \V{v}~|~t.\KK{add}~|~\textit{other stackops}~|~
+      \KK{local.\{get/set\}}~i~|~\KK{global.\{get/set\}}~i~|~
+      t.\KK{load}~\V{flags}~|~
+      \\
+      t.\KK{store}~\V{flags}~|~\KK{memory.size}~|~ \KK{memory.grow}~|~
+      \KK{block}~\textit{ft}~\textit{bs} ~|~ \KK{loop}~\textit{ft}~\V{bs}~|~\KK{if}~\V{ft}~\V{bs}~\V{bs}~|~
+      \\
+      \KK{br}~i~|~\KK{br\_if}~i~|~\KK{br\_table}~\V{is}~|~ \xxWcall~i~|~\xxWcallindirect~i~|~\KK{return}~\rr{|~\xxWsegload~\V{t}~|~\xxWsegstore~\V{t}~|}
+      \\
+      \rr{\xxWsegalloc~|~\xxWsegfree~|~\xxWhandleadd~|~\xxWslice}
+    \end{array}
+  \end{array}
+  \]
+  \[
+  \begin{array}{@{}l@{}}
+    \text{(administrative instructions)}~e \dotdoteq
+    \begin{array}[t]{@{}l@{}}
+      \V{b}~|~\KK{trap}~|~\xxWinvoke~i~|~\xxWlabel{i}{\V{es}}{\V{es}}~|~
+      \xxWlocal{i}{F}{\V{es}}~|~\xxWcallhost~\V{tf}~\V{hidx}~\V{vs}
+    \end{array}
+  \end{array}
+\]
+\[
+%\end{array}
+%\end{align*}
+%%
+%
+%\begin{align*}
+  \begin{array}{rl}
+    \text{(functions)} ~ \V{func} &\dotdoteq \KK{func}~\V{i}~\V{ts}~\V{bs}\\
+    \text{(memories)} ~ \V{mem} &\dotdoteq \KK{mem}~\V{min}~\V{max}\\
+    \text{(elem segments)} ~ \V{elem} &\dotdoteq \KK{elem}~\V{i}~\V{bs}_\mathsf{\,off}~\V{is}
+  \end{array}
+  \begin{array}{rl}
+    \text{(tables)} ~ \V{tab} &\dotdoteq \KK{tab}~\V{min}~\V{max}\\
+    \text{(globals)} ~ \V{glob} &\dotdoteq \KK{glob}~\textsf{mutable}~\V{t}~~\V{b}_\mathsf{\,init}\\
+    \text{(data segments)} ~ \textit{data} &\dotdoteq \KK{data}~\V{i}~\V{bs}_\mathsf{\,off}~\V{bytes}
+  \end{array}
+\]
+  % \begin{array}{c}
+  %  %
+  %   \begin{array}{@{}l@{~~}r@{~~~}c@{~~~}l@{\quad}l@{~~}r@{~~~}c@{~~~}l@{}}
+  %     \text{(functions)} &\V{func} &\dotdoteq& \KK{func}~\V{i}~\V{ts}~\V{es}
+  %     &
+  %       \text{(tables)} &\V{tab} &\dotdoteq& \KK{tab}~\V{min}~\V{max}
+  %     \\[0.1cm]
+  %     \text{(memories)} &\V{mem} &\dotdoteq& \KK{mem}~\V{min}~\V{max}
+  %     &
+  %       \text{(globals)} &\V{glob} &\dotdoteq& \KK{glob}~\textsf{mutable}~\V{t}~~\V{e}_\mathsf{\,init}
+  %     \\[0.1cm]
+  %     \text{(elem segments)} &\V{elem} &\dotdoteq& \KK{elem}~\V{i}~\V{es}_\mathsf{\,off}~\V{is}
+  %     &
+  %       \text{(data segments)} &\textit{data} &\dotdoteq& \KK{data}~\V{i}~\V{es}_\mathsf{\,off}~\V{bytes}
+  %   \end{array}
+   %
+\[
+  \begin{array}{rl}
+    \text{(import descriptions)}~\V{importdesc} &\dotdoteq \KK{func_i}~i~|~\KK{tab_i}~\V{min}~\V{max}~|~\KK{mem_i}~\V{min}~\V{max}~|~\KK{glob_i}~\textsf{mutable}^{?}~t\\
+    \text{(imports)} ~ \V{import} &\dotdoteq \KK{import}~\V{string}~\V{string}~\V{importdesc}\\
+    \text{(export descriptions)} ~ \V{exportdesc} &\dotdoteq \KK{func_e}~i~|~\KK{tab_e}~i~|~ \KK{mem_e}~i~|~\KK{glob_e}~\V{i}\\
+    \text{(exports)}~\V{export} &\dotdoteq \KK{export}~\V{string}~\V{exportdesc}\\
+    \text{(start)}~\V{start} &\dotdoteq \KK{Some}~i~|~\KK{None}
+  \end{array}
+\]
+\[
+  \begin{array}{c}
+    \begin{array}{rl}
+      \text{(function instances)} ~\textit{finst} &\dotdoteq  \NCl{\V{tf}}{(\V{inst};\V{ts})}{\V{es}~}~~|~~\HCl{\V{tf}}{\V{hidx}}
+      \\
+      \text{(table instances)} ~\textit{tinst} &\dotdoteq \{ \xxfield{elem} : \textit{is}, \quad \xxfield{max} : \V{max^{?}} ~ \}
+      \\
+      \text{(memory instance)} ~\textit{minst} &\dotdoteq \{ \xxfield{data} : \V{bytes}, \;\;  \xxfield{max} : \V{max^{?}} ~ \} \
+      \\
+      \text{(global instance)} ~\textit{ginst} &\dotdoteq \{ \xxfield{mut} : \V{mutable^{?}}, \;\;  \xxfield{value} : \V{v} ~ \} \
+      \\
+      \rr{\text{(segment instance)} ~\V{sinst}} & \rr{\dotdoteq \{ \xxfield{segdata} : \V{tbytes}, \;\; \xxfield{max} : \V{max^{?}} ~ \}} \
+      \\
+      \rr{\text{(allocator instance)} ~\V{ainst}} & \rr{\dotdoteq \{ \xxfield{allocated} : \xxCN\to(\xxCN\times\xxCN)^?,\;\; \xxfield{nextFree} : \xxCN \}} \
+    \end{array}
+    \\
+    \begin{array}{rl}
+      \text{(store)} ~ S  & \dotdoteq  \{  \begin{array}[t]{@{}l@{}} \xxfield{funcs} : \V{finsts}, \;\; \xxfield{globs} : \V{ginsts}, \;\; \xxfield{mems} : \V{minsts}, \;\; \xxfield{tabs} : \V{tinsts}\rr{,} \\
+        \rr{\xxfield{seg}:\V{sinst},\;\; \xxfield{allocator}:\V{ainst}} ~ \} \end{array} \
+      \\
+      \text{(frame)} ~ F &\dotdoteq \{ \xxfield{locs} : \V{vs}, \quad \xxfield{inst} : \V{inst} ~ \}
+      \\
+      \text{(module instance)} ~ inst &\dotdoteq \{ \xxfield{types} : \V{fts}, \;\;  \xxfield{funcs} : \V{is}, \;\; \xxfield{globs} : \V{is}, \;\; \xxfield{mems} : \V{is}, \;\; \xxfield{tabs} : \V{is} ~ \}
+    \end{array}
+    \\
+    \begin{array}{l}
+    \text{(modules)}~~\V{m} \dotdoteq
+    \left\{
+    \begin{array}{l}
+      {\xxfield{types} : \V{fts},\; \xxfield{funcs} : \V{funcs}, \; \xxfield{globs} : \V{globs}, \; \xxfield{mems} : \V{mems}, \; \xxfield{tabs} : \V{tabs},}
+      \\
+      {\xxfield{data} : \V{datas}, \; \xxfield{elem} : \V{elems}, \; \xxfield{imports} : \V{imports}, \; \xxfield{exports} : \V{exports}, \; \xxfield{start} : \V{start}}
+    \end{array}
+    \right\}
+  \end{array}
+  \end{array}
+\]
+
+
+%\aina{currently missing:\\
+%  (1) administrative instructions \\
+%  (2) for the func definition: distinction between Native and Host closures, and maybe change notation to make it clear it is a closure (currently have two macros for closures -> use those (feel free to change them))
+%  (\HCl{ft}{hidx} and \NCl{ft}{(inst; t^*)}{e})
+%}
+%\maxime{I added both those things in 2.3. Should we also add them here ? I feel like it might be nicer to delay introducing them until 2.3.}
+%\jean{say we show $\V{finst}$ is showed later, and its friends are given in the other paper}
+ 
+\end{document}

@@ -13,11 +13,11 @@
   \end{array}\qquad
   \begin{array}{rl}
     \text{(function type)} ~ \textit{ft} &\dotdoteq \textit{ts} \to \textit{ts}\\
-    \text{(immediate)} ~ i,\textit{min},\textit{max} &\dotdoteq \textit{nat}\\
+    \text{(immediate)} ~ i,\textit{min},\textit{max},\V{addr},\V{off}, \V{id} &\dotdoteq \xxCN\\
     \rr{\text{(tagged byte)}~\V{tbyte}} & \rr{\dotdoteq \V{byte}\times\V{tag}} 
   \end{array}
   \]
-  \[ \rr{\text{(handles)}~h\dotdoteq~\{ \xxWbase:\xxCN,\;\; \xxWoffset:\xxCN,\;\; \xxWbound:\xxCN,\;\; \xxWvalid:\xxCbool,\;\; \xxWid:\xxCN~\}} \]
+  \[ \rr{\text{(handles)}~h\dotdoteq~\{ \xxWbase:\V{addr},\;\; \xxWoffset:\V{off},\;\; \xxWbound:\V{off},\;\; \xxWvalid:\xxCbool,\;\; \xxWid:\V{id}~\}} \]
 \[
   \begin{array}{@{}l@{}}
     \text{(basic instructions)}~b \dotdoteq
@@ -99,7 +99,7 @@
       \\
       \rr{\text{(segment instance)} ~\V{sinst}} & \rr{\dotdoteq \{ \xxfield{segdata} : \V{tbytes}, \;\; \xxfield{max} : \V{max^{?}} ~ \}} \
       \\
-      \rr{\text{(allocator instance)} ~\V{ainst}} & \rr{\dotdoteq \{ \xxfield{allocated} : \xxCN\to(\xxCN\times\xxCN)^?,\;\; \xxfield{nextFree} : \xxCN \}} \
+      \rr{\text{(allocator instance)} ~\V{ainst}} & \rr{\dotdoteq \{ \xxfield{allocated} : \V{id}\to(\V{addr}\times\V{off})^?,\;\; \xxfield{nextFree} : \V{id} \}} \
     \end{array}
     \\
     \begin{array}{rl}

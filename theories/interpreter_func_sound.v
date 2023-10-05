@@ -1519,7 +1519,7 @@ Proof.
           destruct (rev lconst) eqn:Hlconst => //.
           destruct v => //.
           destruct (_ && _ && _ && _) eqn:Hb => //.
-          * do 4 (move/andP in Hb; destruct Hb as [Hb ?]).
+          * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segload _ _ _) eqn:Hsegload => //.
             --  simpl. (* destruct (wasm_deserialise (List.map fst bs) _) eqn:Hdeserialise => //. *)
                 intro Htuple; inversion Htuple; subst.
@@ -1539,9 +1539,8 @@ Proof.
                 repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                 done.
                 eapply rm_segload_handle_success => //.
-                apply BinInt.Z.leb_le in H3 => //.
                 apply BinNat.N.leb_le in H2.
-                unfold t_length in H2.
+                unfold t_length in H2. 
                 apply plus_binnat_leq.
                 done.
                 unfold isAlloc. unfold isAllocb in H1. by destruct (find _ _).
@@ -1564,7 +1563,7 @@ Proof.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                eapply rm_segload_failure => //.
-               right. right. right. right. left. done.
+               right. right. right. left. done.
           * intro Htuple; inversion Htuple; subst. split; last done.
                exists ME_trap.
                apply rev_move in Hlconst.
@@ -1584,14 +1583,11 @@ Proof.
                apply Bool.andb_false_iff in Hb as [Hb | Hb].
                apply Bool.andb_false_iff in Hb as [Hb | Hb].
                apply Bool.andb_false_iff in Hb as [Hb | Hb].
-               apply Bool.andb_false_iff in Hb as [Hb | Hb].
                by left. right; left.
-               apply BinInt.Z.leb_gt in Hb. lias. 
-               right;right;left.
                apply BinNat.N.leb_gt in Hb. apply plus_binnat_lt in Hb.
                done.
                unfold t_length. unfold t_length in Hb. 
-               right; right; right; left. unfold isFree.
+               right; right; left. unfold isFree.
                unfold isAllocb in Hb. by destruct (find _ _).
                repeat right. split => //.
                intro Habs; rewrite Habs in Hb.
@@ -1600,7 +1596,7 @@ Proof.
           destruct v0; try by destruct v => //.
 
           destruct (_ && _ && _) eqn:Hb; try by destruct v.
-          * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
+          * do 2 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segload _ _ _) eqn:Hsegload; try by destruct v=> //.
             -- intro Htuple. split; last by destruct v; inversion Htuple; subst.
                exists (ME_read v h).
@@ -1625,7 +1621,6 @@ Proof.
                replace (VAL_int32 (Wasm_int.Int32.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i32); last done.
                
                eapply rm_segload_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1641,7 +1636,6 @@ Proof.
                replace (VAL_int64 (Wasm_int.Int64.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i64); last done.
                
                eapply rm_segload_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1657,7 +1651,6 @@ Proof.
                replace (VAL_float32 (Floats.Float32.of_bits (Integers.Int.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f32); last done.
                
                eapply rm_segload_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1673,7 +1666,6 @@ Proof.
                replace (VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f64); last done.
                
                eapply rm_segload_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -1696,7 +1688,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                   right; right; right; right; left; done].
+                                                   right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -1705,7 +1697,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                   right; right; right; right; left; done].
+                                                   right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -1714,7 +1706,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                   right; right; right; right; left; done].
+                                                   right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -1723,7 +1715,7 @@ Proof.
                rewrite v_to_e_is_const_list;
                repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                done| eapply rm_segload_failure => //;
-                                                   right; right; right; right; left; done].
+                                                   right; right; right; left; done].
                done.
               
               
@@ -1747,10 +1739,9 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias. 
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -1763,10 +1754,9 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias. 
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -1779,10 +1769,9 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias. 
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -1795,10 +1784,9 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias. 
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
           
@@ -1861,7 +1849,7 @@ Proof.
           destruct v0 => //.
           
           destruct (_ && _ && _ && _) eqn:Hb => //.
-          * do 4 (move/andP in Hb; destruct Hb as [Hb ?]).
+          * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segstore _ _ _ _) eqn:Hsegload => //.
             -- intro Htuple; inversion Htuple; subst.
                split. eexists (ME_write T_handle h _).
@@ -1881,7 +1869,6 @@ Proof.
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
                eapply rm_segstore_handle_success => //.
-               apply BinInt.Z.leb_le in H3 => //.
                apply BinNat.N.leb_le in H2.
                unfold t_length in H2.
                apply plus_binnat_leq.
@@ -1897,7 +1884,7 @@ Proof.
                eexists n, a, _, a0. repeat split => //. *)
                assert (forall a b, s_segs (upd_s_seg a b) = b).
                intros a1 b; by destruct a1.
-               unfold wellFormedState. rewrite H4.
+               unfold wellFormedState. rewrite H3.
 (*               unfold isSound, isSound_aux. *)
                unfold wellFormedState in HWF.
                eapply segstore_sound.
@@ -1921,7 +1908,7 @@ Proof.
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
                eapply rm_segstore_failure => //.
-               right. right. right. right. left. done.
+               right. right. right. left. done.
           * intro Htuple; inversion Htuple; subst. split; last done.
             exists ME_trap.
             apply rev_move in Hlconst.
@@ -1943,15 +1930,11 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left.
-            apply BinInt.Z.leb_gt in Hb. 
-            lias.
-            right;right;left.
             apply BinNat.N.leb_gt in Hb. apply plus_binnat_lt in Hb.
             done.
             unfold t_length. unfold t_length in Hb. 
-            right; right; right; left. unfold isFree.
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
             repeat right. split => //.
             intro Habs; rewrite Habs in Hb.
@@ -1963,8 +1946,8 @@ Proof.
           destruct (sall_ind _ _) eqn:Hall; try by destruct v => //.
           destruct (List.nth_error _ n) eqn:Hsegn; try by destruct v => //.
           destruct (List.nth_error _ a) eqn:Halla; try by destruct v => //. *)
-          destruct (_ && _ && _ && _) eqn:Hb; try by destruct v.
-          * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
+          destruct (_ && _ && _) eqn:Hb; try by destruct v.
+          * do 2 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segstore _ _ _) eqn:Hsegload; try by destruct v=> //.
             -- intro Htuple.
                split. eexists (ME_write v h _).
@@ -1988,7 +1971,6 @@ Proof.
 (*               replace (VAL_int32 (Wasm_int.Int32.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i32); last done. *)
                
                eapply rm_segstore_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -2005,7 +1987,6 @@ Proof.
 (*               replace (VAL_int64 (Wasm_int.Int64.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i64); last done. *)
                
                eapply rm_segstore_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -2022,7 +2003,6 @@ Proof.
                (*replace (VAL_float32 (Floats.Float32.of_bits (Integers.Int.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f32); last done. *)
                
                eapply rm_segstore_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -2038,7 +2018,6 @@ Proof.
 (*               replace (VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f64); last done. *)
                
                eapply rm_segstore_success => //.
-               apply BinInt.Z.leb_le in H2 => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -2073,7 +2052,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                    right; right; right; right; left; done].
+                                                    right; right; right; left; done].
                 eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -2084,7 +2063,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                    right; right; right; right; left; done].
+                                                    right; right; right; left; done].
                  eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -2095,7 +2074,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                    right; right; right; right; left; done].
+                                                    right; right; right; left; done].
                   eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
                  [  
                unfold lfilled, lfill;
@@ -2106,7 +2085,7 @@ Proof.
                                               repeat rewrite - catA; rewrite (catA (v_to_e_list [:: _]) [:: _] les');
                                               rewrite (catA (v_to_e_list [:: _]) (_ ++ _));
                done| eapply rm_segstore_failure => //;
-                                                    right; right; right; right; left; done].
+                                                    right; right; right; left; done].
                   by inversion Hv.
                      
           * intro Htuple. split; last by destruct v; inversion Htuple; subst.
@@ -2131,10 +2110,9 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias.
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -2148,10 +2126,9 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias.
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -2166,10 +2143,9 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias.
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -2184,10 +2160,9 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. apply BinInt.Z.leb_gt in Hb. lias.
-            right;right;left. apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; right; left. unfold isFree.
+            by left. right; left. 
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            right; right; left. unfold isFree.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
       - (** [AI_basic BI_slice] **)
@@ -2299,8 +2274,22 @@ Proof.
         rewrite rev_cons_app.
           rewrite - v_to_e_cat.
           repeat rewrite - catA.
-        instantiate (1 := [:: _ ;_;_]) => //=.
-        eapply rm_silent, r_simple, rs_handleadd => //=.
+          instantiate (1 := [:: _ ;_;_]) => //=.
+          
+          eapply rm_silent, r_simple, rs_handleadd_success => //=.
+            split; last by subst.
+        exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list.
+        instantiate (2 := [::_]) => //=.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list => //=.
+        rewrite rev_cons_app.
+          rewrite - v_to_e_cat.
+          repeat rewrite - catA.
+          instantiate (1 := [:: _ ;_;_]) => //=.
+          
+        eapply rm_silent, r_simple, rs_handleadd_failure => //=.
 
       - (** [AI_basic BI_segfree] **)
         simpl; explode_and_simplify; pattern_match; auto_frame.
@@ -2323,14 +2312,24 @@ Proof.
         apply: rm_segfree_success; eauto.
         apply Bool.andb_true_iff in if_expr0 as [??] => //=.
         apply Bool.andb_true_iff in if_expr0 as [??] => //=.
-        apply (BinInt.Z.eqb_eq) in H3 => //.
+        apply (BinNat.N.eqb_eq) in H3 => //.
         destruct s => /=.
         unfold upd_s_seg, upd_s_all => /=.
         eapply sfree_sound; last exact Hfree.
         exact HWF.
         
-        
-        
+      - (** [AI_basic BI_getoffset] **)
+        simpl; explode_and_simplify; pattern_match; auto_frame.
+        split; last by subst.
+        exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list.
+        instantiate (2 := [::_]) => //=.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list => //=.
+        instantiate (1 := [:: _ ;_]) => //=.
+        specialize (rs_getoffset h) as Hget.
+        eapply rm_silent, r_simple => //. 
           
       - (** [AI_basic Current_memory] **)
         simpl. explode_and_simplify. pattern_match. auto_frame.

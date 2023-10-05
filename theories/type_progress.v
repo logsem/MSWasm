@@ -791,8 +791,7 @@ Proof.
     destruct (List.nth_error (s_segs s) n) eqn:HN => //=.
     destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=. *)
     destruct h.(valid) eqn:Hvalid.
-    destruct (0 <=? h.(offset))%Z eqn:Hlo; [apply Z.leb_le in Hlo| apply Z.leb_gt in Hlo].
-    destruct (nat_of_bin (Z.to_N h.(offset)) + t_length t <=? nat_of_bin h.(bound)) eqn:Hhi;
+    destruct (nat_of_bin (h.(offset)) + t_length t <=? nat_of_bin h.(bound)) eqn:Hhi;
       [ apply Nat.leb_le in Hhi | apply Nat.leb_gt in Hhi].
     destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
     destruct (is_handle_t t) eqn:Ht.
@@ -804,8 +803,8 @@ Proof.
     eapply rm_segload_handle_success; eauto; try lias.
     unfold isAlloc; by rewrite Halloc.
     all:try by repeat eexists _; eapply rm_segload_failure; eauto; try lias.
-    repeat eexists _; eapply rm_segload_failure; eauto; try lias.
-    rewrite HLoadResult. repeat ((try by left); right).
+(*    repeat eexists _; eapply rm_segload_failure; eauto; try lias.
+    rewrite HLoadResult. repeat ((try by left); right). *)
     repeat eexists _; eapply rm_segload_failure; eauto; try lias.
     repeat right. split => //. intro Hii; rewrite Hii in Hallign; done.
     destruct (segload (s_segs s) h (t_length t)) eqn:HLoadResult.
@@ -813,9 +812,9 @@ Proof.
     eapply rm_segload_success; eauto; try lias.
     destruct t => //=. unfold isAlloc; by rewrite Halloc.
     repeat eexists _; eapply rm_segload_failure; eauto; try lias.
-    rewrite HLoadResult. repeat ((try by left); right).
+(*    rewrite HLoadResult. repeat ((try by left); right). *)
     repeat eexists _; eapply rm_segload_failure; eauto; try lias.
-    right; right; left. lias.
+    right; left. lias.
     
   - (* Store *)
     right. subst.
@@ -855,8 +854,8 @@ Proof.
     destruct (List.nth_error (s_segs s) n) eqn:HN => //=.
     destruct (List.nth_error (s_alls s) n0) eqn:HN0 => //=. *)
     destruct h.(valid) eqn:Hvalid.
-    destruct (0 <=? h.(offset))%Z eqn:Hlo; [apply Z.leb_le in Hlo| apply Z.leb_gt in Hlo].
-    destruct (nat_of_bin (Z.to_N h.(offset)) + t_length (typeof v0) <=? nat_of_bin h.(bound)) eqn:Hhi;
+(*    destruct (0 <=? h.(offset))%Z eqn:Hlo; [apply Z.leb_le in Hlo| apply Z.leb_gt in Hlo]. *)
+    destruct (nat_of_bin (h.(offset)) + t_length (typeof v0) <=? nat_of_bin h.(bound)) eqn:Hhi;
       [ apply Nat.leb_le in Hhi | apply Nat.leb_gt in Hhi].
     destruct (find h.(id) (s_alls s).(allocated)) eqn:Halloc.
     destruct (segstore (s_segs s) h (List.map (fun x => (x, match typeof v0 with T_handle => Handle | _ => Numeric end)) (bits v0)) (t_length (typeof v0))) eqn:HStoreResult.
@@ -874,12 +873,12 @@ Proof.
      destruct v0 => //=; repeat eexists; 
     eapply rm_segstore_success; eauto; try lias.
      all: try by unfold isAlloc; rewrite Halloc.
-    repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
-    rewrite HStoreResult. repeat ((try by left); right).
+(*    repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
+    rewrite HStoreResult. repeat ((try by left); right). *)
     
     repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
     
-    right; right; left. lias.
+    right; left. lias.
  - (* Slice *)
    right. subst.
    invert_typeof_vcs. destruct v, v0, v1 => //=. 
@@ -908,8 +907,18 @@ Proof.
  - (* Handleadd *)
    right. subst.
    invert_typeof_vcs. destruct v, v0 => //.
+   destruct (handle_add h (Wasm_int.Z_of_sint i32m s0)) eqn:Hha.
    repeat eexists.
-   eapply rm_silent, r_simple, rs_handleadd; eauto.
+   eapply rm_silent, r_simple, rs_handleadd_success; eauto.
+   repeat eexists.
+   eapply rm_silent, r_simple, rs_handleadd_failure; eauto.
+
+ - (* Getoffset *)
+   right; subst.
+   invert_typeof_vcs. destruct v => //.
+   repeat eexists.
+   eapply rm_silent, r_simple, rs_getoffset; eauto.
+
 
  - (* Segfree *)
    right. subst.
@@ -925,7 +934,7 @@ Proof.
    destruct (add =? base h)%N eqn:Hadd.
    move/eqP in Hadd. subst.
    destruct (h.(valid)) eqn:Hvalid.
-   destruct (h.(offset) == 0)%Z eqn:Hoff.
+   destruct (h.(offset) == 0)%N eqn:Hoff.
    repeat eexists. eapply rm_segfree_success; eauto.
    eapply Free => //. exact Halloc. by apply b2p in Hoff.
    repeat eexists. eapply rm_segfree_failure; eauto.

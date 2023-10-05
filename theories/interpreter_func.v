@@ -347,7 +347,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      if h.(valid) && (N.leb (offset h + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segload s.(s_segs) h (t_length T_handle))
                              (fun bs =>
@@ -372,7 +372,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
                              (fun seg' =>
@@ -398,7 +398,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
+                      if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
                              (segload s.(s_segs) h (t_length t))
                              (fun bs => (s, f, RS_normal (vs_to_es (wasm_deserialise (List.map fst bs) t :: ves'))))
@@ -420,7 +420,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
-                      if h.(valid) && (Z.leb 0 h.(offset)) && (N.leb (Z.to_N h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
+                      if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Numeric)) (bits v)) (t_length t))
                              (fun seg' =>
@@ -441,9 +441,15 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         else ((s, f, RS_normal ((vs_to_es ves') ++ [::AI_trap])))
       else (s, f, crash_error)
     | AI_basic BI_handleadd =>
-      if ves is VAL_handle h :: VAL_int32 c :: ves' then
-        ((s, f, RS_normal (vs_to_es (VAL_handle (handle_add h (Wasm_int.Z_of_sint i32m c)) :: ves'))))
-      else (s, f, crash_error)
+        if ves is VAL_handle h :: VAL_int32 c :: ves' then
+          expect (handle_add h (Wasm_int.Z_of_sint i32m c))
+            ( fun v => ((s, f, RS_normal (vs_to_es (VAL_handle v :: ves')))))
+            ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+        else (s, f, crash_error)
+    | AI_basic BI_getoffset =>
+        if ves is VAL_handle h :: ves' then
+          (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h))) :: ves')))
+        else (s, f, crash_error)
                
     | AI_basic (BI_load t (Some (tp, sx)) a off) =>
       if ves is VAL_int32 k :: ves' then
@@ -548,7 +554,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                (fun j' =>
                   if List.nth_error s.(s_segs) j is Some s_seg_s_j then
                     if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
-                      if h.(valid) && (Z.eqb h.(offset) Z.zero) then
+                      if h.(valid) && (N.eqb h.(offset) N.zero) then
                         expect
                           (find_and_remove h.(id) s.(s_alls).(allocated))
                           (fun '(l, a, n) =>

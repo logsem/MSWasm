@@ -237,6 +237,8 @@ in
       type_update ts [::CTA_some T_handle; CTA_some T_i32; CTA_some T_i32] (CT_type [::T_handle])
   | BI_handleadd =>
       type_update ts [::CTA_some T_i32; CTA_some T_handle] (CT_type [::T_handle])
+  | BI_getoffset =>
+      type_update ts [::CTA_some T_handle] (CT_type [::T_i32])
   | BI_testop t _ =>
     if is_int_t t
     then type_update ts [::CTA_some t] (CT_type [::T_i32])

@@ -533,6 +533,12 @@ Definition app_relop_f (e : Wasm_float.type) (rop : relop_f)
   | ROF_ge => Wasm_float.float_ge mx
   end.
 
+Definition app_relop_h rop h1 h2 :=
+  match rop with
+  | ROH_eq => handle_eqb h1 h2
+  | ROH_ne => negb (handle_eqb h1 h2)
+  end.
+
 Definition app_relop (op: relop) (v1: value) (v2: value) :=
   match op with
   | Relop_i iop =>
@@ -563,6 +569,15 @@ Definition app_relop (op: relop) (v1: value) (v2: value) :=
       end                              
     | _ => false
     end
+  | Relop_h fop =>
+      match v1 with
+      | VAL_handle h1 =>
+          match v2 with
+          | VAL_handle h2 => app_relop_h fop h1 h2
+          | _ => false
+          end
+      | _ => false
+      end
   end.
 
 Definition types_agree (t : value_type) (v : value) : bool :=

@@ -130,6 +130,25 @@ Proof.
            split => //=.
 Qed.
 
+Lemma Getoffset_typing: forall C t1s t2s,
+    be_typing C [::BI_getoffset] (Tf t1s t2s) ->
+    exists ts, t1s = ts ++ [::T_handle] /\ t2s = ts ++ [::T_i32].
+Proof.
+  move => C t1s t2s HType.
+  gen_ind_subst HType => //=.
+  - by exists [::].
+         - destruct es; last first.
+           destruct es ; by inversion Econs.
+           inversion Econs ; subst.
+           apply empty_typing in HType1; subst.
+           by eapply IHHType2.
+         - edestruct IHHType => //=; subst.
+           destruct H as [-> ->].
+           exists (ts ++ x).
+           repeat rewrite - catA.
+           split => //=.
+Qed.
+
 
 Lemma Slice_typing: forall C t1s t2s,
     be_typing C [::BI_slice] (Tf t1s t2s) -> 
@@ -381,6 +400,11 @@ Ltac invert_be_typing:=
         let H1 := fresh "H1" in
         let H2 := fresh "H2" in
         apply Handleadd_typing in H; destruct H as [ts [H1 H2]]; subst
+    | H: be_typing _ [::BI_getoffset] _ |- _ =>
+        let ts := fresh "ts" in
+        let H1 := fresh "H1" in
+        let H2 := fresh "H2" in
+        apply Getoffset_typing in H; destruct H as [ts [H1 H2]]; subst 
     | H: be_typing  _ [::BI_slice] _ |- _ =>
         let ts := fresh "ts" in
         let H1 := fresh "H1" in
@@ -805,6 +829,26 @@ Proof.
     by eapply IHHType => //=.
 Qed.
 
+Lemma t_Getoffset_preserve: forall C h be tf,
+    be_typing C ([:: BI_const (VAL_handle h); BI_getoffset]) tf ->
+    reduce_simple (to_e_list [::BI_const (VAL_handle h); BI_getoffset]) [:: AI_basic be] ->
+    be_typing C [::be] tf.
+Proof.
+  move => C h be tf HType HReduce.
+  destruct tf as [ts1 ts2].
+  inversion HReduce; b_to_a_revert; subst.
+  dependent induction HType.
+  - invert_be_typing.
+(*    simpl in H1. 
+    apply concat_cancel_last_n in H1 => //.
+    apply andb_prop in H1 as [??].
+    apply b2p in H as ->. *)
+    apply bet_weakening_empty_1. by apply bet_const.
+  - (* Weakening *)
+    apply bet_weakening.
+    by eapply IHHType => //=.
+Qed.
+
 
 
 (*
@@ -890,6 +934,10 @@ Proof.
     + by econstructor.
   - (* slice *)
     eapply t_Slice_preserve => //=.
+    + by apply HType.
+    + by econstructor.
+  - (* getoffset *)
+    eapply t_Getoffset_preserve => //=.
     + by apply HType.
     + by econstructor.
 Qed.
@@ -3881,10 +3929,10 @@ Proof.
     convert_et_to_bet.
     replace [::BI_const (VAL_handle h); BI_segload T_handle] with ([::BI_const (VAL_handle h)] ++ [::BI_segload T_handle]) in HType => //=.
     apply composition_typing in HType.
-    destruct HType as [ts' [t1s' [t2s' [t3s' [H12 [H15 [H16 H10]]]]]]].
+    destruct HType as [ts' [t1s' [t2s' [t3s' [H12 [H15 [H16 H11]]]]]]].
     invert_be_typing.
-    apply Segload_typing in H10.
-    destruct H10 as [ts  [H14 H130]].
+    apply Segload_typing in H11.
+    destruct H11 as [ts  [H14 H130]].
     apply concat_cancel_last in H14. destruct H14. subst.
     eapply t_const_ignores_context => //=.
     instantiate (2 := s).

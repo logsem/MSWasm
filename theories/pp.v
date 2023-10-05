@@ -127,7 +127,7 @@ Definition pp_f64 (f : float) : string :=
 
 
 Definition pp_handle (h : handle) : string :=
-  "base = " ++ of_N h.(base) ++ ", offset = " ++ of_Z h.(offset) ++ ", bound = " ++ of_N h.(bound) ++ ", valid = " ++ (if h.(valid) then "true" else "false") ++ ", id = " ++ of_N h.(id).
+  "base = " ++ of_N h.(base) ++ ", offset = " ++ of_N h.(offset) ++ ", bound = " ++ of_N h.(bound) ++ ", valid = " ++ (if h.(valid) then "true" else "false") ++ ", id = " ++ of_N h.(id).
 
 
 Definition pp_value (v : value) : string :=
@@ -317,6 +317,8 @@ Fixpoint pp_basic_instruction (i : indentation) (be : basic_instruction) : strin
       indent i ("handle.slice" ++ newline)
   | BI_handleadd =>
       indent i ("handle.add" ++ newline)
+  | BI_getoffset =>
+      indent i ("handle.getoffset" ++ newline)
   | BI_testop vt Eqz =>
     indent i (pp_value_type vt ++ ".eqz" ++ newline)
   | BI_relop vt (Relop_i roi) =>

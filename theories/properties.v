@@ -2132,10 +2132,10 @@ Proof.
   { unfold wellFormedState.
     destruct s => //=.
     eapply same_length_is_Sound; last exact HWF.
-    apply segstore_same_length in H7.
+    apply segstore_same_length in H6.
     by subst. }
   { eapply same_length_is_Sound; last exact HWF.
-    apply segstore_same_length in H8.
+    apply segstore_same_length in H7.
     by subst. } 
   { eapply salloc_sound.
     exact HWF. subst. exact H2. }

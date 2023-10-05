@@ -336,6 +336,9 @@ Definition parse_segalloc {n} : byte_parser basic_instruction n :=
 Definition parse_handleadd {n} : byte_parser basic_instruction n :=
   exact_byte xce &> (exact_byte x00 $> BI_handleadd).
 
+Definition parse_getoffset {n} : byte_parser basic_instruction n :=
+  exact_byte xd2 &> (exact_byte x00 $> BI_getoffset).
+
 Definition parse_segfree {n} : byte_parser basic_instruction n :=
   exact_byte xcf &> (exact_byte x00 $> BI_segfree).
 
@@ -387,6 +390,7 @@ Definition parse_handle_instruction {n} : byte_parser basic_instruction n :=
   parse_slice <|>
     parse_segalloc <|>
     parse_handleadd <|>
+    parse_getoffset <|>
     parse_segfree.
 
 Definition parse_i32_const {n} : be_parser n :=

@@ -1891,7 +1891,12 @@ Proof with auto_rewrite_cond.
       apply consume_type_agree in Hct2. 
       exists (tm ++ [::T_handle]); split => //.
       apply bet_weakening_empty_2. apply bet_segfree => //.
-      (* by destruct C.(tc_segment). by destruct C.(tc_allocator). *)
+    (* by destruct C.(tc_segment). by destruct C.(tc_allocator). *)
+    + replace [::CTA_some T_handle] with (to_ct_list [::T_handle]) in Hct2 => //.
+      apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
+      exists (tn' ++ [::T_handle]); split => //.
+      apply bet_weakening.
+      apply bet_getoffset => //.
     + assert (c_types_agree (type_update cts (to_ct_list [::]) (CT_type [::T_i32])) tm) as Hct3.
       * simplify_type_update.
         by unfold produce => //=.

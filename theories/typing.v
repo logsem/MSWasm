@@ -162,6 +162,8 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
     be_typing C [::BI_segalloc] (Tf [::T_i32] [::T_handle])
 | bet_handleadd : forall C,
     be_typing C [::BI_handleadd] (Tf [::T_i32 ; T_handle] [::T_handle])
+| bet_getoffset : forall C,
+    be_typing C [::BI_getoffset] (Tf [::T_handle] [::T_i32])
 | bet_segfree : forall C,
 (*    tc_segment C <> nil ->
     tc_allocator C <> nil -> *)

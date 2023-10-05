@@ -135,6 +135,7 @@ Fixpoint binary_of_be (be : basic_instruction) : list byte :=
   | BI_slice => xcc :: x00 :: nil
   | BI_segalloc => xcd :: x00 :: nil
   | BI_handleadd => xce :: x00 :: nil
+  | BI_getoffset => xd2 :: x00 :: nil
   | BI_segfree => xcf :: x00 :: nil 
   | BI_current_memory => x3f :: x00 :: nil
   | BI_grow_memory => x40 :: x00 :: nil

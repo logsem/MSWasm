@@ -5,7 +5,7 @@ From mathcomp Require Import ssrbool ssrnat.
 
 Record handle : Type := {
     base : N;
-    offset : Z;
+    offset : N;
     bound : N;
     valid : bool;
     id : N;
@@ -14,7 +14,7 @@ Record handle : Type := {
 
 Definition dummy_handle :=
   {| base := N.zero ;
-    offset := Z.zero ;
+    offset := N.zero ;
     bound := N.zero ;
     valid := false ;
     id := N.zero |}.
@@ -36,18 +36,39 @@ Definition slice_handle h n1 n2 :=
   else None.
 
 Definition handle_add h (n: Z) :=
-  {| base := h.(base) ;
-    offset := h.(offset) + n ;
-    bound := h.(bound) ;
-    valid := h.(valid) ;
-    id := h.(id) |}.
+  if (Z.of_N (offset h) + n >=? 0)%Z then
+    Some {| base := h.(base) ;
+           offset := Z.to_N (Z.of_N (offset h) + n)%Z ;
+           bound := h.(bound) ;
+           valid := h.(valid) ;
+           id := h.(id) |}
+  else None.
 
 
 Definition new_handle a n id :=
-  {| base := a ; offset := 0%Z ; bound := n ; valid := true ; id := id |}.
+  {| base := a ; offset := 0 ; bound := n ; valid := true ; id := id |}.
 
-Definition handle_addr h :=
-  Z.to_N (Z.of_N (base h) + offset h)%Z.
+Definition handle_addr h : N :=
+  N.add (base h) (offset h).
+
+Definition handle_eqb h1 h2 :=
+  N.eqb (base h1) (base h2) && N.eqb (offset h1) (offset h2) &&
+    N.eqb (bound h1) (bound h2) && Bool.eqb (valid h1) (valid h2) &&
+    N.eqb (id h1) (id h2).
+
+Lemma handle_eqb_eq h1 h2 : handle_eqb h1 h2 = true <-> h1 = h2.
+Proof.
+  split.
+  - intro Heq.
+    repeat apply Bool.andb_true_iff in Heq as [Heq ?].
+    destruct h1, h2; simpl in *.
+    apply N.eqb_eq in Heq as ->. apply N.eqb_eq in H2 as ->.
+    apply N.eqb_eq in H1 as ->. apply N.eqb_eq in H as ->.
+    destruct valid0, valid1; try inversion H0. trivial. trivial.
+  - intros ->. unfold handle_eqb. repeat rewrite N.eqb_refl.
+    destruct (valid h2); simpl; trivial.
+Qed.
+
 
 Class HandleBytes : Type := {
     handle_size : N;

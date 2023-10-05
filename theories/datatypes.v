@@ -307,10 +307,16 @@ Inductive relop_f : Type :=
   | ROF_le
   | ROF_ge
   .
+
+  Inductive relop_h : Type :=
+  | ROH_eq
+  | ROH_neq
+  .
   
 Inductive relop : Type :=
   | Relop_i : relop_i -> relop
-  | Relop_f : relop_f -> relop
+| Relop_f : relop_f -> relop
+| Relop_h : relop_h -> relop 
   .
 
 Inductive cvtop : Type :=
@@ -345,6 +351,7 @@ Inductive basic_instruction : Type := (* be *)
 | BI_segalloc : basic_instruction
 | BI_handleadd : basic_instruction
 | BI_segfree : basic_instruction
+| BI_getoffset : basic_instruction
   | BI_current_memory
   | BI_grow_memory
   | BI_const : value -> basic_instruction

@@ -147,13 +147,19 @@ Section split_reduce_properties.
           by apply rm_silent, r_simple , rs_tee_local.
       - apply Logic.eq_sym, app_eq_nil in H7 as [-> ->].
         left; subst. eexists [_]; repeat split; try by rewrite app_nil_r. 
-        rewrite Heqf0. by eapply rm_silent, r_simple, rs_handleadd.
+        rewrite Heqf0. by eapply rm_silent, r_simple, rs_handleadd_success.
+      - apply Logic.eq_sym, app_eq_nil in H7 as [-> ->].
+        left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
+        rewrite Heqf0. by eapply rm_silent, r_simple, rs_handleadd_failure.
       - symmetry in H9; apply app_eq_nil in H9 as [-> ->].
         left; eexists [_]; repeat split; try by rewrite app_nil_r.
         subst; rewrite Heqf0; by eapply rm_silent, r_simple, rs_slice_success.
       - symmetry in H9; apply app_eq_nil in H9 as [-> ->].
         left; eexists [_]; repeat split; try by rewrite app_nil_r.
         subst; rewrite Heqf0; by eapply rm_silent, r_simple, rs_slice_failure.
+      - symmetry in H4; apply app_eq_nil in H4 as [-> ->].
+        left; eexists [_]; repeat split; try by rewrite app_nil_r.
+        subst; rewrite Heqf0; by apply rm_silent, r_simple, rs_getoffset.
       - right. exists 0, (length (a :: es1 ++ es2)). rewrite take_0. rewrite drop_all.
         rewrite Heqf in Heqf0 ; inversion Heqf0. 
         destruct (first_non_value _ Hes1) as (vs1 & e1 & es'1 & Hvs1 & He1 & Hes'1).
@@ -253,11 +259,11 @@ Section split_reduce_properties.
       left ; exists [AI_basic (BI_const (VAL_int32 int32_minus_one))].
       repeat split => //=. rewrite <- Heqf0. rewrite <- Heqf.
       by apply rm_silent, (r_grow_memory_failure (n := n) _ H H1).
-    - symmetry in H11; apply app_eq_nil in H11 as [-> ->].
+    - symmetry in H10; apply app_eq_nil in H10 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segload_success => //=.
-    - symmetry in H15; apply app_eq_nil in H15 as [-> ->].
+    - symmetry in H14; apply app_eq_nil in H14 as [-> ->].
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segload_handle_success => //=.
@@ -265,11 +271,11 @@ Section split_reduce_properties.
       left; subst. eexists [_]; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segload_failure => //=.
-    - symmetry in H12; apply app_eq_nil in H12 as [-> ->].
+    - symmetry in H11; apply app_eq_nil in H11 as [-> ->].
       left; subst. eexists []; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segstore_success => //=.
-    - symmetry in H13; apply app_eq_nil in H13 as [-> ->].
+    - symmetry in H12; apply app_eq_nil in H12 as [-> ->].
       left; subst. eexists []; repeat split; try by rewrite app_nil_r.
       inversion Heqf0; subst.
       by eapply rm_segstore_handle_success => //=.
@@ -598,7 +604,7 @@ Section split_reduce_properties.
        destruct Hredsimpl as [ | | | | | | | | | | | | | |
                                vs es' n m t1s t2s Hconst Hlenvs Ht1s Ht2s |
                                vs es' n m t1s t2s Hconst Hlenvs Ht1s Ht2s |
-                             | | | | | | | | | | | | | | | | ] ;
+                             | | | | | | | | | | | | | | | | | | ] ;
          inversion Heqves as [[ Hhd Htl ]] ;
          (try by exfalso ; no_reduce Htl Hred0).
        { destruct es. { rewrite app_nil_r in Heqves ;

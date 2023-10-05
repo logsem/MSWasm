@@ -329,7 +329,8 @@ Section determ.
         apply Logic.eq_sym in Hes ; exfalso ; no_reduce Hes Hred2.
         apply app_eq_nil in Hes as [-> _]. empty_list_no_reduce.
         rewrite Hxl1 in H ; inversion H.
-      - only_one [AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_const (VAL_handle h)); AI_basic BI_handleadd] Hred2. by subst.
+      - only_one [AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_const (VAL_handle h)); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
+      - only_one [AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_const (VAL_handle h)); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
       - only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const (VAL_int32 c1));
                   AI_basic (BI_const (VAL_int32 c2)); AI_basic BI_slice] Hred2.
         subst. rewrite H4 in H1. inversion H1; subst; done.
@@ -337,6 +338,8 @@ Section determ.
       - only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const (VAL_int32 c1));
                   AI_basic (BI_const (VAL_int32 c2)); AI_basic BI_slice] Hred2;
           subst; rewrite H4 in H1; inversion H1; subst; done.
+      - only_one [AI_basic (BI_const (VAL_handle h)); AI_basic BI_getoffset] Hred2.
+        done.
       - (* rs_trap case. [ only_one ] cannot be applied because the left-hand-side of Hred2
          is not an explicit list. We perform the case analysis by hand.
          We make extensive use of the [ filled_trap ] tactic, which concludes false
@@ -588,77 +591,71 @@ Section determ.
       constructor => //=. by rewrite app_nil_r.
       by apply reduce_grow_memory in Hred2 as ->.
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
-      inversion Heqes; subst. rewrite H6 in H15. inversion H15; subst. done.
-      inversion Heqes; subst. rewrite H6 in H16 => //.
+      inversion Heqes; subst. rewrite H5 in H13. inversion H13; subst. done.
+      inversion Heqes; subst. rewrite H5 in H14 => //.
       inversion Heqes; subst. 
-      rewrite H2 in H10; destruct H10; [done|].
-      destruct H0; first lias.
-      destruct H0. apply (ssrnat.leq_trans H0) in H4. rewrite ssrnat.ltnn in H4. done.
-      destruct H0. unfold isFree in H0. unfold isAlloc in H5.
-      destruct (find _ _) => //. rewrite H6 in H0.  destruct H0 => //.
+      rewrite H2 in H9; destruct H9; [done|].
+      destruct H0. apply (ssrnat.leq_trans H0) in H3. rewrite ssrnat.ltnn in H3. done.
+      destruct H0. unfold isFree in H0. unfold isAlloc in H4.
+      destruct (find _ _) => //. rewrite H5 in H0.  destruct H0 => //.
       destruct H0 as [-> _] => //. 
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
       inversion Heqes; subst. done.
-      inversion Heqes; subst. rewrite H7 in H20. inversion H20; subst. 
-      rewrite H11 in H24. inversion H24; subst. done. 
-      inversion Heqes; subst. rewrite H7 in H14; destruct H14; subst.
-      by rewrite H in H2. destruct H. lias. destruct H.
-      apply (ssrnat.leq_trans H) in H4. 
-      rewrite ssrnat.ltnn in H4. done.
-      destruct H. unfold isFree in H. unfold isAlloc in H5.
+      inversion Heqes; subst. rewrite H6 in H18. inversion H18; subst. 
+      rewrite H10 in H22. inversion H22; subst. done. 
+      inversion Heqes; subst. rewrite H6 in H13; destruct H13; subst.
+      by rewrite H in H2. destruct H.
+      apply (ssrnat.leq_trans H) in H3. 
+      rewrite ssrnat.ltnn in H3. done.
+      destruct H. unfold isFree in H. unfold isAlloc in H4.
       destruct (find _ _) => //. destruct H => //.
       destruct H as [_ H] => //.
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
       inversion Heqes; subst. 
       destruct H1. by rewrite H in H5.
-      destruct H; first lias.
       destruct H.
-      apply (ssrnat.leq_trans H) in H7. by rewrite ssrnat.ltnn in H7.
-      destruct H => //. unfold isFree in H. unfold isAlloc in H8.
-      by destruct (find _ _). destruct H => //. by rewrite H in H9.
+      apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
+      destruct H => //. unfold isFree in H. unfold isAlloc in H7.
+      by destruct (find _ _). destruct H => //. by rewrite H in H8.
       by destruct H as [-> _].
        inversion Heqes; subst. 
       destruct H1. by rewrite H in H5.
-      destruct H; first lias.
       destruct H.
-      apply (ssrnat.leq_trans H) in H7. by rewrite ssrnat.ltnn in H7.
-      destruct H => //. unfold isFree in H. unfold isAlloc in H8.
-      by destruct (find _ _). destruct H => //. by rewrite H in H10.
+      apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
+      destruct H => //. unfold isFree in H. unfold isAlloc in H7.
+      by destruct (find _ _). destruct H => //. by rewrite H in H9.
       by destruct H as [??].
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
-      rewrite H7 in H16; inversion H16; subst. done.
-      destruct H10. by rewrite H0 in H2.
-      destruct H0; first lias.
+      rewrite H6 in H14; inversion H14; subst. done.
+      destruct H9. by rewrite H0 in H2.
       destruct H0.
-      apply (ssrnat.leq_trans H0) in H4. by rewrite ssrnat.ltnn in H4.
-      destruct H0 => //. unfold isFree in H0; unfold isAlloc in H5.
+      apply (ssrnat.leq_trans H0) in H3. by rewrite ssrnat.ltnn in H3.
+      destruct H0 => //. unfold isFree in H0; unfold isAlloc in H4.
       by destruct (find _ _). destruct H0 => //.
-      rewrite (segstore_is_None _ H0) in H7. done.
+      rewrite (segstore_is_None _ H0) in H6. done.
       by destruct H0 as [-> _].
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
-      rewrite H8 in H18; inversion H18; subst. done.
-      destruct H11. by rewrite H in H2. destruct H; first lias. destruct H.
-      apply (ssrnat.leq_trans H) in H4. by rewrite ssrnat.ltnn in H4.
-      destruct H => //. unfold isFree in H; unfold isAlloc in H5.
+      rewrite H7 in H16; inversion H16; subst. done.
+      destruct H10. by rewrite H in H2. destruct H.
+      apply (ssrnat.leq_trans H) in H3. by rewrite ssrnat.ltnn in H3.
+      destruct H => //. unfold isFree in H; unfold isAlloc in H4.
       by destruct (find _ _). destruct H => //.
-      rewrite (segstore_is_None _ H) in H8. done.
+      rewrite (segstore_is_None _ H) in H7. done.
       by destruct H as [_ ?].
     - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
       destruct H1. by rewrite H in H5.
-      destruct H; first lias.
       destruct H.
-      apply (ssrnat.leq_trans H) in H7. by rewrite ssrnat.ltnn in H7.
-      destruct H => //. unfold isFree in H; unfold isAlloc in H8.
+      apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
+      destruct H => //. unfold isFree in H; unfold isAlloc in H7.
       by destruct (find _ _). destruct H => //.
-      rewrite (segstore_is_None _ H) in H10. done.
+      rewrite (segstore_is_None _ H) in H9. done.
       by destruct H as [-> _].
          destruct H1. by rewrite H in H5.
-      destruct H; first lias.
-      destruct H.
-      apply (ssrnat.leq_trans H) in H7. by rewrite ssrnat.ltnn in H7.
-      destruct H => //. unfold isFree in H; unfold isAlloc in H8.
+         destruct H.
+      apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
+      destruct H => //. unfold isFree in H; unfold isAlloc in H7.
       by destruct (find _ _). destruct H => //.
-      rewrite (segstore_is_None _ H) in H11. done.
+      rewrite (segstore_is_None _ H) in H10. done.
       by destruct H as [??].
     - right. right. left. eexists. unfold first_instr => //=.
     - right. right. left. eexists. unfold first_instr => //=.

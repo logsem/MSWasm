@@ -111,7 +111,7 @@ Ltac no_reduce Heqes Hred :=
     destruct H as [ | | | | | | | | | | | | | | 
                     vs es n' m t1s' t2s Hconst Hvs Ht1s Ht2s |
                     vs es n' m t1s' t2s Hconst Hvs Ht1s Ht2s |
-                  | | | | | | | | | | | | | | | | 
+                  | | | | | | | | | | | | | | | | | |
                     es' lh Htrap' H0 ]; (try by inversion Heqes) ;
     first found_intruse (AI_basic (BI_block (Tf t1s' t2s) es)) Heqes Hxl1 ;
     first found_intruse (AI_basic (BI_loop (Tf t1s' t2s) es)) Heqes Hxl1 ;
@@ -429,7 +429,7 @@ Ltac not_enough_arguments s f vs obj t1s me s' f' es' :=
        try (destruct H as [ | | | | | | | | | | | | | | 
                       vs' es n' m t1s' t2s' Hconst' Hvs' Ht1s' Ht2s' |
                       vs' es n' m t1s' t2s' Hconst' Hvs' Ht1s' Ht2s' |
-                    | | | | | | | | | | | | | | | i v | 
+                    | | | | | | | | | | | | | | | i v | | | 
                       es' lh Htrap' H0 ]; try by found_intruse obj Heqes Hxl1 ;
       try by apply app_inj_tail in Heqes ; destruct Heqes as [ _ Habs ] ; inversion Habs ;
       try by apply app_inj_tail in Heqes ; destruct Heqes as [ Hvs0 Hbl ] ;
@@ -1607,9 +1607,9 @@ Section reduce_properties_lemmas.
     all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
     inversion Hfill;
     subst;
-      apply Logic.eq_sym in H9;
-      [found_intruse (AI_trap) H9 Hxl1|
-        found_intruse (AI_label n es' LI) H9 Hxl1].
+      apply Logic.eq_sym in H8;
+      [found_intruse (AI_trap) H8 Hxl1|
+        found_intruse (AI_label n es' LI) H8 Hxl1].
         all: try by intros i' lh Hfill%lfilled_Ind_Equivalent; 
     inversion Hfill;
     subst;
@@ -1634,7 +1634,7 @@ Section reduce_properties_lemmas.
     }
     { intros i lh Hfill%lfilled_Ind_Equivalent.
       inversion Hfill;subst.
-      all: do 2 destruct vs =>//. }
+      all: do 2 destruct vs => //. }
   Qed.
 
   Lemma trap_reduce_lfilled i lh es me s f s' f' es' :

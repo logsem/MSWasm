@@ -406,14 +406,15 @@ Proof.
     only_one_reduction H. iFrame.
 Qed.
 
-Lemma wp_handleadd (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h c f0 :
+Lemma wp_handleadd (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h h' c f0 :
+  handle_add h (Wasm_int.Z_of_sint i32m c) = Some h' ->
   ↪[frame] f0 -∗
-    ▷Φ (immV [VAL_handle  (handle_add h (Wasm_int.Z_of_sint i32m c))]) -∗
+    ▷Φ (immV [VAL_handle h']) -∗
     WP [AI_basic (BI_const (VAL_int32 c)) ; 
         AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
-  iIntros "Hf0 HΦ".
+  iIntros (Hh) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.
@@ -421,13 +422,34 @@ Proof.
     eexists [ME_empty], [AI_basic (BI_const (VAL_handle _))], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
-    apply rm_silent, r_simple ; by eapply rs_handleadd.
+    apply rm_silent, r_simple ; by eapply rs_handleadd_success.
   - destruct σ as [[ ws  locs ] inst].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ ws'  locs' ] inst'].
     prim_split κ HStep H.
     only_one_reduction H. iFrame.
 Qed.
+
+Lemma wp_getoffset s E Φ h f0:
+  ↪[frame] f0 -∗ ▷Φ (immV [VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h)))]) -∗
+    WP [AI_basic (BI_const (VAL_handle h)); AI_basic BI_getoffset ] @ s;
+E {{ w, Φ w ∗ ↪[frame] f0 }}.
+Proof.
+  iIntros "Hf0 HΦ".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  iSplit.
+  - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
+    eexists [ME_empty], [AI_basic (BI_const (VAL_int32 _))], σ, [].
+    destruct σ as [[ws locs] inst].
+    unfold iris.prim_step => /=. repeat split => //.
+    apply rm_silent, r_simple; by eapply rs_getoffset.
+  - destruct σ as [[ws locs] inst].
+    iIntros "!>" (es σ2 efs HStep) "!>".
+    destruct σ2 as [[ws' locs'] inst'].
+    prim_split κ HStep H.
+    only_one_reduction H. iFrame.
+Qed. 
 
 
 End iris_rules_pure.

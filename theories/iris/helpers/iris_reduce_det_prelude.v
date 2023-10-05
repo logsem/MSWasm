@@ -66,7 +66,7 @@ Ltac only_one_reduction Heqes0 Hred :=
   first (destruct H as [ | | | | | | | | | | | | | | 
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
-                       | | | | | | | | | | | | | | | | 
+                       | | | | | | | | | | | | | | | | | | 
                          es' lh Htrap' H0 ]  ;
          (* by case_analysis on the reduce_simple. most cases solved by just the 
             following inversion ; some cases need a little extra help *)

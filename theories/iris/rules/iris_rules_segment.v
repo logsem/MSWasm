@@ -222,8 +222,7 @@ Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) 
   length tbv = t_length t ->
   List.map fst tbv = bv ->
   valid h = true ->
-  (0 <= offset h)%Z ->
-  (Z.to_N (offset h) + N.of_nat (t_length t) <= bound h)%N ->
+  ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
 (*  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) -> *)
   (▷ Φ (immV [wasm_deserialise bv t]) ∗
    ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗ 
@@ -231,7 +230,7 @@ Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) 
      (WP [AI_basic (BI_const (VAL_handle h)) ;
           AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})).
 Proof.
-  iIntros (Ht Htv Hfst Hvalid Hlo Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Hfst Hvalid Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -274,8 +273,7 @@ Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_typ
   types_agree t v ->
   List.map fst tbv = (bits v) ->
   valid h = true ->
-  (0 <= offset h)%Z ->
-  (Z.to_N (offset h) + N.of_nat (t_length t) <= bound h)%N ->
+  ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
 (*  ssrnat.leq (ssrnat.nat_of_bin (offset h) + t_length t) (ssrnat.nat_of_bin (bound h)) -> *)
   (▷ Φ (immV [v]) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
@@ -284,7 +282,7 @@ Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_typ
      (WP [AI_basic (BI_const (VAL_handle h)) ;
           AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f }})).
 Proof.
-  iIntros (Ht Htv Htbv Hvalid Hlo Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Htbv Hvalid Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_segload_deserialize;auto.
   { rewrite - (map_length fst). rewrite Htbv. erewrite length_bits;eauto. }
   rewrite Htbv deserialise_bits;auto. iFrame.
@@ -297,8 +295,7 @@ Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:c
   List.map fst tbv = bv ->
   List.map snd tbv = ts ->
   valid h = true ->
-  (0 <= offset h)%Z ->
-  (Z.to_N (offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   wasm_deserialise bv t = VAL_handle hmem ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
@@ -308,7 +305,7 @@ Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:c
      (WP [AI_basic (BI_const (VAL_handle h)) ;
           AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})).
 Proof.
-  iIntros (Ht Htv Hfst Hsnd Hvalid Hlo Hhi Hmod Hser Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Hfst Hsnd Hvalid Hhi Hmod Hser Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -357,8 +354,7 @@ Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:va
   List.map fst tbv = (bits (VAL_handle hmem)) ->
   List.map snd tbv = ts ->
   valid h = true ->
-  (0 <= offset h)%Z ->
-  (Z.to_N (offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
   (▷ Φ (immV [VAL_handle (upd_handle_validity hmem bc)]) ∗
@@ -368,7 +364,7 @@ Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:va
      (WP [AI_basic (BI_const (VAL_handle h)) ;
           AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f }})).
 Proof.
-  iIntros (Ht Htv Hts Hvalid Hlo Hhi Hmod Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
+  iIntros (Ht Htv Hts Hvalid Hhi Hmod Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_segload_handle_deserialize;auto.
   { rewrite - (map_length fst). rewrite Htv. erewrite length_bits;eauto. by rewrite Ht. }
   rewrite Htv deserialise_bits;auto. by rewrite Ht.
@@ -511,7 +507,6 @@ Definition plus_one h :=
                                                                   id := id h |}.
 
 Lemma handle_addr_plus_one h :
-  (0 <= offset h)% Z ->
   handle_addr (plus_one h) = (handle_addr h + 1)%N.
 Proof.
   unfold handle_addr, plus_one => /=. lia.
@@ -590,12 +585,11 @@ Qed.
 
 
 Lemma segstore_append1 m h b bs m':
-  (0 <= offset h)%Z ->
   segstore m h (b :: bs) (length (b :: bs)) = Some m' ->
   exists m'', segstore m'' (plus_one h) bs (length bs) = Some m' /\
            segstore m h [b] 1 = Some m''.
 Proof.
-  intros Hoff Hstore.
+  intros Hstore.
   unfold segstore.
   unfold segstore in Hstore.
   destruct (handle_addr h + N.of_nat (length (b :: bs)) <=? operations.seg_length m)%N eqn:Hlen ;
@@ -791,13 +785,12 @@ Proof.
 Qed.
   
 Lemma swap_segstores m m' m'' h b bs :
-  (0 <= offset h)%Z ->
   segstore m h [b] 1 = Some m' ->
   segstore m' (plus_one h) bs (length bs) = Some m'' ->
   exists m0, segstore m (plus_one h) bs (length bs) = Some m0 /\
           segstore m0 h [b] 1 = Some m''.
 Proof.
-  intro Hoff; intros.
+  intros.
   assert (operations.seg_length m = operations.seg_length m') as Hmlen ;
     first (unfold operations.seg_length, segment_list.seg_length ; erewrite segstore_length => //= ;
           by instantiate (1:=[b]) => //=).
@@ -951,22 +944,20 @@ Proof.
 Qed.
 
 Lemma segstore_append m h b bs m':
-  (0 <= offset h)%Z ->
   segstore m h (b :: bs) (length (b :: bs)) = Some m' ->
   exists m'', segstore m (plus_one h) bs (length bs) = Some m'' /\
            segstore m'' h [b] 1 = Some m'.
 Proof.
-  intros Hoff Hm.
+  intros Hm.
   apply segstore_append1 in Hm as (m0 & Hm0 & Hm0') => //.
   eapply swap_segstores => //=.
 Qed.
 
 Lemma segload_append m h b bs :
-  (0 <= offset h)%Z ->
   segload m h (length (b :: bs)) = Some (b :: bs) ->
   segload m (plus_one h) (length bs) = Some bs.
 Proof.
-  unfold segload ; intros Hoff Hm.
+  unfold segload ; intros Hm.
   replace (handle_addr h + N.of_nat (length (b :: bs)))%N with
     (handle_addr (plus_one h) + N.of_nat (length bs))%N in Hm.
   2:{ rewrite handle_addr_plus_one => //. simpl. lia. }
@@ -984,7 +975,6 @@ Proof.
 Qed.
 
 Lemma ghost_map_update_big_ws bs bs' h (m m' : segment) a:
-  (0 <= offset h)%Z ->
   length bs = length bs' -> 
   segload m h (length bs) = Some bs ->
   segstore m h bs' (length bs') = Some m' ->
@@ -996,7 +986,7 @@ Lemma ghost_map_update_big_ws bs bs' h (m m' : segment) a:
                   ↦[wss][handle_addr h] bs'.
 Proof.
   move : m' h bs'.
-  induction bs ; iIntros (m' h bs' Hoff Hlen Hm Hm' Ha) "Hσ Hwms".
+  induction bs ; iIntros (m' h bs' Hlen Hm Hm' Ha) "Hσ Hwms".
   { simpl in Hlen. apply Logic.eq_sym, nil_length_inv in Hlen ; subst.
     iSplitR "Hwms" => //=. 
     simpl in Hm'. unfold segstore in Hm'.
@@ -1008,13 +998,13 @@ Proof.
   }
   destruct bs' ; inversion Hlen.
   iDestruct (wss_append with "Hwms") as "[Hwm Hwms]".
-  destruct (segstore_append _ _ _ _ _ Hoff Hm') as (m'' & Hm'' & Hb).
+  destruct (segstore_append _ _ _ _ _ Hm') as (m'' & Hm'' & Hb).
   remember (plus_one h) as h'.
   replace (base h) with (base h'); last by subst; unfold plus_one.
   replace (handle_addr h + 1)%N with (handle_addr h').
   2:{ subst; rewrite handle_addr_plus_one => //. }
   iMod (IHbs with "Hσ Hwms") as "[Hσ Hwms]" => //.
-  subst; unfold plus_one; simpl; lia.
+(*  subst; unfold plus_one; simpl; lia. *)
   by subst; eapply segload_append.
   subst h'; simpl; intros. apply Ha.
   rewrite handle_addr_plus_one in H; lia.
@@ -1042,14 +1032,13 @@ Lemma wp_segstore (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: valu
   types_agree t v ->
   length tbs = t_length t ->
   valid h = true ->
-  (0 <= offset h)%Z ->
-  (Z.to_N (offset h) + N.of_nat (t_length t) <= bound h)%N ->
+  ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
   (▷ ϕ (immV []) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
   (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Numeric)) (bits v))) ∗ ↪[frame] f }}).
 Proof.
-  iIntros (Ht Hvt Htbs Hval Hlo Hhi) "(HΦ & Hf0 & Hid & Hwss)".
+  iIntros (Ht Hvt Htbs Hval Hhi) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -1110,15 +1099,14 @@ Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (
   types_agree t v ->
   length tbs = t_length t ->
   valid h = true ->
-  (0 <= offset h)%Z ->
-  (Z.to_N (offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   (▷ ϕ (immV []) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
   (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v))) ∗ ↪[frame] f }}).
 Proof.
-  iIntros (Ht Hvt Htbs Hval Hlo Hhi Hallign) "(HΦ & Hf0 & Hid & Hwss)".
+  iIntros (Ht Hvt Htbs Hval Hhi Hallign) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -1396,7 +1384,7 @@ Proof.
 
 Lemma wp_segfree h f0 bts Φ s E:
   valid h = true ->
-  offset h = 0%Z ->
+  offset h = 0%N ->
   length bts = N.to_nat (bound h) ->
   (▷ Φ (immV []) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] (base h, bound h)
      ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
@@ -1636,7 +1624,7 @@ Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (len: N) (s: stuckness) (E: coPset
                                    h.(id) ↣[allocated] (base h, n) ∗
                                        ⌜ (base h <= len)%N ⌝ ∗
                                        ⌜ bound h = n ⌝ ∗
-                                                     ⌜ offset h = 0%Z ⌝ ∗
+                                                     ⌜ offset h = 0%N ⌝ ∗
                                                                    ⌜ valid h = true ⌝ ∗
                                        ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗
             ↪[frame] f0 }})).

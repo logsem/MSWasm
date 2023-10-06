@@ -310,7 +310,7 @@ Inductive relop_f : Type :=
 
   Inductive relop_h : Type :=
   | ROH_eq
-  | ROH_neq
+  | ROH_ne
   .
   
 Inductive relop : Type :=

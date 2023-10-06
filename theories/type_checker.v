@@ -203,6 +203,12 @@ Definition is_float (t: value_type) :=
   | T_handle => false
   end.
 
+Definition is_handle t :=
+  match t with
+  | T_handle => true
+  | _ => false
+  end.
+
 Section Check.
   Context `{HandleBytes}.
 
@@ -249,6 +255,9 @@ in
                   then type_update ts [::CTA_some t; CTA_some t] (CT_type [::T_i32])
                   else CT_bot
     | Relop_f _ => if is_float t
+                  then type_update ts [::CTA_some t; CTA_some t] (CT_type [::T_i32])
+                  else CT_bot
+    | Relop_h _ => if is_handle t
                   then type_update ts [::CTA_some t; CTA_some t] (CT_type [::T_i32])
                   else CT_bot
     end

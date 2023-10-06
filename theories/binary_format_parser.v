@@ -459,6 +459,9 @@ Definition parse_numeric_instruction {n} : be_parser n :=
   exact_byte x65 $> BI_relop T_f64 (Relop_f ROF_le) <|>
   exact_byte x66 $> BI_relop T_f64 (Relop_f ROF_ge) <|>
 
+  exact_byte xda $> BI_relop T_handle (Relop_h ROH_eq) <|>
+  exact_byte xdb $> BI_relop T_handle (Relop_h ROH_ne) <|>
+
   exact_byte x67 $> BI_unop T_i32 (Unop_i UOI_clz) <|>
   exact_byte x68 $> BI_unop T_i32 (Unop_i UOI_ctz) <|>
   exact_byte x69 $> BI_unop T_i32 (Unop_i UOI_popcnt) <|>

@@ -320,7 +320,7 @@ Ltac simplify_hypothesis Hb :=
   | context C [produce _ _] => unfold produce in Hb; simpl in Hb
   | context C [ match ?u with | Unop_i _ => _ | Unop_f _ => _ end ] => destruct u => //=
   | context C [ match ?b with | Binop_i _ => _ | Binop_f _ => _ end ] => destruct b => //=
-  | context C [ match ?r with | Relop_i _ => _ | Relop_f _ => _ end ] => destruct r => //=
+  | context C [ match ?r with | Relop_i _ => _ | Relop_f _ => _ | Relop_h _ => _ end ] => destruct r => //=
   | context C [ match ?c with | CVO_convert => _ | _ => _ end ] => destruct c => //=
   | context C [ if ?expr then _ else _ ] => let if_expr := fresh "if_expr" in destruct expr eqn:if_expr => //=; simpl in Hb => //=
   | context C [ match ?expr with | Some _ => _ | None => _ end ] => let match_expr := fresh "match_expr" in destruct expr eqn:match_expr => //=; simpl in Hb => //=
@@ -1969,6 +1969,14 @@ Proof with auto_rewrite_cond.
       apply bet_weakening.
       apply bet_relop.
       destruct v => //=; by [apply Relop_f32_agree | apply Relop_f64_agree].
+    + replace ([::CTA_some v; CTA_some v]) with (to_ct_list [::v; v]) in Hct2 => //=.
+      apply type_update_type_agree in Hct2.
+      destruct Hct2 as [tn' [Hct bet]]; subst.
+      exists (tn' ++ [::v; v]); split => //.
+      apply bet_weakening.
+      apply bet_relop.
+      destruct v => //=; by apply Relop_handle_agree.
+      
     + replace ([::CTA_some v0]) with (to_ct_list [::v0]) in Hct2 => //=.
       apply type_update_type_agree in Hct2.
       destruct Hct2 as [tn' [Hct bet]]; subst.

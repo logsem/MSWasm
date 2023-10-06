@@ -219,6 +219,12 @@ Definition pp_rel_op_f (rof : relop_f) : string :=
   | ROF_ge => "ge"
   end.
 
+Definition pp_rel_op_h roh :=
+  match roh with
+  | ROH_eq => "eq"
+  | ROH_ne => "ne"
+  end.
+
 Definition pp_ao a o : string :=
   pp_immediate a ++ " " ++ pp_immediate o.
 
@@ -324,7 +330,9 @@ Fixpoint pp_basic_instruction (i : indentation) (be : basic_instruction) : strin
   | BI_relop vt (Relop_i roi) =>
     indent i (pp_value_type vt ++ "." ++ pp_rel_op_i roi ++ newline)
   | BI_relop vt (Relop_f rof) =>
-    indent i (pp_value_type vt ++ "." ++ pp_rel_op_f rof ++ newline)
+      indent i (pp_value_type vt ++ "." ++ pp_rel_op_f rof ++ newline)
+  | BI_relop vt (Relop_h roh) =>
+      indent i (pp_value_type vt ++ "." ++ pp_rel_op_h roh ++ newline)
   | BI_cvtop vt1 cvtop vt2 sxo => "?" ++ newline (* TODO: ??? *)
   end.
 

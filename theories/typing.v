@@ -59,7 +59,8 @@ Inductive relop_type_agree: value_type -> relop -> Prop :=
   | Relop_i32_agree: forall op, relop_type_agree T_i32 (Relop_i op)
   | Relop_i64_agree: forall op, relop_type_agree T_i64 (Relop_i op)
   | Relop_f32_agree: forall op, relop_type_agree T_f32 (Relop_f op)
-  | Relop_f64_agree: forall op, relop_type_agree T_f64 (Relop_f op)
+| Relop_f64_agree: forall op, relop_type_agree T_f64 (Relop_f op)
+| Relop_handle_agree: forall op, relop_type_agree T_handle (Relop_h op)
   .
   
 Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Prop :=

@@ -33,7 +33,7 @@ Section code.
   Parameters/Locals:
   0 (input)     stack pointer
 *)
-Definition is_empty :=
+Definition is_empty_op :=
   [
     i32const 0;
     BI_get_local 0 ;
@@ -42,10 +42,10 @@ Definition is_empty :=
   ].
 
 
-(* Definition is_empty :=
-  validate_stack 0 ++
-  validate_stack_bound 0 ++
-  is_empty_op. *)
+ Definition is_empty :=
+(*  validate_stack 0 ++
+  validate_stack_bound 0 ++ *)
+  is_empty_op. 
 
 End code.
 
@@ -54,7 +54,7 @@ End code.
 Section specs.
   Set Bullet Behavior "Strict Subproofs".
   
-Lemma spec_is_empty f0 v s E: 
+Lemma spec_is_empty_op f0 v s E: 
   ⊢ {{{ 
         ⌜ (f_locs f0) !! 0 = Some (value_of_handle v) ⌝ ∗ 
         ↪[frame] f0 ∗

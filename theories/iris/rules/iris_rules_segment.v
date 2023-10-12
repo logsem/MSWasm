@@ -1042,7 +1042,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & ? & Hs & Hall & ? & Hframe & ? & Hseglength & ? & ? & Hseglimit & ? & %HWF)".
+  iDestruct "Hσ" as "(? & ? & ? & Hs & Hall & ? & Hframe & ? & ? & ? & ? & %HWF)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -1078,15 +1078,15 @@ Proof.
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
-    assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
+(*    assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
     { rewrite <- (length_bits v) in Hsomeseg => //=. 
       rewrite - (map_length (fun x => (x, Numeric)) (bits v)) in Hsomeseg.
       apply segstore_length in Hsomeseg.
       by unfold operations.seg_length, seg_length; rewrite Hsomeseg. }  
     unfold operations.seg_length in Hmsize. rewrite Hmsize.
-    apply segstore_seg_max_opt in Hsomeseg as Hseglimit.
-    rewrite - Hseglimit.
-    iFrame. iPureIntro.
+    apply segstore_seg_max_opt in Hsomeseg as Hseglimit. 
+    rewrite - Hseglimit. 
+    iFrame. *) iPureIntro.
     eapply (reduce_preserves_wellformedness (f := {| f_inst := winst2; f_locs := locs2 |})).
     exact HWF. eapply rm_segstore_success => //=.
     repeat rewrite nat_bin. lias.
@@ -1110,7 +1110,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & ? & Hs & Hall & ? & Hframe & ? & Hseglength & ? & ? & Hseglimit & ? & %HWF)".
+  iDestruct "Hσ" as "(? & ? & ? & Hs & Hall & ? & Hframe & ? & ? & ? & ? & %HWF)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -1146,7 +1146,7 @@ Proof.
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
-    assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
+(*    assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
     { rewrite <- (length_bits v) in Hsomeseg => //=. 
       rewrite - (map_length (fun x => (x, Handle)) (bits v)) in Hsomeseg.
       apply segstore_length in Hsomeseg.
@@ -1154,7 +1154,7 @@ Proof.
     unfold operations.seg_length in Hmsize. rewrite Hmsize.
     apply segstore_seg_max_opt in Hsomeseg as Hseglimit.
     rewrite - Hseglimit.
-    iFrame.  iPureIntro.
+    iFrame.*)  iPureIntro.
     eapply (reduce_preserves_wellformedness (f := {| f_inst := winst2; f_locs := locs2 |})).
     exact HWF. eapply rm_segstore_handle_success => //.
     repeat rewrite nat_bin. lias.
@@ -1394,7 +1394,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & Hγ & ? & ? & ? & ? & ? & %HWF)".
+  iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & Hγ & ? & ? & ? & %HWF)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
@@ -1614,32 +1614,32 @@ Qed.
 
 Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (len: N) (s: stuckness) (E: coPset) (* Φ : iris.val -> iProp Σ *):
   n = Wasm_int.N_of_uint i32m c ->
-  ((* (∀ h, ▷ Φ (immV [VAL_handle h])) ∗ *) ↪[frame] f0 ∗ ↦[wslength] len ⊢
+  ((* (∀ h, ▷ Φ (immV [VAL_handle h])) ∗ *) ↪[frame] f0 (* ∗ ↦[wslength] len *) ⊢
      (WP [AI_basic (BI_const (VAL_int32 c)) ;
           AI_basic BI_segalloc] @ s; E
     {{ w, ((* Φ w ∗ *)
-            ∃ h len', ⌜ w = immV [VAL_handle h] ⌝ ∗ ↦[wslength] len' ∗
-                              (⌜ len = len' ⌝ ∗ ⌜ h = dummy_handle ⌝ ∨
-                                 ⌜ (len <= len' (* <= page_limit * page_size *) )%N ⌝ ∗
+            ∃ h (* len' *), ⌜ w = immV [VAL_handle h] ⌝ ∗ (* ↦[wslength] len' ∗ *)
+                              ((* ⌜ len = len' ⌝ ∗ *) ⌜ h = dummy_handle ⌝ ∨
+                                (*  ⌜ (len <= len' (* <= page_limit * page_size *) )%N ⌝ ∗ *)
                                    h.(id) ↣[allocated] (base h, n) ∗
-                                       ⌜ (base h <= len)%N ⌝ ∗
+(*                                       ⌜ (base h <= len)%N ⌝ ∗ *)
                                        ⌜ bound h = n ⌝ ∗
                                                      ⌜ offset h = 0%N ⌝ ∗
                                                                    ⌜ valid h = true ⌝ ∗
                                        ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗
             ↪[frame] f0 }})).
 Proof.
-  iIntros (Hn) "(Hf0 & Hlen)".
+  iIntros (Hn) "Hf0".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
-  iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & ? & Hslen & Hγ & ? & ? & ? & %HWF)".
+  iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & ? & Hγ & ? & ? & %HWF)".
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
-  iDestruct (gen_heap_valid with "Hslen Hlen") as "%Hslen".
+  (* iDestruct (gen_heap_valid with "Hslen Hlen") as "%Hslen".
   rewrite lookup_insert in Hslen.
-  inversion Hslen; subst; clear Hslen.
+  inversion Hslen; subst; clear Hslen. *)
   iSplit.
   - iPureIntro.
     destruct s => //=.
@@ -1671,38 +1671,38 @@ Proof.
       iFrame. 
       iMod (ghost_map_insert nid (a, Wasm_int.N_of_uint i32m c) with "Ha") as "[Ha Hid]".
       done.
-      iMod (gen_heap_update with "Hslen Hlen") as "[Hslen Hlen]".
-      rewrite insert_insert.
+      (* iMod (gen_heap_update with "Hslen Hlen") as "[Hslen Hlen]".  
+      rewrite insert_insert. *)
       iMod (ghost_map_insert_wss with "Hs") as "[Hs Hwss]".
       done. done. lia.
       iModIntro.
-      iSplitL "Ha Hs Hslen".
+      iSplitL "Ha Hs".
       iSplitL "Hs".
       iExact "Hs".
       iSplitL "Ha".
       iExact "Ha".
-      iSplitL.
-      iExact "Hslen".
+(*      iSplitL.
+      iExact "Hslen". *)
       iPureIntro.
       eapply (reduce_preserves_wellformedness (f := {| f_locs := locs'; f_inst := inst' |})).
       exact HWF. eapply rm_segalloc_success => //.
-      iExists _,_.
+      iExists _.
       iSplitR. done.
-      iSplitL "Hlen".
-      iExact "Hlen".
+      (*iSplitL "Hlen".
+      iExact "Hlen". *)
       iRight.
-      iSplitR.
+(*      iSplitR.
       iPureIntro. unfold seg_length => /=.
       repeat rewrite app_length.
       rewrite take_length_le; last lia.
-      rewrite repeat_length. rewrite drop_length. lia.
+      rewrite repeat_length. rewrite drop_length. lia. *)
       iSimpl.
       iSplitL "Hid".
       iExact "Hid".
       iSplit. done.
       iSplit. done.
       iSplit. done.
-      iSplit. done.
+      (* iSplit. done. *)
       iExact "Hwss".
     }
     { (* segalloc failed *)
@@ -1712,8 +1712,7 @@ Proof.
       simpl.
       iModIntro.
       iSplit; first done.
-      iExists _,_.
-      iSplit; first done.
+      iExists _.
       iSplitL; first done.
       iLeft.
       done.

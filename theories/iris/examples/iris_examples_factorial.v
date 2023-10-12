@@ -998,7 +998,7 @@ Section FactorialHost.
       iSplitL "Hvis1 Hvis2";[|iSplit;[|auto]].
       simpl. iFrame. done.
       rewrite /instantiation_resources_pre_wasm /=.
-      iSplitL;[|iPureIntro;split;apply Forall_nil;auto].
+      iSplitL; [|iPureIntro;split;apply Forall_nil;auto].
       iSplitL "Hmod_tab";[|iSplitR;[|iSplitR]].
       { rewrite /import_func_wasm_check /func_typecheck ! Forall2_cons /=.
         iSplit. iApply big_sepM_singleton. iFrame. iPureIntro.

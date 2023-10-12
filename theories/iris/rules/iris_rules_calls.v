@@ -447,7 +447,7 @@ Qed.
   Proof.
     iIntros (Hc Hge) "#Ha Hf Hcont".
     iApply wp_lift_atomic_step;[auto|].
-    iIntros ([[ ? ?] ?] ns κ κs nt) "(Hσ1&Hσ2&Hσ3&Hσ4&?&?&Hσ5&Hσ6&?&Hσ7&Hσ8&Hσ9)".
+    iIntros ([[ ? ?] ?] ns κ κs nt) "(Hσ1&Hσ2&Hσ3&?&?&Hσ4&Hσ5&Hσ6&Hσ7&Hσ8&Hσ9)".
     iApply fupd_frame_l.
     iDestruct (gen_heap_valid with "Hσ7 Ha") as %Hlook.
     rewrite gmap_of_list_lookup Nat2N.id in Hlook.

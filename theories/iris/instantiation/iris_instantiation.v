@@ -135,14 +135,14 @@ Definition import_tab_resources (wts: gmap N tableinst) : iProp Σ :=
 Definition import_mem_resources (wms: gmap N memory) : iProp Σ :=
   [∗ map] n ↦ v ∈ wms, n ↦[wmblock] v.
 
-Definition seg_resources (seg: segment) : iProp Σ :=
-  ↦[wsblock] seg.
+(* Definition seg_resources (seg: segment) : iProp Σ :=
+  ↦[wslength] (seg_length seg.(seg_data)).
 
 Definition all_resources (all: allocator) : iProp Σ :=
-  (big_opM bi_sep (fun i x =>
+(*  (big_opM bi_sep (fun i x =>
                      i ↣[allocated] x
                        ) all.(allocated)
-  )%I.  
+  )%I.   *) True. *)
 
 Definition import_glob_resources (wgs: gmap N global) : iProp Σ :=
   [∗ map] n ↦ v ∈ wgs, n ↦[wg] v.
@@ -227,8 +227,8 @@ Definition import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs: iProp 
     unfold func_typecheck;
     unfold tab_typecheck;
     unfold mem_typecheck;
-    unfold seg_resources;
-    unfold all_resources;
+(*    unfold seg_resources;
+    unfold all_resources; *)
     unfold glob_typecheck;
     unfold func_domcheck;
     unfold tab_domcheck;
@@ -1437,9 +1437,9 @@ Definition module_glob_init_value (modglobs: list module_glob): option (list val
    Memory initiliasers work similarly.
 *)
 
-Definition instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wss was wgs : iProp Σ :=
+Definition instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wgs : iProp Σ :=
   import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs ∗
-                                  seg_resources wss ∗ all_resources was ∗
+(*                                  seg_resources wss ∗ all_resources was ∗ *)
   ⌜ module_elem_bound_check_gmap wts (fmap modexp_desc v_imps) m ⌝ ∗
   ⌜ module_data_bound_check_gmap wms (fmap modexp_desc v_imps) m ⌝.
 
@@ -1695,12 +1695,12 @@ Definition module_inst_resources_all (all : allocator) : iProp Σ :=
 *)
 
 (* The collection of the four types of newly allocated resources *)
-Definition module_inst_resources_wasm (m: module) (inst: instance) (tab_inits: list tableinst) (mem_inits: list memory) seg_inits all_inits (glob_inits: list global) : iProp Σ :=
+Definition module_inst_resources_wasm (m: module) (inst: instance) (tab_inits: list tableinst) (mem_inits: list memory) (glob_inits: list global) : iProp Σ :=
   (module_inst_resources_func m.(mod_funcs) inst (drop (get_import_func_count m) inst.(inst_funcs)) ∗
   module_inst_resources_tab tab_inits (drop (get_import_table_count m) inst.(inst_tab)) ∗
   module_inst_resources_mem mem_inits (drop (get_import_mem_count m) inst.(inst_memory)) ∗
-  seg_resources seg_inits ∗
-  all_resources all_inits ∗                     
+(*  seg_resources seg_inits ∗
+  all_resources all_inits ∗                      *)
   module_inst_resources_glob glob_inits (drop (get_import_global_count m) inst.(inst_globs))
   )%I.
 
@@ -1713,7 +1713,7 @@ Definition module_restrictions (m: module) : Prop :=
   (exists (vi32s: list i32), fmap modelem_offset m.(mod_elem) = fmap (fun v => [BI_const (VAL_int32 v)]) vi32s) /\
   (exists (vi32s: list i32), fmap moddata_offset m.(mod_data) = fmap (fun v => [BI_const (VAL_int32 v)]) vi32s).
 
-Definition instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wss was wgs (idfstart: option nat) (inst: instance) : iProp Σ :=
+Definition instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wgs (idfstart: option nat) (inst: instance) : iProp Σ :=
   ∃ (g_inits: list value) tab_allocs mem_allocs glob_allocs wts' wms',  
   import_resources_wasm_typecheck v_imps t_imps wfs wts' wms' wgs ∗ (* locations in the wasm store and type-checks; this described the new contents of tables and memories that have been modified by the initialisers *)
     ⌜ inst.(inst_types) = m.(mod_types) /\
@@ -1734,7 +1734,7 @@ Definition instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wss was
     ⌜ module_data_bound_check_gmap wms (fmap modexp_desc v_imps) m ⌝ ∗
     ⌜ module_glob_init_values m g_inits ⌝ ∗
     ⌜ glob_allocs = module_inst_global_init (module_inst_build_globals m.(mod_globals)) g_inits ⌝ ∗
-    module_inst_resources_wasm m inst tab_allocs mem_allocs wss was glob_allocs. (* allocated wasm resources *)
+    module_inst_resources_wasm m inst tab_allocs mem_allocs glob_allocs. (* allocated wasm resources *)
 
 Lemma BI_const_assert_const1_i32 (es: list expr) (vs: list i32):
   es = fmap (fun v => [BI_const (VAL_int32 v)]) vs ->
@@ -3701,19 +3701,19 @@ Section instantiation_spec.
  Context `{HHB :HandleBytes}. 
 Set Bullet Behavior "Strict Subproofs".
  
-Lemma instantiation_wasm_spec (v_imps: list module_export) (m: module) t_imps t_exps wfs wts wms wss was wgs (s s': store_record) inst v_exps start: 
+Lemma instantiation_wasm_spec (v_imps: list module_export) (m: module) t_imps t_exps wfs wts wms wgs (s s': store_record) inst v_exps start: 
   module_typing m t_imps t_exps ->
   module_restrictions m ->
   instantiate s m (fmap modexp_desc v_imps) (s', inst, v_exps, start) ->
-  (instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wss was wgs -∗
+  (instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wgs -∗
      gen_heap_wasm_store s -∗
-     |==> (instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wss was wgs start) inst ∗
+     |==> (instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wgs start) inst ∗
      gen_heap_wasm_store s').
 Proof.
   move => Hmodtype Hmodrestr Hinstantiate.
-  iIntros "(Himpwasm & Hseg & Hall & %Hebound & %Hdbound)".
+  iIntros "(Himpwasm & %Hebound & %Hdbound)".
   iIntros "Hσ".
-  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hwg & Hmsize & Hssize & Htsize & Hmlimit & Hslimit  & Htlimit)".
+  iDestruct "Hσ" as "(Hwf & Hwt & Hwm & Hwg & Hmsize & Htsize & Hmlimit & Htlimit)".
   
   iDestruct (import_resources_wasm_lookup with "Hwf Hwt Hwm Hwg Htsize Htlimit Hmsize Hmlimit Himpwasm") as "%Himpwasm".
   
@@ -5982,3 +5982,4 @@ End instantiation_spec.
 
 End Iris_instantiation.
 
+ 

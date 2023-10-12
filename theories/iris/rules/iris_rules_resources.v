@@ -2546,7 +2546,7 @@ Proof.
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws  locs ] winst].
-  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & ? & Hf & Hmemlength & ? & ? & Hmemlimit & ?)".
+  iDestruct "Hσ" as "(? & ? & Hm & ? & ? & ? & Hf & Hmemlength & ? & Hmemlimit & ?)".
   iDestruct (ghost_map_lookup with "Hf Hframe") as "%Hframe".
   iDestruct (gen_heap_valid with "Hmemlength Hmlength") as "%Hmemlength".
   rewrite lookup_insert in Hframe.

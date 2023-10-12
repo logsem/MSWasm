@@ -84,8 +84,10 @@ Definition gen_heap_wasm_store `{!wasmG Σ} (s: store_record) : iProp Σ :=
   ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
    (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
    (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
-(*   (gen_heap_interp (gmap_of_segment s.(s_segs) s.(s_alls))) ∗ *)
-(*   (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗ *)
+   (*   (gen_heap_interp (gmap_of_segment s.(s_segs) s.(s_alls))) ∗ *)
+(*   (ghost_map_auth segGName 1 (gmap_of_segment s.(s_segs) s.(s_alls))) ∗ *)
+   (*   (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗ *)
+(*   (ghost_map_auth allGName 1 (gmap_of_allocator s.(s_alls))) ∗ *)
    (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
    (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
    (gen_heap_interp ({[ () := seg_length s.(s_segs).(seg_data)]} : gmap unit N)) ∗

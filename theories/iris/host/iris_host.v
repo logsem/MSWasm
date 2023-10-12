@@ -1058,18 +1058,18 @@ Proof.
   - by iApply ("IH" with "[$]").   
 Qed.
 
-Definition instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps : iProp Σ :=
+Definition instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps : iProp Σ :=
   hs_mod ↪[mods] m ∗
   import_resources_host hs_imps v_imps ∗
-  instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wgs ∗       
+  instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wss was wgs ∗       
   export_ownership_host hs_exps ∗
   ⌜ length hs_exps = length m.(mod_exports) ⌝.
 
-Definition instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (idfstart: option nat) : iProp Σ :=
+Definition instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps (idfstart: option nat) : iProp Σ :=
   hs_mod ↪[mods] m ∗
   import_resources_host hs_imps v_imps ∗ (* vis, for the imports stored in host *)
   ∃ (inst: instance), 
-  instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wgs idfstart inst ∗       
+  instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wss was wgs idfstart inst ∗       
   module_export_resources_host hs_exps m.(mod_exports) inst. (* export resources, in the host store *)
 
 Lemma insert_exports_none_len vis iexps exps:
@@ -1133,21 +1133,21 @@ Qed.
 
 Section instantiation_spec.
   Context `{HHB : HandleBytes}.
-Lemma instantiation_spec_operational_no_start (s: stuckness) E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs:
+Lemma instantiation_spec_operational_no_start (s: stuckness) E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wss was wgs:
   m.(mod_start) = None ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
+  instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E
    {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗
-        instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps None}}.
+        instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps None}}.
 Proof.
   
   move => Hmodstart Hmodtype Hmodrestr.
   assert (module_restrictions m) as Hmodrestr2 => //.
   
   iIntros "(Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp)".
-  iDestruct "Himpwasmpre" as "(Himpwasm & %Hebound & %Hdbound)".
+  iDestruct "Himpwasmpre" as "(Himpwasm & Hseg & Hall & %Hebound & %Hdbound)".
   
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
   
@@ -1839,7 +1839,7 @@ Proof.
 
     (* Wasm state update, using the instantiation characterisation lemma *)
     iDestruct (instantiation_wasm_spec with "") as "H" => //.
-    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
+    iDestruct ("H" with "[Himpwasm Hall Hseg] [Hwf Hwt Hwm Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
     { unfold instantiation_resources_pre_wasm.
       by iFrame.
     }
@@ -1894,20 +1894,20 @@ Proof.
 Qed.
 
 (* Instantiating modules with a start function. We combine the handling of sequence here all in one. *)
-Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls:
+Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wss was wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls:
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
   ↪[frame] empty_frame -∗                            
-  instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP ((idecls, [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps (Some idnstart)) -∗ WP ((idecls, [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (((ID_instantiate hs_exps hs_mod hs_imps) :: idecls, [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   move => Hmodstart Hmodtype Hmodrestr.
   assert (module_restrictions m) as Hmodrestr2 => //.
   
   iIntros "Hframeown (Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp) Hwpstart".
-  iDestruct "Himpwasmpre" as "(Himpwasm & %Hebound & %Hdbound)".
+  iDestruct "Himpwasmpre" as "(Himpwasm & Hseg & Hall & %Hebound & %Hdbound)".
   
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
   
@@ -2673,7 +2673,7 @@ Proof.
 
     (* Wasm state update, using the instantiation characterisation lemma *)
     iDestruct (instantiation_wasm_spec with "") as "H" => //.
-    iDestruct ("H" with "[Himpwasm] [Hwf Hwt Hwm Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
+    iDestruct ("H" with "[Himpwasm Hseg Hall] [Hwf Hwt Hwm Hwg Hmsize Hssize Htsize Hmlimit Hslimit Htlimit]") as "Hq".
     { unfold instantiation_resources_pre_wasm.
       by iFrame.
     }
@@ -2725,13 +2725,13 @@ Proof.
     by iFrame.
 Qed.
     
-Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ):
+Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wss was wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ):
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
   ↪[frame] empty_frame -∗                            
-  instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wss was wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   iIntros.

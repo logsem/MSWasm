@@ -32,7 +32,7 @@ Lemma spec_map_loop_body_continue_trap f (s: list i32) v E hj j fn (sv: i32) j0 
         ⌜ s !! (N.to_nat j) = Some sv ⌝ ∗
         isStack v s ∗
         Φ sv ∗
-            ⌜ f.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
 
             ⌜ f.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             na_inv logrel_nais γ1 ((N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] a) ∗
@@ -379,7 +379,7 @@ Lemma spec_map_loop_j_trap f (s: list i32) v E j hj fn j0 a cl
         isStack v (take (N.to_nat j) s ++ s') ∗
         stackAll (take (N.to_nat j) s) Φ ∗
         stackAll2 (drop (N.to_nat j) s) s' Ψ ∗
-            ⌜ f.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
             ⌜ f.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             na_inv logrel_nais γ1 ((N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] a) ∗
             (match a with
@@ -585,7 +585,7 @@ Lemma spec_stack_map_op_trap (f0 : frame) (f : i32) (v: handle) (s : seq.seq i32
             ⌜ length f0.(f_locs) >= 4 ⌝ ∗
             isStack v s ∗
             stackAll s Φ ∗
-            ⌜ f0.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f0.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
 
             ⌜ f0.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             na_inv logrel_nais γ1 ((N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] a) ∗
@@ -697,7 +697,7 @@ Lemma spec_stack_map_trap (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) 
             ⌜ length f0.(f_locs) >= 4 ⌝ ∗
             isStack v s ∗
             stackAll s Φ ∗
-            ⌜ f0.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f0.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
 
             ⌜ f0.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             na_inv logrel_nais γ1 ((N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] a) ∗

@@ -1612,7 +1612,7 @@ Proof.
 Qed. 
 
 
-Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (len: N) (s: stuckness) (E: coPset) (* Φ : iris.val -> iProp Σ *):
+Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (s: stuckness) (E: coPset) (* Φ : iris.val -> iProp Σ *):
   n = Wasm_int.N_of_uint i32m c ->
   ((* (∀ h, ▷ Φ (immV [VAL_handle h])) ∗ *) ↪[frame] f0 (* ∗ ↦[wslength] len *) ⊢
      (WP [AI_basic (BI_const (VAL_int32 c)) ;

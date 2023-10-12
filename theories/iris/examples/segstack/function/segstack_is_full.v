@@ -37,7 +37,7 @@ Section code.
                  
 Definition is_full_op := 
   [
-    i32const 65532 ;
+    i32const 65531 ;
     BI_get_local 0 ;
     BI_segload T_i32;
     BI_relop T_i32 (Relop_i (ROI_lt SX_U)) 
@@ -57,7 +57,7 @@ Lemma spec_is_full_op f0 (v : handle) (s : seq.seq i32) E:
         isStack v s }}}
     to_e_list is_full_op @ E
     {{{ w, ∃ k, ⌜ w = immV [value_of_int k] ⌝ ∗ isStack v s ∗
-                           ⌜ (k = 1) /\ (N.of_nat (length s) = (two14)%N)%N \/ (k = 0) /\ (N.of_nat (length s) < two14)%N ⌝ ∗
+                           ⌜ (k = 1) /\ (N.of_nat (length s) = (two14 - 1)%N)%N \/ (k = 0) /\ (N.of_nat (length s) < two14 - 1)%N ⌝ ∗
           ↪[frame] f0 }}}.
 Proof.
   iIntros "!>" (Φ) "(%Hlocv & Hf & Hstack) HΦ" => /=.
@@ -66,7 +66,7 @@ Proof.
   
   rewrite separate2.
   iApply wp_seq.
-  instantiate (1 := λ x, (⌜ x = immV [value_of_int 65532 ; value_of_handle v
+  instantiate (1 := λ x, (⌜ x = immV [value_of_int _ ; value_of_handle v
                                       ] ⌝ ∗ ↪[frame] f0)%I).
   iSplitR ; first by iIntros "[%Habs _]".
   iSplitL "Hf".
@@ -79,7 +79,7 @@ Proof.
     iSimpl.
     rewrite separate3.
     iApply wp_seq.
-    instantiate ( 1 := λ x, ((⌜ x = immV [value_of_int 65532 ; value_of_int (length s * 4)] ⌝
+    instantiate ( 1 := λ x, ((⌜ x = immV [value_of_int _ ; value_of_int (length s * 4)] ⌝
                                           ∗ ↪[frame] f0 ∗ isStack v s)%I)).
     iSplitR ; first by iIntros "(%Habs & _)".
     iSplitL "Hf Hstack".
@@ -111,30 +111,23 @@ Proof.
   - iIntros (w) "[-> Hf]".
     iSimpl.
     iApply "HΦ".
-    destruct (N.of_nat (length s) <? two14)%N eqn:Hfull.
+    destruct (N.of_nat (length s) <? two14 - 1)%N eqn:Hfull.
     { iExists 0. 
       iSplit => //=.
       iPureIntro. unfold Wasm_int.Int32.ltu.
       rewrite wasm_int_unsigned; last lia.
       rewrite wasm_int_unsigned; last first.
       split; first lia. unfold two14 in Hstack.
-      assert (N.of_nat (length s * 4) < 16484 * 4)%N. lia.
-      assert (N.to_nat (N.of_nat (length s * 4)) < N.to_nat (16484 * 4)%N). lia.
-      rewrite Nat2N.id in H0.
-      assert (length s * 4 <= 16484 * 4)%Z. lia.
-      assert (16484 * 4 <= 4294967295)%Z. lia.
-      apply (Z.le_trans _ _ _ H1 H2).
+      remember (length s) as x. rewrite - Heqx. lia.
       apply N.ltb_lt in Hfull.
       rewrite Coqlib.zlt_false => //. 
       unfold two14 in Hfull.
-      assert (N.of_nat (length s * 4) <= 65532)%N. lia.
-      assert (N.to_nat (N.of_nat (length s * 4)) <= N.to_nat 65532%N). lia.
-      rewrite Nat2N.id in H0.
-      assert (length s * 4 <= 65532)%Z. lia.
-      apply Z.le_ge. exact H1.
+      remember (length s) as x. rewrite - Heqx. lia.
       iFrame "Hstack Hf".
       iPureIntro.
       right; split => //.
+      apply N.ltb_lt in Hfull.
+      unfold two14 in Hfull. remember (length s) as x; rewrite - Heqx. lia.
     }
     iExists 1.
     iSplit => //=.
@@ -142,22 +135,14 @@ Proof.
     rewrite wasm_int_unsigned; last lia.
     rewrite wasm_int_unsigned; last first.
     split; first lia. unfold two14 in Hstack.
-    assert (N.of_nat (length s * 4) < 16484 * 4)%N. lia.
-      assert (N.to_nat (N.of_nat (length s * 4)) < N.to_nat (16484 * 4)%N). lia.
-      rewrite Nat2N.id in H0.
-      assert (length s * 4 <= 16484 * 4)%Z. lia.
-      assert (16484 * 4 <= 4294967295)%Z. lia.
-      apply (Z.le_trans _ _ _ H1 H2).
-      apply N.ltb_ge in Hfull.
+    remember (length s) as x; rewrite - Heqx; lia.
+    apply N.ltb_ge in Hfull.
     rewrite Coqlib.zlt_true => //.
-    unfold two14 in Hfull.
-    assert (N.of_nat (length s * 4) > 65532)%N. lia.
-      assert (N.to_nat (N.of_nat (length s * 4)) > N.to_nat 65532%N). lia.
-      rewrite Nat2N.id in H0.
-      assert (length s * 4 > 65532)%Z. lia.
-      apply Z.gt_lt. exact H1.
+    assert (N.of_nat (length s) = two14 - 1)%N. lia. remember ((length s)) as x.
+    rewrite - Heqx. unfold two14 in H. lia.
     iFrame. iPureIntro. left; split => //.
-    apply N.ltb_ge in Hfull. lia.
+    apply N.ltb_ge in Hfull. remember (length s) as x. rewrite - Heqx. unfold two14 in Hfull.
+    unfold two14 in Hstack. lia.
 Qed.    
 
 (*

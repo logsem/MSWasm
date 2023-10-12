@@ -1,1 +1,1 @@
-Require Export new_stack is_empty is_full pop push stack_length stack_map stack_map_trap.
+Require Export new_segstack segstack_is_empty segstack_is_full segstack_pop segstack_push segstack_length segstack_map segstack_map_trap.

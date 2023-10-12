@@ -39,8 +39,8 @@ Definition new_stack :=
     BI_segalloc ;
     BI_tee_local 0 ;
     BI_const (value_of_handle dummy_handle) ;
-    BI_relop T_i32 (Relop_h ROH_eq) ;  
-    BI_if (Tf [] [T_i32]) [
+    BI_relop T_handle (Relop_h ROH_eq) ;  
+    BI_if (Tf [] [T_handle]) [
         BI_const (value_of_handle dummy_handle)
       ] [
         BI_get_local 0 ;
@@ -55,37 +55,37 @@ End code.
 
 Section specs.
 
-Lemma spec_new_stack f0 len E: 
+Lemma spec_new_stack f0 (* len *) E: 
   ⊢ {{{
           ⌜ length (f_locs f0) >= 1 ⌝ ∗
-          ⌜ (page_size | len)%N ⌝ ∗
-            ↪[frame] f0 ∗
-            ↦[wslength] len
+  (*        ⌜ (page_size | len)%N ⌝ ∗ *)
+            ↪[frame] f0 (* ∗
+            ↦[wslength] len *)
     }}}
     to_e_list new_stack @ E
-    {{{ v , ((⌜ v = immV [value_of_handle dummy_handle] ⌝ ∗
-                      ↦[wslength] len) ∨
-               (∃ h len', ⌜ v = immV [value_of_handle h]⌝ ∗
-                             isStack h [] ∗
+    {{{ v , ((⌜ v = immV [value_of_handle dummy_handle] ⌝ (* ∗
+                      ↦[wslength] len *)) ∨
+               (∃ h (* len' *), ⌜ v = immV [value_of_handle h]⌝ ∗
+                             isStack h [] (* ∗
                              ↦[wslength] len' ∗
-                             ⌜ (len' >= len)%N ⌝
+                             ⌜ (len' >= len)%N ⌝ *)
             )) ∗
               ∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f1 = f_inst f0 ⌝ }}}.
 Proof.
-  iIntros "!>" (Φ) "(%Hflocs & %Hlendiv & Hframe & Hlen) HΦ".
-  assert (page_size | len)%N as Hlenmod => //=.
-  apply divide_and_multiply in Hlenmod => //=.
-  rewrite separate2.
+  iIntros "!>" (Φ) "(%Hflocs & Hframe) HΦ".
+  (*assert (page_size | len)%N as Hlenmod => //=.
+  apply divide_and_multiply in Hlenmod => //=. *)
+  simpl. rewrite separate2.
   iApply wp_seq => /=.
-  iDestruct (wp_segalloc with "[$Hframe $Hlen]") as "HWP" => //.
+  iDestruct (wp_segalloc with "[$Hframe]") as "HWP" => //.
   iSplitR; last first.
   
   (* { iSplitL ; by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I ). } *)
   iSplitL "HWP".
   by iApply "HWP".
-  2:{ iIntros "[Habs _]". iDestruct "Habs" as (??) "[% _]".  done. }
+  2:{ iIntros "[Habs _]". iDestruct "Habs" as (?) "[% _]".  done. }
   - iIntros (w) "(H & Hf)".
-    iDestruct "H" as (h len') "(-> & Hlen & H)".
+    iDestruct "H" as (h) "(-> & H)".
     iSimpl. 
     rewrite separate2.
     iApply (wp_seq _ E _ (λ x, (⌜ x = immV [_] ⌝
@@ -148,7 +148,7 @@ Proof.
       done.
       iIntros (v) "[%Hv Hf]".
       iApply "HΦ".
-      iDestruct "H" as "[(%Hlens & %Hdum) | (%Hlen & Hid & %Hbase & %Hbound & %Hoff & %Hval & Hs)]".
+      iDestruct "H" as "[%Hdum | (Hid & %Hbound & %Hoff & %Hval & Hs)]".
       2:{ simpl in Hval. done. }
       iSplitR "Hf". iLeft. subst. iFrame. done.
       iExists _. iFrame. done. 
@@ -158,7 +158,7 @@ Proof.
       iIntros "!> Hf".
       rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
 
-      iDestruct "H" as "[ (%Hlens & %Hdum) | (%Hlen & Hid & %Hbase & %Hbound & %Hoff & %Hval & Hs)]".
+      iDestruct "H" as "[ %Hdum | (Hid & %Hbound & %Hoff & %Hval & Hs)]".
       subst h. unfold handle_eqb, dummy_handle in Hv; simpl in Hv. done.
       (* assert (len `div` page_size <= 65535)%N as Hpagebound.
       { unfold mem_in_bound, page_limit in Hbound.
@@ -251,9 +251,8 @@ Proof.
           by iSplitL "Hf" => //.
         }
         iRight.
-        iExists _,_. iFrame "Hlen".
+        iExists _. 
         iSplit; first done.
-        iSplit; last by iPureIntro; lia.
         unfold isStack.
         iSplit; first done.
         iSplit; first done.

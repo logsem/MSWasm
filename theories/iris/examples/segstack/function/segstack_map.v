@@ -72,7 +72,7 @@ Definition map_loop_body :=
     BI_get_local 2 ;
     BI_segload T_i32 ;
     BI_get_local 1 ;
-    BI_call_indirect 1 ;
+    BI_call_indirect 3 ;
     BI_segstore T_i32 ;
 
     (* Keep the loop alive *)
@@ -267,7 +267,7 @@ Lemma spec_map_loop_body_continue f (s: list i32) v hj E j fn (sv: i32) j0 a cl
         ⌜ s !! (N.to_nat j) = Some sv ⌝ ∗
         isStack v s ∗
         Φ sv ∗
-            ⌜ f.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
 
             ⌜ f.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
@@ -571,7 +571,7 @@ Lemma spec_map_loop_j f (s: list i32) v hj E j fn j0 a cl
         isStack v (take (N.to_nat j) s ++ s') ∗
         stackAll (take (N.to_nat j) s) Φ ∗
         stackAll2 (drop (N.to_nat j) s) s' Ψ ∗
-            ⌜ f.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
             ⌜ f.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl ∗
@@ -768,7 +768,7 @@ Lemma spec_stack_map (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) E
             ⌜ length f0.(f_locs) >= 4 ⌝ ∗
             isStack v s ∗
             stackAll s Φ ∗
-            ⌜ f0.(f_inst).(inst_types) !! 1 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
+            ⌜ f0.(f_inst).(inst_types) !! 3 = Some (Tf [T_i32] [T_i32]) ⌝ ∗
             ⌜ f0.(f_inst).(inst_tab) !! 0 = Some j0 ⌝ ∗
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl ∗

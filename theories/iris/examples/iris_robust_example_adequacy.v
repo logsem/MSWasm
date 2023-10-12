@@ -89,7 +89,7 @@ Section adequacy.
       iMod (@na_alloc Σ na_invg) as (logrel_nais) "Hna".
       pose wasmg := WasmG Σ Hinv func_heapg tab_heapg tabsize_heapg 
                       tablimit_heapg mem_heapg memsize_heapg memlimit_heapg
-                      γseg seg_heapg segsize_heapg seglimit_heapg γall all_heapg 
+                      γseg seg_heapg γall all_heapg 
                           global_heapg frame_heapg γframe.
       pose visgg := HVisG Σ vis_heapg γvis.
       pose msgg := HMsG Σ ms_heapg γms.

@@ -23,7 +23,6 @@ Definition value_of_int (n:Z) := VAL_int32 (Wasm_int.int_of_Z i32m n).
 
 Definition u32const (n:N) := BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n))).
 Definition value_of_uint (n:N) := VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n)).
-Definition value_of_Z (n:Z) := VAL_int32 (Wasm_int.int_of_Z i32m n).
 Definition value_of_handle (h: handle) := VAL_handle h.
 
 (* Some useful constants *)
@@ -703,161 +702,89 @@ Qed.
 
 *)
 
-  (*
-Lemma stack_load_0 v s n f E:
-  ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ -∗
-  isStack v s n -∗
-  ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint v)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
-  {{ w, ⌜ w = immV [value_of_uint (v + (N.of_nat (length s) * 4))] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
-Proof.
-  iIntros "%Hinstmem Hs Hf" => /=.
-  
-  iDestruct (stack_pure with "Hs") as "(%Hdiv & %Hvb & %Hlens & Hs)".
-  
-  iApply (wp_wand with "[Hs Hf]").
-  iApply wp_load => //; last first.
-  { unfold isStack.
-    iDestruct "Hs" as "(% & % & % & Hn & Hrest)".
-    iDestruct (i32_wms with "Hn") as "Hn".
-    rewrite N.add_0_r.
-    simpl.
-    rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-    rewrite Z.mod_small; last by unfold ffff0000 in Hvb; rewrite u32_modulus; lia.
-    unfold bits.
-    instantiate (1 := VAL_int32 _) => /=.
-    rewrite N2Z.id.
-    iFrame.
-    iNext.
-    instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ _)%I) => /=.
-    iSplit => //.
-    by iApply "Hrest".
-  }
-  { done. }
-  { iIntros (w) "(((-> & Hrest) & Hn) & Hf)".
-    iSplit => //.
-    iFrame.
-    repeat iSplit => //=.
-    rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-    rewrite Z.mod_small; last by unfold ffff0000 in Hvb; rewrite u32_modulus; lia.
-    rewrite N.add_0_r.
-    rewrite N2Z.id.
-    by iApply i32_wms.
-  }
-Qed.
-
-Lemma stack_load_0_alt v s n f E k:
-  ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ -∗
-  ⌜ k = (v + N.of_nat (length s) * 4)%N ⌝ -∗
-  isStack v s n -∗
-  ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint v)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
-  {{ w, ⌜ w = immV [value_of_uint k] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
-Proof.
-  iIntros "%Hinstmem %Hk Hs Hf" => /=.
-  subst k.
-  by iApply (stack_load_0 with "[] [$] [$]").
-Qed.
-
-*)
-
   Lemma map_fst_map_pair { A B } (l: list A) (x : B) :
     map fst (map (fun y => (y, x)) l) = l.
   Proof.
     induction l => //=.
     by rewrite IHl.
-  Qed. 
-
-  
-Lemma stack_load_j v s f E j sv:
-  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
-  ⌜ (j < N.of_nat (length s))%N ⌝ -∗
+  Qed.   
+Lemma stack_load_0 v s f E:
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_Z (length s * 4 - 4 * Z.of_N j))); AI_basic (BI_const (value_of_handle v)) ; AI_basic BI_handleadd ; AI_basic (BI_segload T_i32)] @ E
-  {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
+  WP [AI_basic (BI_const (value_of_handle v)); AI_basic (BI_segload T_i32)] @ E
+  {{ w, ⌜ w = immV [value_of_uint (N.of_nat (length s) * 4)] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
-  iIntros "%Hsv %Hjbound Hs Hf" => /=.
-
-(*  iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlen)". *)
-  iDestruct "Hs" as "(%Hoff & %Hbound & %Hvalid & %Hlen & Ha & Hbase & Hs & Hrest)". 
-(*  iDestruct (stack_pure with "Hs") as "(%Hdiv & %Hvb & %Hlens & Hs)". *)
+  iIntros "Hs Hf" => /=.
  
-   assert (j < 16384)%N as Hjb; first by unfold two14 in Hlen; lia. 
-   assert (4 + 4 * j ≤ N.of_nat (length s) * 4)%N as Hjb''; first lia.
-   (*  assert (Wasm_int.Int32.min_signed ≤ -4 - 4 * Z.of_N j ≤ Wasm_int.Int32.max_signed)%Z
-    as Hjb'.
-  {  unfold Wasm_int.Int32.min_signed, Wasm_int.Int32.max_signed.
-    unfold Wasm_int.Int32.half_modulus, Wasm_int.Int32.modulus.
-    unfold Wasm_int.Int32.wordsize.
-    unfold Integers.Wordsize_32.wordsize.
-    unfold two_power_nat. simpl. unfold Z.div. simpl. lias. }
-  *)                                                                                  
-   assert ( (-2147483648 ≤ length s * 4 - 4 * Z.of_N j ≤ 2147483647)%Z) as Hjb'.
-   {  unfold two14 in Hlen. lia. }
-  rewrite separate3. iApply wp_seq.
-  iSplitR; last first.
-  iSplitL "Hf".
-  { iApply (wp_wand with "[Hf]").
-    iApply (wp_handleadd with "Hf").
-    unfold handle_add. rewrite Hoff.
-    simpl. rewrite wasm_int_signed => //.
-    rewrite Z.add_0_l.
-    assert (0 <= length s * 4 - 4 * Z.of_N j)%Z as Hleq; first lia.
-(*    assert (0 <= Z.of_N (N.of_nat (length s) * 4) +
-               Wasm_int.Z_of_sint i32m (Wasm_int.int_of_Z i32m (-4 - 4 * Z.of_N j)))%Z as Hleq.
-    { simpl. rewrite wasm_int_signed; last lia. 
-   (*   assert (j + 1 <= N.of_nat (length s))%N. lia.
-      assert (4 + 4 * j <= N.of_nat (length s) * 4)%N. lia. *) 
-      replace (-4 - 4 * Z.of_N j)%Z with (- (4 + 4 * Z.of_N j))%Z; last lia.
-      apply Zle_left. 
-      assert (Z.of_N (4 + 4 * j) <= Z.of_N (N.of_nat (length s) * 4))%Z. lia.  
-      replace (Z.of_N (4 + 4 * j))%Z with (4 + 4 * Z.of_N j)%Z in H; last lia.
-      apply Zle_left in H. lia.
-      exact H. } *)
-    apply Z.geb_le in Hleq. rewrite Hleq. done.
-    by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
-    iIntros (w) "[-> Hf]".
-    instantiate (1 := λ v, (⌜ v = immV _ ⌝ ∗ ↪[frame] f)%I).
-    iFrame. done. }
-  2: by iIntros "[% _]".
-  iIntros (w) "[-> Hf]".
-  iSimpl.
-  (* rewrite wasm_int_signed; last lia. *)
-(*   rewrite Wasm_int.Int32.signed_repr => //. *)
+  iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlen)".
   
-  iApply (wp_wand with "[Hf Hs Ha]").
+  iApply (wp_wand with "[Hs Hf]").
+  iApply wp_segload => //; last first.
+  { unfold isStack.
+    iDestruct "Hs" as "(_ & _ & _ & _ & Hid & Hbase & Hrest)".
+    iDestruct (i32_wss with "Hbase") as "Hbase".
+    unfold handle_addr; rewrite Hoff N.add_0_r.
+    iFrame.
+    instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
+    iSplit; first done. iExact "Hrest".
+  }
+  { rewrite Hoff Hbound; done. }
+  { rewrite map_fst_map_pair. instantiate (1 := VAL_int32 _). done. }
+  { done. } 
+  { iIntros (w) "(((-> & Hrest) & Hid & Hbase) & Hf)".
+    iSplit => //.
+    iFrame.
+    repeat iSplit => //=.
+    unfold handle_addr; rewrite Hoff N.add_0_r.
+    by iApply i32_wss.
+  }
+Qed.
+
+Lemma stack_load_0_alt v s f E k:
+  ⌜ k = (N.of_nat (length s) * 4)%N ⌝ -∗
+  isStack v s -∗
+  ↪[frame] f -∗
+  WP [AI_basic (BI_const (value_of_handle v)); AI_basic (BI_segload T_i32)] @ E
+  {{ w, ⌜ w = immV [value_of_uint k] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
+Proof.
+  iIntros "%Hk Hs Hf" => /=.
+  subst k.
+  by iApply (stack_load_0 with "[$] [$]").
+Qed.
+
+
+Lemma stack_load_j v s f E j sv h:
+  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
+                          ⌜ handle_add v (length s * 4 - 4 * Z.of_N j) = Some h ⌝ -∗
+  isStack v s -∗
+  ↪[frame] f -∗
+  WP [AI_basic (BI_const (value_of_handle h)); AI_basic (BI_segload T_i32)] @ E {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
+Proof.
+  iIntros "%Hsv %Hadd Hs Hf" => /=.
+  iDestruct "Hs" as "(%Hoff & %Hbound & %Hvalid & %Hlen & Ha & Hbase & Hs & Hrest)".
+  unfold handle_add in Hadd. destruct (_ >=? _)%Z eqn:Hz => //.
+  inversion Hadd; subst. 
+   iApply (wp_wand with "[Hf Hs Ha]").
   { iApply wp_segload => //; last first.
     - iFrame. 
       iDestruct (big_sepL_lookup_acc with "Hs") as "(Hj & Hcrest)" => //.
       unfold handle_addr, handle_add. rewrite N2Nat.id.
-      iSimpl.
+      iSimpl. rewrite Hoff Z.add_0_l. 
       assert (base v + Z.to_N (length s * 4 - 4 * Z.of_N j) =
                 base v + N.of_nat (length s) * 4 - 4 * j)%N as H; first lia.
-(*      assert (base v + Z.to_N (Z.of_N (N.of_nat
-                        (length s) * 4) +
-                                 (-4 - 4 * Z.of_N j))
-              = base v + N.of_nat (length s) * 4 -4 - 4 * j)%N; last first. *)
       rewrite H. 
-      iSplitR "Hj"; last first.
+      iSplitL "Hcrest"; last first.
       iApply i32_wss. done.
       instantiate (2 := λ v, (⌜ v = immV _ ⌝ ∗ (↦[i32][ _ ] _ -∗ _))%I).
       iFrame. done. 
-    - simpl. rewrite Hbound. unfold two14 in Hlen.
-      assert (Z.to_N (length s * 4 - 4 * Z.of_N j) <= Z.to_N (length s * 4))%N; first lia.
-      (*
-      assert (Z.of_N (N.of_nat (length s) * 4) + (- 4 - 4 * Z.of_N j) <= Z.of_N (N.of_nat (length s) * 4 - 4 ))%Z. lia. *) 
-      assert (Z.to_N (length s * 4) <= 65532)%N; first lia.
-(*      assert (Z.of_N (N.of_nat (length s) * 4 - 4) <= 65532)%Z. lia.  *)
-      specialize (N.le_trans _ _ _ H H0) as H1.
-      
-      remember (Z.to_N _) as x. clear - H1. lia. 
+    - simpl. rewrite Hbound. unfold two14 in Hlen. rewrite Hoff Z.add_0_l.
+      remember (length s) as x. rewrite - Heqx. lia.
     - rewrite map_fst_map_pair. instantiate (1 := VAL_int32 _) => //. 
     - done.
   } 
   iIntros (w) "[[[-> Hs] [Ha Hj]] Hf]". 
   iSplit => //.
-  iDestruct (i32_wss with "Hj") as "Hj".
+  iDestruct (i32_wss with "Hj") as "Hj". iFrame. rewrite Hoff Z.add_0_l.
   replace (base v + N.of_nat (length s) * 4 - 4 *j)%N
     with (handle_addr {|
                      base := base v;
@@ -870,85 +797,46 @@ Proof.
   iDestruct ("Hs" with "Hj") as "Hs".
   iFrame.
   repeat iSplit => //.
-(*  iApply big_sepL_mono; last first. iExact "Hs".
-  iIntros (k y Hk) "Hk".
-  replace (base v + N.of_nat (length s) * 4 - 4 - 4 * N.of_nat k)%N
-    with (handle_addr v - 4 - 4 * N.of_nat k)%N.
-  iFrame. 
-  unfold handle_addr.
-  lias. *)
   unfold handle_addr => /=.
-  fold (4 * j)%N.
-  assert (length s * 4 - 4 * Z.of_N j = length s * 4 + - Z.of_N (4 * j))%Z; first lia.
-  rewrite H. 
-(*  replace (length s * 4 - 4 * Z.of_N j)%Z with (length s * 4 + - Z.of_N (4 * j))%Z; last lia. *)
-  rewrite Z.add_opp_r.
-  rewrite Z2N.inj_sub => //; last lia. rewrite N2Z.id. rewrite N.add_sub_assoc => //.
-  replace (Z.to_N (length s * 4)) with (N.of_nat (length s) * 4)%N.
-  done. lia. lia.
+  fold (4 * j)%N. 
+  remember (length s) as x. rewrite - Heqx. lia.
 Qed.
-(*
-Lemma stack_load_j_alt v s n f E j k sv:
-  ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ -∗
-  ⌜ k = (v + N.of_nat (length s) * 4 - 4 * j)%N ⌝ -∗
-  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
-  ⌜ (0 <= j < N.of_nat (length s))%N ⌝ -∗
-  isStack v s n -∗
-  ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint k)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
-  {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
-Proof.
-  iIntros "%Hinstmem %Hk %Hsv %Hjbound Hs Hf" => /=.
-  subst k.
-  by iApply (stack_load_j with "[] [] [] [$] [$]").
-Qed.
-*)
 
-Lemma stack_store_j v (s: list i32) f E j sv (v0: i32):
+
+  
+Lemma stack_load_j_handle_add v s f E j sv:
   ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
   ⌜ (j < N.of_nat (length s))%N ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_Z (length s *  4 - 4 * Z.of_N j)));
-      AI_basic (BI_const (value_of_handle v)) ;
-      AI_basic BI_handleadd ;
-      AI_basic (BI_const (VAL_int32 v0));
-      AI_basic (BI_segstore T_i32)] @ E
-  {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) ∗ ↪[frame] f }}.
+  WP [AI_basic (BI_const (value_of_int (length s * 4 - 4 * Z.of_N j))); AI_basic (BI_const (value_of_handle v)) ; AI_basic BI_handleadd ; AI_basic (BI_segload T_i32)] @ E
+  {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hsv %Hjbound Hs Hf" => /=.
-  iDestruct "Hs" as "(%Hoff & %Hbound & %Hvalid & %Hlen & Ha & Hbase & Hs & Hrest)".
-(*  iDestruct (stack_pure with "Hs") as "(%Hdiv & %Hvb & %Hlens & Hs)". *)
+  iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlen)". 
 
-
-  assert (j <= 16383)%N as Hjb; first by unfold two14 in Hlen; lia.
-   assert (4 + 4 * j ≤ N.of_nat (length s) * 4)%N as Hjb''; first lia.
-(*  assert (Wasm_int.Int32.min_signed ≤ -4 - 4 * Z.of_N j ≤ Wasm_int.Int32.max_signed)%Z
-    as Hjb'.
-  {  unfold Wasm_int.Int32.min_signed, Wasm_int.Int32.max_signed.
-    unfold Wasm_int.Int32.half_modulus, Wasm_int.Int32.modulus.
-    unfold Wasm_int.Int32.wordsize.
-    unfold Integers.Wordsize_32.wordsize.
-    unfold two_power_nat. simpl. unfold Z.div. simpl. lias. } *)
-  assert ( (-2147483648 ≤ length s * 4 - 4 * Z.of_N j ≤ 2147483647)%Z) as Hjb'.
+   assert ( (-2147483648 ≤ length s * 4 - 4 * Z.of_N j ≤ 2147483647)%Z) as Hjb'.
    {  unfold two14 in Hlen. lia. }
+   assert (handle_add v (length s * 4 - 4 * Z.of_N j) =
+  Some
+    {|
+      base := base v;
+      offset := Z.to_N (length s * 4 - 4 * Z.of_N j);
+      bound := bound v;
+      valid := valid v;
+      id := id v
+    |}) as Hadd.
+   {  unfold handle_add. rewrite Hoff.
+      simpl. 
+      rewrite Z.add_0_l.
+      assert (0 <= length s * 4 - 4 * Z.of_N j)%Z as Hleq; first lia.
+      apply Z.geb_le in Hleq. rewrite Hleq. done. } 
   rewrite separate3. iApply wp_seq.
   iSplitR; last first.
   iSplitL "Hf".
   { iApply (wp_wand with "[Hf]").
     iApply (wp_handleadd with "Hf").
-    unfold handle_add. rewrite Hoff.
     simpl. rewrite wasm_int_signed => //.
-    rewrite Z.add_0_l.
-    assert (0 <= length s * 4 - 4 * Z.of_N j)%Z as Hleq; first lia.
-(*    assert (0 <= Z.of_N (N.of_nat (length s) * 4) +
-               Wasm_int.Z_of_sint i32m (Wasm_int.int_of_Z i32m (-4 - 4 * Z.of_N j)))%Z as Hleq.
-    { simpl. rewrite wasm_int_signed; last lia. 
-      replace (-4 - 4 * Z.of_N j)%Z with (- (4 + 4 * Z.of_N j))%Z; last lia.
-      apply Zle_left.
-      assert (Z.of_N (4 + 4 * j) <= Z.of_N (N.of_nat (length s) * 4))%Z. lia. 
-      replace (4 + 4 * Z.of_N j)%Z with (Z.of_N (4 + 4 * j))%Z; last lia. exact H. } *)
-    apply Z.geb_le in Hleq. rewrite Hleq. done.
     by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
     iIntros (w) "[-> Hf]".
     instantiate (1 := λ v, (⌜ v = immV _ ⌝ ∗ ↪[frame] f)%I).
@@ -956,32 +844,55 @@ Proof.
   2: by iIntros "[% _]".
   iIntros (w) "[-> Hf]".
   iSimpl.
-    
+  iApply (stack_load_j with "[] [] [$] [$]").
+  done. done. 
+Qed.
+
+
+Lemma stack_load_j_alt v s f E j k sv:
+  ⌜ k = (length s * 4 - 4 * Z.of_N j)%Z ⌝ -∗
+(*  ⌜ k = (N.of_nat (length s) * 4 - 4 * j)%N ⌝ -∗ *)
+  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
+  ⌜ (j < N.of_nat (length s))%N ⌝ -∗
+  isStack v s -∗
+  ↪[frame] f -∗
+  WP [AI_basic (BI_const (value_of_int k)); AI_basic (BI_const (VAL_handle v)); AI_basic BI_handleadd; AI_basic (BI_segload T_i32)] @ E
+  {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
+Proof.
+  iIntros "%Hk %Hsv %Hjbound Hs Hf" => /=.
+  subst k.
+  by iApply (stack_load_j_handle_add with "[] [] [$] [$]").
+Qed.
+
+
+Lemma stack_store_j v (s: list i32) f E j sv (v0: i32) h:
+  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
+  ⌜ handle_add v (length s * 4 - 4 * Z.of_N j) = Some h ⌝ -∗
+  isStack v s -∗
+  ↪[frame] f -∗
+  WP [AI_basic (BI_const (value_of_handle h)) ;
+      AI_basic (BI_const (VAL_int32 v0));
+      AI_basic (BI_segstore T_i32)] @ E
+  {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) ∗ ↪[frame] f }}.
+Proof.
+  iIntros "%Hsv %Hadd Hs Hf" => /=.
+  iDestruct "Hs" as "(%Hoff & %Hbound & %Hvalid & %Hlen & Ha & Hbase & Hs & Hrest)".
+  unfold handle_add in Hadd. destruct (_ >=? _)%Z eqn:Hz => //.
+  inversion Hadd; subst.
   iApply (wp_wand with "[Hs Hf Ha]").
   { iApply wp_segstore => //; last first.
     - iFrame. iDestruct (big_sepL_insert_acc with "Hs") as "(Hj & Hcrest)" => //.
       unfold handle_addr, handle_add. rewrite N2Nat.id.
-      iSimpl.
+      iSimpl. rewrite Hoff Z.add_0_l.
       assert (base v + N.of_nat (length s) * 4 - 4 * j =
-                base v + Z.to_N (length s * 4 - 4 * Z.of_N j))%N; last first.
-(*                Z.to_N (Z.of_N (base v) +
-                        (length s * 4 +
-                           (-4 - 4 * Z.of_N j)))
-              = Z.to_N ( Z.of_N (base v) + length s * 4) -4 - 4 * j)%N; last first. *)
+                base v + Z.to_N (length s * 4 - 4 * Z.of_N j))%N; first lia. 
       rewrite H.
       iSplitR "Hj"; last first.
       iApply i32_wss. done.
       instantiate (1 := λ v, (⌜ v = immV _ ⌝ ∗ (∀ y, ↦[i32][ _ ] _ -∗ _))%I).
-      iFrame. done. lias.
+      iFrame. done. 
     - simpl. rewrite Hbound. unfold two14 in Hlen.
-       assert (Z.to_N (length s * 4 - 4 * Z.of_N j) <= Z.to_N (length s * 4))%N; first lia.
-      (*
-      assert (Z.of_N (N.of_nat (length s) * 4) + (- 4 - 4 * Z.of_N j) <= Z.of_N (N.of_nat (length s) * 4 - 4 ))%Z. lia. *) 
-      assert (Z.to_N (length s * 4) <= 65532)%N; first lia.
-(*      assert (Z.of_N (N.of_nat (length s) * 4 - 4) <= 65532)%Z. lia.  *)
-      specialize (N.le_trans _ _ _ H H0) as H1.
-      
-      remember (Z.to_N _) as x. clear - H1. lia. 
+      rewrite Hoff Z.add_0_l.  remember (length s) as x. rewrite - Heqx. lia.
     - done.
   }
   iIntros (w) "[([-> Hs] & Ha & Hj) Hf]".
@@ -989,29 +900,59 @@ Proof.
   iFrame "Hf".
   repeat iSplit => //.
   { by rewrite insert_length. }
-(*  { by rewrite insert_length. } *)
   repeat rewrite insert_length. 
   iFrame.
-(*  replace (Z.to_N (Z.of_N (base v) + length s * 4) - 4 - 4 * j)%N
-    with (handle_addr ( {|
-                     base := base v;
-                     offset :=
-                       Z.to_N (Z.of_N (N.of_nat (length s) * 4) + (-4 - 4 * Z.of_N j));
-                     bound := bound v;
-                     valid := valid v;
-                     id := id v
-                   |}))%N.  *)
-  iDestruct (i32_wss with "Hj") as "Hj".
+  iDestruct (i32_wss with "Hj") as "Hj". unfold handle_addr; iSimpl in "Hj".
+  rewrite Hoff Z.add_0_l.
   iDestruct ("Hs" with "Hj") as "Hs".
-  done.   (* iApply big_sepL_mono; last iExact "Hs".
-  iIntros (k y Hk) "Hk".
-  replace (base v + N.of_nat (length s) * 4 - 4 -4 * N.of_nat k)%N
-    with (handle_addr v - 4 - 4 * N.of_nat k)%N.
-  done. unfold handle_addr. rewrite Hoff. lias. unfold handle_addr, handle_add. simpl.
-  fold (4 * j)%N.  replace (-4 - 4 * Z.of_N j)%Z with (- Z.of_N (4 + 4 * j))%Z; last lia.
-  rewrite Z.add_opp_r.
-  rewrite - N2Z.inj_sub => //. rewrite N2Z.id. rewrite N.add_sub_assoc => //.
-  lia. *)
+  done.   
+Qed.
+
+Lemma stack_store_j_handle_add v (s: list i32) f E j sv (v0: i32):
+  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
+  ⌜ (j < N.of_nat (length s))%N ⌝ -∗
+  isStack v s -∗
+  ↪[frame] f -∗
+  WP [AI_basic (BI_const (value_of_int (length s *  4 - 4 * Z.of_N j)));
+      AI_basic (BI_const (value_of_handle v)) ;
+      AI_basic BI_handleadd ;
+      AI_basic (BI_const (VAL_int32 v0));
+      AI_basic (BI_segstore T_i32)] @ E
+  {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) ∗ ↪[frame] f }}.
+Proof.
+  iIntros "%Hsv %Hjbound Hs Hf" => /=.
+  iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlen)". 
+
+  assert ( (-2147483648 ≤ length s * 4 - 4 * Z.of_N j ≤ 2147483647)%Z) as Hjb'.
+  {  unfold two14 in Hlen. lia. }
+   assert (handle_add v (length s * 4 - 4 * Z.of_N j) =
+  Some
+    {|
+      base := base v;
+      offset := Z.to_N (length s * 4 - 4 * Z.of_N j);
+      bound := bound v;
+      valid := valid v;
+      id := id v
+    |}) as Hadd.
+   {  unfold handle_add. rewrite Hoff.
+      simpl. 
+      rewrite Z.add_0_l.
+      assert (0 <= length s * 4 - 4 * Z.of_N j)%Z as Hleq; first lia.
+      apply Z.geb_le in Hleq. rewrite Hleq. done. } 
+  rewrite separate3. iApply wp_seq.
+  iSplitR; last first.
+  iSplitL "Hf".
+  { iApply (wp_wand with "[Hf]").
+    iApply (wp_handleadd with "Hf").
+    simpl. rewrite wasm_int_signed => //. 
+    by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
+    iIntros (w) "[-> Hf]".
+    instantiate (1 := λ v, (⌜ v = immV _ ⌝ ∗ ↪[frame] f)%I).
+    iFrame. done. }
+  2: by iIntros "[% _]".
+  iIntros (w) "[-> Hf]".
+  iSimpl.
+  iApply (stack_store_j with "[] [] [$] [$]"). done. done.
 Qed.
 
 (*

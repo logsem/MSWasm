@@ -324,6 +324,9 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         else (s, f, crash_error)
       else (s, f, crash_error)
     | AI_basic (BI_load t None a off) =>
+        if t is T_handle then
+          (s, f, crash_error)
+        else 
       if ves is VAL_int32 k :: ves' then
         expect
           (smem_ind s f.(f_inst))
@@ -452,6 +455,9 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         else (s, f, crash_error)
                
     | AI_basic (BI_load t (Some (tp, sx)) a off) =>
+(*        if t is T_handle then
+          (s, f, crash_error)
+        else  *)
       if ves is VAL_int32 k :: ves' then
         expect
           (smem_ind s f.(f_inst))

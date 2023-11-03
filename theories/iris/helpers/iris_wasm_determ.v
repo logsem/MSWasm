@@ -539,15 +539,20 @@ Section determ.
     - clear IHnnn ; only_one [AI_basic (BI_const v) ; AI_basic (BI_set_global i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; by inversion H0.
     - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
-                              AI_basic (BI_load t None a off)] Hred2 ;
-        inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;
-        rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H1 in H4 ; inversion H4 ;
-        try by subst.
+                              AI_basic (BI_load t None a off)] Hred2.
+        inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
+        rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; inversion H6 ;
+          try by subst.
+        inversion Heqes ; subst ; rewrite H0 in H3 ; inversion H3 ; subst ;
+        rewrite H1 in H4 ; inversion H4 ; subst ; rewrite H2 in H5 ; inversion H5 ;
+          try by subst.
     - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
-                              AI_basic (BI_load t None a off)] Hred2 ;
-        inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;
-        rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H1 in H4 ; inversion H4 ;
-        try by subst.
+                              AI_basic (BI_load t None a off)] Hred2.
+        
+        inversion Heqes ; subst ; rewrite H in H3 ; inversion H3 ; subst ;
+          rewrite H0 in H4 ; inversion H4 ; subst.
+        destruct H1; first by subst. rewrite H1 in H5 ; inversion H5 ;
+          try by subst.
     - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
                               AI_basic (BI_load t (Some (tp, sx)) a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;

@@ -318,7 +318,9 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
       else ret (s, f, crash_error)
     else ret (s, f, crash_error)
 
-    | AI_basic (BI_load t None a off) =>
+  | AI_basic (BI_load t None a off) =>
+      if t is T_handle then
+      ret (s, f, crash_error) else
       if ves is VAL_int32 k :: ves' then
         expect
           (smem_ind s f.(f_inst))
@@ -332,7 +334,10 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
           (ret (s, f, crash_error))
       else ret (s, f, crash_error)
 
-    | AI_basic (BI_load t (Some (tp, sx)) a off) =>
+
+  | AI_basic (BI_load t (Some (tp, sx)) a off) =>
+(*      if t is T_handle then
+              ret (s, f, crash_error) else *)
       if ves is VAL_int32 k :: ves' then
         expect
           (smem_ind s f.(f_inst))
@@ -345,6 +350,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
              else ret (s, f, crash_error))
           (ret (s, f, crash_error))
       else ret (s, f, crash_error)
+
 
 
   | AI_basic (BI_segload T_handle) =>

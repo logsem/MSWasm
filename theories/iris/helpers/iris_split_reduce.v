@@ -224,17 +224,17 @@ Section split_reduce_properties.
     - solve_prim_step_split_reduce_r H4 ([] : seq.seq administrative_instruction)
                                      Heqf0.
       by apply rm_silent, r_set_global ; rewrite <- Heqf0.
-    - solve_prim_step_split_reduce_r H6 [AI_basic (BI_const (wasm_deserialise bs t))]
+    - solve_prim_step_split_reduce_r H7 [AI_basic (BI_const (wasm_deserialise bs t))]
                                      Heqf0.
       rewrite <- Heqf0.
-      by apply rm_silent, (r_load_success a0 H H1).
+      by apply rm_silent, (r_load_success a0 H H1 H2).
     - solve_prim_step_split_reduce_r H6 [AI_trap] Heqf0.
       rewrite <- Heqf0.
       by apply rm_silent, (r_load_failure a0 H H1).
     - solve_prim_step_split_reduce_r H6 [AI_basic (BI_const (wasm_deserialise bs t))]
                                      Heqf0.
       rewrite <- Heqf0 ;
-        by apply rm_silent, (r_load_packed_success a0 H H1).
+        by apply rm_silent, (r_load_packed_success a0 H H1 H2).
     - solve_prim_step_split_reduce_r H6 [AI_trap] Heqf0 ;
         rewrite <- Heqf0 ; by apply rm_silent, (r_load_packed_failure a0 H H1).
     - solve_prim_step_split_reduce_r H8 ([] : seq.seq administrative_instruction) Heqf0.

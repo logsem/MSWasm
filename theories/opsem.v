@@ -251,7 +251,8 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
         supdate_glob s f.(f_inst) i v = Some s' ->
         reduce_silent s f [::AI_basic (BI_const v); AI_basic (BI_set_global i)] s' f [::]
  | r_load_success :
-    forall s i f t bs k a off m,
+   forall s i f t bs k a off m,
+     t <> T_handle ->
       smem_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_mems) i = Some m ->
       load m (Wasm_int.N_of_uint i32m k) off (t_length t) = Some bs ->
@@ -260,10 +261,11 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
     forall s i f t k a off m,
       smem_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_mems) i = Some m ->
-      load m (Wasm_int.N_of_uint i32m k) off (t_length t) = None ->
+      t = T_handle \/ load m (Wasm_int.N_of_uint i32m k) off (t_length t) = None ->
       reduce_silent s f [::AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_load t None a off)] s f [::AI_trap]
   | r_load_packed_success :
     forall s i f t tp k a off m bs sx,
+(*      t <> T_handle -> *)
       smem_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_mems) i = Some m ->
       load_packed sx m (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t) = Some bs ->
@@ -272,7 +274,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
     forall s i f t tp k a off m sx,
       smem_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_mems) i = Some m ->
-      load_packed sx m (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t) = None ->
+(*      t = T_handle \/ *) load_packed sx m (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t) = None ->
       reduce_silent s f [::AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_load t (Some (tp, sx)) a off)] s f [::AI_trap]
   | r_store_success :
     forall t v s i f mem' k a off m,

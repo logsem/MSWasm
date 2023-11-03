@@ -3829,7 +3829,7 @@ Proof.
     assert (be_typing C [::BI_const (wasm_deserialise bs t)] (Tf [::] [:: typeof (wasm_deserialise bs t)])); first by apply bet_const.
     rewrite catA.
     apply bet_weakening_empty_1.
-    rewrite typeof_deserialise in H2. by apply H2.
+    rewrite typeof_deserialise in H3. by apply H3.
   - (* Load Some *)
     convert_et_to_bet.
     replace [::BI_const (VAL_int32 k); BI_load t (Some (tp, sx)) a off] with ([::BI_const (VAL_int32 k)] ++ [::BI_load t (Some (tp, sx)) a off]) in HType => //=.

@@ -1502,7 +1502,8 @@ Proof.
           rewrite v_to_e_is_const_list => /=.
           instantiate (1 := [:: _ ; _]) => //=.
           subst.
-          by apply: rm_silent; apply: r_load_success; eassumption.
+          by apply: rm_silent; apply: r_load_success; try eassumption.
+          
         + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
@@ -1511,7 +1512,71 @@ Proof.
           rewrite v_to_e_is_const_list => /=.
           instantiate (1 := [:: _ ; _]) => //=.
           subst.
-          by apply: rm_silent; apply: r_load_failure; eassumption.
+          apply: rm_silent; apply: r_load_failure; try eassumption.
+          by right.
+              + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ; _]) => //=.
+          subst.
+          by apply: rm_silent; apply: r_load_success; try eassumption.
+        + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ; _]) => //=.
+          subst.
+          apply: rm_silent; apply: r_load_failure; try eassumption.
+          by right.
+        + split; last by subst.
+          exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ; _]) => //=.
+          subst.
+          by apply: rm_silent; apply: r_load_success; try eassumption.
+          
+        + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ; _]) => //=.
+          subst.
+          apply: rm_silent; apply: r_load_failure; try eassumption.
+          by right.
+              + split; last by subst.
+          exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ; _]) => //=.
+          subst.
+          by apply: rm_silent; apply: r_load_success; try eassumption.
+          
+        + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate ( 2 := [:: _]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => /=.
+          instantiate (1 := [:: _ ; _]) => //=.
+          subst.
+          apply: rm_silent; apply: r_load_failure; try eassumption.
+          by right.
+        
+          
       - (** [AI_basic (Segload t)] **)
         unfold run_one_step.
         destruct (v == T_handle) eqn:Hv.

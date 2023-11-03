@@ -769,14 +769,15 @@ Proof.
       simpl in H0. remove_bools_options.
       destruct (load_packed sx m (Wasm_int.N_of_uint i32m s0) off (tp_length tp) (t_length t)) eqn:HLoadResult.
       * exists [::AI_basic (BI_const (wasm_deserialise b t))].
-        by eapply rm_silent, r_load_packed_success; eauto.
+        destruct t; try by eapply rm_silent, r_load_packed_success; eauto.
       * exists [::AI_trap].
         by eapply rm_silent, r_load_packed_failure; eauto.
     + (* Load None *)
       simpl in H0.
       destruct (load m (Wasm_int.N_of_uint i32m s0) off (t_length t)) eqn:HLoadResult.
-      * exists [::AI_basic (BI_const (wasm_deserialise b t))].
-        by eapply rm_silent, r_load_success; eauto.
+      * destruct t; try by eexists [::AI_basic (BI_const (wasm_deserialise b _))];
+                             eapply rm_silent, r_load_success; eauto.
+        eexists. eapply rm_silent, r_load_failure; eauto.
       * exists [::AI_trap].
         by eapply rm_silent, r_load_failure; eauto.
 

@@ -406,6 +406,29 @@ Proof.
     only_one_reduction H. iFrame.
 Qed.
 
+Lemma wp_slice_failure (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h v1 v2 f0 :
+  slice_handle h (Wasm_int.N_of_uint i32m v1) (Wasm_int.N_of_uint i32m v2) = None ->
+  ↪[frame] f0 -∗
+  ▷Φ (trapV) -∗ WP [AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_const (VAL_int32 v1)) ;
+                      AI_basic (BI_const (VAL_int32 v2)) ; AI_basic (BI_slice) ] @ s;
+E {{ w, Φ w ∗ ↪[frame] f0}}.
+Proof.
+  iIntros (Hn) "Hf0 HΦ".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  iSplit.
+  - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
+    exists [ME_empty], [AI_trap], σ, [].
+    destruct σ as [[ws  locs ] inst].
+    unfold iris.prim_step => /=. repeat split => //.
+    apply rm_silent, r_simple ; by eapply rs_slice_failure.
+  - destruct σ as [[ ws  locs ] inst].
+    iIntros "!>" (es σ2 efs HStep) "!>".
+    destruct σ2 as [[ ws'  locs' ] inst'].
+    prim_split κ HStep H.
+    only_one_reduction H. iFrame.
+Qed.
+
 Lemma wp_handleadd (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h h' c f0 :
   handle_add h (Wasm_int.Z_of_sint i32m c) = Some h' ->
   ↪[frame] f0 -∗
@@ -423,6 +446,31 @@ Proof.
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
     apply rm_silent, r_simple ; by eapply rs_handleadd_success.
+  - destruct σ as [[ ws  locs ] inst].
+    iIntros "!>" (es σ2 efs HStep) "!>".
+    destruct σ2 as [[ ws'  locs' ] inst'].
+    prim_split κ HStep H.
+    only_one_reduction H. iFrame.
+Qed.
+
+
+Lemma wp_handleadd_failure (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h c f0 :
+  handle_add h (Wasm_int.Z_of_sint i32m c) = None ->
+  ↪[frame] f0 -∗
+    ▷Φ (trapV) -∗
+    WP [AI_basic (BI_const (VAL_int32 c)) ; 
+        AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
+E {{ w, Φ w ∗ ↪[frame] f0}}.
+Proof.
+  iIntros (Hh) "Hf0 HΦ".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  iSplit.
+  - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
+    eexists [ME_empty], [AI_trap], σ, [].
+    destruct σ as [[ws  locs ] inst].
+    unfold iris.prim_step => /=. repeat split => //.
+    apply rm_silent, r_simple ; by eapply rs_handleadd_failure.
   - destruct σ as [[ ws  locs ] inst].
     iIntros "!>" (es σ2 efs HStep) "!>".
     destruct σ2 as [[ ws'  locs' ] inst'].

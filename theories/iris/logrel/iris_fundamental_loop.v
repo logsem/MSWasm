@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -304,7 +304,7 @@ Section fundamental.
   Proof.
     intros IHbe_typing.
     unfold semantic_typing, interp_expression.
-    iIntros (i lh hl).
+    iIntros (i all lh hl).
     iIntros "#Hi".
     
     iDestruct (IHbe_typing $! i (push_base lh (length tn) [AI_basic (BI_loop (Tf tn tm) es)]

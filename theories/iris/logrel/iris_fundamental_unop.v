@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -37,7 +37,7 @@ Section fundamental.
                              ⊢ semantic_typing C (to_e_list [BI_unop t op]) (Tf [t] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hunop i lh hl).
+    iIntros (Hunop i all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]".
     iIntros (f vs) "[Hf Hfv] #Hv".
     iDestruct "Hv" as "[-> | Hv]".

@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -284,7 +284,7 @@ Section fundamental.
   Proof.
     iIntros (Hbasic Ht1 Ht2).
     unfold semantic_typing, interp_expression.
-    iIntros (i lh hl).
+    iIntros (i all lh hl).
     iIntros "#Hi #Hc" (f vs) "[Hf Hfv] #Hv".
     
     iAssert (↪[frame] f -∗

@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -26,7 +26,7 @@ Section fundamental.
   Lemma typing_const C v : ⊢ semantic_typing C (to_e_list [BI_const v]) (Tf [] [typeof v]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i lh hl).
+    iIntros (i all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]".
     iIntros (f vs) "[Hf Hfv] #Hv".
     iDestruct "Hv" as "[-> | Hv]".

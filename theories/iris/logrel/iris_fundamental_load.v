@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg : cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -97,7 +97,7 @@ Section fundamental.
                         ⊢ semantic_typing C (to_e_list [BI_load t tp_sx a off]) (Tf [T_i32] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hnil Hload i lh hl).
+    iIntros (Hnil Hload i all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
@@ -115,6 +115,7 @@ Section fundamental.
     rewrite nth_error_lookup in Hlook1.
     rewrite nth_error_lookup in Hlook2.
     iApply fupd_wp.
+    iDestruct "Hfv" as "[Halloc Hfv]".
     iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
     iMod (na_inv_acc with "Hm Hown") as "(Hms & Hown & Hcls)";[solve_ndisj..|].
     iDestruct "Hms" as (ms) ">Hmemblock".

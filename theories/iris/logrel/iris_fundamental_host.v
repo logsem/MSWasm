@@ -13,7 +13,7 @@ Require Export iris_logrel iris_fundamental_helpers.
 Import uPred.
 
 Section fundamental.
-  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ, cancelg: cancelG Σ, !cinvG Σ}.
 
     
   Lemma typing_local_host C es τ1 τ2 τs hctx hl :
@@ -30,7 +30,7 @@ Section fundamental.
     iDestruct (interp_instance_change_label [τ2] with "Hi") as "Hi'".
     iDestruct (interp_instance_change_return (Some τ2) with "Hi'") as "Hi''".
     iDestruct (interp_instance_change_local τ1 with "Hi''") as "Hi_final".
-    iSpecialize ("Ht" $! _ (LH_rec [] (length τ2) [] (LH_base [] []) []) with "[$Hi_final] []").
+    iSpecialize ("Ht" $! _ _ (LH_rec [] (length τ2) [] (LH_base [] []) []) with "[$Hi_final] []").
     { unfold interp_ctx. iSimpl. repeat (iSplit;[by auto|]).
       iSplit =>//. unfold interp_ctx_continuation.
       iSimpl. iExists _,_,_,_,_,(LH_base [] []). iSplit;[eauto|].

@@ -13,7 +13,7 @@ Require Export iris_logrel iris_fundamental_helpers.
 Import uPred.
 
 Section fundamental.
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
 
     
   Lemma typing_local_stuck_host C es τ1 τ2 τs hl :
@@ -64,7 +64,7 @@ Section fundamental.
       iApply wp_label_push_nil.
       iApply wp_label_bind.
       iDestruct ("Ht" $! _ (immV []) with "[$Hf Hown] []") as "Hcont".
-      { iExists _. iFrame. iSplit;eauto. }
+      { iSplitR. { admit. } iExists _. iFrame. iSplit;eauto. }
       { iRight. iExists _. iSplit;eauto. }
       iSimpl in "Hcont". unfold interp_expression.
       iApply (wp_wand with "Hcont").

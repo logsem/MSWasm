@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB:HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB:HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -37,9 +37,9 @@ Section fundamental.
   Qed.
 
   Lemma interp_value_reinterpret t1 w1 :
-    ⊢ interp_value (Σ:=Σ) t1 (wasm_deserialise (bits w1) t1).
+    t1 <> T_handle -> ⊢ interp_value (Σ:=Σ) t1 (wasm_deserialise (bits w1) t1).
   Proof.
-    destruct t1;simpl;eauto.
+    destruct t1;simpl;eauto. done.
   Qed.
     
   (* ----------------------------------------- CVTOP --------------------------------------- *)
@@ -47,7 +47,7 @@ Section fundamental.
   Lemma typing_cvtop_convert C t1 t2 sx : ⊢ semantic_typing C (to_e_list [BI_cvtop t1 CVO_convert t2 sx]) (Tf [t2] [t1]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i lh hl).
+    iIntros (i all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.

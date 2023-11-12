@@ -16,7 +16,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -29,7 +29,7 @@ Section fundamental.
                               ⊢ semantic_typing C (to_e_list [BI_br_if i]) (Tf (ts ++ [T_i32]) ts).
   Proof.
     iIntros (Hleq Hlookup) "".
-    iIntros (j lh hl).
+    iIntros (j all lh hl).
     iIntros "#Hi #Hc" (f vs) "[Hf Hfv] #Hv".
     unfold interp_expression.
     

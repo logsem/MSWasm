@@ -1,9 +1,9 @@
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
 From iris.program_logic Require Import language.
 From iris.proofmode Require Import base tactics classes.
-From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants.
+From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants cancelable_invariants.
 From iris.base_logic.lib Require Export fancy_updates.
-From iris.algebra Require Import list.
+From iris.algebra Require Import list agree auth gmap.
 From iris.prelude Require Import options.
 
 Require Export iris_properties iris_atomicity.
@@ -13,17 +13,30 @@ Import uPred.
 Definition wf : string := "wfN".
 Definition wt : string := "wtN".
 Definition wm : string := "wmN".
+Definition ws : string := "wsN".
 Definition wg : string := "wgN".
 Definition wfN (a : N) : namespace := nroot .@ wf .@ a.
 Definition wtN (a b: N) : namespace := nroot .@ wt .@ a .@ b.
 Definition wmN (a: N) : namespace := nroot .@ wm .@ a.
+Definition wsN (a: N) : namespace := nroot .@ ws .@ a.
 Definition wgN (a: N) : namespace := nroot .@ wg .@ a.
 
 Close Scope byte_scope.
 
+Definition relUR := gmapUR N (agreeR (leibnizO gname)).
+Definition relT := gmap N (leibnizO gname).
+
+Class cancelG Σ := CancelG {
+                   (*    cancelG_invG : cinvG Σ; *)
+                       cancelG_inv_tokens :> ghost_mapG Σ N gname; (* inG Σ (authR relUR); *)
+                       γtoks : gname; 
+                     }.
+
+
 Section logrel.
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, cancelg: cancelG Σ, 
+(*      !ghost_mapG Σ N gname, *) !cinvG Σ, HHB: HandleBytes}.
 
   
   Definition xb b := (VAL_int32 (wasm_bool b)).
@@ -42,6 +55,8 @@ Section logrel.
   Notation TR := ((leibnizO N) -n> iPropO Σ).
   Notation TeR := ((leibnizO N) -n> (leibnizO N) -n> iPropO Σ).
   Notation MR := ((leibnizO N) -n> iPropO Σ).
+  Notation SR := ((leibnizO ()) -n> iPropO Σ).
+  Notation ALLR := ((leibnizO allocator) -n> iPropO Σ).
   Notation GR := ((leibnizO N) -n> iPropO Σ).
   Notation IR := ((leibnizO instance) -n> iPropO Σ).
   Notation BR := ((leibnizO val) -n> (leibnizO lholed) -n> (leibnizO (list (list value_type))) -n> iPropO Σ).
@@ -67,6 +82,8 @@ Section logrel.
   Implicit Types τc : list (list value_type).
   Implicit Types τt : table_type.
   Implicit Types τm : memory_type.
+  Implicit Types τseg : segment_type.
+  Implicit Types τa : allocator_type.
   Implicit Types τg : global_type.
   Implicit Types τctx : t_context.
 
@@ -79,8 +96,103 @@ Section logrel.
   Definition interp_value_i64 : WR := λne w, ⌜∃ z, w = VAL_int64 z⌝%I.
   Definition interp_value_f32 : WR := λne w, ⌜∃ z, w = VAL_float32 z⌝%I.
   Definition interp_value_f64 : WR := λne w, ⌜∃ z, w = VAL_float64 z⌝%I.
-  Definition intepr_value_handle: WR := λne w, ⌜∃ z, w = VAL_handle z⌝%I. (* Probably not strong enough. Define an invt with a points-to inside *)
-      
+
+
+  Definition gamma_id_white (γ: gname) (id: N): iProp Σ :=
+    (*  (own γtoks (◯ {[ id := to_agree γ]}))%I.  *)
+    (id ↪[γtoks]□ γ)%I.
+  Definition gamma_id_black (f: relT) : iProp Σ := 
+    (*   (own γtoks (● (to_agree <$> f : relUR)))%I. *)
+    (ghost_map_auth γtoks 1%Qp f).
+  Lemma gamma_agree γ id (f: relT):
+    ⊢ gamma_id_white γ id -∗ gamma_id_black f -∗ ⌜ f !! id = Some γ ⌝.
+  Proof.
+    iIntros "Hw Hb".
+    iDestruct (ghost_map_lookup with "Hb Hw") as %Hv.
+    done.
+  Qed.
+(*  iDestruct (own_valid_2 with "Hb Hw") as %Hv.
+    iPureIntro.
+    apply auth_both_valid in Hv as [Hv1 Hv2].
+    specialize (Hv2 id).
+    assert ({[ id := to_agree γ]} ≼ to_agree <$> f) as Hv3.
+    { admit. }
+    Search "singleton_included". ghost_map
+    apply singleton_included_l in Hv3 as (y & Heq & Hi).
+    revert Hv2; rewrite Heq => Hv2.
+    revert Hi; rewrite Some_included_total => Hi.
+    apply to_agree_uninj in Hv2 as [y' Hy].
+    revert Hi Heq; rewrite -Hy => Hi Heq.
+    apply to_agree_included in Hi; subst.
+    revert Heq; rewrite -Hi => Heq.
+    revert Heq; rewrite lookup_fmap fmap_Some_equiv => Heq.
+    destruct Heq as (x & Heq & Hrx).
+    rewrite Heq. apply to_agree_inj, leibniz_equiv_iff in Hrx.
+    rewrite - Hrx. done.
+  Admitted. *)
+    
+
+  Definition interp_value_handle_0 (ivh: WR) :=
+    (λne w,
+      (∃ (h : handle) γ base' bound',
+          (* There exists a handle and a γ, such that *)
+          ⌜ w = VAL_handle h ⌝ ∗ gamma_id_white γ (id h) ∗
+          (* There exists a greater range, such that *)
+          ⌜ (base' <= base h)%N ⌝ ∗
+          ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
+          (* We have as an invariant, that *)
+          cinv (wsN (id h)) γ (∃ tbs,
+              (* We own some bytes in segment memory covering that greater range *)
+              ⌜ length tbs = N.to_nat bound' ⌝ ∗
+              ↦[wss][base'] tbs ∗
+              (* And for all addresses that might store a handle, *)
+              ∀ addr, ⌜ (N.modulo (base' + addr) handle_size = 0 /\ base' + addr + handle_size < bound' )%N ⌝ -∗
+                  (* Either that address has at least one byte tagged as non-handle *)
+                  ⌜ exists addr' (b: byte), (addr' < handle_size)%N  /\
+                       tbs !! (N.to_nat (addr + addr')%N) = Some (b, Numeric) ⌝ ∨
+                   (* Or the handle stored is valid *)
+                   ivh (VAL_handle (handle_of_bytes (map fst (take (N.to_nat handle_size) (drop (N.to_nat addr) tbs))))) 
+          )
+      )%I).
+  
+(*  Definition align a b: N := (a / b) * b.
+  Definition handle_addresses_sound l z :=
+    Forall (fun x => (N.modulo x handle_size = 0 /\
+                     x >= base z /\
+                     x + handle_size <= bound z)%N) l.
+  Definition numeric_invariants l z : iProp Σ :=
+    ([∗ list] a ∈ iota (N.to_nat (base z)) (N.to_nat (bound z)),
+      ⌜ In (align (N.of_nat a) handle_size) l ⌝ ∨
+        ∃ γ, cinv_own γ 1%Qp ∗ cinv (wsN (N.of_nat a)) γ (∃ b, ↦[ws][ N.of_nat a ] b))%I.
+  Definition interp_value_handle_0 (ivh : WR) := (λne w,
+                                                   (∃ (z : handle) (l : seq.seq N),
+          ⌜w = VAL_handle z⌝ ∗
+                 ⌜ handle_addresses_sound l z ⌝ ∗
+                 numeric_invariants l z ∗
+                 [∗ list] a ∈ l, ∃ γ, cinv_own γ 1%Qp ∗ cinv (wsN a) γ (∃ bs (w' : handle),
+                                       ⌜ length bs = N.to_nat handle_size ⌝ ∗
+                                       ⌜ handle_of_bytes bs = w' ⌝ ∗
+                                       ↦[wss][ a ] map (fun x => (x, Handle)) bs ∗
+                                       ivh (VAL_handle w'))
+      )%I). *)
+
+  Global Instance interp_value_handle_contractive :
+    Contractive (interp_value_handle_0).
+  Proof. solve_contractive. Qed. 
+
+  Definition interp_value_handle : WR := fixpoint interp_value_handle_0.
+  Lemma fixpoint_interp_value_handle_eq (v : value) :
+    interp_value_handle v ≡ interp_value_handle_0 interp_value_handle v.
+  Proof. exact : (fixpoint_unfold interp_value_handle_0). Qed.
+
+  
+  Definition interp_allocator : ALLR :=
+    λne (all: leibnizO allocator), (∃ (f: relT), gamma_id_black f ∗
+       ([∗ map] id ↦ γ ∈ f, ∃ x, ⌜ all.(allocated) !! id = Some x ⌝ ∗ id ↣[allocated] x ∗ cinv_own γ 1%Qp))%I.
+(*       ∀ id γ, ⌜ f !! id = Some γ ⌝ -∗ ⌜ isSome (all.(allocated) !! id) ⌝ ∗ cinv_own γ 1%Qp)%I. *)
+                                                     
+(*      ∀ id, ⌜ all.(allocated) !! id = Some x ⌝ -∗
+        ∃ γ, ⌜ f !! id = Some γ ⌝ ∗ cinv_own γ 1%Qp)%I. *)
 
    Definition interp_value (τ : value_type) : WR :=
     match τ return _ with
@@ -88,7 +200,7 @@ Section logrel.
     | T_i64 => interp_value_i64
     | T_f32 => interp_value_f32
     | T_f64 => interp_value_f64
-    | T_handle => intepr_value_handle
+    | T_handle => interp_value_handle
     end.
 
   Definition interp_values (τs : result_type) : VR :=
@@ -99,11 +211,11 @@ Section logrel.
 
   (* --------------------------------------------------------------------------------------- *)
   (* ---------------------------------- FRAME RELATION ------------------------------------- *)
-  (* --------------------------------------------------------------------------------------- *)
+  (* --------------------------------------------------------------------------------------- *) 
 
   (* the frame interpretation includes all resources needed by the currently running frame *)
-  Definition interp_frame (τs : result_type) (i : instance) : FR :=
-    λne f, (∃ vs, ⌜f = Build_frame vs i⌝ ∗ interp_val τs (immV vs) ∗ na_own logrel_nais ⊤)%I.
+  Definition interp_frame (τs : result_type) (i : instance) (all: allocator): FR :=
+    λne f, (interp_allocator all ∗ ∃ vs, ⌜f = Build_frame vs i⌝ ∗ interp_val τs (immV vs) ∗ na_own logrel_nais ⊤)%I.
 
   
   (* --------------------------------------------------------------------------------------- *)
@@ -167,11 +279,12 @@ Section logrel.
                                ⌜llholed_basic vh⌝ ∗
                                interp_val τs1 (immV v) ∗
                                (* continuation for when the host function reenters *)
-                               □ (∀ v2 f, interp_val τs2 v2 -∗
+                               □ (∀ v2 f all, interp_val τs2 v2 -∗
+                                                         interp_allocator all -∗
                                         ↪[frame] f -∗ na_own logrel_nais ⊤ -∗
                                         WP llfill vh (iris.of_val v2)
-                                        {{ vs, (interp_val τ2 vs
-                                                ∨ ▷ interp_call_host' vs) ∗ ↪[frame] f ∗ na_own logrel_nais ⊤ }}
+                                        {{ vs, ((* a later is necessary now that interp_handle is non pure *) ▷ interp_val τ2 vs
+                                                ∨ ▷ interp_call_host' vs) ∗ interp_allocator all ∗ ↪[frame] f ∗ na_own logrel_nais ⊤ }}
                                ))
     )%I.
 
@@ -242,7 +355,10 @@ Section logrel.
   Definition interp_mem : MR :=
     λne n, (na_inv logrel_nais (wmN n) (∃ (mem : memory),
                                            ([∗ list] i ↦ b ∈ (mem.(mem_data).(ml_data)), n ↦[wm][ (N.of_nat i) ] b) ∗
-                                           n ↦[wmlength] mem_length mem))%I.
+                                             n ↦[wmlength] mem_length mem))%I.
+
+
+            
   
   (* --------------------------------------------------------------------------------------- *)
   (* --------------------------------- GLOBALS RELATION ------------------------------------ *)
@@ -315,10 +431,26 @@ Section logrel.
     destruct i, τctx;simpl.
     repeat apply sep_persistent;apply _.
   Qed.
+
+  Global Instance interp_value_handle_0_persistent (ivh: WR) vs :
+    (forall vs, Persistent (ivh vs)) -> Persistent (interp_value_handle_0 ivh vs).
+  Proof.
+    intros H. apply _.
+  Qed.
+
+(*   Global Instance interp_val_handle_0_timeless ivh v :
+    (forall v0, Timeless (ivh v0)) -> Timeless (interp_value_handle_0 ivh v). *)
+
+  Global Instance interp_value_handle_persistent vs : Persistent (interp_value_handle vs).
+  Proof.
+    rewrite fixpoint_interp_value_handle_eq.
+    apply _.
+  Qed. 
+  
   Global Instance interp_value_persistent τ vs : Persistent (interp_value τ vs).
   Proof.
-    unfold interp_value. destruct τ;apply _.
-  Qed.
+    unfold interp_value. destruct τ;try apply _.
+  Qed. 
   Global Instance interp_val_persistent τr vs : Persistent (interp_val τr vs).
   Proof.
     unfold interp_val, interp_value. apply or_persistent; [apply _|].
@@ -326,17 +458,18 @@ Section logrel.
     apply sep_persistent;[apply _|].
     apply big_sepL2_persistent =>n ? xx.
     destruct xx;apply _.
-  Qed.
+  Qed. 
   Global Instance interp_call_host_cls_persistent hl t v : Persistent (interp_call_host_cls hl t v).
-  Proof. rewrite fixpoint_interp_call_host_cls_eq. cbn.
+  Proof.
+    rewrite fixpoint_interp_call_host_cls_eq. cbn.
          repeat ((apply exist_persistent =>?) +
                    apply sep_persistent + apply or_persistent).
          all: try apply _.
-  Qed.
+  Qed. 
          
 
   Global Instance interp_instance_persistent τctx hl i : Persistent (interp_instance τctx hl i).
-  Proof.
+  Proof. 
     apply interp_instance_persistent'.
     all: intros. all: unfold interp_closure. all: simpl.
     all: destruct cl,f; try apply sep_persistent;apply _.
@@ -346,7 +479,7 @@ Section logrel.
   (* ------------------------------- EXPRESSION RELATION ----------------------------------- *)
   (* --------------------------------------------------------------------------------------- *)
 
-  Definition interp_call_host_br_def (τl : result_type) (i : instance) (τro : option result_type) (host_list : list (hostfuncidx * function_type))
+  Definition interp_call_host_br_def (τl : result_type) (i : instance) (all: allocator) (τro : option result_type) (host_list : list (hostfuncidx * function_type))
              (interp_call_host_br' : HR * BR) : HR * BR :=
     (λne (w : leibnizO val) (lh : leibnizO lholed) (τc : leibnizO (list (list value_type))) (τ2 : leibnizO result_type),
       (∃ (vh : llholed) (v : seq.seq value) (tf : function_type)
@@ -358,13 +491,13 @@ Section logrel.
                                interp_val τs1 (immV v) ∗
                                (* continuation for when the host function reenters *)
                                □ (∀ v2 f, interp_val τs2 v2 -∗
-                                        ↪[frame] f ∗ interp_frame τl i f -∗
+                                        ↪[frame] f ∗ interp_frame τl i all f -∗
                                         WP llfill vh (iris.of_val v2)
                                         {{ vs, (interp_val τ2 vs
                                                 ∨ ▷ interp_call_host_br'.2 vs lh τc
                                                 ∨ interp_return_option τro τl i vs
                                                 ∨ ▷ interp_call_host_br'.1 vs lh τc τ2)
-                                                 ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i f }}
+                                                 ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}
                                )
                            )%I
                               
@@ -377,14 +510,14 @@ Section logrel.
                                 ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
                                 ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
                                      interp_val (τs'' ++ τs') (immV v) ∗
-                                     ∀ f, ↪[frame] f ∗ interp_frame τl i f -∗
+                                     ∀ f, ↪[frame] f ∗ interp_frame τl i all f -∗
                                            WP of_val (immV (drop (length τs'') v)) ++ [::AI_basic (BI_br (j - p))]
                                            CTX S (lh_depth lh'); LH_rec vs k es lh' es'
                                            {{ vs, ((∃ τs, interp_val τs vs)
                                                    ∨ ▷ interp_call_host_br'.2 vs lh'' (drop (S (j - p)) τc)
                                                    ∨ interp_return_option τro τl i vs
                                                    ∨ ▷ (∃ τs, interp_call_host_br'.1 vs lh'' (drop (S (j - p)) τc) τs))
-                              ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i f }}))%I
+                              ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}))%I
       
     ).
 
@@ -396,7 +529,7 @@ Section logrel.
     destruct n;auto.
   Qed.
   
-  Global Instance interp_call_host_br_def_contractive τl i τto hl : Contractive (interp_call_host_br_def τl i τto hl).
+  Global Instance interp_call_host_br_def_contractive τl i all τto hl : Contractive (interp_call_host_br_def τl i all τto hl).
   Proof.
     solve_proper_prepare.
     destruct x,y.
@@ -429,45 +562,60 @@ Section logrel.
     }
   Defined.
 
-  Definition interp_call_host_br (τl : result_type) (i : instance) (τto : option result_type) (host_list : list (hostfuncidx * function_type)) : HR * BR :=
-    fixpoint (interp_call_host_br_def τl i τto host_list).
+  Definition interp_call_host_br (τl : result_type) (i : instance) all (τto : option result_type) (host_list : list (hostfuncidx * function_type)) : HR * BR :=
+    fixpoint (interp_call_host_br_def τl i all τto host_list).
 
-  Definition interp_call_host (τl : result_type) (i : instance) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
-    := (interp_call_host_br τl i τto host_list).1.
-  Definition interp_br (τl : result_type) (i : instance) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
-    := (interp_call_host_br τl i τto host_list).2.
+  Definition interp_call_host (τl : result_type) (i : instance) all (τto : option result_type) (host_list : list (hostfuncidx * function_type))
+    := (interp_call_host_br τl i all τto host_list).1.
+  Definition interp_br (τl : result_type) (i : instance) all (τto : option result_type) (host_list : list (hostfuncidx * function_type))
+    := (interp_call_host_br τl i all τto host_list).2.
 
-  Lemma fixpoint_interp_br_eq (τc : list (list (value_type))) (τl : result_type) (i : instance) (τto : option result_type)
+  Lemma fixpoint_interp_br_eq (τc : list (list (value_type))) (τl : result_type) (i : instance) all (τto : option result_type)
         (host_list : list (hostfuncidx * function_type)) v lh :
-    interp_br τl i τto host_list v lh τc ≡ (interp_call_host_br_def τl i τto host_list (interp_call_host_br τl i τto host_list)).2 v lh τc.
-  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i τto host_list)). destruct H as [? ?].
+    interp_br τl i all τto host_list v lh τc ≡ (interp_call_host_br_def τl i all τto host_list (interp_call_host_br τl i all τto host_list)).2 v lh τc.
+  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i all τto host_list)). destruct H as [? ?].
          specialize (H0 v lh τc). auto. Qed.
 
-  Lemma fixpoint_interp_call_host_eq lh (τc : list (list (value_type))) (τl : result_type) (i : instance) (τto : option result_type)
+  Lemma fixpoint_interp_call_host_eq lh (τc : list (list (value_type))) (τl : result_type) (i : instance) all (τto : option result_type)
         (host_list : list (hostfuncidx * function_type)) v t2 :
-    interp_call_host τl i τto host_list v lh τc t2 ≡ (interp_call_host_br_def τl i τto host_list (interp_call_host_br τl i τto host_list)).1 v lh τc t2.
-  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i τto host_list)). destruct H as [? ?].
+    interp_call_host τl i all τto host_list v lh τc t2 ≡ (interp_call_host_br_def τl i all τto host_list (interp_call_host_br τl i all τto host_list)).1 v lh τc t2.
+  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i all τto host_list)). destruct H as [? ?].
          specialize (H v lh τc t2). auto. Qed.
   
-  Definition interp_br_body τc lh j p (w : seq.seq value) τl i τto hl : iProp Σ :=
+  Definition interp_br_body τc lh j p (w : seq.seq value) τl i all τto hl : iProp Σ :=
     ∃ τs' vs k es lh' es' lh'' τs'',
       ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
-      ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
+                                                                                 ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
+                                                                                                                            (*    ⌜ length w = length (τs'' ++ τs') ⌝ ∗ *)
       interp_val (τs'' ++ τs') (immV w) ∗
-      ∀ f, ↪[frame] f ∗ interp_frame τl i f -∗
+      ∀ f, ↪[frame] f ∗ interp_frame τl i all f -∗
             WP of_val (immV (drop (length τs'') w)) ++ [::AI_basic (BI_br (j - p))] CTX S (lh_depth lh'); LH_rec vs k es lh' es'
                 {{ vs, ((∃ τs, interp_val τs vs) ∨
-                          ▷ interp_br τl i τto hl vs lh'' (drop (S (j - p)) τc) ∨
+                          ▷ interp_br τl i all τto hl vs lh'' (drop (S (j - p)) τc) ∨
                           interp_return_option τto τl i vs ∨
-                          ▷ (∃ τs, interp_call_host τl i τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
-                         ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i f }}.
+                          ▷ (∃ τs, interp_call_host τl i all τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
+                         ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}.
+
+    Definition interp_br_body_equiv τc lh j p (w : seq.seq value) τl i all τto hl : iProp Σ :=
+    ∃ τs' vs k es lh' es' lh'' τs'',
+      ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
+                                                                                 ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
+                                                                                                                               ⌜ length w = length (τs'' ++ τs') ⌝ ∗ 
+      interp_val (τs'' ++ τs') (immV w) ∗
+      ∀ f, ↪[frame] f ∗ interp_frame τl i all f -∗
+            WP of_val (immV (drop (length τs'') w)) ++ [::AI_basic (BI_br (j - p))] CTX S (lh_depth lh'); LH_rec vs k es lh' es'
+                {{ vs, ((∃ τs, interp_val τs vs) ∨
+                          ▷ interp_br τl i all τto hl vs lh'' (drop (S (j - p)) τc) ∨
+                          interp_return_option τto τl i vs ∨
+                          ▷ (∃ τs, interp_call_host τl i all τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
+                         ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}.
   
   Definition interp_expression (τc : list (list (value_type))) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
-             (τs : result_type) (lh : lholed) (τl : result_type) (i : instance) (es : expr) : iProp Σ :=
+             (τs : result_type) (lh : lholed) (τl : result_type) (i : instance) (all: allocator) (es : expr) : iProp Σ :=
     (WP es {{ vs, (interp_val τs vs
-                   ∨ interp_br τl i τto host_list vs lh τc
+                   ∨ interp_br τl i all τto host_list vs lh τc
                    ∨ interp_return_option τto τl i vs
-                   ∨ interp_call_host τl i τto host_list vs lh τc τs) ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i f }})%I.
+                   ∨ interp_call_host τl i all τto host_list vs lh τc τs) ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }})%I.
   
   
   (* --------------------------------------------------------------------------------------- *)
@@ -495,35 +643,35 @@ Section logrel.
     | _,_ => False
     end.
 
-  Definition interp_ctx_continuation (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (lh : lholed) (k : nat) (τs τl : result_type) (i : instance) : iProp Σ :=
+  Definition interp_ctx_continuation (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (lh : lholed) (k : nat) (τs τl : result_type) (i : instance) (all: allocator) : iProp Σ :=
     (∃ vs j es lh' es' lh'', ⌜get_layer lh ((lh_depth lh) - S k) = Some (vs,j,es,lh',es')⌝ ∧ ⌜lh_depth lh'' = (lh_depth lh) - S k⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∧
-                          (□ ∀ v f, interp_val τs v -∗ ↪[frame] f ∗ interp_frame τl i f -∗
-                                    ∃ τs2, interp_expression (drop (S k) τc) τto hl τs2 lh'' τl i (vs ++ ((of_val v) ++ es) ++ es')))%I.
+                          (□ ∀ v f, interp_val τs v -∗ ↪[frame] f ∗ interp_frame τl i all f -∗
+                                    ∃ τs2, interp_expression (drop (S k) τc) τto hl τs2 lh'' τl i all (vs ++ ((of_val v) ++ es) ++ es')))%I.
   
-  Definition interp_ctx_continuations (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) : CtxR :=
-    λne lh, ([∗ list] k↦τs ∈ τc, interp_ctx_continuation τc τto hl lh k τs τl i)%I.
+  Definition interp_ctx_continuations (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) all : CtxR :=
+    λne lh, ([∗ list] k↦τs ∈ τc, interp_ctx_continuation τc τto hl lh k τs τl i all)%I.
   
-  Definition interp_ctx (τc : list (list value_type)) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) : CtxR :=
+  Definition interp_ctx (τc : list (list value_type)) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) all : CtxR :=
     λne lh, (⌜base_is_empty lh⌝ ∗
              ⌜lholed_lengths (rev τc) lh⌝ ∗
              ⌜lholed_valid lh⌝ ∗
-             interp_ctx_continuations τc τto hl τl i lh
+             interp_ctx_continuations τc τto hl τl i all lh
             )%I.
 
-  Global Instance interp_ctx_continuations_persistent τc τl τto hl i lh : Persistent (interp_ctx_continuations τc τl τto hl i lh).
+  Global Instance interp_ctx_continuations_persistent τc τl τto hl i all lh : Persistent (interp_ctx_continuations τc τl τto hl i all lh).
   Proof. apply _. Qed.
-  Global Instance interp_ctx_persistent τc τto hl τl i lh : Persistent (interp_ctx τc τto τl hl i lh).
+  Global Instance interp_ctx_persistent τc τto hl τl i all lh : Persistent (interp_ctx τc τto τl hl i all lh).
   Proof. apply _. Qed.
 
   Notation IctxR := ((leibnizO instance) -n> (leibnizO lholed) -n> (leibnizO frame) -n> iPropO Σ).
 
   Definition semantic_typing (τctx : t_context) (es : expr) (tf : function_type) : iProp Σ :=
     match tf with
-    | Tf τ1 τ2 => ∀ i lh hl, interp_instance τctx hl i -∗
-                         interp_ctx (tc_label τctx) (tc_return τctx) hl (tc_local τctx) i lh -∗
-                         ∀ f vs, ↪[frame] f ∗ interp_frame (tc_local τctx) i f -∗
+    | Tf τ1 τ2 => ∀ i all lh hl, interp_instance τctx hl i -∗
+                         interp_ctx (tc_label τctx) (tc_return τctx) hl (tc_local τctx) i all lh -∗
+                         ∀ f vs, ↪[frame] f ∗ interp_frame (tc_local τctx) i all f -∗
                                   interp_val τ1 vs -∗
-                                  interp_expression (tc_label τctx) (tc_return τctx) hl τ2 lh (tc_local τctx) i ((of_val vs) ++ es)
+                                  interp_expression (tc_label τctx) (tc_return τctx) hl τ2 lh (tc_local τctx) i all ((of_val vs) ++ es)
     end.
 
   (* --------------------------------------------------------------------------------------- *)
@@ -601,7 +749,7 @@ Class host_program_logic Σ `{HHB: HandleBytes, wasmG Σ} := {
 Notation "'WPh' h {{ Φ } }" := (wp_host NotStuck ⊤ h Φ).
 
 Section logrel_host.
-  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ, !cinvG Σ, cancelg: cancelG Σ}.
 
   Let expr := iris.expr.
   Let val := iris.val.

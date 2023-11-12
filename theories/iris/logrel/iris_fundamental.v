@@ -33,6 +33,13 @@ Require Import iris_fundamental_const
         iris_fundamental_set_global
         iris_fundamental_load
         iris_fundamental_store
+        iris_fundamental_segload
+        iris_fundamental_segstore
+        iris_fundamental_segfree
+        iris_fundamental_segalloc
+        iris_fundamental_slice
+        iris_fundamental_handleadd
+        iris_fundamental_getoffset
         iris_fundamental_current_memory
         iris_fundamental_grow_memory
         iris_fundamental_nil
@@ -47,7 +54,7 @@ Require Import iris_fundamental_const
 Import uPred.
 
 Section fundamental.
-
+ Set Bullet Behavior "Strict Subproofs".
 
   Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
   
@@ -58,49 +65,50 @@ Section fundamental.
   Theorem be_fundamental C es τ : be_typing C es τ -> ⊢ semantic_typing C (to_e_list es) τ.
   Proof.
     induction 1.
-    { by apply typing_const. }
-    { by apply typing_unop. }
-    { by apply typing_binop. }
-    { by apply typing_testop. }
-    { by apply typing_relop. }
-    { by apply typing_cvtop_convert. }
-    { by apply typing_cvtop_reinterpret. }
-    { by apply typing_unreachable. }
-    { by apply typing_nop. }
-    { by apply typing_drop. }
-    { by apply typing_select. }
-    { by apply typing_block. }
-    { by apply typing_loop. }
-    { by apply typing_if. }
-    { by apply typing_br. }
-    { by apply typing_br_if. }
-    { by apply typing_br_table. }
-    { by apply typing_return. }
-    { by apply typing_call. }
-    { by apply typing_call_indirect. }
-    { by apply typing_get_local. }
-    { by apply typing_set_local. }
-    { by apply typing_tee_local. }
-    { by apply typing_get_global. }
-    { by eapply typing_set_global. }
-    { by apply typing_load. }
-    { (* segload *) admit. }
-    { by apply typing_store. }
-    { (* segstore *) admit. }
-    { (* slice *) admit. }
-    { (* segalloc *) admit. }
-    { (* handleadd *) admit. }
-    { (* segfree *) admit. }
-    { by apply typing_current_memory. }
-    { by apply typing_grow_memory. }
-    { by apply typing_nil. }
-    { rewrite to_e_list_cat.
+    - by apply typing_const. 
+    - by apply typing_unop. 
+    - by apply typing_binop. 
+    - by apply typing_testop. 
+    - by apply typing_relop. 
+    - by apply typing_cvtop_convert. 
+    - by apply typing_cvtop_reinterpret. 
+    - by apply typing_unreachable. 
+    - by apply typing_nop. 
+    - by apply typing_drop. 
+    - by apply typing_select. 
+    - by apply typing_block. 
+    - by apply typing_loop. 
+    - by apply typing_if. 
+    - by apply typing_br. 
+    - by apply typing_br_if. 
+    - by apply typing_br_table. 
+    - by apply typing_return. 
+    - by apply typing_call. 
+    - by apply typing_call_indirect. 
+    - by apply typing_get_local. 
+    - by apply typing_set_local. 
+    - by apply typing_tee_local. 
+    - by apply typing_get_global. 
+    - by eapply typing_set_global. 
+    - by apply typing_load. 
+    - by apply typing_segload.
+    - by apply typing_store. 
+    - by apply typing_segstore.
+    - by apply typing_segslice.
+    - by apply typing_segalloc.
+    - by apply typing_handleadd.
+    - by apply typing_getoffset.
+    - by apply typing_segfree.
+    - by apply typing_current_memory. 
+    - by apply typing_grow_memory. 
+    - by apply typing_nil. 
+    - rewrite to_e_list_cat.
       eapply typing_composition.
-      { simpl. auto. }
-      { apply IHbe_typing1. }
-      { apply IHbe_typing2. } }
-    { by apply typing_weakening. }
-  Admitted. 
+      + simpl. auto. 
+      + apply IHbe_typing1. 
+      + apply IHbe_typing2. 
+    - by apply typing_weakening. 
+  Qed.
 
   
   Corollary be_fundamental_local C es τ1 τ2 τs : (tc_label C) = [] ∧ (tc_return C) = None ->

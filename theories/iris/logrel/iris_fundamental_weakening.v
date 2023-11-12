@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -52,10 +52,10 @@ Section fundamental.
   Qed.
 
 
-  Lemma weakening_br C i hl v lh ws1 ts :
+  Lemma weakening_br C i all hl v lh ws1 ts :
       ([∗ list] y1;y2 ∈ ws1;ts, interp_value y2 y1) -∗
-       interp_br (tc_local C) i (tc_return C) hl v lh (tc_label C) -∗
-       interp_br (tc_local C) i (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C).
+       interp_br (tc_local C) i all (tc_return C) hl v lh (tc_label C) -∗
+       interp_br (tc_local C) i all (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C).
   Proof.
     iIntros "#Hv1 Hbr".
     rewrite fixpoint_interp_br_eq.
@@ -179,10 +179,10 @@ Section fundamental.
     induction vh;simpl;auto.
   Qed.
   
-  Lemma weakening_call_host ws1 ts C i v hl lh t2s :
+  Lemma weakening_call_host ws1 ts C i all v hl lh t2s :
     ([∗ list] y1;y2 ∈ ws1;ts, interp_value y2 y1) -∗
-    interp_call_host (tc_local C) i (tc_return C) hl v lh (tc_label C) t2s -∗
-    interp_call_host (tc_local C) i (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C)  (ts ++ t2s).
+    interp_call_host (tc_local C) i all (tc_return C) hl v lh (tc_label C) t2s -∗
+    interp_call_host (tc_local C) i all (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C)  (ts ++ t2s).
   Proof.
     iIntros "#Hv1 Hch".
     rewrite fixpoint_interp_call_host_eq.
@@ -208,10 +208,10 @@ Section fundamental.
         { rewrite app_nil_r. iApply ("Hch" with "Hv2 [$]"). }
         iIntros (v1) "[H $]".
         instantiate (1:=((λ vs, (interp_values (ts ++ t2s) vs
-                ∨ ▷ (interp_call_host_br (tc_local C) i (tc_return C) hl).2
+                ∨ ▷ (interp_call_host_br (tc_local C) i all (tc_return C) hl).2
                       vs lh (tc_label C)
                   ∨ interp_return_option (tc_return C) (tc_local C) i vs
-                    ∨ ▷ (interp_call_host_br (tc_local C) i (tc_return C) hl).1
+                    ∨ ▷ (interp_call_host_br (tc_local C) i all (tc_return C) hl).1
                         vs lh (tc_label C) (ts ++ t2s)))%I)).
         iDestruct "H" as "[[H|H]|[H|[H|H]]]";[by iLeft|..].
         { iRight. iLeft.
@@ -250,7 +250,7 @@ Section fundamental.
                                            ⊢ semantic_typing C es (Tf (ts ++ t1s) (ts ++ t2s)).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (HIH i lh hl).
+    iIntros (HIH i all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { iApply iRewrite_nil_l.

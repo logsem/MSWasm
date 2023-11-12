@@ -28,11 +28,13 @@ Definition upd_handle_validity h b :=
 
 Definition slice_handle h n1 n2 :=
   if N.ltb n1 h.(bound) then
+    if N.leb n1 n2 then
     Some {| base := h.(base) + n1 ;
            offset := h.(offset) ;
            bound := h.(bound) - n2 ;
            valid := h.(valid) ;
            id := h.(id) |}
+    else None
   else None.
 
 Definition handle_add h (n: Z) :=

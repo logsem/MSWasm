@@ -15,7 +15,7 @@ Import uPred.
 Section fundamental.
 
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -28,7 +28,7 @@ Section fundamental.
                                    ⊢ semantic_typing C (to_e_list [BI_br i]) (Tf (t1s ++ ts) t2s).
   Proof.
     iIntros (Hleq Hlookup) "".
-    iIntros (j lh hl).
+    iIntros (j all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hc]]]" (f vs) "[Hf Hfv] #Hv".
     unfold interp_expression.
     apply lholed_lengths_length_depth in Hlh_len as Hleneq.

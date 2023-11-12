@@ -370,7 +370,61 @@ Proof.
   rewrite Hbc Hts. iFrame. 
 Qed.
 
-
+Lemma wp_segload_failure (Φ: iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t: value_type) h (f: frame):
+  valid h = false \/ (offset h + N.of_nat (t_length t) > bound h)%N \/ t = T_handle /\ (N.modulo (handle_addr h) handle_size <> N.of_nat 0)%N ->
+  (▷ Φ trapV ∗ ↪[frame] f ⊢
+     (WP [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
+Proof.
+  iIntros (Hfail) "[HΦ Hf0]".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  destruct σ as [[ ws locs] winst].
+  iDestruct "Hσ" as "(? & ? & ? & Hs & ? & ? & Hframe & ?)".
+  iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
+  simplify_map_eq.
+  iSplit.
+  + iPureIntro.
+    destruct s => //=.
+    unfold language.reducible, language.prim_step => /=.
+    eexists [_], [AI_trap], (_, locs, winst), [].
+    repeat split => //.
+    eapply rm_segload_failure => //.
+    destruct Hfail as [Hfail | [Hfail | [-> Hfail]]].
+    * by left.
+    * right; left.
+      unfold ssrnat.leq. unfold ssrnat.subn, ssrnat.addn.
+      unfold ssrnat.subn_rec, ssrnat.addn_rec.
+      apply /eqP.
+      assert (S (N.to_nat (bound h)) - (N.to_nat (offset h) + t_length t) = 0).
+      lia.
+      by do 2 rewrite nat_bin.
+    * repeat right; split => //. unfold t_length.
+      rewrite nat_bin. rewrite N2Nat.id. done.
+  + iIntros "!>" (es σ2 efs HStep).
+    destruct σ2 as [[ws2 locs2] winst2].
+(*    rewrite -nth_error_lookup in Hm. *)
+    iModIntro.
+    prim_split κ HStep HStep. 
+    eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                                Hfirst3 & Hσ & Hme)]]] ;
+        last (eapply rm_segload_failure => //=) ;
+        try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+    inversion H ; subst; clear H => /=.
+    iFrame.
+     destruct Hfail as [Hfail | [Hfail | [-> Hfail]]].
+    * by left.
+    * right; left.
+      unfold ssrnat.leq. unfold ssrnat.subn, ssrnat.addn.
+      unfold ssrnat.subn_rec, ssrnat.addn_rec.
+      apply /eqP.
+      assert (S (N.to_nat (bound h)) - (N.to_nat (offset h) + t_length t) = 0).
+      lia.
+      by do 2 rewrite nat_bin.
+    * repeat right; split => //. unfold t_length.
+      rewrite nat_bin. rewrite N2Nat.id. done.
+Qed.   
+                                                                                  
+                                                                              
 
 
 Lemma seg_update_length dat dat' k b:
@@ -1159,6 +1213,61 @@ Proof.
     repeat rewrite nat_bin. lias.
     repeat rewrite nat_bin. lias.
 Qed.
+
+
+Lemma wp_segstore_failure (Φ: iris.val -> iProp Σ) (s:stuckness) (E:coPset) v (t: value_type) h (f: frame):
+  types_agree t v ->
+  valid h = false \/ (offset h + N.of_nat (t_length t) > bound h)%N \/ t = T_handle /\ (N.modulo (handle_addr h) handle_size <> N.of_nat 0)%N ->
+  (▷ Φ trapV ∗ ↪[frame] f ⊢
+     (WP [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
+Proof.
+  iIntros (Htv Hfail) "[HΦ Hf0]".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  destruct σ as [[ ws locs] winst].
+  iDestruct "Hσ" as "(? & ? & ? & Hs & ? & ? & Hframe & ?)".
+  iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
+  simplify_map_eq.
+  iSplit.
+  + iPureIntro.
+    destruct s => //=.
+    unfold language.reducible, language.prim_step => /=.
+    eexists [_], [AI_trap], (_, locs, winst), [].
+    repeat split => //.
+    eapply rm_segstore_failure => //.
+    destruct Hfail as [Hfail | [Hfail | [-> Hfail]]].
+    * by left.
+    * right; left.
+      unfold ssrnat.leq. unfold ssrnat.subn, ssrnat.addn.
+      unfold ssrnat.subn_rec, ssrnat.addn_rec.
+      apply /eqP.
+      assert (S (N.to_nat (bound h)) - (N.to_nat (offset h) + t_length t) = 0).
+      lia.
+      by do 2 rewrite nat_bin.
+    * repeat right; split => //. unfold t_length.
+      rewrite nat_bin. rewrite N2Nat.id. done.
+  + iIntros "!>" (es σ2 efs HStep).
+    destruct σ2 as [[ws2 locs2] winst2].
+    iModIntro.
+    prim_split κ HStep HStep. 
+    eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
+                                                                                Hfirst3 & Hσ & Hme)]]] ;
+        last (eapply rm_segstore_failure => //=) ;
+        try by unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+    inversion H ; subst; clear H => /=.
+    iFrame.
+     destruct Hfail as [Hfail | [Hfail | [-> Hfail]]].
+    * by left.
+    * right; left.
+      unfold ssrnat.leq. unfold ssrnat.subn, ssrnat.addn.
+      unfold ssrnat.subn_rec, ssrnat.addn_rec.
+      apply /eqP.
+      assert (S (N.to_nat (bound h)) - (N.to_nat (offset h) + t_length t) = 0).
+      lia.
+      by do 2 rewrite nat_bin.
+    * repeat right; split => //. unfold t_length.
+      rewrite nat_bin. rewrite N2Nat.id. done.
+Qed.   
 
 
 Lemma drop_is_nil {A} k (l: list A) : drop k l = [] -> k >= length l.

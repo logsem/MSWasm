@@ -882,15 +882,12 @@ Proof.
     right; left. lias.
  - (* Slice *)
    right. subst.
-   invert_typeof_vcs. destruct v, v0, v1 => //=. 
-   destruct ( Wasm_int.N_of_uint i32m s0 <? h.(bound) )%N eqn:Hhi. 
+   invert_typeof_vcs. destruct v, v0, v1 => //=.
+   destruct ( slice_handle h (Wasm_int.N_of_uint i32m s0) (Wasm_int.N_of_uint i32m s1)) eqn:Hs.
    repeat eexists.
    eapply rm_silent, r_simple, rs_slice_success; eauto.
-   unfold slice_handle.
-   rewrite Hhi => //.
    repeat eexists.
    eapply rm_silent, r_simple, rs_slice_failure; eauto.
-   unfold slice_handle. rewrite Hhi => //. 
       
  - (* Segalloc *)
    right. subst.

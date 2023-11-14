@@ -134,9 +134,10 @@ Section logrel.
 
   Definition interp_value_handle_0 (ivh: WR) :=
     (λne w,
-      (∃ (h : handle) γ base' bound',
-          (* There exists a handle and a γ, such that *)
-          ⌜ w = VAL_handle h ⌝ ∗ gamma_id_white γ (id h) ∗
+      (∃ (h : handle),
+          (* There exists a handle such that either that handle is invalid, or *)
+          ⌜ w = VAL_handle h ⌝ ∗
+                  (⌜ valid h = false ⌝ ∨ ∃ γ base' bound', gamma_id_white γ (id h) ∗
           (* There exists a greater range, such that *)
           ⌜ (base' <= base h)%N ⌝ ∗
           ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
@@ -146,13 +147,13 @@ Section logrel.
               ⌜ length tbs = N.to_nat bound' ⌝ ∗
               ↦[wss][base'] tbs ∗
               (* And for all addresses that might store a handle, *)
-              ∀ addr, ⌜ (N.modulo (base' + addr) handle_size = 0 /\ base' + addr + handle_size < bound' )%N ⌝ -∗
+              ∀ addr, ⌜ (N.modulo (base' + addr) handle_size = 0 /\ addr + handle_size <= bound' )%N ⌝ -∗
                   (* Either that address has at least one byte tagged as non-handle *)
                   ⌜ exists addr' (b: byte), (addr' < handle_size)%N  /\
                        tbs !! (N.to_nat (addr + addr')%N) = Some (b, Numeric) ⌝ ∨
                    (* Or the handle stored is valid *)
                    ivh (VAL_handle (handle_of_bytes (map fst (take (N.to_nat handle_size) (drop (N.to_nat addr) tbs))))) 
-          )
+          ))
       )%I).
   
 (*  Definition align a b: N := (a / b) * b.

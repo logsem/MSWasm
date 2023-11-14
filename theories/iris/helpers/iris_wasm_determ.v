@@ -680,4 +680,3 @@ Section determ.
   Qed.
   
 End determ.
-

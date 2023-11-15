@@ -224,7 +224,9 @@ Section fundamental.
       iIntros (?????) "(HΦ & Hf & Ha & Hs)".
       iApply (wp_wand with "[Hf Ha Hs]").
       - iApply wp_segload_deserialize => //.
-        iFrame "Hf Ha Hs". by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
+        iSplitR; last by iFrame.
+        iNext. iIntros "H". instantiate (1 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
+        iSplit; first done. iExact "H".
       - iIntros (v) "[(-> & ?) Hf]".
         iApply "HΦ". iFrame.
     Qed.
@@ -250,10 +252,12 @@ Section fundamental.
       iIntros (?????????) "(HΦ & Hf & Ha & Hs)".
       iApply (wp_wand with "[Hf Ha Hs]").
       - iApply wp_segload_handle_deserialize => //.
-        iFrame "Hf Ha Hs". by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
+        iFrame "Hf Ha Hs". iNext. iIntros "H".
+        instantiate (1 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
+        iSplit; first done. iExact "H".
       - iIntros (v) "[(-> & ?) Hf]".
         iApply "HΦ". iFrame.
-    Qed.
+    Qed. 
 
 
     Lemma forallb_false {A} f (l: list A) :
@@ -288,8 +292,21 @@ Section fundamental.
         + apply (IHl i lo (S hi) x y) in Hlook; try lia.
           simpl. done.
     Qed. 
+
+    Lemma interp_handle_update_validity h (b: bool) :
+      interp_value_handle (VAL_handle h) ⊢
+        interp_value_handle (VAL_handle (upd_handle_validity h b)).
+    Proof.
+      iIntros "H".
+      destruct h; unfold upd_handle_validity => /=.
+      destruct b, valid => //.
+      iClear "H". rewrite fixpoint_interp_value_handle_eq.
+      iExists _. iSplit; first done.
+      iLeft. iPureIntro. done. 
+    Qed. 
         
-     
+
+        
 
   Lemma typing_segload C t : 
     ⊢ semantic_typing C (to_e_list [BI_segload t]) (Tf [T_handle] [t]).
@@ -430,9 +447,13 @@ Section fundamental.
       - (* Segload T_handle *)
         destruct ((handle_addr h `mod` N.of_nat (t_length T_handle))%N =? N.of_nat 0)%N eqn:Hmod.
         + apply N.eqb_eq in Hmod.
-          iApply better_wp_segload_handle => //.
+          iApply (wp_wand _ _ _ (λ v, (|={⊤ ∖ ↑wsN (id h), ⊤}=> (⌜v = trapV⌝ ∨ (∃ v0 : value, ⌜v = immV [v0]⌝ ∗ interp_value T_handle v0)) ∗
+                                                                 interp_frame (tc_local C) i all f) ∗ ↪[frame] f)%I with "[Hf Hbl Hown Halloc Htoks Hwon Hcls Hss Hreconstitute]").
+          2:{ iIntros (v) "[H Hf]". iFrame. }
+            
+          iApply wp_segload_handle_deserialize => //.
           iSplitR "Halloc Hss Hf"; last by iFrame.
-          iIntros "(Hid & Hss & Hf)".
+          iNext. iIntros "(Hid & Hss)".
           
           iDestruct ("Hreconstitute" $! tbs' Htbs' with "Hss") as "Hss".
           subst tbs'; rewrite cat_app reconstitute N2Nat.id.
@@ -450,8 +471,8 @@ Section fundamental.
                 clear - Hbound Hbounds Hbase. lia.
             }
             iSpecialize ("Hhandles" $! addr Haddr).
-            iDestruct "Hhandles" as "[>%Hnum | Hvalid]".
-            -- iModIntro. iFrame "Hf". iSplitR.
+            iDestruct "Hhandles" as "[%Hnum | Hvalid]".
+            -- iModIntro. iSplitR.
                ++ iRight. iExists _. iSplit; first done.
                   rewrite fixpoint_interp_value_handle_eq.
                   iExists _. iSplit; first done.
@@ -467,9 +488,11 @@ Section fundamental.
                      iExists _. iFrame. done.
                   ** iExists _. iFrame. iSplit; first done.
                      done.
-            -- iModIntro. iFrame "Hf". iSplitR.
+            -- iModIntro. iSplitR.
                ++ iRight. iExists _. iSplit; first done.
-                  admit. (* I have an extra later!!! *)
+                  iApply interp_handle_update_validity.
+                  unfold t_length; rewrite nat_bin.
+                     subst addr. rewrite N2Nat.inj_sub. done.
                ++ iSplitR "Hown".
                   ** iExists _. iFrame. iApply "Htoks".
                      iExists _. iFrame. done.
@@ -502,6 +525,6 @@ Section fundamental.
     - iSplitL "Hv".
       + iLeft. iRight. iExists _. iSplit; first done. iFrame. done.
       + iExists _. iFrame.
-  Admitted. 
+Qed.
 
 End fundamental.

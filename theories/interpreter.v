@@ -536,27 +536,15 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
 
   | AI_basic BI_segfree =>
       if ves is VAL_handle h :: ves' then
-(*        expect
-          (sseg_ind s f.(f_inst))
-          (fun j =>
-             expect
-               (sall_ind s f.(f_inst))
-               (fun j' =>
-                  if List.nth_error s.(s_segs) j is Some s_seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
-                      if h.(valid) && (h.(offset) == N.zero)%N then
-                        expect
-                          (find_and_remove h.(id) s.(s_alls).(allocated))
-                          (fun '(l, a, n) =>
-                             if (a == h.(base))%N then
-                               ret (upd_s_all s {| allocated := l; next_free := next_free s.(s_alls) |}, f, RS_normal (vs_to_es ves'))
-                             else ret (s, f, crash_error))
-                          (ret (s, f, crash_error))
-                      else ret (s, f, crash_error)
-(*                    else ret (s, f, crash_error)
-                  else ret (s, f, crash_error))
-               (ret (s, f, crash_error)))
-          (ret (s, f, crash_error)) *)
+        if h.(valid) && (h.(offset) == N.zero)%N then
+          expect
+            (find_and_remove h.(id) s.(s_alls).(allocated))
+            (fun '(l, a, n) =>
+               if ((a == h.(base)) && (n == h.(bound)))%N then
+                 ret (upd_s_all s {| allocated := l; next_free := next_free s.(s_alls) |}, f, RS_normal (vs_to_es ves'))
+               else ret (s, f, crash_error))
+            (ret (s, f, crash_error))
+        else ret (s, f, crash_error)
       else ret (s, f, crash_error)
                                       
                       

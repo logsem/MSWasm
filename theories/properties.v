@@ -1751,8 +1751,8 @@ Qed.
 
 
 
-Lemma sfree_sound T A a nid T' A' :
-  isSound T.(seg_data) A -> sfree T A a nid T' A' -> isSound T'.(seg_data) A'.
+Lemma sfree_sound T A a nid n T' A' :
+  isSound T.(seg_data) A -> sfree T A a n nid T' A' -> isSound T'.(seg_data) A'.
 Proof.
   intros HSound Hfree.
   inversion Hfree; subst; clear Hfree.
@@ -1864,8 +1864,8 @@ Qed.
 Qed. *)
 
   
-Lemma sfree_sound_local T A a nid T' A' A0 :
-  isSound T.(seg_data) A0 -> sfree T A a nid T' A' -> isSound T'.(seg_data) A0.
+Lemma sfree_sound_local T A a n nid T' A' A0 :
+  isSound T.(seg_data) A0 -> sfree T A a n nid T' A' -> isSound T'.(seg_data) A0.
 Proof.
   intros HSound Hfree.
   inversion Hfree; subst.
@@ -2282,3 +2282,66 @@ Section handle_size_non_zero.
     rewrite <- Htv in H. lias.
   Qed.
 End handle_size_non_zero.
+
+
+Section arithmetics.
+
+  Lemma mul_le a b c : a <= b -> c * a <= c * b.
+  Proof.
+    intros Hab. 
+    induction c; lia.
+  Qed.
+
+  Lemma mul_lt a b c : a < b -> c * a + c <= c * b.
+    intros Hab.
+    assert (S a <= b); first lia.
+    replace (c * a + c) with (c * S a); last lia.
+    apply mul_le. done.
+  Qed. 
+  
+(*  Lemma mul_lt a b c : c > 0 -> a < b -> c * a + c <= c * b.
+Proof.
+  intros Hc Hab.
+  induction c; first lia.
+  simpl.
+  destruct (PeanoNat.Nat.ltb 0 c) eqn:Hc'.
+  { apply PeanoNat.Nat.ltb_lt in Hc'.
+    assert (c > 0) as Hc''; first lia.
+    apply IHc in Hc''. lia. }
+  apply PeanoNat.Nat.ltb_ge in Hc'.
+  destruct c; last lia.
+  lia.
+Qed.  *)
+  
+
+Lemma div_leq a b c: a <= b -> PeanoNat.Nat.div a c <= PeanoNat.Nat.div b c.
+Proof.
+  intros.
+  unfold Nat.div.
+  destruct c => //.
+  specialize (PeanoNat.Nat.divmod_spec a c 0 c (PeanoNat.Nat.le_refl c)) as Ha.
+  specialize (PeanoNat.Nat.divmod_spec b c 0 c (PeanoNat.Nat.le_refl c)) as Hb.
+  destruct (Nat.divmod a c 0 c).
+  destruct (Nat.divmod b c 0 c).
+  simpl.
+  destruct Ha as [Ha Hra].
+  destruct Hb as [Hb Hrb].
+  rewrite PeanoNat.Nat.sub_diag in Ha, Hb.
+  rewrite PeanoNat.Nat.mul_0_r in Ha, Hb.
+  repeat rewrite PeanoNat.Nat.add_0_r in Ha, Hb.
+  remember (c - n0) as ra.
+  clear Hra.
+  assert (ra < S c) as Hra; first lia.
+  clear Heqra.
+  remember (c - n2) as rb.
+  clear Hrb.
+  assert (rb < S c) as Hrb; first lia.
+  clear Heqrb.
+  remember (S c) as d. assert (d > 0) as Hd; first lia. clear Heqd.
+  destruct (PeanoNat.Nat.leb n n1) eqn:Hn; first by apply PeanoNat.Nat.leb_le in Hn.
+  apply PeanoNat.Nat.leb_gt in Hn.
+  assert (d * n1 + d <= d * n); first by apply mul_lt.
+  lia.
+Qed. 
+
+End arithmetics.

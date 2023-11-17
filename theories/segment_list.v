@@ -90,9 +90,10 @@ Fixpoint find_and_remove (nid : N) (l: list (N * N * N)) : option (list (N * N *
 
 
 
-Definition find_address nid l := match find_and_remove nid l.(allocated) with
-                                 | Some (_,a, _) => Some a
-                                 | None => None end. 
+Definition find_address nid l :=
+  match find_and_remove nid l.(allocated) with
+  | Some (_,a, n) => Some (a,n)
+  | None => None end. 
 
 
 Definition isAlloc nid s : Prop :=

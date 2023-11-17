@@ -465,13 +465,9 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
                ME_trap s f [:: AI_basic (BI_const (VAL_handle dummy_handle))]
 
   | rm_segfree_success : forall s f m A seg' A' s' h,
-      (* sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
       A = s.(s_alls) ->
-      sfree m A h.(base) h.(id) seg' A' ->
+      sfree m A h.(base) h.(bound) h.(id) seg' A' ->
       h.(valid) = true ->
       h.(offset) = N.zero ->
       s' = upd_s_seg (upd_s_all s A') seg' ->
@@ -480,13 +476,9 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
         [::]
 
   | rm_segfree_failure: forall s f m A h,
-      (* sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
       A = s.(s_alls) ->
-      find_address h.(id) A <> Some h.(base) \/ h.(offset) <> N.zero \/ h.(valid) = false ->
+      find_address h.(id) A <> Some (h.(base), h.(bound)) \/ h.(offset) <> N.zero \/ h.(valid) = false ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)) ; AI_basic BI_segfree]
              ME_trap s f [::AI_trap]
         

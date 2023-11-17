@@ -214,9 +214,22 @@ Qed.
 Qed. 
 
 
+    Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
+  (h: handle) (f0: frame) (x: N*N) :
+  t <> T_handle ->
+  length tbv = t_length t ->
+  List.map fst tbv = bv ->
+  valid h = true ->
+  ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
 
+  (
+     ▷ (h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [wasm_deserialise bv t])) ∗
+   ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗ 
+      ↦[wss][ handle_addr h ] tbv ⊢
+     (WP [AI_basic (BI_const (VAL_handle h)) ;
+          AI_basic (BI_segload t)] @ s; E {{ x, Φ x ∗ ↪[frame] f0 }})).
 
-Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
+(*Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
   (h: handle) (f0: frame) (x: N*N) :
   t <> T_handle ->
   length tbv = t_length t ->
@@ -225,10 +238,10 @@ Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) 
   ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
 
   (▷ Φ (immV [wasm_deserialise bv t]) ∗
-   ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗ 
+     ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗ 
       ↦[wss][ handle_addr h ] tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})). *)
 Proof.
   iIntros (Ht Htv Hfst Hvalid Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_lift_atomic_step => //=.
@@ -263,7 +276,8 @@ Proof.
                                                                   Hfirst3 & Hσ & Hme)]]];
       last (eapply rm_segload_success => //=);
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
-    inversion H;subst. iFrame. done.
+    inversion H;subst. iFrame. simpl. iSplit; last done.
+    iApply "HΦ". iFrame.
     repeat rewrite nat_bin. lias.
 Qed.
 
@@ -274,20 +288,37 @@ Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_typ
   List.map fst tbv = (bits v) ->
   valid h = true ->
   ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
-  (▷ Φ (immV [v]) ∗
+  (▷ (id h ↣[allocated] x ∗ ↦[wss][ handle_addr h] tbv -∗ Φ (immV [v])) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
      ↦[wss][ handle_addr h ]
      tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }})).
 Proof.
   iIntros (Ht Htv Htbv Hvalid Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_segload_deserialize;auto.
-  { rewrite - (map_length fst). rewrite Htbv. erewrite length_bits;eauto. }
-  rewrite Htbv deserialise_bits;auto. iFrame.
+  2:{ iSplitL "HΦ"; last by iFrame. 
+      rewrite Htbv deserialise_bits; auto. } 
+  rewrite - (map_length fst). rewrite Htbv. erewrite length_bits;eauto. 
 Qed.
-
-Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
+ Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
+          (h: handle) (f0: frame) (x: N*N) hmem bc ts:
+           t = T_handle ->
+  length tbv = t_length t ->
+  List.map fst tbv = bv ->
+  List.map snd tbv = ts ->
+  valid h = true ->
+  ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
+  (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
+  wasm_deserialise bv t = VAL_handle hmem ->
+  bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
+  (
+    ▷ (h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
+   ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗ 
+      ↦[wss][ handle_addr h ] tbv ⊢
+     (WP [AI_basic (BI_const (VAL_handle h)) ;
+          AI_basic (BI_segload t)] @ s; E {{ x, Φ x ∗ ↪[frame] f0 }})).
+(*Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
   (h: handle) (f0: frame) (x: N*N) hmem bc ts:
   t = T_handle ->
   length tbv = t_length t ->
@@ -302,7 +333,7 @@ Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:c
    ↪[frame] f0 ∗ h.(id) ↣[allocated] x ∗
       ↦[wss][ handle_addr h ] tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f0 }})). *)
 Proof.
   iIntros (Ht Htv Hfst Hsnd Hvalid Hhi Hmod Hser Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
   iApply wp_lift_atomic_step => //=.
@@ -343,7 +374,7 @@ Proof.
       try by unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H;subst. unfold wasm_deserialise in Hser.
     inversion Hser; subst. iFrame.
-    done.
+    iSimpl. iSplit; last done. iApply "HΦ". iFrame.
     repeat rewrite nat_bin. lias.
 Qed.
 
@@ -356,18 +387,19 @@ Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:va
   ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
-  (▷ Φ (immV [VAL_handle (upd_handle_validity hmem bc)]) ∗
+  (▷ (id h ↣[allocated] x ∗ ↦[wss][handle_addr h] tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
      ↦[wss][ handle_addr h ]
      tbv ⊢
      (WP [AI_basic (BI_const (VAL_handle h)) ;
-          AI_basic (BI_segload t)] @ s; E {{ w, (Φ w ∗ id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ]tbv) ∗ ↪[frame] f }})).
+          AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }})).
 Proof.
   iIntros (Ht Htv Hts Hvalid Hhi Hmod Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
-  iApply wp_segload_handle_deserialize;auto.
+  iApply wp_segload_handle_deserialize => //.
+  3:{ iSplitL "HΦ"; last by iFrame. done. } 
   { rewrite - (map_length fst). rewrite Htv. erewrite length_bits;eauto. by rewrite Ht. }
-  rewrite Htv deserialise_bits;auto. by rewrite Ht.
-  rewrite Hbc Hts. iFrame. 
+  
+  rewrite Ht deserialise_bits;auto. 
 Qed.
 
 Lemma wp_segload_failure (Φ: iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t: value_type) h (f: frame):
@@ -1086,10 +1118,10 @@ Lemma wp_segstore (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: valu
   length tbs = t_length t ->
   valid h = true ->
   ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
-  (▷ ϕ (immV []) ∗
+  (▷ (id h ↣[allocated] x ∗ ↦[wss][handle_addr h] (List.map (fun b => (b, Numeric)) (bits v)) -∗ ϕ (immV [])) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Numeric)) (bits v))) ∗ ↪[frame] f }}).
+  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
   iIntros (Ht Hvt Htbs Hval Hhi) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
@@ -1131,18 +1163,12 @@ Proof.
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
-(*    assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
-    { rewrite <- (length_bits v) in Hsomeseg => //=. 
-      rewrite - (map_length (fun x => (x, Numeric)) (bits v)) in Hsomeseg.
-      apply segstore_length in Hsomeseg.
-      by unfold operations.seg_length, seg_length; rewrite Hsomeseg. }  
-    unfold operations.seg_length in Hmsize. rewrite Hmsize.
-    apply segstore_seg_max_opt in Hsomeseg as Hseglimit. 
-    rewrite - Hseglimit. 
-    iFrame. *) iPureIntro.
+    iSplit.
+    iPureIntro.
     eapply (reduce_preserves_wellformedness (f := {| f_inst := winst2; f_locs := locs2 |})).
     exact HWF. eapply rm_segstore_success => //=.
     repeat rewrite nat_bin. lias.
+    iApply "HΦ". iFrame.
     repeat rewrite nat_bin. lias.
 Qed.
 
@@ -1154,10 +1180,10 @@ Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (
   valid h = true ->
   ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
-  (▷ ϕ (immV []) ∗
+  (▷ (id h ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v)) -∗ ϕ (immV [])) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, (ϕ w ∗ h.(id) ↣[allocated] x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v))) ∗ ↪[frame] f }}).
+  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
   iIntros (Ht Hvt Htbs Hval Hhi Hallign) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
@@ -1198,19 +1224,12 @@ Proof.
       last (eapply rm_segstore_handle_success => //) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst; clear H => /=.
-    iFrame.
-(*    assert (operations.seg_length (s_segs ws)= operations.seg_length seg) as Hmsize.
-    { rewrite <- (length_bits v) in Hsomeseg => //=. 
-      rewrite - (map_length (fun x => (x, Handle)) (bits v)) in Hsomeseg.
-      apply segstore_length in Hsomeseg.
-      by unfold operations.seg_length, seg_length; rewrite Hsomeseg. }  
-    unfold operations.seg_length in Hmsize. rewrite Hmsize.
-    apply segstore_seg_max_opt in Hsomeseg as Hseglimit.
-    rewrite - Hseglimit.
-    iFrame.*)  iPureIntro.
+    iFrame. iSplit.
+    iPureIntro.
     eapply (reduce_preserves_wellformedness (f := {| f_inst := winst2; f_locs := locs2 |})).
     exact HWF. eapply rm_segstore_handle_success => //.
     repeat rewrite nat_bin. lias.
+    iApply "HΦ". iFrame.
     repeat rewrite nat_bin. lias.
 Qed.
 
@@ -1533,6 +1552,80 @@ Proof.
     eapply (reduce_preserves_wellformedness (f := {| f_locs := locs'; f_inst := inst' |})).
     exact HWF. eapply rm_segfree_success => //. econstructor => //.
     unfold find_and_remove. rewrite Halloc. done.
+Qed.
+
+
+Lemma wp_segfree_failure_1 h f0 Φ s E :
+   h.(offset) <> N.zero \/ h.(valid) = false ->
+    ▷ (Φ trapV) ∗ ↪[frame] f0
+     ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
+            AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
+Proof.
+  iIntros (Hinvalid) "(HΦ & Hf0)".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  destruct σ as [[ws locs] winst].
+  iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & Hγ & ? & ? & ? & %HWF)".
+  iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
+  rewrite lookup_insert in Hf0.
+  inversion Hf0; subst; clear Hf0.
+  iSplit.
+  + iPureIntro.
+      destruct s => //=.
+      eexists [_], _, (_, locs, winst), [].
+      repeat split => //.
+      eapply rm_segfree_failure => //.
+      { right; destruct Hinvalid as [Habs | Habs]; by (left + right). }
+  + iIntros "!>" (es σ2 efs HStep).
+      iIntros "!>".
+      destruct σ2 as [[ws' locs'] inst'] => //=.
+      prim_split κ HStep H.
+      eapply reduce_det in H as [H | [(? & Hfirst & ?) |[[? Hfirst] | (?&?&?& Hfirst & Hfirst2 & Hfirst3 & Hσ & Hme) ]]];
+      try by unfold first_instr in Hfirst; simpl in Hfirst; inversion Hfirst.
+      2:{ eapply rm_segfree_failure => //.
+          right; destruct Hinvalid as [Habs | Habs]; by (left + right). } 
+      
+      inversion H; subst; clear H => /=.
+      iFrame. done. 
+Qed.
+
+Lemma wp_segfree_failure_2 h f0 Φ s E x y :
+   x <> h.(base) \/ y <> h.(bound) ->
+    ▷ (id h ↣[allocated](x, y) -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated](x, y)
+     ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
+            AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
+Proof.
+  iIntros (Hinvalid) "(HΦ & Hf0 & Halloc)".
+  iApply wp_lift_atomic_step => //=.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  destruct σ as [[ws locs] winst].
+  iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & Hγ & ? & ? & ? & %HWF)".
+  iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
+  rewrite lookup_insert in Hf0.
+  inversion Hf0; subst; clear Hf0.
+  iDestruct (allocated_implies_is_in_allocator with "Ha Halloc") as "%Halloc".
+  iSplit.
+  + iPureIntro.
+      destruct s => //=.
+      eexists [_], _, (_, locs, winst), [].
+      repeat split => //.
+      eapply rm_segfree_failure => //.
+      { left. unfold find_address, find_and_remove. rewrite Halloc.
+        intro Habs'; inversion Habs'; subst.
+        by destruct Hinvalid. }
+    + iIntros "!>" (es σ2 efs HStep).
+      iIntros "!>".
+      destruct σ2 as [[ws' locs'] inst'] => //=.
+      prim_split κ HStep H.
+      eapply reduce_det in H as [H | [(? & Hfirst & ?) |[[? Hfirst] | (?&?&?& Hfirst & Hfirst2 & Hfirst3 & Hσ & Hme) ]]];
+      try by unfold first_instr in Hfirst; simpl in Hfirst; inversion Hfirst.
+      2:{ eapply rm_segfree_failure => //.
+          left. unfold find_address, find_and_remove. rewrite Halloc.
+          intro Habs'; inversion Habs'; subst; destruct Hinvalid; done. } 
+
+
+      inversion H; subst; clear H => /=.
+      iFrame. iSplit; first done. by iApply "HΦ".
 Qed. 
 
 
@@ -1720,23 +1813,22 @@ Proof.
 Qed. 
 
 
-Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (s: stuckness) (E: coPset) (* Φ : iris.val -> iProp Σ *):
+Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (s: stuckness) (E: coPset) (Φ : iris.val -> iProp Σ):
   n = Wasm_int.N_of_uint i32m c ->
-  ( ↪[frame] f0  ⊢
+  ( ▷ (∀ w, (∃ h, ⌜ w = immV [VAL_handle h] ⌝ ∗
+                          ( ⌜ h = dummy_handle ⌝ ∨
+                              h.(id) ↣[allocated](base h, n) ∗
+                                  ⌜ bound h = n ⌝ ∗
+                                  ⌜ offset h = 0%N ⌝ ∗
+                                  ⌜ valid h = true ⌝ ∗
+                                  ↦[wss][ base h ]repeat (#00%byte, Numeric) (N.to_nat n))) -∗ Φ w) ∗
+                                                                    
+    ↪[frame] f0  ⊢
      (WP [AI_basic (BI_const (VAL_int32 c)) ;
           AI_basic BI_segalloc] @ s; E
-    {{ w, (
-            ∃ h , ⌜ w = immV [VAL_handle h] ⌝ ∗
-                              ( ⌜ h = dummy_handle ⌝ ∨
-                                
-                                  h.(id) ↣[allocated] (base h, n) ∗
-                                      ⌜ bound h = n ⌝ ∗
-                                                    ⌜ offset h = 0%N ⌝ ∗
-                            ⌜ valid h = true ⌝ ∗
-                                       ↦[wss][ h.(base) ]repeat (#00%byte, Numeric) (N.to_nat n))) ∗
-            ↪[frame] f0 }})).
+    {{ w, Φ w ∗ ↪[frame] f0 }})).
 Proof.
-  iIntros (Hn) "Hf0".
+  iIntros (Hn) "[HΦ Hf0]".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -1744,9 +1836,7 @@ Proof.
   iDestruct (ghost_map_lookup with "Hframe Hf0") as "%Hf0".
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
-  (* iDestruct (gen_heap_valid with "Hslen Hlen") as "%Hslen".
-  rewrite lookup_insert in Hslen.
-  inversion Hslen; subst; clear Hslen. *)
+
   iSplit.
   - iPureIntro.
     destruct s => //=.
@@ -1778,8 +1868,6 @@ Proof.
       iFrame. 
       iMod (ghost_map_insert nid (a, Wasm_int.N_of_uint i32m c) with "Ha") as "[Ha Hid]".
       done.
-      (* iMod (gen_heap_update with "Hslen Hlen") as "[Hslen Hlen]".  
-      rewrite insert_insert. *)
       iMod (ghost_map_insert_wss with "Hs") as "[Hs Hwss]".
       done. done. lia.
       iModIntro.
@@ -1788,28 +1876,19 @@ Proof.
       iExact "Hs".
       iSplitL "Ha".
       iExact "Ha".
-(*      iSplitL.
-      iExact "Hslen". *)
       iPureIntro.
       eapply (reduce_preserves_wellformedness (f := {| f_locs := locs'; f_inst := inst' |})).
       exact HWF. eapply rm_segalloc_success => //.
+      iApply "HΦ".
       iExists _.
       iSplitR. done.
-      (*iSplitL "Hlen".
-      iExact "Hlen". *)
       iRight.
-(*      iSplitR.
-      iPureIntro. unfold seg_length => /=.
-      repeat rewrite app_length.
-      rewrite take_length_le; last lia.
-      rewrite repeat_length. rewrite drop_length. lia. *)
       iSimpl.
       iSplitL "Hid".
       iExact "Hid".
       iSplit. done.
       iSplit. done.
       iSplit. done.
-      (* iSplit. done. *)
       iExact "Hwss".
     }
     { (* segalloc failed *)
@@ -1819,7 +1898,7 @@ Proof.
       simpl.
       iModIntro.
       iSplit; first done.
-      iExists _.
+      iApply "HΦ". iExists _.
       iSplitL; first done.
       iLeft.
       done.

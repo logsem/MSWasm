@@ -2898,11 +2898,11 @@ Proof.
 Qed.  
 
 
-Lemma sfree_same_size: forall seg A a c seg' A',
-    sfree seg A a c seg' A' ->
+Lemma sfree_same_size: forall seg A a n c seg' A',
+    sfree seg A a n c seg' A' ->
     length seg.(seg_data).(segl_data) = length seg'.(seg_data).(segl_data).
 Proof.
-  intros seg A a c seg' A' H.
+  intros seg A a n c seg' A' H.
   inversion H.
   done. 
 Qed.  
@@ -2953,9 +2953,6 @@ Proof. induction a => //=. replace (0 + c) with c; last lias.
        replace (0 + 1) with 1; last lias.
        destruct c => //. unfold Nat.div. *)
 
-
-
-
 Lemma seg_extension_alloc: forall m A a b c seg' A',
     salloc m A a b c seg' A' ->
     seg_extension m seg'.
@@ -2968,13 +2965,18 @@ Proof.
   destruct m => /=.
   destruct seg_data => /=.
   simpl in H'. 
-  apply N.leb_le. 
-  admit.
-Admitted. (*lia.
-Qed. *)
+  apply N.leb_le.
+  assert (length segl_data <= length (segment_list.segl_data (seg_data seg')))%coq_nat.
+  lias.
+  assert (length segl_data / N.to_nat page_size <= length (segment_list.segl_data (seg_data seg')) / N.to_nat page_size)%coq_nat.
+  { apply div_leq. exact H0. }
+  (* This is absolutely insane. H1 is exactly what I want in Nat, I want it N. Why is this so painfully hard? *)
+Admitted. 
+
   
-Lemma seg_extension_free: forall m A a c seg' A',
-    sfree m A a c seg' A' ->
+  
+Lemma seg_extension_free: forall m A a n c seg' A',
+    sfree m A a n c seg' A' ->
     seg_extension m seg'.
 Proof.
   intros.
@@ -3273,13 +3275,13 @@ Qed.
 
 
   
-  Lemma free_seg_agree: forall s m A a c mem A',
+  Lemma free_seg_agree: forall s m A a n c mem A',
     store_typing s ->
     m = s_segs s ->
-    sfree m A a c mem A' ->
+    sfree m A a n c mem A' ->
     seg_agree mem.
 Proof.
-  move => s m A a c mem A' HST HN HAlloc.
+  move => s m A a n c mem A' HST HN HAlloc.
   assert (seg_agree m); first by eapply segstore_typed_seg_agree; eauto.
   unfold seg_agree.
   specialize (sfree_same_size HAlloc) as Hlen.

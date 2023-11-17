@@ -22,6 +22,8 @@ Definition is_atomic (e : expr) : Prop :=
   | [::AI_basic (BI_const (VAL_handle _)); AI_basic (BI_segload _)] => True
   | [::AI_basic (BI_const (VAL_int32 _)); AI_basic (BI_const _); AI_basic (BI_store _ _ _ _)] => True
   | [::AI_basic (BI_const (VAL_handle _)); AI_basic (BI_const _); AI_basic (BI_segstore _)] => True
+  | [::AI_basic (BI_const (VAL_handle _)); AI_basic BI_segfree] => True
+  | [::AI_basic (BI_const (VAL_int32 _)); AI_basic BI_segalloc] => True
   | [::AI_basic (BI_const _); AI_basic (BI_set_global _)] => True
   | [::AI_basic (BI_get_global _)] => True
   | [::AI_trap] => True
@@ -38,7 +40,9 @@ Lemma is_atomic_eq (e : expr) :
   (∃ k x1 x2 x3 x4, e = [::AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_load x1 x2 x3 x4)]) ∨
       (∃ k x1, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic (BI_segload x1)]) ∨
     (∃ k v x1 x2 x3 x4, e = [::AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_const v); AI_basic (BI_store x1 x2 x3 x4)]) ∨
-      (∃ k v x1, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic (BI_const v); AI_basic (BI_segstore x1)]) ∨
+    (∃ k v x1, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic (BI_const v); AI_basic (BI_segstore x1)]) ∨
+    (∃ k, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic BI_segfree]) ∨
+            (∃ k, e = [::AI_basic (BI_const (VAL_int32 k)); AI_basic BI_segalloc]) \/
   (∃ v g, e = [::AI_basic (BI_const v); AI_basic (BI_set_global g)]) ∨
   (∃ g, e = [::AI_basic (BI_get_global g)]) ∨
   (e = [::AI_trap]).
@@ -48,11 +52,13 @@ Proof.
   { destruct a;try done.
     destruct b;try done. right. right. right. right. right. eauto.
     destruct v;try done.
-    right. right. right. right. right. by right. }
+    right. right. right. right. right. right. right. by right. }
   do 1 (destruct e;try done).
   { revert He. cbn. repeat destruct_match_goal.
-    all: try by (move => *; right; right; right; right; left; repeat eexists).
-    move => *. left. repeat eexists. move => *. right; left. repeat eexists. } 
+    all: try by (move => *; right; right; right; right; right; right; left; repeat eexists).
+    move => *. left. repeat eexists. move => *. right; right; right; right; right; left. repeat eexists.
+    move => *. right; left. repeat eexists. right; right; right; right; left. by eexists.
+  } 
   { destruct e.
     2: { exfalso. cbn in He. revert He.
          repeat destruct_match_goal. }
@@ -142,6 +148,40 @@ Proof.
     eapply reduce_val_false;eauto. eauto. }
 Qed.
 
+Lemma atomic_no_hole_segfree s0 f es me s' f' es' k lh k0 :
+  reduce s0 f es me s' f' es' -> 
+  lfilled k lh es [::AI_basic (BI_const (VAL_handle k0));  AI_basic (BI_segfree)] ->
+  lh = LH_base [] [] ∧ k = 0.
+Proof.
+  intros Hred Hfill.
+  apply lfilled_Ind_Equivalent in Hfill.
+  destruct k;inversion Hfill;subst;[split;auto|repeat destruct vs => //=].
+  pose proof (reduce_not_nil Hred) as Hnil.
+  destruct vs,es,es'0 => //=.
+  all: do 2 (try destruct vs; try destruct es; try destruct es'0 => //=;simplify_eq).
+  { inversion H;subst. exfalso.
+    eapply reduce_val_false;eauto. eauto. }
+  { inversion H;subst. exfalso.
+    eapply reduce_segfree_false;eauto. }
+Qed.
+
+Lemma atomic_no_hole_segalloc s0 f es me s' f' es' k lh k0 :
+  reduce s0 f es me s' f' es' -> 
+  lfilled k lh es [::AI_basic (BI_const (VAL_int32 k0)); AI_basic BI_segalloc] ->
+  lh = LH_base [] [] ∧ k = 0.
+Proof.
+  intros Hred Hfill.
+  apply lfilled_Ind_Equivalent in Hfill.
+  destruct k;inversion Hfill;subst;[split;auto|repeat destruct vs => //=].
+  pose proof (reduce_not_nil Hred) as Hnil.
+  destruct vs,es,es'0 => //=.
+  all: do 2 (try destruct vs; try destruct es; try destruct es'0 => //=;simplify_eq).
+  { inversion H;subst. exfalso.
+    eapply reduce_val_false;eauto. eauto. }
+  { inversion H;subst. exfalso.
+    eapply reduce_segalloc_false;eauto. }
+Qed.
+
 Lemma atomic_no_hole_trap s0 f es me s' f' es' k lh :
   reduce s0 f es me s' f' es' -> 
   lfilled k lh es [::AI_trap] ->
@@ -206,8 +246,8 @@ Proof.
   destruct Hstep as [Hstep ->].
   induction Hstep. (* using reduce_ind. *)
   destruct H.
-  all: apply is_atomic_eq in Ha as Heq.
-  all: destruct Heq as [(?&?&?&?&?&?)|[(?&?&?)|[(?&?&?&?&?&?&?)|[(?&?&?&?)|[(?&?&?)|[(?&?)|?]]]]]];simplify_eq; eauto.
+  all: apply is_atomic_eq in Ha as Heq. 
+  all: destruct Heq as [(?&?&?&?&?&?)|[(?&?&?)|[(?&?&?&?&?&?&?)|[(?&?&?&?)|[(?&?)|[(?&?)|[(?&?&?)|[(?&?)|?]]]]]]]];simplify_eq; eauto.
   all: try by (do 2 (destruct vcs;try done)).
   all: try by (do 3 (destruct vcs;try done)).
   { inversion H;subst;eauto.
@@ -223,8 +263,14 @@ Proof.
   { inversion H;subst;eauto.
     1,2: do 4 (destruct vs;try done). }
   { inversion H;simpl;eauto; subst; exfalso.
-    - do 2 (destruct vs;inversion H0;try done).
-    - do 2 (destruct vs;inversion H0;try done). }
+    - do 3 (destruct vs;inversion H0;try done).
+    - do 3 (destruct vs;inversion H0;try done). }
+   { inversion H;simpl;eauto; subst; exfalso.
+    - do 3 (destruct vs;inversion H0;try done).
+    - do 3 (destruct vs;inversion H0;try done). }
+    { inversion H;simpl;eauto; subst; exfalso.
+    - do 3 (destruct vs;inversion H0;try done).
+    - do 3 (destruct vs;inversion H0;try done). }
   { eapply atomic_no_hole_load in Hstep as HH;eauto. destruct HH as [Hlh Hk];eauto. subst k. subst lh.
     apply lfilled_Ind_Equivalent in H.
     apply lfilled_Ind_Equivalent in H0.
@@ -243,6 +289,16 @@ Proof.
     erewrite app_nil_r. erewrite app_nil_l. apply IHHstep. auto. }
   { edestruct atomic_no_hole_segstore as [Hlh Hk];eauto.
     subst k. subst lh.
+    apply lfilled_Ind_Equivalent in H.
+    apply lfilled_Ind_Equivalent in H0.
+    inversion H;inversion H0; subst. erewrite app_nil_r in H3. subst.
+    erewrite app_nil_r. erewrite app_nil_l. apply IHHstep. auto. }
+   { eapply atomic_no_hole_segfree in Hstep as HH;eauto. destruct HH as [Hlh Hk];eauto. subst k. subst lh.
+    apply lfilled_Ind_Equivalent in H.
+    apply lfilled_Ind_Equivalent in H0.
+    inversion H;inversion H0; subst. erewrite app_nil_r in H3. subst.
+    erewrite app_nil_r. erewrite app_nil_l. apply IHHstep. auto. }
+    { eapply atomic_no_hole_segalloc in Hstep as HH;eauto. destruct HH as [Hlh Hk];eauto. subst k. subst lh.
     apply lfilled_Ind_Equivalent in H.
     apply lfilled_Ind_Equivalent in H0.
     inversion H;inversion H0; subst. erewrite app_nil_r in H3. subst.

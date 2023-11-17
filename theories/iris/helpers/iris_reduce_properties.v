@@ -306,6 +306,25 @@ Section reduce_properties_lemmas.
     no_reduce Heq Hred.
   Qed.
 
+    Lemma reduce_segfree_false s0 f s' f' es es' me :
+    es = [AI_basic (BI_segfree)] ->
+    reduce s0 f es me s' f' es' -> False.
+  Proof.
+    intros Heq Hred.
+    apply Logic.eq_sym in Heq.
+    no_reduce Heq Hred.
+  Qed.
+
+    Lemma reduce_segalloc_false s0 f s' f' es es' me :
+    es = [AI_basic (BI_segalloc)] ->
+    reduce s0 f es me s' f' es' -> False.
+  Proof.
+    intros Heq Hred.
+    apply Logic.eq_sym in Heq.
+    no_reduce Heq Hred.
+  Qed.
+
+
   Lemma reduce_val_false s0 f s' f' me es es' :
     is_Some (iris.to_val es) ->
     reduce s0 f es me s' f' es' -> False.

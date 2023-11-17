@@ -83,6 +83,14 @@ Section fundamental.
     (WP e ++ [] @ s; E CTX i; lh {{ Φ }} ⊢ WP e @ s; E CTX i; lh {{ Φ }}).
   Proof. rewrite app_nil_r. auto. Qed.
 
+  Lemma interp_value_agree t w : interp_value t w ⊢ ⌜ types_agree t w ⌝.
+  Proof.
+    iIntros "H". destruct t; try by iDestruct "H" as "[%x ->]".
+    rewrite fixpoint_interp_value_handle_eq.
+    iDestruct "H" as "(%x & -> & _)". done.
+  Qed. 
+    
+  
 (*  Lemma interp_value_type_of v : (⊢ interp_value (Σ:=Σ) (typeof v) v)%I.
   Proof.
     unfold interp_value.
@@ -467,6 +475,64 @@ Section fundamental.
     rewrite fmap_cons. rewrite to_val_cons_immV.
     auto.
   Qed.
+
+    Lemma interp_handle_update_validity h (b: bool) :
+      interp_value_handle (VAL_handle h) ⊢
+        interp_value_handle (VAL_handle (upd_handle_validity h b)).
+    Proof.
+      iIntros "H".
+      destruct h; unfold upd_handle_validity => /=.
+      destruct b, valid => //.
+      iClear "H". rewrite fixpoint_interp_value_handle_eq.
+      iExists _. iSplit; first done.
+      iLeft. iPureIntro. done. 
+    Qed.
+
+       Lemma wss_select a b a' b' tbs:
+    (a' >= a) -> (a' + b' <= a + b) -> length tbs = b ->
+    ↦[wss][ N.of_nat a ] tbs -∗
+     ⌜ length (take b' (drop (a' - a) tbs)) = b' ⌝ ∗
+                          ↦[wss][ N.of_nat a' ] (take b' (drop (a' - a) tbs)) ∗
+                          ∀ tbs', (⌜ length tbs' = b' ⌝ -∗ ↦[wss][ N.of_nat a' ] tbs' -∗ ↦[wss][ N.of_nat a ] (take (a' - a) tbs ++ tbs' ++ drop (a' - a + b') tbs)).
+  Proof.
+    iIntros (Ha Hb Htbs) "Hs".
+    rewrite <- (take_drop (a' - a) tbs) at 1.
+    rewrite <- (take_drop b' (drop (a' - a) tbs)) at 1.
+    iDestruct (big_sepL_app with "Hs") as "[Hbegin Hs]".
+    iDestruct (big_sepL_app with "Hs") as "[Hs Hend]".
+    iSplit.
+    - iPureIntro. rewrite take_length_le; first done.
+      rewrite drop_length Htbs. lia.
+    - iSplitL "Hs".
+      + iApply (big_sepL_impl with "[Hs]"); first done.
+        iIntros "!>" (k x) "%Hx Hs".
+        rewrite take_length_le; last lia. repeat rewrite Nat2N.id.
+        replace (a + (a' - a + k)) with (a' + k); first done.
+        lia.
+      + iIntros (tbs') "%Hlen Hs".
+        iApply (big_sepL_app with "[$Hbegin Hs Hend]").
+        iApply (big_sepL_app with "[Hend Hs]").
+        iSplitL "Hs". 
+        * iApply (big_sepL_impl with "[Hs]"); first done.
+          iIntros "!>" (k x) "%Hx Hs".
+          rewrite take_length_le; last lia. repeat rewrite Nat2N.id.
+          replace (a + (a' - a + k)) with (a' + k); first done.
+          lia.
+        * rewrite drop_drop.
+          iApply (big_sepL_impl with "[Hend]"); first done.
+          iIntros "!>" (k x) "%Hx Hs".
+          rewrite take_length_le; last lia. repeat rewrite Nat2N.id.
+          rewrite take_length_le.
+          -- rewrite Hlen. done.
+          -- rewrite drop_length. lia.
+  Qed.
+
+  Lemma reconstitute {A} a a' b' (tbs: list A):
+    take (a' - a) tbs ++ take b' (drop (a' - a) tbs) ++ drop (a' - a + b') tbs = tbs.
+  Proof.
+    rewrite - drop_drop. rewrite take_drop.
+    rewrite take_drop. done.
+  Qed. 
 
   Lemma interp_instance_function_lookup C hl i tf j :
     ssrnat.leq (S i) (length (tc_func_t C)) ->
@@ -930,15 +996,20 @@ Section fundamental.
 
   Global Instance lholed_inhabited : Inhabited (lholed).
   Proof. apply populate. exact (LH_base [] []). Qed.
- (*   Notation WR := ((leibnizO value) -n> iPropO Σ).
+  (*
+    Notation WR := ((leibnizO value) -n> iPropO Σ).
   Global Instance interp_value_handle_0_timeless (ivh: WR) v :
     (forall v0, Timeless (ivh v0)) -> Timeless (interp_value_handle_0 ivh v).
-  Proof. intros H. unfold interp_value_handle_0 => /=.
-         apply exist_timeless => h.
-         apply exist_timeless => γ.
-         apply exist_timeless => base'.
-         apply exist_timeless => bound'.
-         repeat (apply sep_timeless ; first apply _).
+  Proof.
+    intros H. unfold interp_value_handle_0 => /=.
+    apply exist_timeless => h.
+    repeat (apply sep_timeless ; first apply _).
+    apply or_timeless; first apply _.
+    apply exist_timeless => γ.
+    apply exist_timeless => base'.
+    apply exist_timeless => bound'.
+    repeat (apply sep_timeless ; first apply _).
+
 
   
   Global Instance interp_val_timeless t v : Timeless (interp_val (Σ:=Σ) t v).

@@ -42,7 +42,7 @@ irismswasm_old.tex
 
 /theories/extract.ml
 /theories/extract.mli
-/theories/iris/logrel/cancellable.ml
+/theories/iris/logrel/cancellable.v
 
 .saves
 

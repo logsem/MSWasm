@@ -256,7 +256,7 @@ Section fundamental.
     { iApply iRewrite_nil_l.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
-      iIntros (v0) "[? ?]". iFrame. iExists _. iFrame "∗ #". }
+      iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     iDestruct "Hv" as (ws ->) "Hv".
     iDestruct (big_sepL2_app_inv_r with "Hv") as (ws1 ws2 Heq) "[Hv1 Hv2]".
     rewrite Heq. simpl of_val. rewrite - v_to_e_cat - app_assoc.

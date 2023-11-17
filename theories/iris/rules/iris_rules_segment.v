@@ -1509,11 +1509,11 @@ Proof.
 *)
 
 
-Lemma wp_segfree h f0 bts Φ s E:
+Lemma wp_segfree h f0 b bts Φ s E:
   valid h = true ->
   offset h = 0%N ->
-  length bts = N.to_nat (bound h) ->
-  (▷ Φ (immV []) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] (base h, bound h)
+  length bts = N.to_nat b ->
+  (▷ Φ (immV []) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] (base h, b)
      ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }})).
 Proof.
@@ -1590,7 +1590,7 @@ Proof.
 Qed.
 
 Lemma wp_segfree_failure_2 h f0 Φ s E x y :
-   x <> h.(base) \/ y <> h.(bound) ->
+   x <> h.(base )->
     ▷ (id h ↣[allocated](x, y) -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated](x, y)
      ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).

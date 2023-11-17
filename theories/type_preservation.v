@@ -2898,11 +2898,11 @@ Proof.
 Qed.  
 
 
-Lemma sfree_same_size: forall seg A a n c seg' A',
-    sfree seg A a n c seg' A' ->
+Lemma sfree_same_size: forall seg A a c seg' A',
+    sfree seg A a c seg' A' ->
     length seg.(seg_data).(segl_data) = length seg'.(seg_data).(segl_data).
 Proof.
-  intros seg A a n c seg' A' H.
+  intros seg A a c seg' A' H.
   inversion H.
   done. 
 Qed.  
@@ -2975,8 +2975,8 @@ Admitted.
 
   
   
-Lemma seg_extension_free: forall m A a n c seg' A',
-    sfree m A a n c seg' A' ->
+Lemma seg_extension_free: forall m A a c seg' A',
+    sfree m A a c seg' A' ->
     seg_extension m seg'.
 Proof.
   intros.
@@ -3275,13 +3275,13 @@ Qed.
 
 
   
-  Lemma free_seg_agree: forall s m A a n c mem A',
+  Lemma free_seg_agree: forall s m A a c mem A',
     store_typing s ->
     m = s_segs s ->
-    sfree m A a n c mem A' ->
+    sfree m A a c mem A' ->
     seg_agree mem.
 Proof.
-  move => s m A a n c mem A' HST HN HAlloc.
+  move => s m A a c mem A' HST HN HAlloc.
   assert (seg_agree m); first by eapply segstore_typed_seg_agree; eauto.
   unfold seg_agree.
   specialize (sfree_same_size HAlloc) as Hlen.

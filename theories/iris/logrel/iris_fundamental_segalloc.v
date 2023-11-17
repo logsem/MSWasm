@@ -21,57 +21,6 @@ Section fundamental.
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
   (* --------------------------------------------------------------------------------------- *)
-
- 
-(*  Lemma wss_select_nat a b a' b' tbs:
-    (a' >= a) -> (a' + b' <= a + b) -> length tbs = b ->
-    ↦[wss][ N.of_nat a ] tbs -∗
-      ∃ tbs', ⌜ (length tbs') = b' ⌝ ∗
-                                ↦[wss][ N.of_nat a' ] tbs' ∗
-                                (↦[wss][ N.of_nat a' ] tbs' -∗ ↦[wss][ N.of_nat a ] tbs).
-  Proof.
-    iIntros (Ha Hb Htbs) "Hs".
-    rewrite - (take_drop (a' - a) tbs).
-    rewrite - (take_drop b' (drop (a' - a) tbs)).
-    iDestruct (big_sepL_app with "Hs") as "[Hbegin Hs]".
-    iDestruct (big_sepL_app with "Hs") as "[Hs Hend]".
-    iExists (take b' (drop (a' - a) tbs)).
-    iSplit.
-    - iPureIntro. rewrite take_length_le; first done.
-      rewrite drop_length Htbs. lia.
-    - iSplitL "Hs".
-      + iApply (big_sepL_impl with "[Hs]"); first done.
-        iIntros "!>" (k x) "%Hx Hs".
-        rewrite take_length_le; last lia. repeat rewrite Nat2N.id.
-        replace (a + (a' - a + k)) with (a' + k); first done.
-        lia.
-      + iIntros "Hs".
-        iApply (big_sepL_app with "[$Hbegin Hs Hend]").
-        iApply (big_sepL_app with "[Hend Hs]").
-        iSplitL "Hs"; last done.
-        iApply (big_sepL_impl with "[Hs]"); first done.
-        iIntros "!>" (k x) "%Hx Hs".
-        rewrite take_length_le; last lia. repeat rewrite Nat2N.id.
-        replace (a + (a' - a + k)) with (a' + k); first done.
-        lia.
-  Qed.
-
-    Lemma wss_select a b a' b' tbs:
-    (a' >= a)%N -> (a' + b' <= a + b)%N -> N.of_nat (length tbs) = b ->
-    ↦[wss][ a ] tbs -∗
-      ∃ tbs', ⌜ N.of_nat (length tbs') = b' ⌝ ∗
-                                ↦[wss][ a' ] tbs' ∗
-                                (↦[wss][ a' ] tbs' -∗ ↦[wss][ a ] tbs).
-    Proof.
-      iIntros (Ha Hb Htbs) "Hs".
-      iDestruct (wss_select_nat (N.to_nat a) (N.to_nat b) (N.to_nat a') (N.to_nat b') tbs
-                  with "[Hs]") as "(%tbs' & % & ?)"; try lia.
-      - by rewrite N2Nat.id.
-      - repeat rewrite N2Nat.id. iExists tbs'. iFrame.
-        iPureIntro. lia.
-    Qed.  *)
-
-        
                                                            
     
     
@@ -79,95 +28,76 @@ Section fundamental.
   (* ----------------------------------------- SEGALLOC ---------------------------------------- *)
 
 
-  Lemma typing_segload C t : 
-    ⊢ semantic_typing C (to_e_list [BI_segalloc t]) (Tf [T_i32] [T_handle]).
+  Lemma typing_segalloc C : 
+    ⊢ semantic_typing C (to_e_list [BI_segalloc]) (Tf [T_i32] [T_handle]).
   Proof.
-  Admitted. 
-(*    unfold semantic_typing, interp_expression.
+    unfold semantic_typing, interp_expression.
     iIntros (i all lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
-      iIntros (v0) "[? ?]". iFrame. iExists _. iFrame "∗ #". }
+      iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     iDestruct "Hv" as (ws ->) "Hv".
     iDestruct (big_sepL2_length with "Hv") as %Hlen.
-    destruct ws as [|w ws];[done|destruct ws;[|done]].
-    iSimpl in "Hv". iDestruct "Hv" as "[Hv _]".
-    rewrite fixpoint_interp_value_handle_eq.
-    iDestruct "Hv" as (h γ base' bound') "(-> & #Hw & %Hbase & %Hbound & #Hinv)".
+    destruct ws as [|wh ws];[done|destruct ws; last done].  
+    iSimpl in "Hv". iDestruct "Hv" as "(Hv & _)".
+    iDestruct "Hv" as (z) "->".
 
     iSimpl.
+    iApply wp_fupd.
+    iApply (wp_wand with "[Hf]").
+    { iApply (wp_segalloc with "[$Hf]") => //.
+      iIntros "!>" (w) "H". iExact "H". }
+    iIntros (v) "[(%h & -> & [-> | (Ha & %Hbound & %Hoff & %Hvalid & Hss)]) Hf]".
+    - (* Segalloc failed *)
+      iSplitR "Hf Hfv".
+      + iLeft; iRight. iExists _. iModIntro. iSplit; first done. iSplit; last done.
+        rewrite fixpoint_interp_value_handle_eq.
+        iExists _. iSplit; first done. by iLeft.
+      + iExists _, _. iModIntro. iFrame. 
+    - (* Segalloc succeeded *)
+      iAssert (▷ ∃ tbs, ⌜ length tbs = N.to_nat (bound h) ⌝ ∗ ↦[wss][base h] tbs ∗
+                                       ∀ addr,  ⌜ (N.modulo (base h + addr) handle_size = 0 /\
+                                                     addr + handle_size <= bound h )%N ⌝ -∗
+                                                  ⌜ exists addr' (b: byte), (addr' < handle_size)%N  /\
+                                                                         tbs !! (N.to_nat (addr + addr')%N) = Some (b, Numeric) ⌝ ∨
+                                                                         interp_value_handle (VAL_handle (handle_of_bytes (map fst (take (N.to_nat handle_size) (drop (N.to_nat addr) tbs))))))%I with "[Hss]" as "Hinv".
+      { iExists _. iFrame "Hss". iSplit.
+        - iPureIntro. rewrite repeat_length Hbound. done.
+        - iIntros (addr) "%Haddr". iLeft. iPureIntro. exists 0%N, #00%byte.
+          specialize hsnz as H. rewrite nat_bin in H.
+          split; first lia. apply repeat_lookup.
+          lia. }
+      iMod (cinv_alloc with "Hinv") as (γ) "[#Hinv Htok]".
+      iDestruct "Hfv" as "[(%fall & Hbl & Htoks) Hfv]".
+      destruct (fall !! id h) eqn:Hidh.
+      { iDestruct (big_sepM_lookup_acc with "Htoks") as "[(%x & _ & Habs & _) ?]"; first done.
+        iDestruct (ghost_map_elem_combine with "Ha Habs") as "[Habs _]".
+        iDestruct (ghost_map_elem_valid with "Habs") as "%Habs".
+        done. } 
+      iMod (ghost_map_insert_persist _ γ with "Hbl") as "[Hbl #Hw]"; first done.
+      iModIntro.
+      iSplitR.
+      + iLeft; iRight. iExists _. iSplit; first done. iSplit; last done.
+        rewrite fixpoint_interp_value_handle_eq.
+        iExists _. iSplit; first done. iRight.
+        iExists γ, (base h), (bound h). iFrame "Hw Hinv".
+        iSplit; iPureIntro; lia.
+      + iExists _, _. iFrame "Hf Hfv".
+        iExists _. iFrame "Hbl".
+        iApply big_sepM_insert; first done.
+        iSplitR "Htoks".
+        * iExists _. iFrame. iPureIntro.
+          instantiate (1 := {| allocated := <[ id h := _ ]> (allocated all); next_free := next_free all |}).
+          simpl. rewrite lookup_insert. done.
+        * iApply big_sepM_mono; last done.
+          iIntros (k x Hx) "(%y & %Hy & Ha & Htok)".
+          iExists _. iFrame. iPureIntro.
+          simpl. rewrite lookup_insert_ne => //.
+          intros Habs; rewrite Habs Hx in Hidh.  done.
+  Qed. 
 
-
-
-    destruct (valid h) eqn:Hvalid.
-    2:{ iApply (wp_wand with "[Hf]").
-        - iApply (wp_segload_failure with "[$Hf]").
-          + by left.
-          + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
-        - iIntros (v) "[-> Hf]".
-          iSplitR; first by do 2 iLeft.
-          iExists _. iFrame. } 
-
-    destruct (bound h <? offset h + N.of_nat (t_length t))%N eqn:Hbounds.
-    { apply N.ltb_lt in Hbounds.
-      iApply (wp_wand with "[Hf]").
-      - iApply (wp_segload_failure with "[$Hf]").
-        + by right; left; lia.
-        + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
-      - iIntros (v) "[-> Hf]".
-          iSplitR; first by do 2 iLeft.
-          iExists _. iFrame. } 
-    apply N.ltb_ge in Hbounds.
-
-    iDestruct "Hfv" as "[Halloc Hfv]".
-    iDestruct "Halloc" as (γmap) "[Hbl Htok]".
-    iApply fupd_wp. 
-    iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
-    iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
-    iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%x & %Hx & Halloc & Htok) Htoks]".
-    iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
-    iDestruct "Hss" as (tbs) "(>%Htbs & >Hss & Hhandles)".
-    iDestruct (wss_select base' bound' (handle_addr h) (N.of_nat (t_length t)) tbs with "Hss")
-      as "(%tbs' & %Htbs' & Hss & Hreconstitute)"; try by subst; unfold handle_addr; lia.
-    assert (length tbs' = t_length t) as Htbs''; first lia. 
-
-    destruct t eqn:Ht.
-
-    - (* Segload T_i32 *)
-      iApply (wp_wand _ _ _ (λ vs, (⌜ vs = immV _ ⌝ ∗ _) ∗ _)%I with "[Hf Halloc Hss]"). 
-      + iApply (wp_segload_deserialize with "[$Hf $Halloc $Hss]") => //.
-      + iIntro (v) "(-> & Halloc & Hss)". iMod ("Hcls" with "[Hss Hhandles]"). iIntros (v).
-    
-    destruct (N_lt_dec (mem_length ms) ((Wasm_int.N_of_uint i32m z) + off + (N.of_nat (t_length t))))%N.
-      { iApply wp_fupd.
-        iApply (wp_wand _ _ _ (λ vs, (⌜vs = trapV⌝ ∗ _) ∗ _)%I with "[Hsize Hf]").
-        { by iApply (wp_load_failure with "[$Hf $Hsize]");[by rewrite Hlocs /=|by apply N.lt_gt|]. }
-        iIntros (v) "[[-> Hsize] Hf]".
-        iMod ("Hcls" with "[$Hown Hsize Hmem]") as "Hown".
-        { iNext. iExists _. iFrame. }
-        iModIntro.
-        iSplitR;[by iLeft; iLeft|iExists _;iFrame].
-        iExists _. eauto. 
-      }
-      { iDestruct (mem_extract _ (Wasm_int.N_of_uint i32m z + off) (t_length t) with "Hmem") as (bv) "[Ha [Hmem %Hlenbv]]";[destruct t;simpl;try lia; try apply hsnz|lia|].
-        iApply wp_fupd.
-        iApply (wp_wand _ _ _ (λ vs, (⌜vs = immV _⌝ ∗ _) ∗ _)%I with "[Ha Hf]").
-        { iApply (wp_load_deserialize with "[$Hf $Ha]");eauto;by rewrite Hlocs /=. }
-        iIntros (v) "[[-> Ha] Hf]".
-        iDestruct ("Hmem" with "Ha") as "Hmem".
-        iMod ("Hcls" with "[$Hown Hsize Hmem]") as "Hown".
-        { iNext. iExists _. iFrame. }
-        iModIntro.
-        iSplitR;[iLeft; iRight|iExists _;iFrame;iExists _;eauto].
-        iExists _. iSplit;[eauto|]. iSimpl.
-        iSplit =>//. unfold interp_value.
-        destruct t;iSimpl;eauto.
-      }
-
-    }
-  Qed. *)
 
 End fundamental.

@@ -23,12 +23,12 @@ Definition wgN (a: N) : namespace := nroot .@ wg .@ a.
 
 Close Scope byte_scope.
 
-Definition relUR := gmapUR N (agreeR (leibnizO gname)).
-Definition relT := gmap N (leibnizO gname).
+(* Definition relUR := gmapUR N (agreeR (leibnizO gname)). *)
+Definition relT := gmap N (leibnizO (gname * N * N)).
 
 Class cancelG Σ := CancelG {
                    (*    cancelG_invG : cinvG Σ; *)
-                       cancelG_inv_tokens :> ghost_mapG Σ N gname; (* inG Σ (authR relUR); *)
+                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N); (* inG Σ (authR relUR); *)
                        γtoks : gname; 
                      }.
 
@@ -98,7 +98,7 @@ Section logrel.
   Definition interp_value_f64 : WR := λne w, ⌜∃ z, w = VAL_float64 z⌝%I.
 
 
-  Definition gamma_id_white (γ: gname) (id: N): iProp Σ :=
+  Definition gamma_id_white (γ: gname * N * N) (id: N): iProp Σ :=
     (*  (own γtoks (◯ {[ id := to_agree γ]}))%I.  *)
     (id ↪[γtoks]□ γ)%I.
   Definition gamma_id_black (f: relT) : iProp Σ := 
@@ -137,7 +137,7 @@ Section logrel.
       (∃ (h : handle),
           (* There exists a handle such that either that handle is invalid, or *)
           ⌜ w = VAL_handle h ⌝ ∗
-                  (⌜ valid h = false ⌝ ∨ ∃ γ base' bound', gamma_id_white γ (id h) ∗
+                  (⌜ valid h = false ⌝ ∨ ∃ γ base' bound', gamma_id_white (γ, base', bound') (id h) ∗
           (* There exists a greater range, such that *)
           ⌜ (base' <= base h)%N ⌝ ∗
           ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
@@ -189,7 +189,7 @@ Section logrel.
   
   Definition interp_allocator : ALLR :=
     λne (all: leibnizO allocator), (∃ (f: relT), gamma_id_black f ∗
-       ([∗ map] id ↦ γ ∈ f, ∃ x, ⌜ all.(allocated) !! id = Some x ⌝ ∗ id ↣[allocated] x ∗ cinv_own γ 1%Qp))%I.
+       ([∗ map] id ↦ x ∈ f, let '(γ, base, bound) := x in ⌜ all.(allocated) !! id = Some (base, bound) ⌝ ∗ id ↣[allocated] (base, bound) ∗ cinv_own γ 1%Qp))%I.
 (*       ∀ id γ, ⌜ f !! id = Some γ ⌝ -∗ ⌜ isSome (all.(allocated) !! id) ⌝ ∗ cinv_own γ 1%Qp)%I. *)
                                                      
 (*      ∀ id, ⌜ all.(allocated) !! id = Some x ⌝ -∗
@@ -616,7 +616,8 @@ Section logrel.
     (WP es {{ vs, (interp_val τs vs
                    ∨ interp_br τl i all τto host_list vs lh τc
                    ∨ interp_return_option τto τl i vs
-                   ∨ interp_call_host τl i all τto host_list vs lh τc τs) ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }})%I.
+                   ∨ interp_call_host τl i all τto host_list vs lh τc τs) ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }})%I. (* Was it a good move to add all existentially? *)
+  (* Look into whether interp_call_host actually needs all *)
   
   
   (* --------------------------------------------------------------------------------------- *)

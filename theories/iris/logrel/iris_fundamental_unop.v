@@ -44,7 +44,7 @@ Section fundamental.
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
-      iIntros (v0) "[? ?]". iFrame. iExists _. iFrame "∗ #". }
+      iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     { iDestruct "Hv" as (ws ->) "Hv".
       iDestruct (big_sepL2_length with "Hv") as %Hlen.
       destruct ws as [|w ws];[done|destruct ws;[|done]].

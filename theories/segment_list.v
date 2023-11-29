@@ -14,7 +14,7 @@ Record segment_list : Type := {
 
 
 Record allocator : Type := {
-    allocated :  (* list (N * N * N) *) gmap N (N * N);
+    allocated :  (* list (N * N * N) *) gmap N (option (N * N));
     next_free : N; 
   }.
 
@@ -59,12 +59,15 @@ Definition find_and_remove (nid : N) (l : list (N * N * N)): option (list (N * N
   | _ => None
   end. *)
 
-Definition find (nid : N) (l : gmap N (N * N)) : option (N * N) :=
-  l !! nid.
-Definition find_and_remove (nid : N) (l : gmap N (N * N)) : option (gmap N (N * N) * N * N) :=
+Definition find (nid : N) (l : gmap N (option (N * N))) : option (N * N) :=
   match l !! nid with
-  | Some (b, c) => Some (delete nid l, b, c)
-  | None => None
+  | Some (Some x) => Some x
+  | _ => None
+  end.
+Definition find_and_remove (nid : N) (l : gmap N (option (N * N))) : option (gmap N (option (N * N)) * N * N) :=
+  match l !! nid with
+  | Some (Some (b, c)) => Some (<[ nid := None ]> l, b, c)
+  | _ => None
   end.  
 
 (*
@@ -109,12 +112,15 @@ Definition isAllocb nid s :=
   | _ => true
   end. 
 
-Definition isFree nid s : Prop :=
-(*  s.(allocated) !! nid = None.*) find nid s.(allocated) = None. 
+
+Definition isNotAlloc nid s : Prop :=
+  (*  s.(allocated) !! nid = None.*) find nid s.(allocated) = None.
+Definition canBeAlloc nid s : Prop :=
+  s.(allocated) !! nid = None.
 
 
- Definition compatible addr size (s : gmap N (N * N)) : Prop :=
-  forall nid addr' size', s !! nid = Some (addr', size') ->
+ Definition compatible addr size (s : gmap N (option (N * N))) : Prop :=
+  forall nid addr' size', s !! nid = Some (Some (addr', size')) ->
                      (addr + size <= addr')%N \/ (addr >= addr' + size')%N. 
 (*
 Fixpoint compatible addr size (l : list (N * N * N)) : Prop :=
@@ -245,9 +251,9 @@ Definition seg_grow :=
 (* Definition isSound_aux T (l : list (N * N * N)) : Prop :=
   List.forallb (fun '(a,b,c) => N.leb (b + c) (seg_length T)) l. *)
 
- Definition isSound_aux T (m : gmap N (N * N)) : Prop :=
-  forall a b c, m !! a = Some (b,c) ->
-           (b + c <= seg_length T)%N /\ compatible b c (delete a m). 
+ Definition isSound_aux T (m : gmap N (option (N * N))) : Prop :=
+  forall a b c, m !! a = Some (Some (b,c)) ->
+           (b + c <= seg_length T)%N /\ compatible b c (<[ a := None ]> m). 
 (*
 Fixpoint isSound_aux T (l : list (N * N * N)) : Prop :=
   match l with
@@ -258,7 +264,7 @@ Fixpoint isSound_aux T (l : list (N * N * N)) : Prop :=
 
  Definition isSound T A : Prop :=
   isSound_aux T A.(allocated) /\
-    forall k, (k >= A.(next_free))%N -> A.(allocated) !! k = None.  
+    forall k, (k >= A.(next_free))%N -> canBeAlloc k A.
 
 
 
@@ -311,13 +317,13 @@ Proof.
   intros l nid l' a n add size Hcomp Hrem nid' b c Hnid'.
   unfold find_and_remove in Hrem.
   destruct (l !! nid) eqn:Hnid => //.
-  destruct p as [??].
+  destruct o as [[??]|] => //.
   inversion Hrem; subst; clear Hrem.
   destruct (nid =? nid')%N eqn:Hn.
   - apply N.eqb_eq in Hn as ->.
-    by rewrite lookup_delete in Hnid'.
+    rewrite lookup_insert in Hnid' => //.
   - apply N.eqb_neq in Hn.
-    rewrite lookup_delete_ne in Hnid' => //.
+    rewrite lookup_insert_ne in Hnid' => //.
     by apply Hcomp in Hnid'.
 Qed.
 (*  induction l => //=.
@@ -361,21 +367,21 @@ Proof.
   intros T l nid l' a n Hsound Hrem nid' b c Hnid'.
   unfold find_and_remove in Hrem.
   destruct (l !! nid) eqn:Hnid => //.
-  destruct p.
+  destruct o as [[??]|] => //.
   inversion Hrem; subst; clear Hrem.
   destruct (nid =? nid')%N eqn:Hn.
   apply N.eqb_eq in Hn as ->.
-  by rewrite lookup_delete in Hnid'.
+  by rewrite lookup_insert in Hnid'.
   apply N.eqb_neq in Hn.
-  rewrite lookup_delete_ne in Hnid' => //.
+  rewrite lookup_insert_ne in Hnid' => //.
   apply Hsound in Hnid' as [??] => //.
-  split => //. Search compatible.
+  split => //. 
   eapply find_and_remove_compatible.
   exact H0. instantiate (3 := nid).
   unfold find_and_remove.
-  rewrite lookup_delete_ne => //.
+  rewrite lookup_insert_ne => //.
   rewrite Hnid.
-  by rewrite delete_commute.
+  by rewrite insert_commute.
 Qed.
 (*  
   intros T l.
@@ -400,6 +406,6 @@ Qed.
 Qed. 
 *)
 
-Definition allocated_eq_dec : forall v1 v2 : gmap N (N * N), {v1 = v2} + {v1 <> v2}.
+Definition allocated_eq_dec : forall v1 v2 : gmap N (option (N * N)), {v1 = v2} + {v1 <> v2}.
 Proof. intros. solve_decision. Qed.
 

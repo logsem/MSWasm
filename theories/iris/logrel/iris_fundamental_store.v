@@ -194,7 +194,7 @@ Section fundamental.
     iAssert (⌜types_agree t w1⌝)%I as %Htypes.
     { destruct t; try iDestruct "Hv1" as (z') "->";eauto.
       rewrite fixpoint_interp_value_handle_eq.
-      iDestruct "Hv1" as (z' ? ? ?) "[-> _]".  done. }
+      iDestruct "Hv1" as (z') "[-> _]".  done. }
 
     destruct tp.
     { (* it is a packed store *)

@@ -209,7 +209,7 @@ Definition isStack (h: handle) (l : seq.seq i32) :=
    (* ⌜ (two16 | v)%N ⌝ ∗ ⌜(0 ≤ v ≤ ffff0000)%N⌝ ∗  *)
    ⌜ offset h = 0%N ⌝ ∗ ⌜ bound h = 65536%N ⌝ ∗ ⌜ valid h = true ⌝ ∗
   ⌜ (N.of_nat (length l) < two14)%N ⌝ ∗
-  id h ↣[allocated] (base h, bound h) ∗ 
+  id h ↣[allocated] Some (base h, bound h) ∗ 
    ↦[i32][ base h ]
    (Wasm_int.Int32.repr (Z.of_N st_p)) ∗
    ([∗ list] i ↦ w ∈ l,
@@ -725,18 +725,18 @@ Proof.
     iDestruct (i32_wss with "Hbase") as "Hbase".
     unfold handle_addr; rewrite Hoff N.add_0_r.
     iFrame.
+    iNext. iIntros "H".
     instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
-    iSplit; first done. iExact "Hrest".
+    iSplit; first done. iCombine "Hrest H" as "Hrest". iExact "Hrest".
   }
   { rewrite Hoff Hbound; done. }
   { rewrite map_fst_map_pair. instantiate (1 := VAL_int32 _). done. }
   { done. } 
-  { iIntros (w) "(((-> & Hrest) & Hid & Hbase) & Hf)".
+  { iIntros (w) "[(-> & Hrest & Hid & Hbase) Hf]". 
     iSplit => //.
     iFrame.
     repeat iSplit => //=.
-    unfold handle_addr; rewrite Hoff N.add_0_r.
-    by iApply i32_wss.
+    iApply i32_wss. done.
   }
 Qed.
 
@@ -775,16 +775,16 @@ Proof.
       rewrite H. 
       iSplitL "Hcrest"; last first.
       iApply i32_wss. done.
-      instantiate (2 := λ v, (⌜ v = immV _ ⌝ ∗ (↦[i32][ _ ] _ -∗ _))%I).
-      iFrame. done. 
+      instantiate (2 := λ v, (⌜ v = immV _ ⌝ ∗ (↦[i32][ _ ] _ -∗ _) ∗ _)%I).
+      iFrame. iNext. iIntros "H". iSplit; first done. iExact "H".
     - simpl. rewrite Hbound. unfold two14 in Hlen. rewrite Hoff Z.add_0_l.
       remember (length s) as x. rewrite - Heqx. lia.
     - rewrite map_fst_map_pair. instantiate (1 := VAL_int32 _) => //. 
     - done.
   } 
-  iIntros (w) "[[[-> Hs] [Ha Hj]] Hf]". 
+  iIntros (w) "[(-> & Hs & Ha & Hj) Hf]". 
   iSplit => //.
-  iDestruct (i32_wss with "Hj") as "Hj". iFrame. rewrite Hoff Z.add_0_l.
+  iDestruct (i32_wss with "Hj") as "Hj". iFrame. 
   replace (base v + N.of_nat (length s) * 4 - 4 *j)%N
     with (handle_addr {|
                      base := base v;
@@ -889,13 +889,13 @@ Proof.
       rewrite H.
       iSplitR "Hj"; last first.
       iApply i32_wss. done.
-      instantiate (1 := λ v, (⌜ v = immV _ ⌝ ∗ (∀ y, ↦[i32][ _ ] _ -∗ _))%I).
-      iFrame. done. 
+      instantiate (1 := λ v, (⌜ v = immV _ ⌝ ∗ (∀ y, ↦[i32][ _ ] _ -∗ _) ∗ _)%I).
+      iFrame. iNext. iIntros "H". iSplit; first done. iExact "H".
     - simpl. rewrite Hbound. unfold two14 in Hlen.
       rewrite Hoff Z.add_0_l.  remember (length s) as x. rewrite - Heqx. lia.
     - done.
   }
-  iIntros (w) "[([-> Hs] & Ha & Hj) Hf]".
+  iIntros (w) "[(-> & Hs & Ha & Hj) Hf]".
   iSplit => //.
   iFrame "Hf".
   repeat iSplit => //.
@@ -903,7 +903,6 @@ Proof.
   repeat rewrite insert_length. 
   iFrame.
   iDestruct (i32_wss with "Hj") as "Hj". unfold handle_addr; iSimpl in "Hj".
-  rewrite Hoff Z.add_0_l.
   iDestruct ("Hs" with "Hj") as "Hs".
   done.   
 Qed.

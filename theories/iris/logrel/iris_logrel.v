@@ -98,11 +98,9 @@ Section logrel.
   Definition interp_value_f64 : WR := λne w, ⌜∃ z, w = VAL_float64 z⌝%I.
 
 
-  Definition gamma_id_white (γ: gname * N * N) (id: N): iProp Σ :=
-    (*  (own γtoks (◯ {[ id := to_agree γ]}))%I.  *)
+  Definition gamma_id_white (γ: (gname * N * N)) (id: N): iProp Σ :=
     (id ↪[γtoks]□ γ)%I.
   Definition gamma_id_black (f: relT) : iProp Σ := 
-    (*   (own γtoks (● (to_agree <$> f : relUR)))%I. *)
     (ghost_map_auth γtoks 1%Qp f).
   Lemma gamma_agree γ id (f: relT):
     ⊢ gamma_id_white γ id -∗ gamma_id_black f -∗ ⌜ f !! id = Some γ ⌝.
@@ -111,26 +109,6 @@ Section logrel.
     iDestruct (ghost_map_lookup with "Hb Hw") as %Hv.
     done.
   Qed.
-(*  iDestruct (own_valid_2 with "Hb Hw") as %Hv.
-    iPureIntro.
-    apply auth_both_valid in Hv as [Hv1 Hv2].
-    specialize (Hv2 id).
-    assert ({[ id := to_agree γ]} ≼ to_agree <$> f) as Hv3.
-    { admit. }
-    Search "singleton_included". ghost_map
-    apply singleton_included_l in Hv3 as (y & Heq & Hi).
-    revert Hv2; rewrite Heq => Hv2.
-    revert Hi; rewrite Some_included_total => Hi.
-    apply to_agree_uninj in Hv2 as [y' Hy].
-    revert Hi Heq; rewrite -Hy => Hi Heq.
-    apply to_agree_included in Hi; subst.
-    revert Heq; rewrite -Hi => Heq.
-    revert Heq; rewrite lookup_fmap fmap_Some_equiv => Heq.
-    destruct Heq as (x & Heq & Hrx).
-    rewrite Heq. apply to_agree_inj, leibniz_equiv_iff in Hrx.
-    rewrite - Hrx. done.
-  Admitted. *)
-    
 
   Definition interp_value_handle_0 (ivh: WR) :=
     (λne w,
@@ -145,7 +123,7 @@ Section logrel.
           cinv (wsN (id h)) γ (∃ tbs,
               (* We own some bytes in segment memory covering that greater range *)
               ⌜ length tbs = N.to_nat bound' ⌝ ∗
-              ↦[wss][base'] tbs ∗
+              ↦[wss][base'] tbs ∗ (*id h ↣[allocated] (base', bound') ∗ *)
               (* And for all addresses that might store a handle, *)
               ∀ addr, ⌜ (N.modulo (base' + addr) handle_size = 0 /\ addr + handle_size <= bound' )%N ⌝ -∗
                   (* Either that address has at least one byte tagged as non-handle *)
@@ -189,7 +167,17 @@ Section logrel.
   
   Definition interp_allocator : ALLR :=
     λne (all: leibnizO allocator), (∃ (f: relT), gamma_id_black f ∗
-       ([∗ map] id ↦ x ∈ f, let '(γ, base, bound) := x in ⌜ all.(allocated) !! id = Some (base, bound) ⌝ ∗ id ↣[allocated] (base, bound) ∗ cinv_own γ 1%Qp))%I.
+         [∗ map] id ↦ x ∈ f,
+           let '(γ, base, bound) := x in
+           ∃ y, ⌜ allocated all !! id = Some y ⌝ ∗ id ↣[allocated] y ∗
+             match y with
+             | Some (base', bound') => ⌜ base = base' ⌝ ∗ ⌜ bound = bound' ⌝ ∗ cinv_own γ 1%Qp
+             | None => True
+             end)%I.
+(*       ([∗ map] id ↦ x ∈ allocated all, ∃ γ, ⌜ f !! id = Some γ ⌝ ∗ cinv_own γ 1%Qp))%I.   *)
+     (*  ([∗ map] id ↦ x ∈ f,  match x with
+                             | Some (γ, base, bound) => ⌜ (allocated all) !! id = Some (base, bound) ⌝ ∗ id ↣[allocated] (base, bound) ∗ cinv_own γ 1%Qp
+                             | None => ⌜ (allocated all) !! id = None ⌝  end))%I.  *)
 (*       ∀ id γ, ⌜ f !! id = Some γ ⌝ -∗ ⌜ isSome (all.(allocated) !! id) ⌝ ∗ cinv_own γ 1%Qp)%I. *)
                                                      
 (*      ∀ id, ⌜ all.(allocated) !! id = Some x ⌝ -∗
@@ -498,7 +486,7 @@ Section logrel.
                                                 ∨ ▷ interp_call_host_br'.2 vs lh τc
                                                 ∨ interp_return_option τro τl i vs
                                                 ∨ ▷ interp_call_host_br'.1 vs lh τc τ2)
-                                                 ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}
+                                                 ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}
                                )
                            )%I
                               
@@ -518,7 +506,7 @@ Section logrel.
                                                    ∨ ▷ interp_call_host_br'.2 vs lh'' (drop (S (j - p)) τc)
                                                    ∨ interp_return_option τro τl i vs
                                                    ∨ ▷ (∃ τs, interp_call_host_br'.1 vs lh'' (drop (S (j - p)) τc) τs))
-                              ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}))%I
+                              ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}))%I
       
     ).
 
@@ -595,7 +583,7 @@ Section logrel.
                           ▷ interp_br τl i all τto hl vs lh'' (drop (S (j - p)) τc) ∨
                           interp_return_option τto τl i vs ∨
                           ▷ (∃ τs, interp_call_host τl i all τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
-                         ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}.
+                         ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}.
 
     Definition interp_br_body_equiv τc lh j p (w : seq.seq value) τl i all τto hl : iProp Σ :=
     ∃ τs' vs k es lh' es' lh'' τs'',
@@ -609,7 +597,7 @@ Section logrel.
                           ▷ interp_br τl i all τto hl vs lh'' (drop (S (j - p)) τc) ∨
                           interp_return_option τto τl i vs ∨
                           ▷ (∃ τs, interp_call_host τl i all τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
-                         ∗ ∃ f, ↪[frame] f ∗ interp_frame τl i all f }}.
+                         ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}.
   
   Definition interp_expression (τc : list (list (value_type))) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
              (τs : result_type) (lh : lholed) (τl : result_type) (i : instance) (all: allocator) (es : expr) : iProp Σ :=

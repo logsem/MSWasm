@@ -1352,21 +1352,21 @@ Section fundamental.
     iDestruct ("Hch" with "Hw [$]") as "Hch'".
     iApply (wp_wand with "Hch'").
     
-    iIntros (v') "[[Hv' | [Hv' | [Hv' | Hv']]] Hf]";iDestruct "Hf" as (f0) "[Hf Hfv]".
+    iIntros (v') "[[Hv' | [Hv' | [Hv' | Hv']]] Hf]";iDestruct "Hf" as (f0 all0) "[Hf Hfv]".
     { iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
       iDestruct "Hv'" as "[-> | Hv']".
       { iApply (wp_wand with "[Hf]").
         { iApply (wp_label_trap with "Hf");[auto|].
           by instantiate (1:=(λ v, ⌜v = trapV⌝)%I). }
         iIntros (v0) "[-> Hf]".
-        iSplitR "Hf Hfv";[|iExists _;iFrame].
+        iSplitR "Hf Hfv";[|iExists _,_;iFrame].
         iLeft. iLeft. done. }
       iDestruct "Hv'" as (ws ->) "Hv'".
       iApply (wp_wand with "[Hf]").
       { iApply (wp_label_value with "Hf");[eapply to_of_val|].
         by instantiate (1:=(λ v, ⌜v = immV _⌝)%I). }
       iIntros (v0) "[-> Hf]".
-      iSplitR "Hf Hfv";[|iExists _;iFrame].
+      iSplitR "Hf Hfv";[|iExists _,_;iFrame].
       iLeft. iRight. iExists _. iSplit;eauto.
     }
     { rewrite fixpoint_interp_br_eq.

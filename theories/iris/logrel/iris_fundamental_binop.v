@@ -102,7 +102,7 @@ Section fundamental.
         iApply (wp_wand _ _ _ ((λ v, ⌜v = immV [from_option (λ x, x) w1 (app_binop op w1 w2)]⌝ ∗ ↪[frame] f)%I : language.val wasm_lang -> iPropI Σ) with "[Hf]").
         { iApply (wp_binop with "Hf");eauto. rewrite Hsome. eauto. }
         iIntros (w0) "[-> Hf]".
-        iSplitR;[|iExists _;iFrame].
+        iSplitR;[|iExists _,_;iFrame].
         iLeft. iRight.
         iExists _. iSplit;auto.
         iSimpl. iSplit => //. iApply (binop_type_agree_interp with "Hv1 Hv2");eauto.
@@ -111,7 +111,7 @@ Section fundamental.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iSimpl.
         iApply wp_binop_failure;auto. }
-      { iIntros (v) "[-> Hf]". iSplitR;[|iExists _;iFrame]. iLeft. by iLeft. }
+      { iIntros (v) "[-> Hf]". iSplitR;[|iExists _,_;iFrame]. iLeft. by iLeft. }
     }
   Qed.
 

@@ -183,12 +183,12 @@ Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -
       match T.(seg_max_opt) with
       | Some lim => ((a + n) / page_size <= lim)%N
       | None => True end ->
-      isFree nid A ->
+      canBeAlloc nid A ->
       compatible a n A.(allocated) ->
       T' = {| seg_data :=
                {| segl_data := take (N.to_nat a) (segl_data (seg_data T)) ++ List.repeat (#00, Numeric) (N.to_nat n) ++ drop (N.to_nat (a + n)) (segl_data (seg_data T)) |};
              seg_max_opt := seg_max_opt T |} ->
-      A' = {| allocated := <[ nid := (a, n) ]> (allocated A) ;
+      A' = {| allocated := <[ nid := Some (a, n) ]> (allocated A) ;
              next_free := N.max (next_free A) (nid + 1) |} ->
       salloc T A a n nid T' A'.
 End alloc.

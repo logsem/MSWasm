@@ -384,7 +384,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       A = s.(s_alls) -> 
       (h.(valid) = false \/
       (h.(offset) + (t_length t) > h.(bound))%N \/
-        (isFree h.(id) A) \/ 
+        (isNotAlloc h.(id) A) \/ 
          segload m h (t_length t) = None \/
       t = T_handle /\ (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] ME_trap s f [:: AI_trap]
@@ -433,7 +433,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       A = s.(s_alls) ->
       (h.(valid) = false \/
          (h.(offset) + (t_length t) > h.(bound))%N \/
-         (isFree h.(id) A) \/
+         (isNotAlloc h.(id) A) \/
          segstore m h (List.map (fun x => (x, match t with T_handle => Handle | _ => Numeric end)) (bits v)) (t_length t) = None \/
       t = T_handle /\ (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v) ; AI_basic (BI_segstore t)] ME_trap s f [::AI_trap]

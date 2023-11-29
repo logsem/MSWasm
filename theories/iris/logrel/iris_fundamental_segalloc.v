@@ -72,12 +72,13 @@ Section fundamental.
           lia. }
       iMod (cinv_alloc with "Hinv") as (γ) "[#Hinv Htok]".
       iDestruct "Hfv" as "[(%fall & Hbl & Htoks) Hfv]".
-      destruct (fall !! id h) eqn:Hidh.
-      { iDestruct (big_sepM_lookup_acc with "Htoks") as "[(%x & _ & Habs & _) ?]"; first done.
+      destruct (fall !! id h) as [[[γ0 base] bound]|] eqn:Hidh.
+      { iDestruct (big_sepM_lookup_acc with "Htoks") as "[H ?]"; first done.
+        iSimpl in "H". iDestruct "H" as "(%x & _ & Habs & _)". 
         iDestruct (ghost_map_elem_combine with "Ha Habs") as "[Habs _]".
         iDestruct (ghost_map_elem_valid with "Habs") as "%Habs".
         done. } 
-      iMod (ghost_map_insert_persist _ γ with "Hbl") as "[Hbl #Hw]"; first done.
+      iMod (ghost_map_insert_persist _ (γ, base h, bound h) with "Hbl") as "[Hbl #Hw]"; first done.
       iModIntro.
       iSplitR.
       + iLeft; iRight. iExists _. iSplit; first done. iSplit; last done.
@@ -89,12 +90,12 @@ Section fundamental.
         iExists _. iFrame "Hbl".
         iApply big_sepM_insert; first done.
         iSplitR "Htoks".
-        * iExists _. iFrame. iPureIntro.
+        * iExists _. iFrame. iFrame. repeat iSplit => //. iPureIntro.
           instantiate (1 := {| allocated := <[ id h := _ ]> (allocated all); next_free := next_free all |}).
           simpl. rewrite lookup_insert. done.
         * iApply big_sepM_mono; last done.
-          iIntros (k x Hx) "(%y & %Hy & Ha & Htok)".
-          iExists _. iFrame. iPureIntro.
+          iIntros (k [[γ0 base] bound] Hx) "(%y & %Hy & Ha & Htok)".
+          iExists _. iFrame. iFrame. iPureIntro.
           simpl. rewrite lookup_insert_ne => //.
           intros Habs; rewrite Habs Hx in Hidh.  done.
   Qed. 

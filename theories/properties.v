@@ -1645,8 +1645,17 @@ End using_ssrnat.
 Section using_gmap.
   Import gmap.
 
-    
+    Set Bullet Behavior "Strict Subproofs".
 
+    Lemma compatible_delete x y x' A :
+      compatible x y A -> compatible x y (<[ x' := None ]> A).
+    Proof.
+      intros H x0 y0 s0 H0.
+      destruct (x0 =? x')%N eqn:Hx.
+      - apply N.eqb_eq in Hx as ->. rewrite lookup_insert in H0 => //.
+      - apply N.eqb_neq in Hx. rewrite lookup_insert_ne in H0 => //.
+        by apply H in H0.
+    Qed. 
   
 Lemma salloc_sound T A a n nid T' A' :
   isSound T.(seg_data) A -> salloc T A a n nid T' A' -> isSound T'.(seg_data) A'.
@@ -1671,8 +1680,7 @@ Proof.
         rewrite Nnat.Nat2N.inj_sub.
         repeat rewrite Nnat.N2Nat.id.
         lia.
-      * rewrite delete_insert. done.
-        exact H2.
+      * rewrite insert_insert. by apply compatible_delete. 
     + apply N.eqb_neq in Hnid'.
       rewrite lookup_insert_ne in Hnid => //.
       specialize (Haux _ _ _ Hnid) as [??].
@@ -1686,7 +1694,7 @@ Proof.
         rewrite Nnat.Nat2N.inj_sub.
         repeat rewrite Nnat.N2Nat.id.
         unfold seg_length in H4. lia.
-      * rewrite delete_insert_ne => //.
+      * rewrite insert_commute => //.
         intros x y z Hx.
         destruct (x =? nid)%N eqn:Hxnid.
         apply N.eqb_eq in Hxnid as ->.
@@ -1701,6 +1709,7 @@ Proof.
     + apply N.eqb_eq in Hknid as ->.
       lia.
     + apply N.eqb_neq in Hknid.
+      unfold canBeAlloc.
       rewrite lookup_insert_ne => //.
       apply Hfree. lia.
 Qed. 
@@ -1757,20 +1766,21 @@ Proof.
   intros HSound Hfree.
   inversion Hfree; subst; clear Hfree.
   split.
-  eapply find_and_remove_isSound => //.
-  by destruct HSound.
+  { eapply find_and_remove_isSound => //.
+    by destruct HSound. } 
   simpl. destruct HSound.
   intros k Hk.
   apply H1 in Hk.
   unfold find_and_remove in H.
-  destruct (allocated A !! nid) => //.
-  destruct p.
+  destruct (allocated A !! nid) eqn:Hid => //.
+  destruct o as [[??]|] => //.
   inversion H; subst.
   destruct (k =? nid)%N eqn:Hknid.
   apply N.eqb_eq in Hknid as ->.
-  rewrite lookup_delete => //.
+  unfold canBeAlloc in Hk. by rewrite Hid in Hk. 
+  
   apply N.eqb_neq in Hknid.
-  rewrite lookup_delete_ne => //.
+  unfold canBeAlloc. rewrite lookup_insert_ne => //.
 Qed.
 
 (*

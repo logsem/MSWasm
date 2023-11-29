@@ -21,12 +21,12 @@ Section fundamental.
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
   (* --------------------------------------------------------------------------------------- *)
 
-  Lemma interp_ctx_continuations_push_label_block lh C hl i tm :
+  Lemma interp_ctx_continuations_push_label_block lh C hl i all tm :
     base_is_empty lh ->
     lholed_lengths (rev (tc_label C)) lh ->
-    interp_ctx_continuations (tc_label C) (tc_return C) hl (tc_local C) i lh -∗
+    interp_ctx_continuations (tc_label C) (tc_return C) hl (tc_local C) i all lh -∗
     interp_ctx_continuation (tc_label (upd_label C ([tm] ++ tc_label C))) (tc_return C) hl (push_base lh (length tm) [] [] [])
-                              0 tm (tc_local C) i.
+                              0 tm (tc_local C) i all.
   Proof.
     iIntros (Hlh_base Hlh_len) "#Hc". unfold interp_ctx_continuation.
     iSimpl. rewrite lh_depth_push_base.
@@ -55,10 +55,10 @@ Section fundamental.
     iLeft. iRight. iExists _. eauto.
   Qed.
 
-  Lemma interp_ctx_push_label_block C hl tm i lh :
-    interp_ctx (tc_label C) (tc_return C) hl (tc_local C) i lh -∗
+  Lemma interp_ctx_push_label_block C hl tm i all lh :
+    interp_ctx (tc_label C) (tc_return C) hl (tc_local C) i all lh -∗
     interp_ctx (tc_label (upd_label C ([tm] ++ tc_label C)%list))
-      (tc_return C) hl (tc_local (upd_label C ([tm] ++ tc_label C)%list)) i
+      (tc_return C) hl (tc_local (upd_label C ([tm] ++ tc_label C)%list)) i all
       (push_base lh (length tm) [] [] []).
   Proof.
     iIntros "[%Hlh_base [%Hlh_len [%Hlh_valid #Hc]]]".
@@ -95,7 +95,7 @@ Section fundamental.
     iIntros (i all lh hl).
     iIntros "#Hi".
     
-    iDestruct (IHbe_typing $! i (push_base lh (length tm) [] [] []) with "[]") as "HH"; [by (destruct C,i;eauto)|].
+    iDestruct (IHbe_typing $! i all (push_base lh (length tm) [] [] []) with "[]") as "HH"; [by (destruct C,i;eauto)|].
 
     iIntros "#Hc". iIntros (f vs) "[Hf Hfv] #Hv".
     
@@ -103,7 +103,7 @@ Section fundamental.
     {  take_drop_app_rewrite_twice 0 1.
        iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
        { iApply (wp_trap with "[] [Hf]");auto. }
-       iIntros (v0) "[? ?]". iFrame. iExists _. iFrame "∗ #". }
+       iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     iDestruct "Hv" as (ws ->) "Hv".
     iDestruct (big_sepL2_length with "Hv") as %Hlen.
 
@@ -114,18 +114,18 @@ Section fundamental.
     iApply wp_wasm_empty_ctx.
     iApply wp_label_push_nil.
 
-    iAssert (∀ f, interp_frame (tc_local C) i f -∗ ↪[frame] f -∗ WP of_val (immV ws) ++ to_e_list es
+    iAssert (∀ f, interp_frame (tc_local C) i all f -∗ ↪[frame] f -∗ WP of_val (immV ws) ++ to_e_list es
               {{ v, (⌜v = trapV⌝ ∨
                        interp_values tm v ∨
-                       interp_br (tc_local C) i (tc_return C) hl v _ _ ∨ _)
-                      ∗ ∃ f, ↪[frame] f ∗ interp_frame (tc_local C) i f }})%I as "Hcont".
+                       interp_br (tc_local C) i all (tc_return C) hl v _ _ ∨ _)
+                      ∗ ∃ f all, ↪[frame] f ∗ interp_frame (tc_local C) i all f }})%I as "Hcont".
     { iIntros (f') "Hfv Hf".
       iDestruct ("HH" with "[] [Hf Hfv] []") as "Hcont".
       { iApply (interp_ctx_push_label_block with "[$]"). }
       { iFrame "∗ #". }
       { iRight. iExists _. eauto. }
       iApply (wp_wand with "Hcont").
-      iIntros (v) "H". rewrite -or_assoc. iFrame. }
+      iIntros (v) "[H ?]". rewrite -or_assoc. iFrame. }
     
     iDestruct ("Hcont" $! f with "[$]") as "Hcontf". simpl push_base.
     iApply iRewrite_nil_r_ctx.

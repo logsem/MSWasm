@@ -54,7 +54,7 @@ Class wasmG Σ :=
       (*      alloc_gen_hsG :> gen_heapGS N (N*N) Σ; *)
       allGName : gname;
 
-      all_gen_hsG :> ghost_mapG Σ N (N * N);
+      all_gen_hsG :> ghost_mapG Σ N (option (N * N));
 
       glob_gen_hsG :> gen_heapGS N global Σ;
 

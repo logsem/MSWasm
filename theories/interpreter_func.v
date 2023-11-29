@@ -527,28 +527,16 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
             else (s, f, crash_error))
           (s, f, crash_error)
       else (s, f, crash_error)
-| AI_basic BI_segalloc =>
-      if ves is VAL_int32 c :: ves' then
-(*        expect
-          (sseg_ind s f.(f_inst))
-          (fun j =>
-             expect
-               (sall_ind s f.(f_inst))
-               (fun j' =>
-                  if List.nth_error s.(s_segs) j is Some s_seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some s_all_s_j' then *)
-                      let: l := operations.seg_length s.(s_segs) in
-                      let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
-                      if seg' is Some seg'' then
-                        let: fsh := next_free s.(s_alls) in
-                        (upd_s_seg (upd_s_all s {| allocated := <[ fsh := (l, Wasm_int.N_of_uint i32m c) ]> (allocated s.(s_alls)); next_free := fsh + 1 |}) seg'', f,
-                            RS_normal (vs_to_es (VAL_handle (new_handle l (Wasm_int.N_of_uint i32m c) fsh) :: ves')))
-                      else (s, f, crash_error)
-(*                    else (s, f, crash_error)
-                  else (s, f, crash_error))
-               ((s, f, crash_error)))
-          ((s, f, crash_error)) *)
-      else (s, f, crash_error)
+    | AI_basic BI_segalloc =>
+        if ves is VAL_int32 c :: ves' then
+          let: l := operations.seg_length s.(s_segs) in
+          let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
+          if seg' is Some seg'' then
+            let: fsh := next_free s.(s_alls) in
+            (upd_s_seg (upd_s_all s {| allocated := <[ fsh := (Some (l, Wasm_int.N_of_uint i32m c)) ]> (allocated s.(s_alls)); next_free := fsh + 1 |}) seg'', f,
+              RS_normal (vs_to_es (VAL_handle (new_handle l (Wasm_int.N_of_uint i32m c) fsh) :: ves')))
+          else (s, f, crash_error)
+        else (s, f, crash_error)
 
   | AI_basic BI_segfree =>
       if ves is VAL_handle h :: ves' then

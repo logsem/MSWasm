@@ -43,6 +43,7 @@ Section fundamental.
     rewrite nth_error_lookup in Hlook1.
     rewrite nth_error_lookup in Hlook2.
     iApply fupd_wp.
+    iDestruct "Hfv" as "[? Hfv]".
     iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
     iMod (na_inv_acc with "Hm Hown") as "(Hms & Hown & Hcls)";[solve_ndisj..|].
     iDestruct "Hms" as (ms) ">Hmemblock".
@@ -58,7 +59,8 @@ Section fundamental.
     iModIntro.
     iSplitR;[|iExists _;iFrame;iExists _;eauto].
     iLeft. iRight. iExists _. iSplit;eauto.
-    iSimpl. iSplit =>//. iExists _;eauto.
+    iSimpl. iSplit => //. iExists _;eauto.
   Qed.
 
 End fundamental.
+

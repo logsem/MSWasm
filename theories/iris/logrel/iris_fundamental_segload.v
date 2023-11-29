@@ -80,7 +80,7 @@ Section fundamental.
     rewrite fixpoint_interp_value_handle_eq.
     iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & #Hw & %Hbase & %Hbound & #Hinv)])".
     { iApply (wp_wand with "[Hf]").
-        - iApply (wp_segload_failure with "[$Hf]").
+        - iApply (wp_segload_failure1 with "[$Hf]").
           + by left.
           + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
         - iIntros (v) "[-> Hf]".
@@ -90,7 +90,7 @@ Section fundamental.
 
     destruct (valid h) eqn:Hvalid.
     2:{ iApply (wp_wand with "[Hf]").
-        - iApply (wp_segload_failure with "[$Hf]").
+        - iApply (wp_segload_failure1 with "[$Hf]").
           + by left.
           + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
         - iIntros (v) "[-> Hf]".
@@ -100,31 +100,46 @@ Section fundamental.
     destruct (bound h <? offset h + N.of_nat (t_length t))%N eqn:Hbounds.
     { apply N.ltb_lt in Hbounds.
       iApply (wp_wand with "[Hf]").
-      - iApply (wp_segload_failure with "[$Hf]").
+      - iApply (wp_segload_failure1 with "[$Hf]").
         + by right; left; lia.
         + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
       - iIntros (v) "[-> Hf]".
           iSplitR; first by do 2 iLeft.
           iExists _,_. iFrame. } 
     apply N.ltb_ge in Hbounds.
-
-
-    iApply (wp_wand _ _ _ (λ x, (( ∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value t v) ∗ interp_frame (tc_local C) i all f) ∗ ↪[frame] f )%I with "[Hf Hfv]").
+    
+    iDestruct "Hfv" as "[Halloc Hfv]".
+    iDestruct "Halloc" as (γmap) "[Hbl Htok]".
+    iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
+    iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
+    iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%y & %Hy & Halloc & Htok) Htoks]".
+    destruct y as [[base0 bound0]|].
+    2:{ iApply (wp_wand with "[Hf Halloc]").
+        - iApply (wp_segload_failure2 with "[$Hf $Halloc]").
+          iIntros "!> Ha". instantiate (1 := λ x, (⌜ x = trapV ⌝ ∗ _)%I).
+          iSplit; first done. iExact "Ha".
+        - iIntros (v) "[[-> Ha] Hf]".
+          iSplitR; first by do 2 iLeft.
+          iExists _,_. iFrame.
+          iSplitL "Hbl Htoks Ha".
+          + iExists _. iFrame.
+            iApply "Htoks".
+            iExists None. iFrame. done.
+          + iExists _. iSplit; first done. done. }
+            
+    iDestruct "Htok" as "(-> & -> & Htok)".
+    iApply (wp_wand _ _ _ (λ x, (( ∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value t v) ∗ interp_frame (tc_local C) i all f) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
     { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
-      iDestruct "Hfv" as "[Halloc Hfv]".
-      iDestruct "Halloc" as (γmap) "[Hbl Htok]".
-      iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
-      iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
-      iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%x & %Hx & Halloc & Htok) Htoks]".
+     
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
       iModIntro.
       iDestruct "Hss" as (tbs) "(>%Htbs & >Hss & #Hhandles)".
-      iDestruct (wss_select (N.to_nat base') (N.to_nat bound') (N.to_nat (handle_addr h)) (t_length t) tbs with "[Hss]") 
+      iDestruct (wss_select (N.to_nat base0) (N.to_nat bound0) (N.to_nat (handle_addr h)) (t_length t) tbs with "[Hss]") 
         as "(%Htbs' & Hss & Hreconstitute)";
         try rewrite N2Nat.id;
         try done;
         try by subst; unfold handle_addr; lia.
-      remember (take (t_length t) (drop (N.to_nat (handle_addr h) - N.to_nat base') tbs)) as tbs'.
+      remember (take (t_length t) (drop (N.to_nat (handle_addr h) - N.to_nat base0) tbs)) as tbs'.
       
       assert (length tbs' = t_length t) as Htbs''; first lia. 
 
@@ -147,13 +162,14 @@ Section fundamental.
           iSplit; first done. destruct t; try done; by iExists _.
         * iSplitR "Hown".
           -- iExists _. iFrame. iApply ("Htoks" with "[Hwon Hid]").
-               iExists _. iFrame. done.
+             iExists _.
+             iFrame. done.
           -- iExists _. iFrame. iSplit; done.
     }
      iIntros (v) "[((%v0 & -> & Hv) & Hfv) Hf]".
     iSplitL "Hv".
       + iLeft. iRight. iExists _. iSplit; first done. iFrame. done.
-      + iExists _. iFrame.
+      + iExists _,_. iFrame.
   Qed. 
         
 
@@ -168,7 +184,7 @@ Section fundamental.
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
-      iIntros (v0) "[? ?]". iFrame. iExists _. iFrame "∗ #". }
+      iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     iDestruct "Hv" as (ws ->) "Hv".
     iDestruct (big_sepL2_length with "Hv") as %Hlen.
     destruct ws as [|w ws];[done|destruct ws;[|done]].
@@ -176,59 +192,73 @@ Section fundamental.
     rewrite fixpoint_interp_value_handle_eq.
     iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & #Hw & %Hbase & %Hbound & #Hinv)])".
     { iApply (wp_wand with "[Hf]").
-      - iApply (wp_segload_failure with "[$Hf]").
+      - iApply (wp_segload_failure1 with "[$Hf]").
         + by left.
         + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
       - iIntros (v) "[-> Hf]".
         iSplitR; first by do 2 iLeft.
-        iExists _. iFrame. } 
+        iExists _,_. iFrame. } 
     iSimpl.
 
     destruct (valid h) eqn:Hvalid.
     2:{ iApply (wp_wand with "[Hf]").
-        - iApply (wp_segload_failure with "[$Hf]").
+        - iApply (wp_segload_failure1 with "[$Hf]").
           + by left.
           + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
         - iIntros (v) "[-> Hf]".
           iSplitR; first by do 2 iLeft.
-          iExists _. iFrame. } 
+          iExists _,_. iFrame. } 
 
     destruct (bound h <? offset h + N.of_nat (t_length T_handle))%N eqn:Hbounds.
     { apply N.ltb_lt in Hbounds.
       iApply (wp_wand with "[Hf]").
-      - iApply (wp_segload_failure with "[$Hf]").
+      - iApply (wp_segload_failure1 with "[$Hf]").
         + by right; left; lia.
         + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
       - iIntros (v) "[-> Hf]".
         iSplitR; first by do 2 iLeft.
-        iExists _. iFrame. } 
+        iExists _,_. iFrame. } 
     apply N.ltb_ge in Hbounds.
     destruct ((handle_addr h `mod` handle_size)%N =? N.of_nat 0)%N eqn:Hmod.
     2:{  iApply (wp_wand with "[Hf]").
-         - iApply (wp_segload_failure with "[$Hf]").
+         - iApply (wp_segload_failure1 with "[$Hf]").
            + right; right; split => //. intros Habs.
              rewrite Habs in Hmod. simpl in Hmod. done.
            + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
          - iIntros (v) "[-> Hf]".
            iSplitR; first by do 2 iLeft.
-           iExists _. iFrame. } 
-
-    iApply (wp_wand _ _ _ (λ x, ((∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value T_handle v) ∗ interp_frame (tc_local C) i all f) ∗ ↪[frame] f )%I with "[Hf Hfv]").
-    { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
-      iDestruct "Hfv" as "[Halloc Hfv]".
+           iExists _,_. iFrame. } 
+    iDestruct "Hfv" as "[Halloc Hfv]".
       iDestruct "Halloc" as (γmap) "[Hbl Htok]".
       iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
       iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
-      iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%x & %Hx & Halloc & Htok) Htoks]".
+      iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%y & %Hy & Halloc & Htok) Htoks]".
+      destruct y as [[base0 bound0]|]; first iDestruct "Htok" as "(-> & -> & Htok)".
+      2:{
+        iApply (wp_wand with "[Hf Halloc]").
+        - iApply (wp_segload_failure2 with "[$Hf $Halloc]").
+          iIntros "!> Ha". instantiate (1 := λ x, (⌜ x = trapV ⌝ ∗ _)%I).
+          iSplit; first done. iExact "Ha".
+        - iIntros (v) "[[-> Ha] Hf]".
+          iSplitR; first by do 2 iLeft.
+          iExists _, _. iFrame.
+          iSplitL.
+          + iExists _. iFrame. iApply "Htoks". iExists None.
+            iFrame. done.
+          + iExists _. iSplit => //. } 
+          
+    iApply (wp_wand _ _ _ (λ x, ((∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value T_handle v) ∗ interp_frame (tc_local C) i all f) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
+    { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
+     
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
       iModIntro.
       iDestruct "Hss" as (tbs) "(>%Htbs & >Hss & #Hhandles)".
-      iDestruct (wss_select (N.to_nat base') (N.to_nat bound') (N.to_nat (handle_addr h)) (t_length T_handle) tbs with "[Hss]") 
+      iDestruct (wss_select (N.to_nat base0) (N.to_nat bound0) (N.to_nat (handle_addr h)) (t_length T_handle) tbs with "[Hss]") 
         as "(%Htbs' & Hss & Hreconstitute)";
         try rewrite N2Nat.id;
         try done;
         try by subst; unfold handle_addr; lia.
-      remember (take (t_length T_handle) (drop (N.to_nat (handle_addr h) - N.to_nat base') tbs)) as tbs'.
+      remember (take (t_length T_handle) (drop (N.to_nat (handle_addr h) - N.to_nat base0) tbs)) as tbs'.
       
       assert (length tbs' = t_length T_handle) as Htbs''; first lia. 
 
@@ -247,10 +277,10 @@ Section fundamental.
       subst tbs'; rewrite cat_app reconstitute N2Nat.id.
       iMod ("Hcls" with "[Hss Hhandles]").
       * iNext. iExists tbs. iFrame "Hss Hhandles". done.
-      * remember (handle_addr h - base')%N as addr.
-        assert ((base' + addr) `mod` handle_size = 0 /\ (addr + handle_size <= bound'))%N as Haddr.
+      * remember (handle_addr h - base0)%N as addr.
+        assert ((base0 + addr) `mod` handle_size = 0 /\ (addr + handle_size <= bound0))%N as Haddr.
         { subst. unfold handle_addr.
-          replace (base' + (base h + offset h - base'))%N with (base h + offset h)%N;
+          replace (base0 + (base h + offset h - base0))%N with (base h + offset h)%N;
             last lia.
           split.
           - fold (handle_addr h). done.  
@@ -272,7 +302,8 @@ Section fundamental.
               subst addr. rewrite nat_bin. lia.
            ++ iSplitR "Hown".
               ** iExists _. iFrame. iApply "Htoks".
-                 iExists _. iFrame. done.
+                 iExists _.
+                 iFrame. done.
               ** iExists _. iFrame. iSplit; first done.
                  done.
         -- iModIntro. iSplitR.
@@ -288,7 +319,7 @@ Section fundamental.
     iIntros (v) "[((%v0 & -> & Hv) & Hfv) Hf]".
     iSplitL "Hv".
       + iLeft. iRight. iExists _. iSplit; first done. iFrame. done.
-      + iExists _. iFrame.
+      + iExists _,_. iFrame.
   Qed.
 
 End fundamental.

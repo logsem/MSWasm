@@ -1652,7 +1652,7 @@ Proof.
                apply BinNat.N.leb_gt in Hb. apply plus_binnat_lt in Hb.
                done.
                unfold t_length. unfold t_length in Hb. 
-               right; right; left. unfold isFree.
+               right; right; left. unfold isNotAlloc.
                unfold isAllocb in Hb. by destruct (find _ _).
                repeat right. split => //.
                intro Habs; rewrite Habs in Hb.
@@ -1806,7 +1806,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -1821,7 +1821,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -1836,7 +1836,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -1851,7 +1851,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left.
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
           
@@ -1999,7 +1999,7 @@ Proof.
             apply BinNat.N.leb_gt in Hb. apply plus_binnat_lt in Hb.
             done.
             unfold t_length. unfold t_length in Hb. 
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
             repeat right. split => //.
             intro Habs; rewrite Habs in Hb.
@@ -2177,7 +2177,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -2193,7 +2193,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -2210,7 +2210,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
@@ -2227,7 +2227,7 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left. 
             apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
-            right; right; left. unfold isFree.
+            right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
       - (** [AI_basic BI_slice] **)
@@ -2268,8 +2268,8 @@ Proof.
     {|
       allocated :=
         base.insert (next_free (s_alls s))
-                   (operations.seg_length (s_segs s),
-                   BinInt.Z.to_N (Wasm_int.Int32.unsigned s0)) 
+                   (Some (operations.seg_length (s_segs s),
+                   BinInt.Z.to_N (Wasm_int.Int32.unsigned s0)) )
                    (allocated (s_alls s));
       next_free :=
                  BinNat.N.add (next_free (s_alls s)) (BinNums.Npos BinNums.xH)
@@ -2282,7 +2282,7 @@ Proof.
           apply BinNat.N.leb_le in Hpagesize => //.
           unfold wellFormedState in HWF.
           destruct HWF as [_ Hfree].
-          unfold isFree, find.
+          unfold canBeAlloc, find.
           apply Hfree. lias.
           apply data_length_is_compatible. exact HWF.
           destruct (seg_max_opt (s_segs s)).

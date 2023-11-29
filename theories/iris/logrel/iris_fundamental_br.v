@@ -49,7 +49,7 @@ Section fundamental.
     pose proof (to_val_br_eq ws i []) as Hval.
     apply of_to_val in Hval.
     iApply wp_value;[done|].
-    iSplitR;[|iExists _;iFrame].
+    iSplitR;[|iExists _,_;iFrame].
     iRight. iLeft. iApply fixpoint_interp_br_eq. iExists _,_,_,0. iSplit;[eauto|].
     iSplit;[eauto|]. iSplit;[eauto|]. rewrite PeanoNat.Nat.sub_0_r.
     iDestruct (big_sepL_lookup with "Hc") as (vs n es lh' es' lh'' Hlayer Hdep Hmin) "Hbr";[apply Hlook|].

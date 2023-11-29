@@ -85,10 +85,14 @@ Definition gmap_of_memory (l: list memory) : gmap (N*N) byte :=
     ) ∅ a.(allocated). *)
 
 Definition live_locations (a: allocator) : gmap N () :=
-  map_fold (fun i '(addr, lim) res =>
-              fold_left (fun res j =>
-                        <[ N.of_nat j := () ]> res
-                ) (iota (N.to_nat addr) (N.to_nat lim)) res
+  map_fold (fun i x (*'(addr, lim) *) res =>
+              match x with
+              | Some (addr, lim) =>
+                  fold_left (fun res j =>
+                               <[ N.of_nat j := () ]> res
+                    ) (iota (N.to_nat addr) (N.to_nat lim)) res
+              | None => res
+              end 
     ) ∅ a.(allocated).
 (*
 Lemma decision_in_gmap (m: gmap N ()) :
@@ -141,7 +145,7 @@ Definition gmap_of_segment (s: segment) : gmap N (byte * btag) :=
 (* Definition allocator_to_list (a: allocator) : list (N * (N * N)) :=
   List.map (λ '(a,b,c), (a,(b,c))) a.(allocated). *)
 
-Definition gmap_of_allocator (a: allocator) : gmap N (N * N) :=
+Definition gmap_of_allocator (a: allocator) : gmap N (option (N * N)) :=
   a.(allocated). (* list_to_map (allocator_to_list a). *) 
 
 Definition table_to_list (tab: tableinst) : list funcelem :=

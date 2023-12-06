@@ -29,8 +29,8 @@ Section fundamental.
   Proof.
     intros IHbe_typing1 IHbe_typing2.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi #Hc". iIntros (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi #Hc". iIntros (f all vs) "[Hf Hfv] Hall #Hv".
     
     iDestruct "Hv" as "[-> | Hv]".
     {  take_drop_app_rewrite_twice 0 1.
@@ -62,7 +62,7 @@ Section fundamental.
       inversion HLI;simplify_eq. erewrite app_nil_r.
       rewrite -/(iris.of_val (immV ws')).
       unfold interp_expression. simpl to_e_list.
-      iApply ("HH2" with "[] [Hf Hfv]");iFrame "∗ #".
+      iApply ("HH2" with "[] [Hf Hfv] Hall");iFrame "∗ #".
       iRight. iExists _. iSplit;eauto.
     }
     { iApply (wp_if_true_ctx with "Hf");[auto|].
@@ -74,7 +74,7 @@ Section fundamental.
       inversion HLI;simplify_eq. erewrite app_nil_r.
       rewrite -/(iris.of_val (immV ws')).
       unfold interp_expression. simpl to_e_list.
-      iApply ("HH2" with "[] [Hf Hfv]");iFrame "∗ #".
+      iApply ("HH2" with "[] [Hf Hfv] Hall");iFrame "∗ #".
       iRight. iExists _. iSplit;eauto.
     }
   Qed.

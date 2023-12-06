@@ -66,8 +66,8 @@ Section fundamental.
     ⊢ semantic_typing C (to_e_list [BI_segload t]) (Tf [T_handle] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Ht i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Ht i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -108,8 +108,7 @@ Section fundamental.
           iExists _,_. iFrame. } 
     apply N.ltb_ge in Hbounds.
     
-    iDestruct "Hfv" as "[Halloc Hfv]".
-    iDestruct "Halloc" as (γmap) "[Hbl Htok]".
+    iDestruct "Hall" as (γmap) "[Hbl Htok]".
     iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
     iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
     iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%y & %Hy & Halloc & Htok) Htoks]".
@@ -121,14 +120,15 @@ Section fundamental.
         - iIntros (v) "[[-> Ha] Hf]".
           iSplitR; first by do 2 iLeft.
           iExists _,_. iFrame.
-          iSplitL "Hbl Htoks Ha".
+          iSplitR "Hbl Htoks Ha".
+          + iExists _. iSplit; first done. done.
           + iExists _. iFrame.
             iApply "Htoks".
             iExists None. iFrame. done.
-          + iExists _. iSplit; first done. done. }
+}
             
     iDestruct "Htok" as "(-> & -> & Htok)".
-    iApply (wp_wand _ _ _ (λ x, (( ∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value t v) ∗ interp_frame (tc_local C) i all f) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
+    iApply (wp_wand _ _ _ (λ x, (( ∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value t v) ∗ interp_frame (tc_local C) i f ∗ interp_allocator all) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
     { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
      
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
@@ -145,7 +145,7 @@ Section fundamental.
 
       iApply (wp_wand _ _ _ (λ v,  (|={⊤ ∖ ↑wsN (id h),⊤}=>
        ((∃ v0 : value, ⌜v = immV [v0]⌝ ∗ interp_value t v0) ∗
-          interp_frame (tc_local C) i all f)) ∗  ↪[frame]f)%I
+          interp_frame (tc_local C) i f ∗ interp_allocator all)) ∗  ↪[frame]f)%I
                with "[ Hf Hbl Hown Halloc Htoks Hwon Hcls Hss Hreconstitute]").
       2:{ iIntros (v) "[??]"; iFrame. } 
       iApply wp_segload_deserialize => //.
@@ -160,11 +160,12 @@ Section fundamental.
         iSplitR.
         * iExists _. 
           iSplit; first done. destruct t; try done; by iExists _.
-        * iSplitR "Hown".
+        * iSplitL "Hown".
+          -- iExists _. iFrame. iSplit; done.
           -- iExists _. iFrame. iApply ("Htoks" with "[Hwon Hid]").
              iExists _.
              iFrame. done.
-          -- iExists _. iFrame. iSplit; done.
+
     }
      iIntros (v) "[((%v0 & -> & Hv) & Hfv) Hf]".
     iSplitL "Hv".
@@ -178,8 +179,8 @@ Section fundamental.
   Proof.
     destruct t; try by apply typing_segload_numeric.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -228,8 +229,7 @@ Section fundamental.
          - iIntros (v) "[-> Hf]".
            iSplitR; first by do 2 iLeft.
            iExists _,_. iFrame. } 
-    iDestruct "Hfv" as "[Halloc Hfv]".
-      iDestruct "Halloc" as (γmap) "[Hbl Htok]".
+      iDestruct "Hall" as (γmap) "[Hbl Htok]".
       iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
       iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
       iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%y & %Hy & Halloc & Htok) Htoks]".
@@ -242,12 +242,13 @@ Section fundamental.
         - iIntros (v) "[[-> Ha] Hf]".
           iSplitR; first by do 2 iLeft.
           iExists _, _. iFrame.
-          iSplitL.
+          iSplitR.
+          + iExists _. iSplit => //.  
           + iExists _. iFrame. iApply "Htoks". iExists None.
             iFrame. done.
-          + iExists _. iSplit => //. } 
+      }
           
-    iApply (wp_wand _ _ _ (λ x, ((∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value T_handle v) ∗ interp_frame (tc_local C) i all f) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
+    iApply (wp_wand _ _ _ (λ x, ((∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value T_handle v) ∗ interp_frame (tc_local C) i f ∗ interp_allocator all) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
     { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
      
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
@@ -265,7 +266,7 @@ Section fundamental.
       
       apply N.eqb_eq in Hmod.
       iApply (wp_wand _ _ _ (λ v, (|={⊤ ∖ ↑wsN (id h), ⊤}=> (∃ v0 : value, ⌜v = immV [v0]⌝ ∗ interp_value T_handle v0) ∗
-                                                             interp_frame (tc_local C) i all f) ∗ ↪[frame] f)%I with "[Hf Hbl Hown Halloc Htoks Hwon Hcls Hss Hreconstitute]").
+                                                             interp_frame (tc_local C) i f ∗ interp_allocator all) ∗ ↪[frame] f)%I with "[Hf Hbl Hown Halloc Htoks Hwon Hcls Hss Hreconstitute]").
       2:{ iIntros (v) "[H Hf]". iFrame. }
       
       iApply wp_segload_handle_deserialize => //; try by unfold t_length; rewrite nat_bin; lia.
@@ -300,21 +301,22 @@ Section fundamental.
               exists Numeric. split => //.
               eapply lookup_Some_in; last exact Hb; try lia.
               subst addr. rewrite nat_bin. lia.
-           ++ iSplitR "Hown".
+           ++ iSplitL "Hown".
+              ** iExists _. iFrame. iSplit; first done.
+                 done.
               ** iExists _. iFrame. iApply "Htoks".
                  iExists _.
                  iFrame. done.
-              ** iExists _. iFrame. iSplit; first done.
-                 done.
         -- iModIntro. iSplitR.
            ++ iExists _. iSplit; first done.
               iApply interp_handle_update_validity.
               unfold t_length; rewrite nat_bin.
               subst addr. rewrite N2Nat.inj_sub. done.
-           ++ iSplitR "Hown".
+           ++ iSplitL "Hown".
+              ** iExists _. iFrame. iSplit => //.
               ** iExists _. iFrame. iApply "Htoks".
                  iExists _. iFrame. done.
-              ** iExists _. iFrame. iSplit => //.
+
     }
     iIntros (v) "[((%v0 & -> & Hv) & Hfv) Hf]".
     iSplitL "Hv".

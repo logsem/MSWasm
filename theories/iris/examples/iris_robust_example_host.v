@@ -17,7 +17,7 @@ Close Scope byte_scope.
 
 
 Section Host_instance.
-  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !cancelG Σ, !cinvG Σ}.
 
   Global Program Instance host_wp : host_program_logic Σ :=
     { host_function := host_expr ;
@@ -39,7 +39,7 @@ Section Host_instance.
 End Host_instance.
 
 Section Host_robust_example.
-  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !cancelG Σ, !cinvG Σ}.
 
 Notation "{{{ P }}} es {{{ v , Q }}}" :=
   (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
@@ -58,7 +58,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
   Definition logN : namespace := nroot .@ log.
 
  
-  Lemma lse_log_return_value f log log_func h w inst:
+  Lemma lse_log_return_value f all log log_func h w inst:
     (inst_funcs inst) !! log = Some log_func ->
 
     na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
@@ -66,20 +66,20 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 
     na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
     na_own logrel_nais ⊤ -∗
-    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗
+    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗ interp_allocator all -∗
 
     WP iris.of_val w
     CTX
     0; LH_base [] [AI_basic (BI_get_local 0); AI_basic (BI_call log)]
     {{ v, WP (iris.of_val v) CTX 1; LH_rec [] 0 [] (LH_base [] []) []
           {{ w0, ∃ f0,
-                (↪[frame]f -∗
+                (↪[frame]f -∗ interp_allocator all -∗
                   WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
                   {{ w1, WP (([], iris.of_val w1) : host_expr)
                            {{ λ w2: language.val wasm_host_lang, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}.
+                                                   ↪[frame]f ∗ interp_allocator all }} }}) ∗  ↪[frame]f0 ∗ interp_allocator all }} }}.
   Proof.
-    iIntros (Hlog) "#Hh Hv #Hl Hown Hf".
+    iIntros (Hlog) "#Hh Hv #Hl Hown Hf Hall".
     iDestruct "Hv" as (ws) "[-> #Hws]".
     iDestruct (big_sepL2_length with "Hws") as %Hlen. destruct ws;[|done].
     iApply wp_base_pull. iApply wp_wasm_empty_ctx.
@@ -118,14 +118,14 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     rewrite llfill_label.
     rewrite -/(iris.of_val (callHostV _ _ _ _)).
     iApply iris_wp.wp_value;[done|].
-    iExists _. iFrame. iIntros "Hf".
+    iExists _. iFrame. iIntros "Hf Hall".
     rewrite wp_frame_rewrite.
     rewrite llfill_local.
     rewrite -/(iris.of_val (callHostV _ _ _ _)).
     iApply iris_wp.wp_value;[done|].
     
     iApply weakestpre.fupd_wp. iMod (na_inv_acc with "Hh Hown") as "(>HL & Hown & Hcls)";[solve_ndisj..|].
-    iApply (wp_call_host_action_no_state_change with "[$HL Hown Hcls Hf]");[eauto|..].
+    iApply (wp_call_host_action_no_state_change with "[$HL Hown Hcls Hf Hall]");[eauto|..].
     { constructor. }
     { instantiate (2:=[]); simpl;auto. }
     { intros s' f'. constructor. }
@@ -158,17 +158,17 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       apply iris_fundamental_composition.is_basic_app;auto. }
   Qed.
   
-  Lemma lse_log_return_call_host f log log_func h w inst (Φ Ψ Ξ: language.val wasm_lang -> iProp Σ) (Θ: language.val wasm_host_lang -> iProp Σ):
+  Lemma lse_log_return_call_host f all log log_func h w inst (Φ Ψ Ξ: language.val wasm_lang -> iProp Σ) (Θ: language.val wasm_host_lang -> iProp Σ):
     (Φ = λ v, (WP (iris.of_val v) CTX 1; LH_rec [] 0 [] (LH_base [] []) []
                                            {{ w0, Ψ w0 }})%I) ->
     (Ψ = λ w0, (∃ f0,
-                (↪[frame]f -∗
+                (↪[frame]f -∗ interp_allocator all -∗
                   WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
-                                                             {{ w1, Ξ w1 }}) ∗ ↪[frame]f0)%I) ->
+                                                             {{ w1, Ξ w1 }}) ∗ ↪[frame]f0 ∗ interp_allocator all)%I) ->
     (Ξ = λ w1, (WP (([], iris.of_val w1) : host_expr)
                   {{ w2, Θ w2 }})%I) ->
     (Θ = λ w2, ((⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f)%I) ->
+                                                   ↪[frame]f ∗ interp_allocator all)%I) ->
     (inst_funcs inst) !! log = Some log_func ->
 
     na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
@@ -176,7 +176,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 
     na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
     na_own logrel_nais ⊤ -∗
-    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗
+    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗ interp_allocator all -∗
 
     WP iris.of_val w
     CTX
@@ -203,12 +203,12 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
                              {{ w2, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
                                                    ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}. *)
   Proof.
-    iIntros (-> -> -> -> Hlog) "#Hh Hv #Hlog Hown Hf".
+    iIntros (-> -> -> -> Hlog) "#Hh Hv #Hlog Hown Hf Hall".
     iLöb as "IH"
   forall (w).
     
     rewrite fixpoint_interp_call_host_cls_eq.
-    iDestruct "Hv" as (? ? ? ? ? ?) "(>%Heq & >%Htf & >%Hin & >%Hbasic & >#Hw & #Hcont)".
+    iDestruct "Hv" as (? ? ? ? ? ?) "(>%Heq & >%Htf & >%Hin & >%Hbasic & #Hw & #Hcont)".
     apply elem_of_list_singleton in Hin. inversion Hin;subst.
     inversion H1;subst.
 
@@ -223,11 +223,12 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iApply iris_wp.wp_value;[done|].
     iSimpl.
 
-    iDestruct "Hw" as "[%Hcontr|Hv]";[done|].
-    iDestruct "Hv" as (ws) "[%Heq Hv]". inversion Heq.
-    iDestruct (big_sepL2_length with "Hv") as %Hlen.
+    iDestruct "Hw" as "[>%Hcontr|Hv]";[done|].
+    iDestruct "Hv" as (ws) "[>%Heq Hv]". inversion Heq.
+    iDestruct (big_sepL2_length with "Hv") as ">%Hlen".
     destruct ws as [|w ws];[done|destruct ws;[|done]]. subst v.
     iSimpl in "Hv". iDestruct "Hv" as "[Hv _]".
+    iDestruct "Hv" as ">Hv".
     iDestruct "Hv" as (z) "->".
 
     eassert (LH_rec [] 0 [] (LH_base [] []) [] = push_base (LH_base [] []) _ _ _ _) as ->.
@@ -236,7 +237,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     rewrite llfill_label.
     rewrite -/(iris.of_val (callHostV _ _ _ _)).
     iApply iris_wp.wp_value;[done|].
-    iExists _. iFrame. iIntros "Hf".
+    iExists _. iFrame. iIntros "Hf Hall".
     rewrite wp_frame_rewrite.
     rewrite llfill_local.
     rewrite -/(iris.of_val (callHostV _ _ _ _)).
@@ -268,7 +269,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSimpl. rewrite -(app_nil_r (llfill vh [])).
 
     iApply (wp_seq_can_trap_ctx).
-    instantiate (1:=λ f', (⌜f' = {| f_locs := [xx 42]; f_inst := inst |}⌝)%I).
+    instantiate (1:=λ f', (⌜f' = {| f_locs := [xx 42]; f_inst := inst |}⌝ ∗ interp_allocator all)%I).
     instantiate (2:=λ vs,((interp_values [] vs
                            ∨ ▷ interp_call_host_cls
                                [(Mk_hostfuncidx h, Tf [T_i32] [])] [] vs) ∗ na_own logrel_nais ⊤)%I).
@@ -277,7 +278,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iIntros "[[H|H] _]";[by iDestruct "H" as (? ?) "_"|].
       by iDestruct "H" as (? ? ? ? ? ?) "[>%Hcontr _]". }
     iSplitR.
-    { iIntros (f') "[Hf' ->]".
+    { iIntros (f') "(Hf' & -> & Hall)".
       eassert (LH_rec [] 0 [] (LH_base [] []) [] = push_base (LH_base [] []) _ _ _ _) as ->.
       { simpl. eauto. }
       iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
@@ -290,33 +291,54 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iIntros (v) "[-> Hf]".
       iApply iris_host.wp_value;eauto.
       iFrame. by iLeft. }
-    iFrame "Hf". iSplitL "Hown".
+    iFrame "Hf". iSplitL.
     { iIntros "Hf". assert (llfill vh [] = llfill vh (iris.of_val (immV []))) as ->;[auto|].
-      iDestruct ("Hcont" $! (immV []) with "[] Hf Hown") as "Hc".
+      iDestruct ("Hcont" $! (immV []) with "[] Hall Hf Hown") as "Hc".
       { iRight. iExists _. iSplit;eauto. }
       iApply (wp_wand with "Hc").
-      iIntros (v) "[H [Hf Hown]]".
-      iSplitR "Hf";[|iExists _;iFrame;auto].
+      iIntros (v) "(#H & Hall & Hf & Hown)".
+      iSplitR "Hf Hall";[|iExists _;iFrame;auto].
       iDestruct "H" as "[[H|H]|H]";auto.
+      - admit.
+      - admit.
     }
 
-    iIntros (w f0) "[[[Hv|Hv] Hown] [Hf ->]]".
+    iIntros (w f0) "[[[Hv|Hv] Hown] (Hf & -> & Hall)]".
+    { rewrite app_nil_r. 
+      iDestruct (lse_log_return_value with "Hh Hv Hlog Hown Hf Hall") as "H".
+      exact Hlog.
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(%f0 & H & Hf & Hall)".
+      iExists _. iFrame. iIntros "Hf".
+      iSpecialize ("H" with "Hf Hall").
+      iApply (wp_wand with "H").
+      iIntros (?) "H". done.
+    }
     { rewrite app_nil_r.
-      iApply (lse_log_return_value with "Hh Hv Hlog Hown Hf");auto. }
-    { rewrite app_nil_r.
-      iApply ("IH" with "Hv Hown Hf"). }
-  Qed.    
+      iDestruct ("IH" with "Hv Hown Hf Hall") as "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(%f0 & H & Hf & Hall)".
+      iExists _. iFrame. iIntros "Hf".
+      iSpecialize ("H" with "Hf Hall").
+      iApply (wp_wand with "H").
+      iIntros (?) "H". done.
+    }
+  Admitted. 
 
     
-  Lemma lse_log_spec C i f g g_func es locs log log_func h idnstart inst (Φ : language.val wasm_host_lang -> iProp Σ):
+  Lemma lse_log_spec C i f all g g_func es locs log log_func h idnstart inst (Φ : language.val wasm_host_lang -> iProp Σ):
     (Φ = λ w, ((⌜w = trapHV⌝ ∨ (⌜w = immHV []⌝ ∗ na_own logrel_nais ⊤))
-               ∗ ↪[frame] f)%I) ->
+               ∗ ↪[frame] f ∗ interp_allocator all)%I) ->
     (tc_label C) = [] ∧ (tc_return C) = None ->
     be_typing (upd_local_label_return C locs [[]] (Some [])) es (Tf [] []) ->
     (inst_funcs inst) !! g = Some g_func ->
     (inst_funcs inst) !! log = Some log_func -> 
     
-    ⊢ {{{ ↪[frame] f
+    ⊢ {{{ ↪[frame] f ∗ interp_allocator all
          ∗ na_own logrel_nais ⊤
          ∗ N.of_nat idnstart ↦[wf] FC_func_native inst (Tf [] []) [T_i32] (lse_log_expr g log)
          ∗ na_inv logrel_nais (wfN (N.of_nat g_func)) ((N.of_nat g_func) ↦[wf] (FC_func_native i (Tf [] []) locs es))
@@ -328,7 +350,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       {{{ w, Φ w }}}. 
   Proof.
     iIntros (-> HC Htyp Hg Hlog).
-    iModIntro. iIntros (Φ) "(Hf & Hown & Hidnstart & #Hadv & #Hi & #Hh & #Hlog) HΦ".
+    iModIntro. iIntros (Φ) "(Hf & Hall & Hown & Hidnstart & #Hadv & #Hi & #Hh & #Hlog) HΦ".
     iApply (weakestpre.wp_wand with "[-HΦ] HΦ").
     iApply wp_lift_wasm.
 
@@ -365,7 +387,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     instantiate (1:=λ f', (⌜f' = {|
                     f_locs := [xx 42];
                     f_inst := inst
-                               |}⌝)%I).
+                               |}⌝ ∗ interp_allocator all)%I).
     instantiate (2:=λ vs, ((interp_values [] vs ∨ interp_call_host_cls
                                                     [(Mk_hostfuncidx h, Tf [T_i32] [])] [] vs)
                              ∗ na_own logrel_nais ⊤)%I).
@@ -375,7 +397,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       { rewrite fixpoint_interp_call_host_cls_eq. iDestruct "Hcontr" as (? ? ? ? ? ? ?) "_";done. }
     }
     iSplitR.
-    { iIntros (f') "[Hf' ->]".
+    { iIntros (f') "(Hf' & -> & Hall)".
       eassert (LH_rec [] 0 [] (LH_base [] []) [] = push_base (LH_base [] []) _ _ _ _) as ->.
       { simpl. eauto. }
       iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
@@ -388,7 +410,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iIntros (v) "[-> Hf]".
       iApply iris_host.wp_value;eauto.
       iFrame. by iLeft. }
-    iFrame.
+    iFrame "Hf".
     iSplitR "Hlog".
     { iIntros "Hf". take_drop_app_rewrite 0.
       iApply (wp_invoke_native with "Hf Hg");[eauto..|].
@@ -407,23 +429,40 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       instantiate (1:=n_zeros locs).
       unfold interp_expression_closure_stuck_host.
 
-      iDestruct ("HH" with "[]") as "Hcont".
+      iDestruct ("HH" with "Hall []") as "Hcont".
       { iSimpl. iRight. iExists _. iSplit;eauto. iApply n_zeros_interp_values. }
       erewrite app_nil_l.
       iApply (wp_wand with "Hcont").
-      iIntros (v) "[[Hv Hown] Hf]".
-      iSplitR "Hf";cycle 1.
+      iIntros (v) "[[Hv Hown] [Hf Hall]]".
+      iSplitR "Hf Hall";cycle 1.
       { iExists _. iFrame. auto. }
       iDestruct "Hv" as "[[Hv | Hv] | Hv]";auto. }
 
-    iIntros (w f') "[[Hv Hown] [Hf ->]]".
+    iIntros (w f') "[[Hv Hown] (Hf & -> & Hall)]".
     iSimpl. rewrite app_nil_r.
     iDestruct "Hv" as "[Hv | Hv]".
     { (* unknown call returned a value *)
-      iApply (lse_log_return_value with "Hh Hv Hlog Hown Hf");auto. }
+      iDestruct (lse_log_return_value with "Hh Hv Hlog Hown Hf Hall") as "H".
+      exact Hlog.
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(%f0 & H & Hf & Hall)".
+      iExists _. iFrame. iIntros "Hf".
+      iSpecialize ("H" with "Hf Hall").
+      done.
+    }
     
     { (* unknown call invoked the host log function *)
-      iApply (lse_log_return_call_host with "Hh Hv Hlog Hown Hf");auto. }
+      iDestruct (lse_log_return_call_host with "Hh Hv Hlog Hown Hf Hall") as "H".
+      done. done. done. done. exact Hlog.
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(%f0 & H & Hf & Hall)".
+      iExists _. iFrame. iIntros "Hf".
+      iApply ("H" with "Hf Hall").
+    }
   Qed.
   
   
@@ -843,8 +882,11 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
         { simplify_eq. simpl. auto. }
         { rewrite Hinstfuncseq;eauto. }
         { rewrite Hinstfuncseq;eauto. }
+        admit.
+        iIntros (?) "(H & Hf & Hall)".
+        iFrame. 
       }
     }
-  Qed.
+  Admitted. 
 
 End Host_robust_example.

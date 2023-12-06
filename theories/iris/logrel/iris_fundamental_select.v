@@ -26,8 +26,8 @@ Section fundamental.
   Lemma typing_select C t : ⊢ semantic_typing C (to_e_list [BI_select]) (Tf [t; t; T_i32] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -50,7 +50,7 @@ Section fundamental.
         iSplit;done. }
     }
     iIntros (v) "[$ Hf]".
-    iExists _;iFrame.
+    iExists _,_;iFrame.
   Qed.
     
 End fundamental.

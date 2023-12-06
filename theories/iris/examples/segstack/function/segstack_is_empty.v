@@ -94,16 +94,17 @@ Proof.
     iApply wp_wand_r. iSplitL. iApply (wp_segload with "[Hf Hstack]"); last first.
     iDestruct "Hstack" as "(_ & _ & _ & _ & Hid & Hbase & Hws & Hrest)".
     unfold handle_addr; rewrite Hoff N.add_0_r. iFrame. iSplitR "Hbase".
-    instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _ ∗ _)%I).
-    iSplit; first done.
-    iSplitL "Hws". iModIntro. iExact "Hws". iModIntro. iExact "Hrest".
+    instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
+    iIntros "!> [Hid Hss]". iSplit; first done.
+    iCombine "Hws Hrest Hid Hss" as "H".
+    iExact "H".
     iApply i32_wss. iExact "Hbase". rewrite Hoff Hbound. done. done.
     rewrite map_fst_map_pair. 
     instantiate (1 := VAL_int32 _). done. done. done.
-    iIntros (w) "[((-> & Hws & Hrest) & Hid & Hbase) Hf]".
+    iIntros (w) "[(-> & Hws & Hrest & Hid & Hbase) Hf]".
     iFrame. iSplit; last first. repeat iSplit => //.
-    iApply i32_wss. unfold handle_addr; rewrite Hoff N.add_0_r.
-    done. iPureIntro. unfold value_of_int => /=.
+    iApply i32_wss. done. 
+    iPureIntro. unfold value_of_int => /=.
     assert (Z.of_N (N.of_nat (length s) * 4) = length s * 4)%Z.
     lia. rewrite H. done.
   }

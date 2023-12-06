@@ -12,7 +12,7 @@ Unset Printing Implicit Defensive.
 
 Section stack.
 
- Context `{!wasmG Σ, logrel_na_invs Σ, HHB: HandleBytes}. 
+ Context `{!wasmG Σ, logrel_na_invs Σ, HHB: HandleBytes, !cinvG Σ, cancelg: cancelG Σ}. 
 
 Section specs.
 

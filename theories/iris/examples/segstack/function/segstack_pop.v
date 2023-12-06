@@ -218,8 +218,8 @@ Proof.
     iSplit ; last first.
     iApply wp_wand_r. iSplitL.
     iApply wp_segstore => //; last first.
-    iFrame. instantiate (2 := λ x, (⌜ x = immV _ ⌝)%I). 
-    iSplit; first done. 
+    iFrame. instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I). 
+    iSplitR "Hbase". iIntros "!> H". iSplit; first done. iExact "H".
     iApply i32_wss. unfold handle_addr; rewrite Hoff N.add_0_r. done.
     rewrite Hoff Hbound => //. done.
     iIntros (w) "[(-> & Hid & Hbase) Hf]".

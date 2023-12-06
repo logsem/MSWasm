@@ -32,8 +32,8 @@ Section fundamental.
     ⊢ semantic_typing C (to_e_list [BI_segalloc]) (Tf [T_i32] [T_handle]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -52,7 +52,7 @@ Section fundamental.
       iIntros "!>" (w) "H". iExact "H". }
     iIntros (v) "[(%h & -> & [-> | (Ha & %Hbound & %Hoff & %Hvalid & Hss)]) Hf]".
     - (* Segalloc failed *)
-      iSplitR "Hf Hfv".
+      iSplitR "Hf Hfv Hall".
       + iLeft; iRight. iExists _. iModIntro. iSplit; first done. iSplit; last done.
         rewrite fixpoint_interp_value_handle_eq.
         iExists _. iSplit; first done. by iLeft.
@@ -71,7 +71,7 @@ Section fundamental.
           split; first lia. apply repeat_lookup.
           lia. }
       iMod (cinv_alloc with "Hinv") as (γ) "[#Hinv Htok]".
-      iDestruct "Hfv" as "[(%fall & Hbl & Htoks) Hfv]".
+      iDestruct "Hall" as "(%fall & Hbl & Htoks)".
       destruct (fall !! id h) as [[[γ0 base] bound]|] eqn:Hidh.
       { iDestruct (big_sepM_lookup_acc with "Htoks") as "[H ?]"; first done.
         iSimpl in "H". iDestruct "H" as "(%x & _ & Habs & _)". 

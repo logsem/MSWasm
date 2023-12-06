@@ -51,6 +51,7 @@ Inductive reduce_simple : seq administrative_instruction -> seq administrative_i
     reduce_simple [::AI_basic (BI_const v); AI_basic (BI_cvtop t2 CVO_convert t1 sx)] [::AI_trap]
   | rs_reinterpret :
     forall t1 t2 v,
+      t1 <> T_handle -> t2 <> T_handle -> 
     types_agree t1 v ->
     reduce_simple [::AI_basic (BI_const v); AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)] [::AI_basic (BI_const (wasm_deserialise (bits v) t2))]
 

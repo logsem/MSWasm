@@ -47,8 +47,8 @@ Section fundamental.
   Lemma typing_cvtop_convert C t1 t2 sx : ⊢ semantic_typing C (to_e_list [BI_cvtop t1 CVO_convert t2 sx]) (Tf [t2] [t1]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -63,7 +63,10 @@ Section fundamental.
     
     iApply (wp_wand _ _ _ (λne vs, interp_val [t1] vs ∗ ↪[frame] f)%I with "[Hf]").
     { iAssert (⌜types_agree t2 w1⌝)%I as %Htyp.
-      { destruct t2. all:iDestruct "Hv1" as (?) "->";eauto. }
+      { destruct t2. all: try iDestruct "Hv1" as (?) "->";eauto.
+        rewrite fixpoint_interp_value_handle_eq.
+        iDestruct "Hv1" as (?) "[-> _]". done.
+      }
       destruct (cvt t1 sx w1) eqn:Hsome.      
       { iApply (wp_cvtop_convert with "Hf");eauto.
         iSimpl. iRight. iExists _. iSplit;eauto.
@@ -73,19 +76,19 @@ Section fundamental.
     }
 
     iIntros (v) "[H Hf]".
-    iFrame. iExists _. iFrame.
+    iFrame. iExists _,_. iFrame.
   Qed.
 
-  Lemma typing_cvtop_reinterpret C t1 t2 : ⊢ semantic_typing C (to_e_list [BI_cvtop t1 CVO_reinterpret t2 None]) (Tf [t2] [t1]).
+  Lemma typing_cvtop_reinterpret C t1 t2 : t1 <> T_handle -> t2 <> T_handle -> ⊢ semantic_typing C (to_e_list [BI_cvtop t1 CVO_reinterpret t2 None]) (Tf [t2] [t1]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Ht1 Ht2 i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
-      iIntros (v0) "[? ?]". iFrame. iExists _. iFrame "∗ #". }
+      iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     iDestruct "Hv" as (ws ->) "Hv".
     iDestruct (big_sepL2_length with "Hv") as %Hlen.
     destruct ws as [|w1 ws];[done|destruct ws;[|done]].
@@ -95,14 +98,17 @@ Section fundamental.
     
     iApply (wp_wand _ _ _ (λne vs, interp_val [t1] vs ∗ ↪[frame] f)%I with "[Hf]").
     { iAssert (⌜types_agree t2 w1⌝)%I as %Htyp.
-      { destruct t2. all:iDestruct "Hv1" as (?) "->";eauto. }
+      { destruct t2. all:try iDestruct "Hv1" as (?) "->";eauto.
+      }
       iApply (wp_cvtop_reinterpret with "Hf");eauto.
       iSimpl. iRight. iExists _. iSplit;eauto.
-      iSimpl. iSplit;[|done]. iApply interp_value_reinterpret.
+      iSimpl. iSplit;[|done].
+      iApply interp_value_reinterpret.
+      done.
     }
 
     iIntros (v) "[H Hf]".
-    iFrame. iExists _. iFrame.
+    iFrame. iExists _,_. iFrame.
   Qed.
 
 

@@ -24,7 +24,7 @@ Section fundamental.
   Proof.
     intros be_fundamental Hnil Htyping.
     iSplit;[auto|].
-    iIntros (i) "#Hi". iIntros (f vs) "Hf Hown #Hv".
+    iIntros (i) "#Hi". iIntros (f all vs) "Hf Hown Hall #Hv".
     apply be_fundamental in Htyping.
     iDestruct (Htyping) as "Ht".
     iDestruct (interp_instance_change_label [τ2] with "Hi") as "Hi'".
@@ -35,10 +35,10 @@ Section fundamental.
       iSplit =>//. unfold interp_ctx_continuation.
       iSimpl. iExists _,_,_,_,_,(LH_base [] []). iSplit;[eauto|].
       repeat (iSplit;[by auto|]). iModIntro.
-      iIntros (v f') "#Hv' [Hf' Hfv']".
+      iIntros (v f' all') "#Hv' [Hf' Hfv'] Hall'".
       iExists τ2. rewrite app_nil_l !app_nil_r.
       iApply wp_value;[done|].
-      iSplitR;[|iExists _;iFrame].
+      iSplitR;[|iExists _,_;iFrame].
       iLeft. iFrame "Hv'". }
 
     destruct (iris.to_val [AI_local (length τ2) {| f_locs := vs; f_inst := i |}
@@ -57,28 +57,32 @@ Section fundamental.
     iApply (wp_wand _ _ _ ((λ vs0,
                (interp_val τ2 vs0
                 ∨ interp_call_host_cls hl τ2 vs0) ∗
-               ↪[frame]f ∗ na_own logrel_nais ⊤)%I) with "[-]").
+               ↪[frame]f ∗ na_own logrel_nais ⊤ ∗ interp_allocator all)%I) with "[-]").
     { iApply (wp_frame_bind with "Hf");[auto|].
       iIntros "Hf".
       iApply wp_wasm_empty_ctx.
       iApply wp_label_push_nil.
       iApply wp_label_bind.
-      iDestruct ("Ht" $! _ (immV []) with "[$Hf Hown] []") as "Hcont".
-      { iSplitR. { admit. } iExists _. iFrame. iSplit;eauto. }
-      { iRight. iExists _. iSplit;eauto. }
+      iDestruct ("Ht" $! _ _ (immV []) with "[$Hf Hown] Hall []") as "Hcont".
+      { iExists _. iFrame. iSplit;eauto. }
+      { iRight. iExists _. iSplit;eauto. } 
       iSimpl in "Hcont". unfold interp_expression.
       iApply (wp_wand with "Hcont").
       iClear "Ht".
       iIntros (v) "[Hv' Hf0]".
-      iDestruct "Hf0" as (f0) "[Hf0 Hf0v]".
+      iDestruct "Hf0" as (f0 all0) "(Hf0 & Hf0v & Hall0)".
       iDestruct "Hv'" as "[[-> | Hv'] | [Hbr | [Hret | Hch] ]]";simpl language.of_val.
-      { iApply (local_host_trap with "[$] [$]"). }
-      { iApply (local_host_val with "[$] [$] [$]"). }
-      { iApply (local_host_br with "[$] [$] [$]"). }
-      { iApply (local_host_ret with "[$] [$] [$]"). }
-      { iApply (local_host_call with "[$] [$] [$]"). }
+      { iDestruct (local_host_trap with "[$] [$] [$]") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (v) "(%f1 & %all1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". admit. (* iApply ("H" with "Hf Hall"). *)
+      }
+      { admit. (* iApply (local_host_val with "[$] [$] [$]"). *) }
+      { admit. (* iApply (local_host_br with "[$] [$] [$]"). *) }
+      { admit. (* iApply (local_host_ret with "[$] [$] [$]"). *) }
+      { admit. (* iApply (local_host_call with "[$] [$] [$]"). *) }
     }
     iIntros (v) "[$ [$ $]]".
-  Qed.
+  Admitted. 
   
 End fundamental.

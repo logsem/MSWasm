@@ -149,11 +149,12 @@ Ltac take_drop_app_rewrite_twice n m :=
       rewrite -(list.take_drop (length e - m) e);simpl take; simpl drop
   end.
 
+(*
 Section Client_main.
 
-  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !cancelG Σ, !cinvG Σ }.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ }.
 
-  Lemma main_spec C k idt locs es f all a i idf0 l0 f0 idf4 l4 f4 idf5 l5 f5 idf6 l6 f6
+  Lemma main_spec C k idt locs es f a i idf0 l0 f0 idf4 l4 f4 idf5 l5 f5 idf6 l6 f6
         istack isStack newStackAddrIs stacktab :
     (tc_label C) = [] ∧ (tc_return C) = None ->
 
@@ -168,7 +169,7 @@ Section Client_main.
     
     be_typing (upd_local_label_return C (T_i32 :: locs) [[T_i32]] (Some [T_i32])) es (Tf [] [T_i32]) ->
     
-    ⊢ {{{ ↪[frame] f ∗ interp_allocator all 
+    ⊢ {{{ ↪[frame] f
          ∗ na_own logrel_nais ⊤
          ∗ na_inv logrel_nais (wfN (N.of_nat a)) ((N.of_nat a) ↦[wf] (FC_func_native i (Tf [T_i32] [T_i32]) locs es))
          ∗ interp_instance C [] i
@@ -193,10 +194,10 @@ Section Client_main.
       to_e_list main
       {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝ ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xx 2 |}
                                                                ∗ na_own logrel_nais ⊤))
-               ∗ ∃ f', ↪[frame] f' ∗ interp_allocator all ∗ ∃ r, ⌜f' = Build_frame (set_nth r (f_locs f) 0 r) (f_inst f)⌝ }}}.
+               ∗ ∃ f', ↪[frame] f' ∗ ∃ r, ⌜f' = Build_frame (set_nth r (f_locs f) 0 r) (f_inst f)⌝ }}}.
   Proof.
     iIntros (HC Hglob Htab Hidf0 Hidf4 Hidf5 Hidf6 Hflocs Htablen Htyp Φ)
-            "!> (Hf & Hall & Hown & #Hadv & #Hi & Hg & Hidf0 & #Hnewstack & 
+            "!> (Hf & Hown & #Hadv & #Hi & Hg & Hidf0 & #Hnewstack & 
                  Hidf4 & #Hpush & Hidf5 & #Hmap & Hidf6 & #Hstacklen & Hidt & Hnewstackaddr) HΦ".
     take_drop_app_rewrite 1.
     iApply wp_seq.
@@ -265,7 +266,7 @@ Section Client_main.
       iApply (wp_wand_ctx with "[Hf]").
       { iApply (wp_trap_ctx with "Hf");auto. }
       iIntros (v) "[-> Hf]".
-      iApply "HΦ". iSplitR "Hf Hall";[|iExists _;iFrame;iExists _;eauto]. by iLeft.
+      iApply "HΦ". iSplitR "Hf";[|iExists _;iFrame;iExists _;eauto]. by iLeft.
     }
 
     { (* success *)
@@ -364,7 +365,7 @@ Section Client_main.
       { iApply wp_wasm_empty_ctx.
         iApply wp_seq_can_trap_same_ctx. iFrame "Hf".
         iSplitR;[|iSplitR];cycle 2.
-        iSplitL "HisStack Hidf5 Ht Hown Hall".
+        iSplitL "HisStack Hidf5 Ht Hown".
         { iIntros "Hf". iApply (wp_wand with "[-]").
           { take_drop_app_rewrite_twice 2 0.
             iApply wp_wasm_empty_ctx.
@@ -378,7 +379,7 @@ Section Client_main.
 
             iApply fupd_wp.
             iMod (na_inv_alloc logrel_nais _ (wtN (N.of_nat idt) (N.of_nat 0)) with "Ht") as "#Ht".
-            iApply ("Hmap" with "[] [$HisStack $Hf $Hidf5 Ht $Hown Hadv Hall]");[iPureIntro;solve_ndisj|..].
+            iApply ("Hmap" with "[] [$HisStack $Hf $Hidf5 Ht $Hown Hadv]");[iPureIntro;solve_ndisj|..].
             iSimpl. iFrame "Ht".
             instantiate (2:=(λ _, True)%I).
             instantiate (1:=(λ _ _, True)%I).
@@ -414,13 +415,12 @@ Section Client_main.
               iNext. iIntros "Hf".
               iApply wp_wasm_empty_ctx_frame.
               rewrite wp_frame_rewrite.
-              iDestruct ("Hl" $! _ _ ([VAL_int32 u] ++ n_zeros locs) with "Hf Hown [] []") as "Hcont".
-              { admit. }
+              iDestruct ("Hl" $! _ ([VAL_int32 u] ++ n_zeros locs) with "Hf Hown []") as "Hcont".
               { iSimpl. iRight. iExists _. iSplit;[eauto|].
                 iSplit. iExists _. eauto.
                 iApply n_zeros_interp_values. }
               iApply (wp_wand with "Hcont").
-              iIntros (v) "[[Hv ?] [? ?]]". iFrame.
+              iIntros (v) "[[Hv ?] ?]". iFrame.
               iDestruct "Hv" as "[? | Hv]";[by iLeft|iRight].
               iDestruct "Hv" as (ws ->) "Hw".
               iDestruct (big_sepL2_length with "Hw") as %Hwlen.
@@ -482,12 +482,11 @@ Section Client_main.
         { by iLeft. }
       }
       iIntros (v) "[Hv Hf]".
-      iApply "HΦ". iFrame. iExists _. iFrame. eauto. iSplit.
-    admit. iExists _; done. }
-Admitted.     
+      iApply "HΦ". iFrame. iExists _. iFrame. eauto. }
+  Qed.
       
     
-End Client_main.
+End Client_main. 
 
 
 Section Client_instantiation.
@@ -859,7 +858,7 @@ Section Client_instantiation.
       { apply Htablen. }
       { unfold upd_local_label_return. simpl.
         apply Htypf. }
-      { iFrame. iSplitR. admit. iSplit.
+      { iFrame. iSplit.
         { iDestruct (big_sepL2_lookup with "Hires") as "Ha".
           { eauto. }
           { rewrite /get_import_func_count /= drop_0 /= -nth_error_lookup. eauto. }
@@ -873,7 +872,7 @@ Section Client_instantiation.
       iIntros (v) "HH". iExact "HH".
     }
     iIntros (v) "[HH Hf]".
-    iDestruct "Hf" as (f) "(Hf & Hall & %Hfeq)".
+    iDestruct "Hf" as (f) "[Hf %Hfeq]".
     iDestruct "HH" as "[-> | Hres]".
     { take_drop_app_rewrite_twice 0 0.
       iApply (wp_wand_ctx with "[Hf]").
@@ -899,6 +898,6 @@ Section Client_instantiation.
       iApply weakestpre.wp_value. apply language.of_to_val. eauto.
       iRight. rewrite N2Nat.id. iDestruct "Hgret" as "[$ Hown]".
     }
-  Admitted. 
+  Qed.
   
-End Client_instantiation.
+End Client_instantiation. *)

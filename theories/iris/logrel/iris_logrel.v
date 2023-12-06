@@ -203,8 +203,8 @@ Section logrel.
   (* --------------------------------------------------------------------------------------- *) 
 
   (* the frame interpretation includes all resources needed by the currently running frame *)
-  Definition interp_frame (τs : result_type) (i : instance) (all: allocator): FR :=
-    λne f, (interp_allocator all ∗ ∃ vs, ⌜f = Build_frame vs i⌝ ∗ interp_val τs (immV vs) ∗ na_own logrel_nais ⊤)%I.
+  Definition interp_frame (τs : result_type) (i : instance): FR :=
+    λne f, (∃ vs, ⌜f = Build_frame vs i⌝ ∗ interp_val τs (immV vs) ∗ na_own logrel_nais ⊤)%I.
 
   
   (* --------------------------------------------------------------------------------------- *)
@@ -227,8 +227,8 @@ Section logrel.
     λne (w : leibnizO val), (∃ (vh : simple_valid_holed) (v : seq.seq value), ⌜w = retV vh⌝ ∗ ⌜simple_get_base_l vh = v⌝ ∗
                              match τr with 
                              | Some τr => (∃ τs'', interp_val (τs'' ++ τr) (immV v) ∗
-                                           ∀ f f', ↪[frame] f' -∗
-                                               WP [AI_local (length τr) f (of_val w)] {{ vs, interp_val τr vs ∗ ↪[frame] f' }})
+                                           ∀ f f' all, ↪[frame] f' -∗ interp_allocator all -∗
+                                               WP [AI_local (length τr) f (of_val w)] {{ vs, interp_val τr vs ∗ ↪[frame] f' ∗ ∃ all, interp_allocator all }})
                              | None => False
                              end)%I.
   
@@ -275,7 +275,7 @@ Section logrel.
                                         {{ vs, ((* a later is necessary now that interp_handle is non pure *) ▷ interp_val τ2 vs
                                                 ∨ ▷ interp_call_host' vs) ∗ interp_allocator all ∗ ↪[frame] f ∗ na_own logrel_nais ⊤ }}
                                ))
-    )%I.
+    )%I. (* Surely the host can change the frame and allocator ??? *)
 
   Global Instance interp_call_host_cls_def_contractive hl t2 : Contractive (interp_call_host_cls_def hl t2).
   Proof.
@@ -300,14 +300,14 @@ Section logrel.
   Proof. exact : (fixpoint_unfold (interp_call_host_cls_def host_list t2)). Qed.
 
   Definition interp_closure_native i tf1s tf2s tlocs e hl : iProp Σ :=
-    ∀ vcs f, interp_val tf1s (immV vcs) -∗
+    ∀ vcs f all, interp_val tf1s (immV vcs) -∗
              na_own logrel_nais ⊤ -∗
-             ↪[frame] f -∗
+             ↪[frame] f -∗ interp_allocator all -∗
              WP e FRAME (length tf2s); (Build_frame (vcs ++ (n_zeros tlocs)) i)
                   CTX 1; LH_rec [] (length tf2s) [] (LH_base [] []) []
                                 {{ v, (interp_val tf2s v
                                        ∨ interp_call_host_cls hl tf2s v)
-                                        ∗ na_own logrel_nais ⊤ ∗ ↪[frame] f }}.
+                                        ∗ na_own logrel_nais ⊤ ∗ ↪[frame] f ∗ ∃ all, interp_allocator all }}.
 
   Definition interp_closure (host_list : list (hostfuncidx * function_type)) (τf : function_type) : ClR :=
       λne cl, (match cl with
@@ -468,7 +468,7 @@ Section logrel.
   (* ------------------------------- EXPRESSION RELATION ----------------------------------- *)
   (* --------------------------------------------------------------------------------------- *)
 
-  Definition interp_call_host_br_def (τl : result_type) (i : instance) (all: allocator) (τro : option result_type) (host_list : list (hostfuncidx * function_type))
+  Definition interp_call_host_br_def (τl : result_type) (i : instance) (τro : option result_type) (host_list : list (hostfuncidx * function_type))
              (interp_call_host_br' : HR * BR) : HR * BR :=
     (λne (w : leibnizO val) (lh : leibnizO lholed) (τc : leibnizO (list (list value_type))) (τ2 : leibnizO result_type),
       (∃ (vh : llholed) (v : seq.seq value) (tf : function_type)
@@ -479,14 +479,15 @@ Section logrel.
                                ⌜llholed_basic vh⌝ ∗
                                interp_val τs1 (immV v) ∗
                                (* continuation for when the host function reenters *)
-                               □ (∀ v2 f, interp_val τs2 v2 -∗
-                                        ↪[frame] f ∗ interp_frame τl i all f -∗
+                               □ (∀ v2 f all, interp_val τs2 v2 -∗
+                                                ↪[frame] f ∗ interp_frame τl i f -∗
+                                                interp_allocator all -∗
                                         WP llfill vh (iris.of_val v2)
                                         {{ vs, (interp_val τ2 vs
                                                 ∨ ▷ interp_call_host_br'.2 vs lh τc
                                                 ∨ interp_return_option τro τl i vs
                                                 ∨ ▷ interp_call_host_br'.1 vs lh τc τ2)
-                                                 ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}
+                                                 ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i f ∗ interp_allocator all }}
                                )
                            )%I
                               
@@ -499,14 +500,15 @@ Section logrel.
                                 ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
                                 ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
                                      interp_val (τs'' ++ τs') (immV v) ∗
-                                     ∀ f, ↪[frame] f ∗ interp_frame τl i all f -∗
+                                     ∀ f all, ↪[frame] f ∗ interp_frame τl i f -∗
+                                               interp_allocator all -∗
                                            WP of_val (immV (drop (length τs'') v)) ++ [::AI_basic (BI_br (j - p))]
                                            CTX S (lh_depth lh'); LH_rec vs k es lh' es'
                                            {{ vs, ((∃ τs, interp_val τs vs)
                                                    ∨ ▷ interp_call_host_br'.2 vs lh'' (drop (S (j - p)) τc)
                                                    ∨ interp_return_option τro τl i vs
                                                    ∨ ▷ (∃ τs, interp_call_host_br'.1 vs lh'' (drop (S (j - p)) τc) τs))
-                              ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}))%I
+                              ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i f ∗ interp_allocator all }}))%I
       
     ).
 
@@ -518,7 +520,7 @@ Section logrel.
     destruct n;auto.
   Qed.
   
-  Global Instance interp_call_host_br_def_contractive τl i all τto hl : Contractive (interp_call_host_br_def τl i all τto hl).
+  Global Instance interp_call_host_br_def_contractive τl i τto hl : Contractive (interp_call_host_br_def τl i τto hl).
   Proof.
     solve_proper_prepare.
     destruct x,y.
@@ -551,61 +553,60 @@ Section logrel.
     }
   Defined.
 
-  Definition interp_call_host_br (τl : result_type) (i : instance) all (τto : option result_type) (host_list : list (hostfuncidx * function_type)) : HR * BR :=
-    fixpoint (interp_call_host_br_def τl i all τto host_list).
+  Definition interp_call_host_br (τl : result_type) (i : instance) (τto : option result_type) (host_list : list (hostfuncidx * function_type)) : HR * BR :=
+    fixpoint (interp_call_host_br_def τl i τto host_list).
 
-  Definition interp_call_host (τl : result_type) (i : instance) all (τto : option result_type) (host_list : list (hostfuncidx * function_type))
-    := (interp_call_host_br τl i all τto host_list).1.
-  Definition interp_br (τl : result_type) (i : instance) all (τto : option result_type) (host_list : list (hostfuncidx * function_type))
-    := (interp_call_host_br τl i all τto host_list).2.
+  Definition interp_call_host (τl : result_type) (i : instance) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
+    := (interp_call_host_br τl i τto host_list).1.
+  Definition interp_br (τl : result_type) (i : instance) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
+    := (interp_call_host_br τl i τto host_list).2.
 
-  Lemma fixpoint_interp_br_eq (τc : list (list (value_type))) (τl : result_type) (i : instance) all (τto : option result_type)
+  Lemma fixpoint_interp_br_eq (τc : list (list (value_type))) (τl : result_type) (i : instance) (τto : option result_type)
         (host_list : list (hostfuncidx * function_type)) v lh :
-    interp_br τl i all τto host_list v lh τc ≡ (interp_call_host_br_def τl i all τto host_list (interp_call_host_br τl i all τto host_list)).2 v lh τc.
-  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i all τto host_list)). destruct H as [? ?].
+    interp_br τl i τto host_list v lh τc ≡ (interp_call_host_br_def τl i τto host_list (interp_call_host_br τl i τto host_list)).2 v lh τc.
+  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i τto host_list)). destruct H as [? ?].
          specialize (H0 v lh τc). auto. Qed.
 
-  Lemma fixpoint_interp_call_host_eq lh (τc : list (list (value_type))) (τl : result_type) (i : instance) all (τto : option result_type)
+  Lemma fixpoint_interp_call_host_eq lh (τc : list (list (value_type))) (τl : result_type) (i : instance) (τto : option result_type)
         (host_list : list (hostfuncidx * function_type)) v t2 :
-    interp_call_host τl i all τto host_list v lh τc t2 ≡ (interp_call_host_br_def τl i all τto host_list (interp_call_host_br τl i all τto host_list)).1 v lh τc t2.
-  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i all τto host_list)). destruct H as [? ?].
+    interp_call_host τl i τto host_list v lh τc t2 ≡ (interp_call_host_br_def τl i τto host_list (interp_call_host_br τl i τto host_list)).1 v lh τc t2.
+  Proof. pose proof (fixpoint_unfold (interp_call_host_br_def τl i τto host_list)). destruct H as [? ?].
          specialize (H v lh τc t2). auto. Qed.
   
-  Definition interp_br_body τc lh j p (w : seq.seq value) τl i all τto hl : iProp Σ :=
+  Definition interp_br_body τc lh j p (w : seq.seq value) τl i τto hl : iProp Σ :=
     ∃ τs' vs k es lh' es' lh'' τs'',
       ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
                                                                                  ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
                                                                                                                             (*    ⌜ length w = length (τs'' ++ τs') ⌝ ∗ *)
       interp_val (τs'' ++ τs') (immV w) ∗
-      ∀ f, ↪[frame] f ∗ interp_frame τl i all f -∗
+      ∀ f all, ↪[frame] f ∗ interp_frame τl i f -∗ interp_allocator all -∗
             WP of_val (immV (drop (length τs'') w)) ++ [::AI_basic (BI_br (j - p))] CTX S (lh_depth lh'); LH_rec vs k es lh' es'
                 {{ vs, ((∃ τs, interp_val τs vs) ∨
-                          ▷ interp_br τl i all τto hl vs lh'' (drop (S (j - p)) τc) ∨
+                          ▷ interp_br τl i τto hl vs lh'' (drop (S (j - p)) τc) ∨
                           interp_return_option τto τl i vs ∨
-                          ▷ (∃ τs, interp_call_host τl i all τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
-                         ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}.
+                          ▷ (∃ τs, interp_call_host τl i τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
+                         ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i f ∗ interp_allocator all }}.
 
-    Definition interp_br_body_equiv τc lh j p (w : seq.seq value) τl i all τto hl : iProp Σ :=
+    Definition interp_br_body_equiv τc lh j p (w : seq.seq value) τl i τto hl : iProp Σ :=
     ∃ τs' vs k es lh' es' lh'' τs'',
       ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
                                                                                  ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
                                                                                                                                ⌜ length w = length (τs'' ++ τs') ⌝ ∗ 
       interp_val (τs'' ++ τs') (immV w) ∗
-      ∀ f, ↪[frame] f ∗ interp_frame τl i all f -∗
+      ∀ f all, ↪[frame] f ∗ interp_frame τl i f -∗ interp_allocator all -∗
             WP of_val (immV (drop (length τs'') w)) ++ [::AI_basic (BI_br (j - p))] CTX S (lh_depth lh'); LH_rec vs k es lh' es'
                 {{ vs, ((∃ τs, interp_val τs vs) ∨
-                          ▷ interp_br τl i all τto hl vs lh'' (drop (S (j - p)) τc) ∨
+                          ▷ interp_br τl i τto hl vs lh'' (drop (S (j - p)) τc) ∨
                           interp_return_option τto τl i vs ∨
-                          ▷ (∃ τs, interp_call_host τl i all τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
-                         ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }}.
+                          ▷ (∃ τs, interp_call_host τl i τto hl vs lh'' (drop (S (j - p)) τc) τs)) 
+                         ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i f ∗ interp_allocator all }}.
   
   Definition interp_expression (τc : list (list (value_type))) (τto : option result_type) (host_list : list (hostfuncidx * function_type))
-             (τs : result_type) (lh : lholed) (τl : result_type) (i : instance) (all: allocator) (es : expr) : iProp Σ :=
+             (τs : result_type) (lh : lholed) (τl : result_type) (i : instance) (es : expr) : iProp Σ :=
     (WP es {{ vs, (interp_val τs vs
-                   ∨ interp_br τl i all τto host_list vs lh τc
+                   ∨ interp_br τl i τto host_list vs lh τc
                    ∨ interp_return_option τto τl i vs
-                   ∨ interp_call_host τl i all τto host_list vs lh τc τs) ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i all f }})%I. (* Was it a good move to add all existentially? *)
-  (* Look into whether interp_call_host actually needs all *)
+                   ∨ interp_call_host τl i τto host_list vs lh τc τs) ∗ ∃ f all, ↪[frame] f ∗ interp_frame τl i f ∗ interp_allocator all }})%I. 
   
   
   (* --------------------------------------------------------------------------------------- *)
@@ -633,65 +634,65 @@ Section logrel.
     | _,_ => False
     end.
 
-  Definition interp_ctx_continuation (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (lh : lholed) (k : nat) (τs τl : result_type) (i : instance) (all: allocator) : iProp Σ :=
+  Definition interp_ctx_continuation (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (lh : lholed) (k : nat) (τs τl : result_type) (i : instance) : iProp Σ :=
     (∃ vs j es lh' es' lh'', ⌜get_layer lh ((lh_depth lh) - S k) = Some (vs,j,es,lh',es')⌝ ∧ ⌜lh_depth lh'' = (lh_depth lh) - S k⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∧
-                          (□ ∀ v f, interp_val τs v -∗ ↪[frame] f ∗ interp_frame τl i all f -∗
-                                    ∃ τs2, interp_expression (drop (S k) τc) τto hl τs2 lh'' τl i all (vs ++ ((of_val v) ++ es) ++ es')))%I.
+                          (□ ∀ v f all, interp_val τs v -∗ ↪[frame] f ∗ interp_frame τl i f -∗ interp_allocator all -∗
+                                    ∃ τs2, interp_expression (drop (S k) τc) τto hl τs2 lh'' τl i (vs ++ ((of_val v) ++ es) ++ es')))%I.
   
-  Definition interp_ctx_continuations (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) all : CtxR :=
-    λne lh, ([∗ list] k↦τs ∈ τc, interp_ctx_continuation τc τto hl lh k τs τl i all)%I.
+  Definition interp_ctx_continuations (τc : list (list (value_type))) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) : CtxR :=
+    λne lh, ([∗ list] k↦τs ∈ τc, interp_ctx_continuation τc τto hl lh k τs τl i)%I.
   
-  Definition interp_ctx (τc : list (list value_type)) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) all : CtxR :=
+  Definition interp_ctx (τc : list (list value_type)) (τto : option result_type) (hl : list (hostfuncidx * function_type)) (τl : result_type) (i : instance) : CtxR :=
     λne lh, (⌜base_is_empty lh⌝ ∗
              ⌜lholed_lengths (rev τc) lh⌝ ∗
              ⌜lholed_valid lh⌝ ∗
-             interp_ctx_continuations τc τto hl τl i all lh
+             interp_ctx_continuations τc τto hl τl i lh
             )%I.
 
-  Global Instance interp_ctx_continuations_persistent τc τl τto hl i all lh : Persistent (interp_ctx_continuations τc τl τto hl i all lh).
+  Global Instance interp_ctx_continuations_persistent τc τl τto hl i lh : Persistent (interp_ctx_continuations τc τl τto hl i lh).
   Proof. apply _. Qed.
-  Global Instance interp_ctx_persistent τc τto hl τl i all lh : Persistent (interp_ctx τc τto τl hl i all lh).
+  Global Instance interp_ctx_persistent τc τto hl τl i lh : Persistent (interp_ctx τc τto τl hl i lh).
   Proof. apply _. Qed.
 
   Notation IctxR := ((leibnizO instance) -n> (leibnizO lholed) -n> (leibnizO frame) -n> iPropO Σ).
 
   Definition semantic_typing (τctx : t_context) (es : expr) (tf : function_type) : iProp Σ :=
     match tf with
-    | Tf τ1 τ2 => ∀ i all lh hl, interp_instance τctx hl i -∗
-                         interp_ctx (tc_label τctx) (tc_return τctx) hl (tc_local τctx) i all lh -∗
-                         ∀ f vs, ↪[frame] f ∗ interp_frame (tc_local τctx) i all f -∗
+    | Tf τ1 τ2 => ∀ i lh hl, interp_instance τctx hl i -∗
+                         interp_ctx (tc_label τctx) (tc_return τctx) hl (tc_local τctx) i lh -∗
+                         ∀ f all vs, ↪[frame] f ∗ interp_frame (tc_local τctx) i f -∗ interp_allocator all -∗
                                   interp_val τ1 vs -∗
-                                  interp_expression (tc_label τctx) (tc_return τctx) hl τ2 lh (tc_local τctx) i all ((of_val vs) ++ es)
+                                  interp_expression (tc_label τctx) (tc_return τctx) hl τ2 lh (tc_local τctx) i ((of_val vs) ++ es)
     end.
 
   (* --------------------------------------------------------------------------------------- *)
   (* --------------------------- RELATIONS FOR CLOSED CONTEXTS ----------------------------- *)
   (* --------------------------------------------------------------------------------------- *)
 
-  Definition interp_expression_closure_stuck_host (hl : list (hostfuncidx * function_type)) (τs : result_type) (f : frame) (es : expr) : iProp Σ :=
-    (WP es {{ vs, ((interp_val τs vs ∨ interp_call_host_cls hl τs vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f }})%I.
+  Definition interp_expression_closure_stuck_host (hl : list (hostfuncidx * function_type)) (τs : result_type) (f : frame) (all: allocator) (es : expr) : iProp Σ :=
+    (WP es {{ vs, ((interp_val τs vs ∨ interp_call_host_cls hl τs vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I.
 
   Definition semantic_typing_local_stuck_host (hl : list (hostfuncidx * function_type)) (τctx : t_context) (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) : iProp Σ :=
     ⌜(tc_label τctx) = [] ∧ (tc_return τctx) = None⌝ ∧
     match tf with
     | Tf τ1 τ2 => ∀ i, interp_instance τctx hl i -∗
-                      ∀ f vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗
+                      ∀ f all vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗ interp_allocator all -∗
                                interp_val (τ1 ++ ts) (immV vs) -∗
-                               interp_expression_closure_stuck_host hl τ2 f [::AI_local (length τ2)
+                               interp_expression_closure_stuck_host hl τ2 f all [::AI_local (length τ2)
                                                                 (Build_frame vs i)
                                                                 [::AI_label (length τ2) [] (to_e_list es)]]
     end.
   
-  Definition interp_expression_closure_no_host (τs : result_type) (f : frame) (es : expr) : iProp Σ :=
-    (WP es {{ vs, (interp_val τs vs ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f }})%I.
+  Definition interp_expression_closure_no_host (τs : result_type) (f : frame) (all : allocator) (es : expr) : iProp Σ :=
+    (WP es {{ vs, (interp_val τs vs ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I.
 
   Definition semantic_typing_local_no_host (τctx : t_context) (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) : iProp Σ :=
     ⌜(tc_label τctx) = [] ∧ (tc_return τctx) = None⌝ ∧
     match tf with
     | Tf τ1 τ2 => ∀ i, interp_instance τctx [] i -∗
-                      ∀ f vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗
+                      ∀ f all vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗ interp_allocator all -∗
                                interp_val (τ1 ++ ts) (immV vs) -∗
-                               interp_expression_closure_no_host τ2 f [::AI_local (length τ2)
+                               interp_expression_closure_no_host τ2 f all [::AI_local (length τ2)
                                                                 (Build_frame vs i)
                                                                 [::AI_label (length τ2) [] (to_e_list es)]]
     end.
@@ -744,17 +745,17 @@ Section logrel_host.
   Let expr := iris.expr.
   Let val := iris.val.
 
-  Definition interp_expression_closure (hctx : host_ctx) (τs : result_type)  (f : frame) (es : expr) : iProp Σ :=
-    (WPh fill_host hctx es {{ λ vs, (interp_val τs (val_of_host_val vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f }})%I.
+  Definition interp_expression_closure (hctx : host_ctx) (τs : result_type)  (f : frame) (all: allocator) (es : expr) : iProp Σ :=
+    (WPh fill_host hctx es {{ λ vs, (interp_val τs (val_of_host_val vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I.
 
   Definition interp_closure_host (t2 : result_type) (hctx : host_ctx) tf1s tf2s (h : hostfuncidx) : iProp Σ :=
-    □ ∀ vcs f llh, interp_val tf1s (immV vcs) -∗
+    □ ∀ vcs f all llh, interp_val tf1s (immV vcs) -∗
            na_own logrel_nais ⊤ -∗
-           ↪[frame] f -∗
-           ▷ (∀ v2, interp_val tf2s v2 -∗ na_own logrel_nais ⊤ -∗ ↪[frame] f -∗
-                               WPh fill_host hctx (llfill llh (iris.of_val v2)) {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f }}) -∗
+           ↪[frame] f -∗ interp_allocator all -∗ 
+           ▷ (∀ v2, interp_val tf2s v2 -∗ na_own logrel_nais ⊤ -∗ ↪[frame] f -∗ interp_allocator all -∗
+                               WPh fill_host hctx (llfill llh (iris.of_val v2)) {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }}) -∗
            WPh fill_host hctx (llfill llh [AI_call_host (Tf tf1s tf2s) h vcs])
-           {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f }}.
+           {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }}.
 
   Definition interp_host_calls (t2 : result_type) (hctx : host_ctx) (hl : list (hostfuncidx * function_type)) : iProp Σ :=
     [∗ list] ht ∈ hl, let '(h, t) := ht in
@@ -765,10 +766,10 @@ Section logrel_host.
   Proof. apply big_sepL_persistent =>n x. destruct x,f; apply _. Qed.
          
   Definition interp_host_return (hctx : host_ctx) (τ2 : result_type) : iProp Σ :=
-    □ ∀ v f, interp_val τ2 v -∗
+    □ ∀ v f all, interp_val τ2 v -∗
              na_own logrel_nais ⊤ -∗          
-             ↪[frame] f -∗
-             WPh fill_host hctx (iris.of_val v) {{ λ r, (interp_val τ2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f }}.
+             ↪[frame] f -∗ interp_allocator all -∗
+             WPh fill_host hctx (iris.of_val v) {{ λ r, (interp_val τ2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f ∗ interp_allocator all }}.
   
   Definition semantic_typing_local (τctx : t_context) (hl : list (hostfuncidx * function_type))
              (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) (hctx : host_ctx) : iProp Σ :=
@@ -777,9 +778,9 @@ Section logrel_host.
     | Tf τ1 τ2 => ∀ i, interp_instance τctx hl i -∗
                       interp_host_calls τ2 hctx hl -∗
                       interp_host_return hctx τ2 -∗        
-                      ∀ f vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗
+                      ∀ f all vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗ interp_allocator all -∗ 
                                interp_val (τ1 ++ ts) (immV vs) -∗
-                               interp_expression_closure hctx τ2 f [::AI_local (length τ2)
+                               interp_expression_closure hctx τ2 f all [::AI_local (length τ2)
                                                                 (Build_frame vs i)
                                                                 [::AI_label (length τ2) [] (to_e_list es)]]
     end.

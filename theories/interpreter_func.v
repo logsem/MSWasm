@@ -222,7 +222,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
     | AI_basic (BI_cvtop t2 CVO_reinterpret t1 sx) =>
       if ves is v :: ves' then
-        if types_agree t1 v && (sx == None)
+        if types_agree t1 v && (t1 != T_handle) && (t2 != T_handle) && (sx == None)
         then (s, f, RS_normal (vs_to_es (wasm_deserialise (bits v) t2 :: ves')))
         else (s, f, crash_error)
       else (s, f, crash_error)

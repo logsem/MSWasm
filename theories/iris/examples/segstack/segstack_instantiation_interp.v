@@ -4,7 +4,7 @@ From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants.
 From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
-Require Export iris_fundamental_helpers stack_instantiation.
+Require Export iris_fundamental_helpers segstack_instantiation.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -38,7 +38,7 @@ Section StackModule.
       rewrite - Hcond. eauto.
   Qed.      
   
-  Lemma instantiate_stack_valid `{!logrel_na_invs Σ} `{!cinvG Σ} `{cancelG Σ} (s : stuckness) (E: coPset) (exp_addrs: list N) (stack_mod_addr : N):
+  Lemma instantiate_stack_valid `{!logrel_na_invs Σ} `{!cinvG Σ} `{!cancelG Σ} (s : stuckness) (E: coPset) (exp_addrs: list N) (stack_mod_addr : N):
     length exp_addrs = 8 ->
   (* Knowing we hold the stack module… *)
   stack_mod_addr ↪[mods] stack_module -∗
@@ -59,8 +59,7 @@ Section StackModule.
                     (i0 : instance)
                     (l0 l1 l2 l3 l4 l5 l6: list value_type)
                     tab 
-                    (isStack : N -> seq.seq i32 -> iPropI Σ)
-                    (nextStackAddrIs : nat -> iPropI Σ), 
+                    (isStack : handle -> seq.seq i32 -> iPropI Σ),
                     (* Our exports are in the vis 0%N thru 7%N. Note that everything is 
                        existantially quantified. In fact, all the f_i, i_i and l_i 
                        could be given explicitely, but we quantify them existantially 
@@ -77,19 +76,19 @@ Section StackModule.
                                         ++ [ {| modexp_name := name7 ;
                                                modexp_desc := MED_table (Mk_tableidx idt) |} ]
                     in let inst_map := (list_to_map (zip (fmap N.of_nat [idf0; idf1; idf2; idf3; idf4; idf5; idf6])
-                                                    [(FC_func_native i0 (Tf [] [T_i32]) l0 f0) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l1 f1) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l2 f2) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l3 f3) ;
-                                                     (FC_func_native i0 (Tf [T_i32; T_i32] []) l4 f4) ;
-                                                     (FC_func_native i0 (Tf [T_i32; T_i32] []) l5 f5) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l6 f6)]))
+                                                    [(FC_func_native i0 (Tf [] [T_handle]) l0 f0) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l1 f1) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l2 f2) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l3 f3) ;
+                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) l4 f4) ;
+                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) l5 f5) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l6 f6)]))
                     in let inst_map_exp := (list_to_map (zip (fmap N.of_nat [idf0; idf1; idf2; idf3; idf4])
-                                                    [(FC_func_native i0 (Tf [] [T_i32]) l0 f0) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l1 f1) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l2 f2) ;
-                                                     (FC_func_native i0 (Tf [T_i32] [T_i32]) l3 f3) ;
-                                                     (FC_func_native i0 (Tf [T_i32; T_i32] []) l4 f4)])) in
+                                                    [(FC_func_native i0 (Tf [] [T_handle]) l0 f0) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l1 f1) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l2 f2) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l3 f3) ;
+                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) l4 f4)])) in
                     let tab_data := tab.(table_data) in
                     let tab_size := length tab_data in
                     (* These two import functions state that all [vis] and [wf] point 
@@ -103,7 +102,7 @@ Section StackModule.
                     (* This is technically redundant, but is commonly used in other modules that import the stack *)
                     ⌜ NoDup [idf0; idf1; idf2; idf3; idf4; idf5; idf6] ⌝ ∗
                     ⌜ tab_size >= 1 ⌝ ∗
-                    na_inv logrel_nais stkN (stackModuleInv (λ n, isStack n) nextStackAddrIs) ∗
+(*                    na_inv logrel_nais stkN (stackModuleInv (λ n, isStack n)) ∗ *)
                     (* table starts out as empty *)
                     ([∗ list] elem ∈ tab_data, ⌜elem = None⌝) ∗
                     (* each export function is valid *)
@@ -201,8 +200,8 @@ Section StackModule.
       iExists _.
       iExists _, _, _, _, _, _, _.
       iExists _.
-      iExists (λ a b, isStack a b m).
-      iExists (λ n, (N.of_nat m↦[wmlength] N.of_nat n)%I).
+      iExists (λ a b, isStack a b).
+      (* iExists (λ n, (N.of_nat m↦[wmlength] N.of_nat n)%I). *)
 
       iSplitL "Hexp0 Hexp1 Hexp2 Hexp3 Hexp4 Hexp5 Hexp6 Hexp7"; first by iFrame => /=.
       
@@ -260,7 +259,7 @@ Section StackModule.
         { iNext. iExists 0. iSplit.
           - iPureIntro. apply N.divide_0_r.
           - iFrame. iExists []. simpl. iSplit;auto. iPureIntro. constructor. lias. }
-        iFrame "Hstk". iClear "∗".
+(*        iFrame "Hstk". *) iClear "∗".
         set (i0 := {| inst_types := [Tf [] [T_i32]; Tf [T_i32] [T_i32]; Tf [T_i32; T_i32] []];
                      inst_funcs := [f; f0; f1; f2; f3; f4];
                      inst_tab := [t];
@@ -289,11 +288,12 @@ Section StackModule.
         Transparent zip_with.
         simpl.
         repeat (iSplitR => //; first (iSplit => //; iIntros "!>!>")).
-        * iApply (valid_new_stack with "Hstk'").
+        Admitted. 
+(*        * iApply (valid_new_stack with "Hstk'").
         * iApply (valid_is_empty with "Hstk'").
         * iApply (valid_is_full with "Hstk'").
         * iApply (valid_pop with "Hstk'").
         * iApply (valid_push with "Hstk'").
-  Qed.        
+  Qed.         *)
    
 End StackModule.

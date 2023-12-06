@@ -182,7 +182,7 @@ Qed.
 End specs.
 
 Section valid.
-  Context `{!logrel_na_invs Σ}.
+  Context `{!logrel_na_invs Σ, !cinvG Σ, cancelg: cancelG Σ}.
   Set Bullet Behavior "Strict Subproofs".
 
   Lemma valid_is_empty m t funcs :
@@ -196,7 +196,7 @@ Section valid.
     interp_closure_native i0 [T_i32] [T_i32] [] (to_e_list is_empty) [].
   Proof.
     iIntros "#Hstk".
-    iIntros (vcs f) "#Hv Hown Hf".
+    iIntros (vcs f all) "#Hv Hown Hf Hall".
     iIntros (LI HLI%lfilled_Ind_Equivalent);inversion HLI;inversion H8;subst;simpl.
     iApply (wp_frame_bind with "[$]");auto.
     iIntros "Hf".
@@ -217,22 +217,25 @@ Section valid.
     match goal with | |- context [ (↪[frame] ?f0)%I ] => set (f':=f0) end.
     build_ctx e0. subst e0.
     iApply wp_seq_can_trap_ctx.
-    instantiate (1:=(λ f0, ⌜f0 = f'⌝ ∗ na_own logrel_nais ⊤)%I).
+    instantiate (1:=(λ f0, ⌜f0 = f'⌝ ∗ na_own logrel_nais ⊤ ∗ _)%I).
     iFrame "Hf".
     iSplitR;[|iSplitR;[|iSplitL]];cycle 1.
-    - iIntros (f0) "(Hf & -> & Hown)".
+    - iIntros (f0) "(Hf & -> & Hown & Hall)".
       deconstruct_ctx.
       iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
       iApply (wp_label_trap with "Hf");auto.
       iIntros (v0) "[-> Hf]". iExists _. iFrame.
       iIntros "Hf".
-      iApply (wp_frame_trap with "Hf").
-      iNext. iLeft. iLeft. auto.
+      iDestruct (wp_frame_trap with "Hf [Hall]") as "H".
+      2:{ iApply (wp_wand with "H"). iIntros (?) "[H Hf]".
+          iFrame. iExact "H". } 
+      iNext. iSplitR "Hall"; last iExact "Hall". iLeft. iLeft. auto.
     - iIntros "Hf". iFrame.
       iApply (wp_wand with "[Hf]").
       iApply check_stack_valid;iFrame;subst;eauto.
-      iIntros (v0) "[$ HH]". eauto.
-    - subst f'. iIntros (w f0) "([-> %Hdiv] & Hf & -> & Hown) /=".
+      iIntros (v0) "[$ HH]". iExists _. iFrame. iSplit; first done.
+      iExists _; iFrame.
+    - subst f'. iIntros (w f0) "([-> %Hdiv] & Hf & -> & Hown & Hall) /=".
       deconstruct_ctx.
       take_drop_app_rewrite (length (validate_stack_bound 0)).
       iApply fupd_wp.

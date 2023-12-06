@@ -23,12 +23,12 @@ Section fundamental.
 
   (* ----------------------------------------- CONST --------------------------------------- *)
   
-  Lemma typing_const C v : ⊢ semantic_typing C (to_e_list [BI_const v]) (Tf [] [typeof v]).
+  Lemma typing_const C v : typeof v <> T_handle -> ⊢ semantic_typing C (to_e_list [BI_const v]) (Tf [] [typeof v]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
+    iIntros (Ht i lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]".
-    iIntros (f vs) "[Hf Hfv] #Hv".
+    iIntros (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -40,10 +40,10 @@ Section fundamental.
       assert ([AI_basic (BI_const v)] = of_val (immV [v])) as ->;auto.
       iApply wp_value;[done|].
       iSplitR;cycle 1.
-      { iExists _. iFrame. }
+      { iExists _,_. iFrame. }
       iLeft. iRight.
       iExists _. iSplit;eauto.
-      iSimpl. iSplit =>//. iApply interp_value_type_of. }
+      iSimpl. iSplit => //. destruct v => //; by iExists _.  }
   Qed.
 
 End fundamental.

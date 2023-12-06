@@ -892,7 +892,7 @@ Section fundamental.
     }
   Qed.
 
-  Lemma interp_br_stuck_push C (j : nat) (vh: valid_holed j) m vs p i all tm tm' lh f' e τto hl :
+  Lemma interp_br_stuck_push C (j : nat) (vh: valid_holed j) m vs p i tm tm' lh f' all e τto hl :
     m = length tm ->
     get_base_l vh = vs ->
     lh_depth (lh_of_vh vh) = p ->
@@ -902,18 +902,18 @@ Section fundamental.
     base_is_empty lh ->
     interp_br_body (tc_label (upd_label C ([tm] ++ tc_label C)))
                    (push_base lh (length tm) e [] [])
-                   j p vs (tc_local C) i all τto hl -∗
+                   j p vs (tc_local C) i τto hl -∗
     ↪[frame]f' -∗
-    interp_frame (tc_local C) i all f' -∗
+    interp_frame (tc_local C) i f' -∗ interp_allocator all -∗
     WP [AI_label m e
         (vfill vh [AI_basic (BI_br j)])]
     {{ v, (interp_val tm' v
-           ∨ interp_br (tc_local C) i all τto hl v lh (tc_label C)
+           ∨ interp_br (tc_local C) i τto hl v lh (tc_label C)
            ∨ interp_return_option τto (tc_local C) i v
-           ∨ interp_call_host (tc_local C) i all τto hl v lh (tc_label C) tm') ∗
-           (∃ f0,  ↪[frame]f0 ∗ interp_frame (tc_local C) i all f0) }}.
+           ∨ interp_call_host (tc_local C) i τto hl v lh (tc_label C) tm') ∗
+           (∃ f0 all,  ↪[frame]f0 ∗ interp_frame (tc_local C) i f0 ∗ interp_allocator all) }}.
   Proof.
-    iIntros (Hlen Hbase Hsize n Hlh_length Hlh_valid Hlh_empty) "Hbr Hf Hfv".
+    iIntros (Hlen Hbase Hsize n Hlh_length Hlh_valid Hlh_empty) "Hbr Hf Hfv Hall".
     unfold interp_br_body.
     apply lh_depth_ge in Hsize as Hge.
     assert (j > p);[lia|].
@@ -930,7 +930,7 @@ Section fundamental.
     rewrite -!minus_Sn_m;[|lia].
         
     iApply wp_value;[done|].
-    iSplitR "Hf Hfv";[|iExists _;iFrame;iExists _;eauto].
+    iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame;iExists _;eauto].
     iRight. iLeft.
     iApply fixpoint_interp_br_eq. iSimpl.
     rewrite lh_depth_push_base.
@@ -958,8 +958,8 @@ Section fundamental.
     iSimpl. erewrite <-get_base_l_vh_decrease_eq;eauto.
     iSplit.
     { iRight. iExists _. iSplit;eauto. simplify_eq. iFrame "Hvalvs". }
-    iIntros (f0) "[Hf0 Hf0v]".
-    iSpecialize ("Hbr" with "[$]").
+    iIntros (f0 all0) "[Hf0 Hf0v] Hall".
+    iSpecialize ("Hbr" with "[$] Hall").
     rewrite Hbase. rewrite lh_depth_push_base.
     apply get_layer_lh_depth in Hlayer2 as Hlh0depth;[|lia].
     rewrite Hlh0depth.
@@ -1031,7 +1031,7 @@ Section fundamental.
   Global Instance hostfuncidx_inhabited : Inhabited (hostfuncidx).
   Proof. apply populate. exact (Mk_hostfuncidx 0). Qed.
   
-  Lemma interp_br_stuck_push_later C (j : nat) (vh: valid_holed j) m vs p i all tm tm' lh f' e τto hl :
+  Lemma interp_br_stuck_push_later C (j : nat) (vh: valid_holed j) m vs p i tm tm' lh f' all e τto hl :
     m = length tm ->
     get_base_l vh = vs ->
     lh_depth (lh_of_vh vh) = p ->
@@ -1041,18 +1041,18 @@ Section fundamental.
     base_is_empty lh ->
     ▷ interp_br_body (tc_label (upd_label C ([tm] ++ tc_label C)))
                    (push_base lh (length tm) e [] [])
-                   j p vs (tc_local C) i all τto hl -∗
+                   j p vs (tc_local C) i τto hl -∗
     ↪[frame]f' -∗
-    interp_frame (tc_local C) i all f' -∗
+    interp_frame (tc_local C) i f' -∗ interp_allocator all -∗
     WP [AI_label m e
         (vfill vh [AI_basic (BI_br j)])]
     {{ v, (interp_val tm' v
-           ∨ ▷ interp_br (tc_local C) i all τto hl v lh (tc_label C)
+           ∨ ▷ interp_br (tc_local C) i τto hl v lh (tc_label C)
            ∨ interp_return_option τto (tc_local C) i v
-           ∨ interp_call_host (tc_local C) i all τto hl v lh (tc_label C) tm') ∗
-           (∃ f0,  ↪[frame]f0 ∗ interp_frame (tc_local C) i all f0) }}.
+           ∨ interp_call_host (tc_local C) i τto hl v lh (tc_label C) tm') ∗
+           (∃ f0 all,  ↪[frame]f0 ∗ interp_frame (tc_local C) i f0 ∗ interp_allocator all) }}.
   Proof.
-    iIntros (Hlen Hbase Hsize n Hlh_length Hlh_valid Hlh_empty) "Hbr Hf Hfv".
+    iIntros (Hlen Hbase Hsize n Hlh_length Hlh_valid Hlh_empty) "Hbr Hf Hfv Hall".
     unfold interp_br_body.
     apply lh_depth_ge in Hsize as Hge.
     assert (j > p);[lia|].
@@ -1069,7 +1069,7 @@ Section fundamental.
     rewrite -!minus_Sn_m;[|lia].
         
     iApply wp_value;[done|].
-    iSplitR "Hf Hfv";[|iExists _;iFrame;iExists _;eauto].
+    iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame;iExists _;eauto].
     iRight. iLeft.
     iApply fixpoint_interp_br_eq. iSimpl.
     rewrite lh_depth_push_base.
@@ -1098,8 +1098,8 @@ Section fundamental.
     iSimpl. erewrite <-get_base_l_vh_decrease_eq;eauto.
     iSplit.
     { iRight. iExists _. iSplit;eauto. simplify_eq. iFrame "Hvalvs". }
-    iIntros (f0) "[Hf0 Hf0v]".
-    iSpecialize ("Hbr" with "[$]").
+    iIntros (f0 all0) "[Hf0 Hf0v] Hall0".
+    iSpecialize ("Hbr" with "[$] Hall0").
     rewrite Hbase. rewrite lh_depth_push_base.
     apply get_layer_lh_depth in Hlayer2 as Hlh0depth;[|lia].
     rewrite Hlh0depth.
@@ -1167,20 +1167,20 @@ Section fundamental.
       apply lfilled_Ind_Equivalent;eauto. }
   Qed.
 
-  Lemma interp_return_label C tn i all w f' tm lh es m hl :
+  Lemma interp_return_label C tn i w f' all tm lh es m hl :
     interp_return_option
       (tc_return (upd_label C ([tn] ++ tc_label C)))
       (tc_local (upd_label C ([tn] ++ tc_label C))) i w -∗
   ↪[frame]f' -∗
-  interp_frame (tc_local C) i all f' -∗
+  interp_frame (tc_local C) i f' -∗ interp_allocator all -∗
   WP of_val w CTX 1; LH_rec [] m es (LH_base [] []) []
   {{ v, (interp_val tm v
-         ∨ interp_br (tc_local C) i all (tc_return C) hl v lh (tc_label C)
+         ∨ interp_br (tc_local C) i (tc_return C) hl v lh (tc_label C)
          ∨ interp_return_option (tc_return C) (tc_local C) i v
-         ∨ interp_call_host (tc_local C) i all (tc_return C) hl v lh (tc_label C) tm) ∗
-           (∃ f0 : frame,  ↪[frame]f0 ∗ interp_frame (tc_local C) i all f0) }}.
+         ∨ interp_call_host (tc_local C) i (tc_return C) hl v lh (tc_label C) tm) ∗
+           (∃ f0 all,  ↪[frame]f0 ∗ interp_frame (tc_local C) i f0 ∗ interp_allocator all) }}.
   Proof.
-    iIntros "Hret Hf Hfv".
+    iIntros "Hret Hf Hfv Hall".
     iDestruct "Hret" as (sh v -> Hbase) "Hret".
     simpl of_val. 
     destruct (tc_return (upd_label C ([tn] ++ tc_label C))) eqn:Hret;[|done].
@@ -1201,12 +1201,12 @@ Section fundamental.
     { simpl of_val. f_equiv. eauto. }
     rewrite !Hval.
     iApply wp_value;[done|].
-    iSplitR "Hf Hfv";[|iExists _;iFrame;iExists _;eauto].
+    iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame;iExists _;eauto].
     iRight. iRight. iLeft.
     iExists _,_. iSplit;[eauto|]. iSplit;[eauto|].
     assert (tc_return C = Some l) as ->;auto.
     iExists _. iSplitR. { iRight. iExists _. eauto. }
-    iIntros (f0 f1) "Hf". iSpecialize ("Hret" $! f0 with "[$]").
+    iIntros (f0 f1 all0) "Hf Hall". iSpecialize ("Hret" $! f0 with "[$] [$]").
     iDestruct (big_sepL2_length with "Hw") as %Hlen'.
     iApply (wp_ret_shift with "Hret");cycle 2.
     { simpl of_val. eauto. }
@@ -1221,24 +1221,24 @@ Section fundamental.
       apply Nat.add_sub_eq_r. rewrite Hlen'. lia. }
   Qed.
   
-  Lemma interp_br_step C (j : nat) (vh: valid_holed j) m vs p i all tm lh f' hl :
+  Lemma interp_br_step C (j : nat) (vh: valid_holed j) m vs p i tm lh f' all hl :
     m = length tm ->
     get_base_l vh = vs ->
     lh_depth (lh_of_vh vh) = p ->
     j = p ->
     (▷ interp_br_body (tc_label (upd_label C ([tm] ++ tc_label C)))
                    (push_base lh (length tm) [] [] [])
-                   j p vs (tc_local C) i all (tc_return C) hl) -∗
+                   j p vs (tc_local C) i (tc_return C) hl) -∗
     ↪[frame]f' -∗
-    interp_frame (tc_local C) i all f' -∗
+    interp_frame (tc_local C) i f' -∗ interp_allocator all -∗
     WP [AI_label m [] (vfill vh [AI_basic (BI_br j)])]
     {{ v, (interp_val tm v
-           ∨ interp_br (tc_local C) i all (tc_return C) hl v lh (tc_label C)
+           ∨ interp_br (tc_local C) i (tc_return C) hl v lh (tc_label C)
            ∨ interp_return_option (tc_return C) (tc_local C) i v
-           ∨ interp_call_host (tc_local C) i all (tc_return C) hl v lh (tc_label C) tm) ∗
-           (∃ f0,  ↪[frame]f0 ∗ interp_frame (tc_local C) i all f0) }}.
+           ∨ interp_call_host (tc_local C) i (tc_return C) hl v lh (tc_label C) tm) ∗
+           (∃ f0 all,  ↪[frame]f0 ∗ interp_frame (tc_local C) i f0 ∗ interp_allocator all) }}.
   Proof.
-    iIntros (Hlen Hbase Hsize e) "Hbr Hf Hfv".
+    iIntros (Hlen Hbase Hsize e) "Hbr Hf Hfv Hall".
     unfold interp_br_body.
     destruct (pull_base_l_drop_len vh (length vs - length tm)) eqn:Hpb.
     erewrite vfill_pull_base_l_take_len;[|eauto].
@@ -1264,7 +1264,7 @@ Section fundamental.
     rewrite app_nil_r.
     rewrite of_val_imm.
     iApply wp_value;[done|].
-    iSplitR "Hfv Hf";[|iExists _;iFrame;iExists _;eauto].
+    iSplitR "Hfv Hf Hall";[|iExists _,_;iFrame;iExists _;eauto].
     iLeft. iRight. iExists _. iSplit;eauto.
     eapply take_drop_pull_base_l_take_len in Hpb as Happ;[|eauto..];[|lia].
     rewrite Happ.
@@ -1274,19 +1274,19 @@ Section fundamental.
     iFrame "#".
   Qed.
 
-  Lemma interp_br_label C i all w f' tm lh hl :
-    interp_ctx (tc_label C) (tc_return C) hl (tc_local C) i all lh -∗
-    interp_br (tc_local C) i all (tc_return C) hl w (push_base lh (length tm) [] [] []) (tc_label (upd_label C ([tm] ++ tc_label C))) -∗
+  Lemma interp_br_label C i w f' all tm lh hl :
+    interp_ctx (tc_label C) (tc_return C) hl (tc_local C) i lh -∗
+    interp_br (tc_local C) i (tc_return C) hl w (push_base lh (length tm) [] [] []) (tc_label (upd_label C ([tm] ++ tc_label C))) -∗
     ↪[frame]f' -∗
-    interp_frame (tc_local C) i all f' -∗
+    interp_frame (tc_local C) i f' -∗ interp_allocator all -∗
     WP of_val w CTX 1; LH_rec [] (length tm) [] (LH_base [] []) []
     {{ v, (interp_val tm v
-           ∨ interp_br (tc_local C) i all (tc_return C) hl v lh (tc_label C)
+           ∨ interp_br (tc_local C) i (tc_return C) hl v lh (tc_label C)
            ∨ interp_return_option (tc_return C) (tc_local C) i v
-           ∨ interp_call_host (tc_local C) i all (tc_return C) hl v lh (tc_label C) tm) ∗
-           (∃ f0 : frame,  ↪[frame]f0 ∗ interp_frame (tc_local C) i all f0) }}.
+           ∨ interp_call_host (tc_local C) i (tc_return C) hl v lh (tc_label C) tm) ∗
+           (∃ f0 all,  ↪[frame]f0 ∗ interp_frame (tc_local C) i f0 ∗ interp_allocator all) }}.
   Proof.
-    iIntros "#Hc Hbr Hf Hfv".
+    iIntros "#Hc Hbr Hf Hfv Hall".
     rewrite fixpoint_interp_br_eq.
     iDestruct "Hbr" as (j vh vs p) "[%Heq' [%Hbase [%Hsize Hbr]]]". rewrite Heq'.
     simpl of_val.
@@ -1304,19 +1304,19 @@ Section fundamental.
       iApply (interp_br_stuck_push with "Hbr Hf Hfv");eauto. }
   Qed.
 
-  Lemma interp_call_host_label C i all w f' tm lh hl :
-    interp_ctx (tc_label C) (tc_return C) hl (tc_local C) i all lh -∗
-    interp_call_host (tc_local C) i all (tc_return C) hl w (push_base lh (length tm) [] [] []) (tc_label (upd_label C ([tm] ++ tc_label C))) tm -∗
+  Lemma interp_call_host_label C i w f' all tm lh hl :
+    interp_ctx (tc_label C) (tc_return C) hl (tc_local C) i lh -∗
+    interp_call_host (tc_local C) i (tc_return C) hl w (push_base lh (length tm) [] [] []) (tc_label (upd_label C ([tm] ++ tc_label C))) tm -∗
     ↪[frame]f' -∗
-    interp_frame (tc_local C) i all f' -∗
+    interp_frame (tc_local C) i f' -∗ interp_allocator all -∗
     WP of_val w CTX 1; LH_rec [] (length tm) [] (LH_base [] []) []
     {{ v, (interp_val tm v
-           ∨ interp_br (tc_local C) i all (tc_return C) hl v lh (tc_label C)
+           ∨ interp_br (tc_local C) i (tc_return C) hl v lh (tc_label C)
            ∨ interp_return_option (tc_return C) (tc_local C) i v
-           ∨ interp_call_host (tc_local C) i all (tc_return C) hl v lh (tc_label C) tm) ∗
-           (∃ f0 : frame,  ↪[frame]f0 ∗ interp_frame (tc_local C) i all f0) }}.
+           ∨ interp_call_host (tc_local C) i (tc_return C) hl v lh (tc_label C) tm) ∗
+           (∃ f0 all,  ↪[frame]f0 ∗ interp_frame (tc_local C) i f0 ∗ interp_allocator all) }}.
   Proof.
-    iIntros "#Hc Hch Hf Hfv".
+    iIntros "#Hc Hch Hf Hfv Hall".
     
     
     iDestruct (fixpoint_interp_call_host_eq with "Hch") as "Hch".
@@ -1332,7 +1332,7 @@ Section fundamental.
     eassert (llfill (LL_label [] (length tm) [] vh []) [AI_call_host tf h v] = of_val (callHostV _ _ _ _)) as Hval.
     { simpl of_val. f_equiv; eauto. }
     iApply wp_value;[done|].
-    iSplitR "Hf Hfv";[|iExists _;iFrame;iExists _;eauto].
+    iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame;iExists _;eauto].
     iRight. iRight. iRight. clear Hval. iRevert "Hv Hch".
     iLöb as "IH"
   forall (tf h v w vh τs1 τs2 Heqw Htf Hin H);iIntros "#Hv #Hch".
@@ -1343,30 +1343,30 @@ Section fundamental.
 
     iApply fixpoint_interp_call_host_eq.
     iExists _,_,_,_,_,_. do 5 (iSplitR;[eauto|]).
-    iModIntro. iIntros (v2 f) "#Hw [Hf Hfv]".
+    iModIntro. iIntros (v2 f all') "#Hw [Hf Hfv] Hall".
 
     simpl sfill.
     iApply wp_wasm_empty_ctx.
     iApply wp_label_push_nil.
     iApply wp_ctx_bind;[simpl;auto|].
-    iDestruct ("Hch" with "Hw [$]") as "Hch'".
+    iDestruct ("Hch" with "Hw [$] Hall") as "Hch'".
     iApply (wp_wand with "Hch'").
     
-    iIntros (v') "[[Hv' | [Hv' | [Hv' | Hv']]] Hf]";iDestruct "Hf" as (f0 all0) "[Hf Hfv]".
+    iIntros (v') "[[Hv' | [Hv' | [Hv' | Hv']]] Hf]" ;iDestruct "Hf" as (f0 all0) "(Hf & Hfv & Hall)".
     { iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
       iDestruct "Hv'" as "[-> | Hv']".
       { iApply (wp_wand with "[Hf]").
         { iApply (wp_label_trap with "Hf");[auto|].
           by instantiate (1:=(λ v, ⌜v = trapV⌝)%I). }
         iIntros (v0) "[-> Hf]".
-        iSplitR "Hf Hfv";[|iExists _,_;iFrame].
+        iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame].
         iLeft. iLeft. done. }
       iDestruct "Hv'" as (ws ->) "Hv'".
       iApply (wp_wand with "[Hf]").
       { iApply (wp_label_value with "Hf");[eapply to_of_val|].
         by instantiate (1:=(λ v, ⌜v = immV _⌝)%I). }
       iIntros (v0) "[-> Hf]".
-      iSplitR "Hf Hfv";[|iExists _,_;iFrame].
+      iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame].
       iLeft. iRight. iExists _. iSplit;eauto.
     }
     { rewrite fixpoint_interp_br_eq.
@@ -1378,8 +1378,8 @@ Section fundamental.
       
       destruct (decide (j = p)).
       { iApply (wp_wand with "[-]").
-        { iApply (interp_br_step with "Hbr Hf Hfv");[eauto|apply Hbase|apply Hsize|apply e]. }
-        iIntros (v0) "[[H|[H|[H|H]]] $]".
+        { iApply (interp_br_step with "Hbr Hf Hfv Hall");[eauto|apply Hbase|apply Hsize|apply e]. }
+        iIntros (v0) "[[H|[H|[H|H]]] $]". (* "(%f1 & H1 & H2 & H3)]"; iSplitR "H1 H2 H3"; try by iExists _,_; iFrame. *)
         { iLeft. iFrame. }
         { iRight. iLeft. iNext. iFrame. }
         { iRight. iRight. iLeft. iFrame. }
@@ -1389,15 +1389,15 @@ Section fundamental.
         { iDestruct "Hc" as "[% [% [% _]]]". auto. }
         iApply (wp_wand with "[-]").
         { iApply (interp_br_stuck_push_later with "Hbr Hf Hfv");eauto. }
-        iIntros (v0) "[[H|[H|[H|H]]] $]".
+        iIntros (v0) "[[H|[H|[H|H]]] $]". (* "(%f1 & H1 & H2 & H3)]"; iSplitR "H1 H2 H3"; try by iExists _,_; iFrame. *)
         { iLeft. iFrame. }
         { iRight. iLeft. iNext. iFrame. }
         { iRight. iRight. iLeft. iFrame. }
         { repeat iRight. iNext. iFrame. } }
     }
-    { iDestruct (interp_return_label with "Hv' Hf Hfv") as "Hv'".
+    { iDestruct (interp_return_label with "Hv' Hf Hfv Hall") as "Hv'".
       iApply (wp_wand_ctx with "Hv'").
-      iIntros (v0) "[[H|[H|[H|H]]] $]".
+      iIntros (v0) "[[H|[H|[H|H]]] $]". (* "(%f1 & H1 & H2 & H3)]"; iSplitR "H1 H2 H3"; try by iExists _,_; iFrame. *)
         { iLeft. iFrame. }
         { iRight. iLeft. iNext. iFrame. }
         { iRight. iRight. iLeft. iFrame. }
@@ -1412,7 +1412,7 @@ Section fundamental.
       eassert (llfill (LL_label [] (length tm) [] vh0 []) [AI_call_host tf0 h0 v0] = of_val (callHostV _ _ _ _)) as Hval'.
       { simpl of_val. f_equiv; eauto. }
       iApply wp_value;[done|].
-      iSplitR "Hf Hfv";[|iExists _;iFrame].
+      iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame].
       repeat iRight. iNext.
       unfold IH. iApply "IH";auto.
     }    
@@ -1788,55 +1788,54 @@ Section fundamental.
     done.
   Qed.
     
-  Lemma local_host_trap f0 τ1 τs i all f τ2 hl :
+  Lemma local_host_trap f0 all0 τ1 τs i f all τ2 hl :
     ↪[frame]f0 -∗
-     interp_frame (τ1 ++ τs) i all f0 -∗
+     interp_frame (τ1 ++ τs) i f0 -∗ interp_allocator all0 -∗
      WP [AI_trap]
      CTX
      1; LH_rec [] (length τ2) [] (LH_base [] []) []
      {{ w,
-     ∃ f1 : frame,
-       ( ↪[frame]f -∗
+     ∃ f1 all1,
+       ( ↪[frame]f -∗ interp_allocator all -∗
         WP iris.of_val w
         @ NotStuck; ⊤ FRAME
         length τ2; f1
         {{ w0, (interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
-                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 }}.
+                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 ∗ interp_allocator all1 }}.
   Proof.
-    iIntros "Hf0 Hf0v".
+    iIntros "Hf0 Hf0v Hall0".
     rewrite -(app_nil_l [AI_trap]) -(app_nil_r [AI_trap]).
     iApply (wp_wand_ctx _ _ _ (λ vs, _ ∗ ↪[frame] _)%I with "[Hf0]").
     { iApply wp_trap_ctx;eauto. }
     iIntros (v) "[-> Hf]".
-    iExists _. iFrame. iIntros "Hf".
+    iExists _,_. iFrame. iIntros "Hf Hall".
     iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗ ↪[frame] _)%I with "[Hf]").
     { iApply (wp_frame_trap with "Hf");eauto. }
     iIntros (v) "[-> Hf]".
     iFrame.
-    iDestruct "Hf0v" as "[Hall Hf0v]".
     iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame.
     iLeft. by iLeft.
   Qed.
 
 
   
-  Lemma local_host_val v f0 τ2 τ1 τs i all f hl :
+  Lemma local_host_val v f0 all0 τ2 τ1 τs i f all hl :
     interp_values τ2 v -∗
     ↪[frame]f0 -∗
-    interp_frame (τ1 ++ τs) i all f0 -∗
+    interp_frame (τ1 ++ τs) i f0 -∗ interp_allocator all0 -∗
     WP iris.of_val v
     CTX
     1; LH_rec [] (length τ2) [] (LH_base [] []) []
     {{ w,
-     ∃ f1 : frame,
-       ( ↪[frame]f -∗
+     ∃ f1 all1,
+       ( ↪[frame]f -∗ interp_allocator all -∗
         WP iris.of_val w
         @ NotStuck; ⊤ FRAME
         length τ2; f1
         {{ w0, (interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
-                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 }}.
+                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 ∗ interp_allocator all1 }}.
   Proof.
-    iIntros "Hv' Hf0 Hf0v".
+    iIntros "Hv' Hf0 Hf0v Hall0".
     iDestruct "Hv'" as (v' ->) "#Hv'".
     iSimpl. 
     iApply (wp_wand_ctx _ _ _ (λ vs, ⌜vs = immV _⌝ ∗ ↪[frame] _)%I with "[Hf0]").
@@ -1847,35 +1846,34 @@ Section fundamental.
       iApply wp_value;[done|].
       iFrame. eauto. }
     iIntros (v) "[-> Hf]".
-    iExists _. iFrame. iIntros "Hf".
+    iExists _,_. iFrame. iIntros "Hf Hall".
     iDestruct (big_sepL2_length with "Hv'") as %Hlen.
     iApply (wp_wand _ _ _ (λ vs, ⌜vs = immV _⌝ ∗ ↪[frame] _)%I with "[Hf]").
     { iApply (wp_frame_value with "Hf");eauto. 1: apply to_of_val.
       rewrite fmap_length. auto. }
     iIntros (v) "[-> Hf]". iFrame.
-    iDestruct "Hf0v" as "[Hall Hf0v]".
     iDestruct "Hf0v" as (?) "[_ [_ Hown]]".
     iFrame. iLeft. iRight. iExists _. eauto.
   Qed.
 
-  Lemma local_host_br v f0 τ2 τ1 τs i all f hl :
-    ▷ interp_br (τ1 ++ τs) i all (Some τ2) hl v
+  Lemma local_host_br v f0 all0 τ2 τ1 τs i f all hl :
+    ▷ interp_br (τ1 ++ τs) i (Some τ2) hl v
             (LH_rec [] (length τ2) [] (LH_base [] []) []) [τ2] -∗
     ↪[frame]f0 -∗
-    interp_frame (τ1 ++ τs) i all f0 -∗
+    interp_frame (τ1 ++ τs) i f0 -∗ interp_allocator all0 -∗
     WP iris.of_val v
     CTX
     1; LH_rec [] (length τ2) [] (LH_base [] []) []
     {{ w,
-     ∃ f1 : frame,
-       ( ↪[frame]f -∗
+     ∃ f1 all1,
+       ( ↪[frame]f -∗ interp_allocator all -∗
         WP iris.of_val w
         @ NotStuck; ⊤ FRAME
         length τ2; f1
         {{ w0, ((* a later is necessary now that interp_handle is not pure *)  ▷ interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
-                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 }}.
+                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 ∗ interp_allocator all1 }}.
   Proof.
-    iIntros "Hbr Hf0 Hf0v".
+    iIntros "Hbr Hf0 Hf0v Hall0".
     rewrite fixpoint_interp_br_eq.
     iDestruct "Hbr" as (n vh vs' p) "[>%Heq [>%Hbase [>%Hdepth Hbr]]]".
     iDestruct "Hbr" as (τs' ws' k es1 lh' es' lh'' τs'') "[>%Hlook [>%Hlayer Hbr]]".
@@ -1905,33 +1903,32 @@ Section fundamental.
       iApply wp_value;[done|].
       iFrame;eauto. }
     iIntros (v) "[-> Hf]".
-    iExists _. iFrame. iIntros "Hf".
+    iExists _,_. iFrame. iIntros "Hf Hall".
     iApply (wp_wand _ _ _ (λ vs, ⌜vs = immV _⌝ ∗ ↪[frame] _)%I with "[Hf]").
     { iApply (wp_frame_value with "Hf");eauto. 1: apply to_of_val.
       rewrite fmap_length. auto. }
     iIntros (v) "[-> Hf]". iFrame.
-    iDestruct "Hf0v" as "[Hall Hf0v]".
     iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame. iLeft.
     iRight. iExists _. iSplit; first done. done.
   Qed.
 
-  Lemma local_host_ret v f0 τ2 τ1 τs i all f hl :
+  Lemma local_host_ret v f0 all0 τ2 τ1 τs i f all hl :
     interp_return_option (Some τ2) (τ1 ++ τs) i v -∗
     ↪[frame]f0 -∗
-    interp_frame (τ1 ++ τs) i all f0 -∗
+    interp_frame (τ1 ++ τs) i f0 -∗ interp_allocator all0 -∗
     WP iris.of_val v
     CTX
     1; LH_rec [] (length τ2) [] (LH_base [] []) []
     {{ w,
-     ∃ f1 : frame,
-       ( ↪[frame]f -∗
+     ∃ f1 all1,
+       ( ↪[frame]f -∗ interp_allocator all -∗
         WP iris.of_val w
         @ NotStuck; ⊤ FRAME
         length τ2; f1
         {{ w0, (interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
-                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 }}.
+                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1  ∗ interp_allocator all1 }}.
   Proof.
-    iIntros "Hret Hf0 Hf0v".
+    iIntros "Hret Hf0 Hf0v Hall0".
     iDestruct "Hret" as (vh vs' -> Hbase) "Hret".
     iDestruct "Hret" as (τs'') "[#Hws' _]".
     iDestruct "Hws'" as "[%Hcontr|Hws']";[done|iDestruct "Hws'" as (ww Heqw) "Hws'"].
@@ -1949,7 +1946,7 @@ Section fundamental.
     rewrite sfill_label.
     eassert (iris.of_val (retV _) = sfill _ _) as <-;[eauto|].
     iApply wp_value;[done|].
-    iExists _. iFrame. iIntros "Hf".
+    iExists _,_. iFrame. iIntros "Hf Hall".
     simpl iris.of_val.
     iApply (wp_wand _ _ _ (λ vs, ⌜vs = immV _⌝ ∗ ↪[frame] _)%I with "[Hf]").
     { iApply wp_return;cycle 2.
@@ -1961,29 +1958,29 @@ Section fundamental.
       { rewrite fmap_length. auto. } }
     iIntros (v) "[-> Hf]". iFrame.
     iSplitR;[iLeft;iRight;iExists _;eauto|].
-    iDestruct "Hf0v" as "[Hall Hf0v]".
+
     iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame.
   Qed.
 
-  (*
-  Lemma local_host_call v f0 τ2 τ1 τs i all f hl :
-    interp_call_host (τ1 ++ τs) i all (Some τ2) hl v
+(*
+  Lemma local_host_call v f0 all0 τ2 τ1 τs i f all hl :
+    interp_call_host (τ1 ++ τs) i (Some τ2) hl v
             (LH_rec [] (length τ2) [] (LH_base [] []) []) [τ2] τ2 -∗
     ↪[frame]f0 -∗
-    interp_frame (τ1 ++ τs) i all f0 -∗
+    interp_frame (τ1 ++ τs) i f0 -∗ interp_allocator all0 -∗
     WP iris.of_val v
     CTX
     1; LH_rec [] (length τ2) [] (LH_base [] []) []
     {{ w,
-     ∃ f1 : frame,
-       ( ↪[frame]f -∗
+     ∃ f1 all1,
+       ( ↪[frame]f -∗ interp_allocator all -∗
         WP iris.of_val w
         @ NotStuck; ⊤ FRAME
         length τ2; f1
         {{ w0, (interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
-                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 }}.
+                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 ∗ interp_allocator all1}}.
   Proof.
-    iIntros "Hch Hf0 Hf0v".
+    iIntros "Hch Hf0 Hf0v Hall0".
     rewrite fixpoint_interp_call_host_eq.
     iDestruct "Hch" as (? ? ? ? ? ? Heq Htf Hin Hb) "[#Hw #Hch]".
     rewrite Heq.
@@ -1995,12 +1992,11 @@ Section fundamental.
     rewrite seq.cats0. rewrite llfill_label.
     rewrite -/(iris.of_val (callHostV tf h v0 _)).
     iApply wp_value;[done|].
-    iExists _. iFrame. iIntros "Hf".
+    iExists _,_. iFrame. iIntros "Hf Hall".
     simpl iris.of_val.
     rewrite llfill_label wp_frame_rewrite llfill_local.
     rewrite -/(iris.of_val (callHostV tf h v0 _)).
     iApply wp_value;[done|].
-    iDestruct "Hf0v" as "[Halloc Hf0v]".
     iDestruct "Hf0v" as (?) "[%Heqf [#Hfv Hown]]".
     iFrame.
     iRight.
@@ -2027,23 +2023,27 @@ Section fundamental.
   forall (v2 f1 f0 all1 vs Heqf vh Hnone v0 h tf v Heq Hb) ;iIntros (Hin τs1 τs2 all Hft) "#Hv2 #Hfv #Hw #Hch".
     
     rewrite - wp_frame_rewrite.
+
     iApply (wp_frame_bind with "Hf");[auto|].
     iIntros "Hf".
     iApply wp_wasm_empty_ctx.
     iApply wp_label_push_nil.
     iApply wp_label_bind.
-    iDestruct ("Hch" with "Hv2 [$Hf Hown Hall]") as "Hcont".
+    iDestruct ("Hch" with "Hv2 [$Hf Hown] Hall") as "Hcont".
     { iFrame. iExists _. iSplit;eauto. }
     
     iApply (wp_wand with "Hcont").
     iIntros (v1) "[Hres Hf]".
-    iDestruct "Hf" as (f2) "[Hf2 Hfv2]".
+    iDestruct "Hf" as (f2 all2) "(Hf2 & Hfv2 & Hall2)".
     iDestruct "Hres" as "[[->|Hres] | [Hres | [Hres | Hres]]]".
     { simpl of_val.
-      iDestruct (local_host_trap with "[$] [$]") as "Hcont".
+      iDestruct (local_host_trap with "[$] [$] [$]") as "Hcont".
       iApply (wp_wand_ctx with "Hcont").
-      iIntros (v1) "H";iDestruct "H" as (?) "[H Hf]";iExists _;iFrame.
-      iIntros "Hf". iDestruct ("H" with "Hf") as "H".
+      iIntros (v1) "H";iDestruct "H" as (??) "(H & Hf & Hall)";iExists _;iFrame.
+      iIntros "Hf".
+
+      iDestruct ("H" with "Hf Hall") as "H".
+
       iApply (wp_wand with "H");iIntros (?) "[[$|$] [$ $]]". }
     { iDestruct (local_host_val with "[$] [$] [$]") as "Hcont".
       iApply (wp_wand_ctx with "Hcont").

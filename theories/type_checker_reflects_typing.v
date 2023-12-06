@@ -1990,7 +1990,8 @@ Proof with auto_rewrite_cond.
       destruct Hct2 as [tn' [Hct bet]]; subst.
       exists (tn' ++ [::v0]); split => //.
       apply bet_weakening.
-      apply bet_reinterpret => //; by [ move/eqP in H0 | rewrite H2; apply/eqP].
+      apply bet_reinterpret => //; try by [ move/eqP in H0 | rewrite H2; apply/eqP].
+      by intros ->. by intros ->.
 Qed.
 
 Lemma tc_to_bet_list: forall C cts bes tm cts',

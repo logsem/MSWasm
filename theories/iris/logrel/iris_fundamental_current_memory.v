@@ -27,8 +27,8 @@ Section fundamental.
                                   ⊢ semantic_typing C (to_e_list [BI_current_memory]) (Tf [] [T_i32]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hnil i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Hnil i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -43,8 +43,7 @@ Section fundamental.
     rewrite nth_error_lookup in Hlook1.
     rewrite nth_error_lookup in Hlook2.
     iApply fupd_wp.
-    iDestruct "Hfv" as "[? Hfv]".
-    iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
+        iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
     iMod (na_inv_acc with "Hm Hown") as "(Hms & Hown & Hcls)";[solve_ndisj..|].
     iDestruct "Hms" as (ms) ">Hmemblock".
     iDestruct "Hmemblock" as "[Hmem Hsize]".

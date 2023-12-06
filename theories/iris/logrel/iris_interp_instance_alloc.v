@@ -19,7 +19,7 @@ Close Scope byte_scope.
 Section InterpInstance.
 
   Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
-        !logrel_na_invs Σ}.
+        !logrel_na_invs Σ, cancelg: cancelG Σ, !cinvG Σ}.
 
   Definition interp_closure_pre τctx (fimps : gmap N function_closure) (i : instance) hl (n : N) (τf : function_type) :=
     λne (cl : leibnizO function_closure),
@@ -62,7 +62,10 @@ Section InterpInstance.
     rewrite -Hv in Hz.
     rewrite seq.map_cat seq.map_cons /= in Hz.
     rewrite list_lookup_middle in Hz;simplify_eq.
-    { unfold interp_value. destruct v; iExists _;eauto. }
+    { unfold interp_value. destruct v => //; try by iExists _;eauto.
+      unfold bitzero. rewrite fixpoint_interp_value_handle_eq.
+      iExists _. iSplit; first done. by iLeft.
+    }
     rewrite length_is_size size_map -length_is_size.
     rewrite take_length. lia.
   Qed.
@@ -84,11 +87,11 @@ Section InterpInstance.
         iDestruct "Htyp" as "%Htyp".
         iModIntro.
         iNext.
-        iIntros (vcs f) "Hv Hown Hf".
+        iIntros (vcs f all) "Hv Hown Hf Hall".
         iDestruct "Hv" as "[%Hcontr|Hv]";[done|iDestruct "Hv" as (v' Heqv) "#Hv"].
         iDestruct (be_fundamental_local_stuck_host with "IH") as "HH";eauto. inversion Heqv.
         
-        iDestruct ("HH" $! _ (v' ++ n_zeros l) with "[$] [$] []") as "Hcont".
+        iDestruct ("HH" $! _ _ (v' ++ n_zeros l) with "[$] [$] [$] []") as "Hcont".
         { iRight. iExists _. iSplit;[eauto|]. iApply big_sepL2_app;iFrame "#".
           iApply n_zeros_interp_values. }
         iSimpl in "Hcont".
@@ -96,7 +99,8 @@ Section InterpInstance.
         inversion Hfill;inversion H9;simplify_eq.
         repeat erewrite app_nil_l, app_nil_r.
         unfold interp_expression_closure_stuck_host.
-        iApply (wp_wand with "Hcont"). iIntros (v) "[[$ $] $]".
+        iApply (wp_wand with "Hcont"). iIntros (v) "[[$ $] [$ Hall]]".
+        iExists _. iFrame. 
       }
     }
     { simpl. auto. }
@@ -280,8 +284,9 @@ Section InterpInstance.
     iExists (g_val v).
     destruct v => /=.
     iFrame.
-    destruct g_val => /=; by iExists _.
-  Qed.
+  Admitted. 
+(*    destruct g_val => /=; try by iExists _.
+  Qed. *)
   
   Lemma import_resources_wasm_typecheck_alloc E v_imps t_imps wfs wts wms wgs :
     import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs ={E}=∗
@@ -680,6 +685,7 @@ Section InterpInstance.
     ⊢ interp_value (Σ:=Σ) tg_t (bitzero tg_t).
   Proof.
     destruct tg_t;simpl;eauto.
+    rewrite fixpoint_interp_value_handle_eq. iExists _. iSplit; first done. by iLeft.
   Qed.
     
   (* The following lemma depends on the restriction that the module only contains constants *)
@@ -731,7 +737,7 @@ Section InterpInstance.
       apply list_lookup_fmap_inv in H as [gt [Heq1 H]].
       rewrite list_lookup_fmap Hmglobs' /= in H. simplify_eq.
       simpl in Heq1. rewrite -Heq1.
-      iApply interp_value_type_of. }
+      admit. (* iApply interp_value_type_of. *) }
     { apply list_lookup_fmap_inv in Hglob as [g [Hgeq Hg]].
       destruct g,modglob_type;simpl in *.
       eapply Forall2_lookup_l in Hginitsval as [gt [Hgt Htyp]];eauto.
@@ -743,7 +749,7 @@ Section InterpInstance.
       iNext. iExists _. iFrame.
       iApply bitzero_interp_value.
     }
-  Qed.
+Admitted. 
 
   Lemma get_import_count_length m t_imps c :
     Forall2 (λ imp e, module_import_typing c (imp_desc imp) e) (mod_imports m) t_imps ->

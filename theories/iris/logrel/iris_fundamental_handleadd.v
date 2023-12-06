@@ -26,11 +26,11 @@ Section fundamental.
 
 
 
-  Lemma typing_slice C : ⊢ semantic_typing C (to_e_list [BI_handleadd]) (Tf [T_i32; T_handle] [T_handle]).
+  Lemma typing_handleadd C : ⊢ semantic_typing C (to_e_list [BI_handleadd]) (Tf [T_i32; T_handle] [T_handle]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -43,7 +43,7 @@ Section fundamental.
     iDestruct "Hv" as "[Hv1 [Hv2 _]]".
     iDestruct "Hv1" as (z) "->".
     rewrite fixpoint_interp_value_handle_eq.
-    iDestruct "Hv2" as (h γ base' bound') "(-> & #Hw & %Hbase' & %Hbound' & Hinv)".
+    iDestruct "Hv2" as (h) "(-> & #Hv)". 
     iSimpl.
 *    destruct (handle_add h (Wasm_int.Z_of_sint i32m z)) eqn:Hhadd. 
     - (* Sucessful adding *)
@@ -51,20 +51,22 @@ Section fundamental.
       + iApply (wp_handleadd with "Hf") => //.
         iNext. iSimpl. iRight. iExists _; iSplit; first done. iSimpl. iSplit; last done.
         rewrite fixpoint_interp_value_handle_eq.
-        iSimpl. iExists h0, γ, base', bound'.
+        iSimpl. iExists h0.
         iSplit; first done.
         unfold handle_add in Hhadd. destruct (_ >=? _)%Z eqn:Hoff => //.
         apply Z.geb_le in Hoff.
-        destruct h0; inversion Hhadd; subst; simpl. iFrame "Hw". iFrame "Hinv".
+        destruct h0; inversion Hhadd; subst; simpl.
+        iDestruct "Hv" as "[-> | (%γ & %base' & %bound' & Hw & %Hbase & %Hbound & Hinv)]";
+          first by iLeft. iRight. iExists _,_,_. iFrame "Hw". iFrame "Hinv".
         done.
       + iIntros (v) "[$ Hf]".
-        iExists _;iFrame.
+        iExists _,_;iFrame.
     - (* Failed slicing *)
        iApply (wp_wand _ _ _ (λne vs, interp_val [T_handle] vs ∗ ↪[frame] f )%I with "[Hf]").
       + iApply (wp_handleadd_failure with "Hf") => //.
         iNext. iSimpl. iLeft. done. 
       + iIntros (v) "[$ Hf]".
-        iExists _;iFrame.
+        iExists _,_;iFrame.
   Qed. 
     
 End fundamental.

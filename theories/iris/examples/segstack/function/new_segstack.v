@@ -78,6 +78,7 @@ Proof.
   simpl. rewrite separate2.
   iApply wp_seq => /=.
   iDestruct (wp_segalloc with "[$Hframe]") as "HWP" => //.
+  iIntros "!>" (w) "H". iExact "H".
   iSplitR; last first.
   
   (* { iSplitL ; by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I ). } *)
@@ -218,7 +219,8 @@ Proof.
             iApply (wp_segstore with "[Hf Hbs Hid]"); last first.
             unfold handle_addr. rewrite Hoff N.add_0_r.
             iFrame. 
-            instantiate (1 := λ x,  ⌜ x = immV _ ⌝%I ) => //=.
+            instantiate (1 := λ x, ( ⌜ x = immV _ ⌝ ∗ _)%I ).
+            iIntros "!> H". iSplit; first done. iExact "H".
             rewrite Hoff Hbound. done. done. done. done. done.
           - 2: { simpl. by iIntros "([%HContra _] & _ )". }
             iIntros (w) "[(-> & Hid & Hbs) Hf]".
@@ -243,7 +245,8 @@ Proof.
             apply language.of_to_val.
             done.
             instantiate (1 := λ x, (⌜ x = immV _ ⌝ ∗ id h↣[allocated] _ ∗ ↦[wss][handle_addr h] _ ∗ ↪[frame] _)%I).
-            iFrame. done. }
+            iFrame. iSplit; first done. unfold handle_addr; rewrite Hoff N.add_0_r.
+            iExact "Hbs". }
       * iIntros (w) "(-> & Hid & Hbs & Hf)".
         iApply "HΦ".
         iSplitR "Hf"; last first.
@@ -273,17 +276,17 @@ Qed.
 End specs.
 
 Section valid.
-  Context `{!logrel_na_invs Σ}.
+  Context `{!logrel_na_invs Σ, !cinvG Σ, cancelg: cancelG Σ}.
   Set Bullet Behavior "Strict Subproofs".
 
   Lemma interp_value_of_int i :
-    ⊢ @interp_value Σ T_i32 (value_of_int i).
+    ⊢ @interp_value Σ _ _ _ _ T_i32 (value_of_int i).
   Proof.
     iIntros "". unfold interp_value. simpl.
     iExists _. eauto. Qed.
 
   Lemma interp_value_of_uint i :
-    ⊢ @interp_value Σ T_i32 (value_of_uint i).
+    ⊢ @interp_value Σ _ _ _ _ T_i32 (value_of_uint i).
   Proof.
     iIntros "". unfold interp_value. simpl.
     iExists _. eauto. Qed.

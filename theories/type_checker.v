@@ -266,7 +266,7 @@ in
     then type_update ts [::CTA_some t2] (CT_type [::t1])
     else CT_bot
   | BI_cvtop t1 CVO_reinterpret t2 sxo =>
-    if (t1 != t2) && (t_length t1 == t_length t2) && (sxo == None)
+    if (t1 != t2) && (t1 != T_handle) && (t2 != T_handle) && (t_length t1 == t_length t2) && (sxo == None)
     then type_update ts [::CTA_some t2] (CT_type [::t1])
     else CT_bot
   | BI_unreachable => type_update ts [::] (CT_top_type [::])

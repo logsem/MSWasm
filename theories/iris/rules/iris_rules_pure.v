@@ -230,11 +230,13 @@ Qed.
 Lemma wp_cvtop_reinterpret (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v v': value) (t1 t2: value_type) f0:
   wasm_deserialise (bits v) t2 = v' ->
   types_agree t1 v ->
+  t1 <> T_handle ->
+  t2 <> T_handle ->
   ↪[frame] f0 -∗
   ▷Φ (immV [v']) -∗
     WP [AI_basic (BI_const v); AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
 Proof.
-  iIntros (Hcvtop Htype) "Hf0 HΦ".
+  iIntros (Hcvtop Htype Ht1 Ht2) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.

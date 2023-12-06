@@ -52,10 +52,10 @@ Section fundamental.
   Qed.
 
 
-  Lemma weakening_br C i all hl v lh ws1 ts :
+  Lemma weakening_br C i hl v lh ws1 ts :
       ([∗ list] y1;y2 ∈ ws1;ts, interp_value y2 y1) -∗
-       interp_br (tc_local C) i all (tc_return C) hl v lh (tc_label C) -∗
-       interp_br (tc_local C) i all (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C).
+       interp_br (tc_local C) i (tc_return C) hl v lh (tc_label C) -∗
+       interp_br (tc_local C) i (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C).
   Proof.
     iIntros "#Hv1 Hbr".
     rewrite fixpoint_interp_br_eq.
@@ -130,7 +130,7 @@ Section fundamental.
       { right. rewrite drop_length. lia. }
       iDestruct (big_sepL2_length with "Hws2") as %Hlen'.        
 
-      iIntros (f0 f1) "Hf". iSpecialize ("Hret" $! f0 with "[$]").
+      iIntros (f0 f1 all) "Hf Hall". iSpecialize ("Hret" $! f0 with "[$] [$]").
       iApply (wp_ret_shift with "Hret");[| |apply Hlh''|apply Hlh'].
       { apply const_list_of_val. }
       { rewrite fmap_length. auto. }
@@ -158,7 +158,7 @@ Section fundamental.
       { right. rewrite drop_length. lia. }
       iDestruct (big_sepL2_length with "Hws2") as %Hlen'.        
 
-      iIntros (f0 f1) "Hf". iSpecialize ("Hret" $! f0 with "[$]").
+      iIntros (f0 f1 all) "Hf Hall". iSpecialize ("Hret" $! f0 with "[$] [$]").
       iApply (wp_ret_shift with "Hret");[| |apply Hlh''|apply Hlh'].
       { apply const_list_of_val. }
       { rewrite fmap_length. auto. }
@@ -179,10 +179,10 @@ Section fundamental.
     induction vh;simpl;auto.
   Qed.
   
-  Lemma weakening_call_host ws1 ts C i all v hl lh t2s :
+  Lemma weakening_call_host ws1 ts C i v hl lh t2s :
     ([∗ list] y1;y2 ∈ ws1;ts, interp_value y2 y1) -∗
-    interp_call_host (tc_local C) i all (tc_return C) hl v lh (tc_label C) t2s -∗
-    interp_call_host (tc_local C) i all (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C)  (ts ++ t2s).
+    interp_call_host (tc_local C) i (tc_return C) hl v lh (tc_label C) t2s -∗
+    interp_call_host (tc_local C) i (tc_return C) hl (val_combine (immV ws1) v) lh (tc_label C)  (ts ++ t2s).
   Proof.
     iIntros "#Hv1 Hch".
     rewrite fixpoint_interp_call_host_eq.
@@ -196,7 +196,7 @@ Section fundamental.
     do 4 (iSplit;[eauto|]).
     { iPureIntro. apply llholed_basic_push_const. auto. }
     iFrame "#". iModIntro.
-    iIntros (v2 f) "#Hv2 [Hf Hfv]".
+    iIntros (v2 f all) "#Hv2 [Hf Hfv] Hall".
     rewrite llfill_push_const. simpl sfill.
     
     iApply (wp_wand with "[-]").
@@ -205,13 +205,17 @@ Section fundamental.
       iSplitR;cycle 1.
       { iIntros "Hf".
         iApply (wp_wand with "[-]").
-        { rewrite app_nil_r. iApply ("Hch" with "Hv2 [$]"). }
-        iIntros (v1) "[H $]".
+        { rewrite app_nil_r. iApply ("Hch" with "Hv2 [$] [$]"). }
+        iIntros (v1) "[H Hf]".
+        iSplitR "Hf".
+        2:{ instantiate (1 := λ f0, (∃ all0, interp_frame (tc_local C) i f0 ∗ interp_allocator all0)%I).
+            iDestruct "Hf" as (f0 all0) "[??]".
+            iExists _. iFrame. iExists _. iFrame. } 
         instantiate (1:=((λ vs, (interp_values (ts ++ t2s) vs
-                ∨ ▷ (interp_call_host_br (tc_local C) i all (tc_return C) hl).2
+                ∨ ▷ (interp_call_host_br (tc_local C) i (tc_return C) hl).2
                       vs lh (tc_label C)
                   ∨ interp_return_option (tc_return C) (tc_local C) i vs
-                    ∨ ▷ (interp_call_host_br (tc_local C) i all (tc_return C) hl).1
+                    ∨ ▷ (interp_call_host_br (tc_local C) i (tc_return C) hl).1
                         vs lh (tc_label C) (ts ++ t2s)))%I)).
         iDestruct "H" as "[[H|H]|[H|[H|H]]]";[by iLeft|..].
         { iRight. iLeft.
@@ -236,7 +240,11 @@ Section fundamental.
       { rewrite fixpoint_interp_call_host_eq. iDestruct "Hcontr" as (? ? ? ? ? ?) "[>%HH _]";done. }
     }
     iIntros (v1) "H".
-    iDestruct "H" as "[[H|[H|[H|[H|H]]]] $]".
+    iDestruct "H" as "[H Hf]".
+    iSplitR "Hf".
+    2: { iDestruct "Hf" as (f0) "[? (%allo & ? & ?)]".
+         iExists _,_. iFrame. } 
+    iDestruct "H" as "[H|[H|[H|[H|H]]]]".
     { iLeft. by iLeft. }
     { iLeft. by iRight. }
     { iRight. by iLeft. }
@@ -250,8 +258,8 @@ Section fundamental.
                                            ⊢ semantic_typing C es (Tf (ts ++ t1s) (ts ++ t2s)).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (HIH i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (HIH i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { iApply iRewrite_nil_l.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -262,7 +270,11 @@ Section fundamental.
     rewrite Heq. simpl of_val. rewrite - v_to_e_cat - app_assoc.
 
     iApply (wp_wand with "[-]");cycle 1.
-    { iIntros (v) "H". unfold interp_val. rewrite -or_assoc. iExact "H". }
+    { iIntros (v) "H". unfold interp_val. rewrite -or_assoc.
+      instantiate (1 := λ v, (_ ∗ ∃ f, _ ∗ ∃ all, _)%I).
+      iDestruct "H" as "[H (%f0 & Hf & %all0 & Hrest)]".
+      iSplitL "H"; first iExact "H". iExists f0, all0.
+      iSplitL "Hf"; first iExact "Hf". iExact "Hrest". }
 
     iApply wp_val_can_trap_app;[apply to_val_fmap|].
     iFrame.
@@ -277,11 +289,13 @@ Section fundamental.
     assert (v_to_e_list ws2 = of_val (immV ws2)) as ->;[auto|].
 
     iApply (wp_wand with "[-]").
-    { iApply (HIH with "[] [] [-]");iFrame "∗ # %".
+    { iApply (HIH with "[] [] [Hfv Hf] Hall");iFrame "∗ # %".
       iRight. iExists _. iSplit;eauto. }
 
     iIntros (v) "[Hw Hf0]".
-    iFrame.
+    iSplitR "Hf0".
+    2:{ iDestruct "Hf0" as (f0 all0) "(Hf & Hfv & Hall)".
+        iExists _. iFrame.  iExists _. iFrame. } 
     iDestruct "Hw" as "[[Hw|#Hw]|[Hw|[Hw|Hw]]]".
     { by iLeft. }
     { iRight. iLeft.

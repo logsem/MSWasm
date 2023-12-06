@@ -74,7 +74,7 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
     relop_type_agree t op -> be_typing C [::BI_relop t op] (Tf [::t; t] [::T_i32])
 | bet_convert : forall C t1 t2 sx, t1 <> t2 -> convert_helper sx t1 t2 ->
   be_typing C [::BI_cvtop t1 CVO_convert t2 sx] (Tf [::t2] [::t1]) 
-| bet_reinterpret : forall C t1 t2, t1 <> t2 -> Nat.eqb (t_length t1) (t_length t2) ->
+| bet_reinterpret : forall C t1 t2, t1 <> t2 -> t1 <> T_handle -> t2 <> T_handle -> Nat.eqb (t_length t1) (t_length t2) ->
   be_typing C [::BI_cvtop t1 CVO_reinterpret t2 None] (Tf [::t2] [::t1])
 | bet_unreachable : forall C ts ts',
   be_typing C [::BI_unreachable] (Tf ts ts')

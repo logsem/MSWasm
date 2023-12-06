@@ -402,17 +402,17 @@ Qed.
 End specs.
 
 Section valid.
-  Context `{!logrel_na_invs Σ}.
+  Context `{!logrel_na_invs Σ, !cinvG Σ, cancelg: cancelG Σ}.
   Set Bullet Behavior "Strict Subproofs".
 
   Lemma interp_value_of_int i :
-    ⊢ @interp_value Σ T_i32 (value_of_int i).
+    ⊢ @interp_value Σ _ cancelg _ HHB T_i32 (value_of_int i).
   Proof.
     iIntros "". unfold interp_value. simpl.
     iExists _. eauto. Qed.
 
   Lemma interp_value_of_uint i :
-    ⊢ @interp_value Σ T_i32 (value_of_uint i).
+    ⊢ @interp_value Σ _ _ _ _ T_i32 (value_of_uint i).
   Proof.
     iIntros "". unfold interp_value. simpl.
     iExists _. eauto. Qed.
@@ -428,7 +428,7 @@ Section valid.
     interp_closure_native i0 [] [T_i32] [T_i32] (to_e_list new_stack) [].
   Proof.
     iIntros "#Hstk".
-    iIntros (vcs f) "#Hv Hown Hf".
+    iIntros (vcs f all)  "#Hv Hown Hf Hall".
     iIntros (LI HLI%lfilled_Ind_Equivalent);inversion HLI;inversion H8;subst;simpl.
     iApply (wp_frame_bind with "[$]");auto.
     iIntros "Hf".
@@ -484,7 +484,8 @@ Section valid.
     { iApply (wp_frame_value with "[$]");eauto. apply to_of_val. simpl.
       rewrite v_to_e_length. auto. }
     iIntros (v) "[-> Hf]". iFrame.
-    iLeft. iRight. iFrame "#". 
+    iSplitR. { iLeft. iRight. iFrame "#". }
+    iExists _; iFrame.
   Qed.
 
 End valid.

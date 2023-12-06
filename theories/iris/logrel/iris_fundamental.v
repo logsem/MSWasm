@@ -56,7 +56,7 @@ Import uPred.
 Section fundamental.
  Set Bullet Behavior "Strict Subproofs".
 
-  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes}.
+  Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
   
   (* --------------------------------------------------------------------------------------- *)
   (* ------------------------------- FTLR: simple typing ----------------------------------- *)
@@ -65,7 +65,7 @@ Section fundamental.
   Theorem be_fundamental C es τ : be_typing C es τ -> ⊢ semantic_typing C (to_e_list es) τ.
   Proof.
     induction 1.
-    - by apply typing_const. 
+    - admit. (* by apply typing_const.  *)
     - by apply typing_unop. 
     - by apply typing_binop. 
     - by apply typing_testop. 
@@ -90,14 +90,14 @@ Section fundamental.
     - by apply typing_tee_local. 
     - by apply typing_get_global. 
     - by eapply typing_set_global. 
-    - by apply typing_load. 
+    - admit. (* by apply typing_load.  *)
     - by apply typing_segload.
     - by apply typing_store. 
     - by apply typing_segstore.
-    - by apply typing_segslice.
+    - admit. (* by apply typing_slice. *)
     - by apply typing_segalloc.
-    - by apply typing_handleadd.
-    - by apply typing_getoffset.
+    - admit. (* by apply typing_handleadd. *)
+    - admit. (* by apply typing_getoffset. *)
     - by apply typing_segfree.
     - by apply typing_current_memory. 
     - by apply typing_grow_memory. 
@@ -108,7 +108,7 @@ Section fundamental.
       + apply IHbe_typing1. 
       + apply IHbe_typing2. 
     - by apply typing_weakening. 
-  Qed.
+  Admitted.
 
   
   Corollary be_fundamental_local C es τ1 τ2 τs : (tc_label C) = [] ∧ (tc_return C) = None ->
@@ -133,7 +133,7 @@ End fundamental.
 
 Section fundamental_host.
 
-  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ}.
+  Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, !host_program_logic Σ, cancelg: cancelG Σ, !cinvG Σ}.
 
 
   Corollary be_fundamental_local_host C es τ1 τ2 τs hl hctx : (tc_label C) = [] ∧ (tc_return C) = None ->

@@ -625,7 +625,7 @@ Proof.
     apply be_typing_const_deserialise.
   - (* Weakening *)
     apply bet_weakening.
-    by eapply IHHType; eauto.
+    eapply IHHType; try exact H3; try done.  
 Qed.
 
 Lemma t_Drop_preserve: forall C v tf,

@@ -380,7 +380,7 @@ Section stack.
 
 
   Section valid.
-    Context `{!logrel_na_invs Σ}.
+    Context `{!logrel_na_invs Σ, !cinvG Σ, cancelg: cancelG Σ}.
     Set Bullet Behavior "Strict Subproofs".
 
     Lemma valid_push m t funcs :
@@ -394,7 +394,7 @@ Section stack.
     interp_closure_native i0 [T_i32;T_i32] [] [T_i32] (to_e_list push) [].
   Proof.
     iIntros "#Hstk".
-    iIntros (vcs f) "#Hv Hown Hf".
+    iIntros (vcs f all) "#Hv Hown Hf Hall".
     iIntros (LI HLI%lfilled_Ind_Equivalent);inversion HLI;inversion H8;subst;simpl.
     iApply (wp_frame_bind with "[$]");auto.
     iIntros "Hf".
@@ -416,22 +416,22 @@ Section stack.
     match goal with | |- context [ (↪[frame] ?f0)%I ] => set (f':=f0) end.
     build_ctx e0. subst e0.
     iApply wp_seq_can_trap_ctx.
-    instantiate (1:=(λ f0, ⌜f0 = f'⌝ ∗ na_own logrel_nais ⊤)%I).
+    instantiate (1:=(λ f0, ⌜f0 = f'⌝ ∗ na_own logrel_nais ⊤ ∗ interp_allocator all)%I).
     iFrame "Hf".
     iSplitR;[|iSplitR;[|iSplitL]];cycle 1.
-    - iIntros (f0) "(Hf & -> & Hown)".
+    - iIntros (f0) "(Hf & -> & Hown & Hall)".
       deconstruct_ctx.
       iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
       iApply (wp_label_trap with "Hf");auto.
       iIntros (v0) "[-> Hf]". iExists _. iFrame.
-      iIntros "Hf".
-      iApply (wp_frame_trap with "Hf").
-      iNext. iLeft. iLeft. auto.
+      iIntros "Hf". iApply (wp_wand with "[Hf]").
+      { iApply (wp_frame_trap with "Hf"). by instantiate (1 := λ x, ⌜ x = trapV ⌝%I). } 
+      iIntros (?) "[-> $]". iSplitR; last by iExists _. iLeft. iLeft. auto.
     - iIntros "Hf". iFrame.
       iApply (wp_wand with "[Hf]").
       iApply check_stack_valid;iFrame;subst;eauto.
       iIntros (v0) "[$ HH]". eauto.
-    - subst f'. iIntros (w f0) "([-> %Hdiv] & Hf & -> & Hown) /=".
+    - subst f'. iIntros (w f0) "([-> %Hdiv] & Hf & -> & Hown & Hall) /=".
       deconstruct_ctx.
       take_drop_app_rewrite (length (validate_stack_bound 0)).
       iApply fupd_wp.
@@ -474,9 +474,10 @@ Section stack.
           iApply (wp_label_value with "Hf");eauto.
           iIntros (v0) "[-> Hf]".
           iExists _. iFrame.
-          iIntros "Hf".
-          iApply (wp_frame_value with "Hf");eauto.
-          iNext. iLeft. iRight. iExists []. simpl. done.
+          iIntros "Hf". iApply (wp_wand with "[Hf]").
+          { iApply (wp_frame_value with "Hf");eauto. by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I). }
+          iIntros (?) "[-> $]". iSplitR; last by iExists _. 
+          iLeft. iRight. iExists []. simpl. done.
         * iDestruct (stack_pure with "Hstack") as "(_ & _ & %Hstkbound & Hstack)".
           take_drop_app_rewrite (length (is_full_op)).
           iApply wp_seq.
@@ -513,9 +514,9 @@ Section stack.
           iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
           iApply (wp_label_trap with "[$]");eauto.
           iIntros (v0) "[-> Hf]".
-          iExists _. iFrame. iIntros "Hf".
-          iApply (wp_frame_trap with "[$]").
-          iNext. iLeft. iLeft. auto.          
+          iExists _. iFrame. iIntros "Hf". iApply (wp_wand with "[Hf]").
+          { iApply (wp_frame_trap with "[$]"). by instantiate (1 := λ x, ⌜ x = trapV ⌝%I). } 
+          iIntros (?) "[-> $]". iSplitR; last by iExists _. iLeft. iLeft. auto.          
       + iApply (wp_wand with "[Hlen Hf]").
         iApply (fail_stack_bound_valid with "[$Hlen $Hf]").
         eauto.
@@ -528,9 +529,9 @@ Section stack.
         iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
         iApply (wp_label_trap with "Hf");eauto.
         iIntros (v0) "[-> Hf]".
-        iExists _. iFrame. iIntros "Hf".
-        iApply (wp_frame_trap with "[$]").
-        iNext. iLeft. iLeft. auto.
+        iExists _. iFrame. iIntros "Hf". iApply (wp_wand with "[Hf]").
+        { iApply (wp_frame_trap with "[$]"). by instantiate (1 := λ x, ⌜ x = trapV ⌝%I). }
+        iIntros (?) "[-> $]". iSplitR; last by iExists _. iLeft. iLeft. auto.
     - iIntros "[%Hcontr _]";done.
   Qed.
     

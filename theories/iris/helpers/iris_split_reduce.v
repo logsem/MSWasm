@@ -78,7 +78,7 @@ Section split_reduce_properties.
       - solve_prim_step_split_reduce_r H6 [AI_trap] Heqf0 ;
           by apply rm_silent, r_simple, rs_convert_failure.
       - solve_prim_step_split_reduce_r
-          H5 [AI_basic (BI_const (wasm_deserialise (bits v) t2))] Heqf0 ;
+          H7 [AI_basic (BI_const (wasm_deserialise (bits v) t2))] Heqf0 ;
           by apply rm_silent, r_simple, rs_reinterpret.
       - solve_prim_step_split_reduce_r H3 [AI_trap] Heqf0 ;
           by apply rm_silent, r_simple, rs_unreachable.

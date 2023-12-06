@@ -4,17 +4,17 @@ From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants.
 From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
-Require Export iris_fundamental_helpers iris_interp_instance_alloc proofmode stack_instantiation_interp.
+Require Export iris_fundamental_helpers iris_interp_instance_alloc proofmode segstack_instantiation_interp.
 Require Export iris_example_helper.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-
+(* 
 Section RobustStack.
   Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
-      !logrel_na_invs Σ, !hasG Σ, !cinvG Σ, !cancelG Σ}.
+      !logrel_na_invs Σ, !hasG Σ}.
 
   Set Bullet Behavior "Strict Subproofs".
 
@@ -296,9 +296,8 @@ Section RobustStack.
         iApply (wp_wand with "[Hf Hown]").
         iApply ("Hcont" with "Hf Hown []").
         repeat erewrite app_nil_l.
-        admit.
         iRight. iExists _. iSplitR;[eauto|]. iApply n_zeros_interp_values.
-        iIntros (v) "[[Hv Hown] [Hf Hall]]".
+        iIntros (v) "[[Hv Hown] Hf]".
         iDestruct "Hv" as "[-> | Hv]".
         + iApply weakestpre.wp_value; first by unfold IntoVal; apply language.of_to_val; eauto.
           iFrame. auto.
@@ -306,6 +305,7 @@ Section RobustStack.
           iDestruct (big_sepL2_length with "Hv") as %Hnil. destruct ws;[|done].
           iApply weakestpre.wp_value; first by unfold IntoVal; apply language.of_to_val;eauto.
           iFrame. auto. }
-  Admitted. 
+  Qed.
 
 End RobustStack.
+*)

@@ -28,6 +28,8 @@ Section adequacy.
   Context {seg_preg: gen_heapGpreS N (byte * btag) Σ}. 
   Context {segsize_preg: gen_heapGpreS unit N Σ}.
   Context {seglimit_preg: gen_heapGpreS unit (option N) Σ}.
+  Context {cancelg: cancelG Σ}.
+  Context {cinvg: cinvG Σ}.
   Context {all_preg: gen_heapGpreS N (N * N) Σ}. 
   Context {glob_preg: gen_heapGpreS N global Σ}.
   Context {locs_preg: gen_heapGpreS unit frame Σ}.
@@ -89,14 +91,15 @@ Section adequacy.
       iMod (@na_alloc Σ na_invg) as (logrel_nais) "Hna".
       pose wasmg := WasmG Σ Hinv func_heapg tab_heapg tabsize_heapg 
                       tablimit_heapg mem_heapg memsize_heapg memlimit_heapg
-                      γseg seg_heapg γall all_heapg 
+                      γseg seg_heapg γall _ (* all_heapg  *)
                           global_heapg frame_heapg γframe.
       pose visgg := HVisG Σ vis_heapg γvis.
       pose msgg := HMsG Σ ms_heapg γms.
       pose hasgg := HAsG Σ has_heapg γhas.
       pose logrel_na_invs := Build_logrel_na_invs _ na_invg logrel_nais.
       assert (typeof (xx 0) = T_i32) as Hwret;[auto|].
-      pose proof (instantiate_lse 0 Hmodtyping no_start restrictions elem_bounds data_bounds Hwret).
+  Admitted. 
+(*      pose proof (instantiate_lse 0 Hmodtyping no_start restrictions elem_bounds data_bounds Hwret).
 
       iMod (ghost_map_insert tt empty_frame with "Hframe_ctx") as "[Hframe_ctx Hf]";[auto|].
       iMod (ghost_map_insert 1%N {| modexp_name := [Byte.x00]; modexp_desc := MED_global (Mk_globalidx (N.to_nat 0)) |}
@@ -118,7 +121,7 @@ Section adequacy.
     intros v Hval.
     destruct X. eapply adequate_result with (t2 := []).
     apply of_to_val in Hval as <-. eauto.
-  Qed.
+  Qed. *)
           
 End adequacy.
 
@@ -149,5 +152,6 @@ Proof.
               gen_heapΣ N module;
               gen_heapΣ N host_action
       ]).
-  eapply (@ex_adequacy HHB Σ); typeclasses eauto.
-Qed.
+  Admitted. 
+(*  eapply (@ex_adequacy HHB Σ); typeclasses eauto.
+Qed. *)

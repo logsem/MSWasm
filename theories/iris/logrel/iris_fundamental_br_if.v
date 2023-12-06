@@ -29,8 +29,8 @@ Section fundamental.
                               ⊢ semantic_typing C (to_e_list [BI_br_if i]) (Tf (ts ++ [T_i32]) ts).
   Proof.
     iIntros (Hleq Hlookup) "".
-    iIntros (j all lh hl).
-    iIntros "#Hi #Hc" (f vs) "[Hf Hfv] #Hv".
+    iIntros (j lh hl).
+    iIntros "#Hi #Hc" (f all vs) "[Hf Hfv] Hall #Hv".
     unfold interp_expression.
     
     iDestruct "Hv" as "[-> | Hv]".
@@ -69,11 +69,11 @@ Section fundamental.
       repeat erewrite app_nil_r.
       iApply wp_value.
       { instantiate (1:=immV ws'). done. }
-      iSplitR;[|iExists _;iFrame].
+      iSplitR;[|iExists _,_;iFrame].
       iLeft. iRight. iExists _. iSplit;eauto. }
 
     (* otherwise, we continue as reason about the br as in typing_br *)
-    iDestruct (typing_br _ _ [] _ ts with "Hi Hc [$] []") as "Hbr";[eauto..|].
+    iDestruct (typing_br _ _ [] _ ts with "Hi Hc [$] [$] []") as "Hbr";[eauto..|].
     { rewrite app_nil_l. iRight. iExists _;eauto. }
     unfold interp_expression.
     iIntros (LI Hfill%lfilled_Ind_Equivalent);inversion Hfill;simplify_eq.

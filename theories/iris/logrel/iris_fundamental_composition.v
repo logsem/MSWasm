@@ -114,7 +114,7 @@ Section fundamental.
 
     iDestruct (big_sepL2_length with "Hw") as %Hlen.
     iExists _. iSplitR;[iRight;iExists _;iSplit;eauto;rewrite H0;eauto|].
-    iIntros (f0 f1) "Hf". iSpecialize ("Hret" $! f0 with "[$]").
+    iIntros (f0 f1 all) "Hf Hall". iSpecialize ("Hret" $! f0 with "[$] [$]").
     iApply (wp_ret_shift with "Hret");[| |apply Hlh''|apply Hlh'].
     { apply const_list_of_val. }
     { rewrite fmap_length. rewrite drop_length.
@@ -192,11 +192,11 @@ Section fundamental.
     do 4 (iSplit;[eauto|]).
     { iPureIntro. apply llholed_basic_sh_append;auto. }
     iFrame "Hw". iModIntro.
-    iIntros (v2 f) "#Hv2 [Hf Hfv]".
+    iIntros (v2 f all) "#Hv2 [Hf Hfv] Hall".
     rewrite llfill_sh_append. simpl llfill.
 
     iRevert "Hv2 HK". clear Heqv Heqt. iLöb as "IH"
-  forall (f vh v2 τs2 Hb);iIntros "#Hv2 #HK".
+  forall (f all vh v2 τs2 Hb);iIntros "#Hv2 #HK".
 
     iAssert (↪[frame] f -∗
              WP llfill vh (iris.of_val v2)
@@ -204,25 +204,32 @@ Section fundamental.
                       ∨ ▷ interp_br (tc_local C) i (tc_return C) hl vs1 lh (tc_label C)
                       ∨ interp_return_option (tc_return C) (tc_local C) i vs1
                       ∨ ▷ interp_call_host (tc_local C) i (tc_return C) hl vs1 lh (tc_label C) t2s) ∗
-                     (∃ f1,  ↪[frame]f1 ∗ interp_frame (tc_local C) i f1) }})%I with "[Hfv]" as "H1".
+                     (∃ f1 all1,  ↪[frame]f1 ∗ interp_frame (tc_local C) i f1 ∗ interp_allocator all1) }})%I with "[Hfv Hall]" as "H1".
     { iIntros "Hf".
-      iDestruct ("HK" with "Hv2 [$]") as "Hcont".
+      iDestruct ("HK" with "Hv2 [$] [$]") as "Hcont".
       iApply (wp_wand with "Hcont").
-      unfold interp_val. iIntros (v0). rewrite -or_assoc. auto. }
+      unfold interp_val. iIntros (v0). rewrite -or_assoc. auto. } 
 
     iApply wp_wasm_empty_ctx.
     iApply (wp_seq_can_trap_ctx).
     iFrame "∗ #".
-    iSplitR.
+    iSplitR; last (iSplitR; last iSplitL).
+    3:{ iIntros "Hf". iSpecialize ("H1" with "Hf").
+        iApply (wp_wand with "H1").
+        iIntros (v0) "(Hv & %f1 & %all1 & Hf & Hrest)".
+        iSplitL "Hv"; first iExact "Hv".
+        iExists _. iFrame.
+        instantiate (1 := λ f, (∃ all, interp_frame (tc_local C) i f ∗ interp_allocator all)%I). iExists _. iExact "Hrest". } 
     { iIntros "[Hcontr | [Hcontr | [Hcontr | Hcontr] ] ]";[by iDestruct "Hcontr" as (? ?) "_"|..].
       { rewrite fixpoint_interp_br_eq. iDestruct "Hcontr" as (? ? ? ?) "[>%H _]". done. }
       { iDestruct "Hcontr" as (? ? ?) "_";done. }
       { rewrite fixpoint_interp_call_host_eq. iDestruct "Hcontr" as (? ? ? ? ? ?) "[>%H _]";done. } }
-    iSplitR;[iIntros (?) "?"; iSplitR;[by iLeft;iLeft|eauto]|].
-    iIntros (w0 f0) "[Hw0 [Hf Hfv]]".
+    { iIntros (?) "(Hf & %all0 & Hfv & Hall)".
+      iSplitR; first by iLeft; iLeft. iExists _,_. iFrame. } 
+    iIntros (w0 f0) "(Hw0 & Hf & %all0 & Hfv & Hall)".
     iDestruct "Hw0" as "[#H|[H|[H|H]]]".
     { iApply wp_wasm_empty_ctx.
-      iDestruct (Ht2 with "Hi Hc [$] []") as "Ht2".
+      iDestruct (Ht2 with "Hi Hc [$] Hall []") as "Ht2".
       { iRight. iFrame "H". }
       iApply (wp_wand with "Ht2").
       iIntros (v1) "H'".
@@ -237,7 +244,7 @@ Section fundamental.
       rewrite -/(wp_wasm_ctx _ _ _ _ _ _). rewrite Heqbr.
       rewrite of_val_br_app_r. iApply wp_wasm_empty_ctx.
       iApply wp_value;[done|].
-      iSplitR "Hf Hfv";[|iExists _;iFrame].
+      iSplitR "Hf Hall Hfv";[|iExists _,_;iFrame].
       iRight. iLeft.
       iNext. rewrite fixpoint_interp_br_eq.
       iExists _,_,_,_. iSplit;[eauto|].
@@ -245,14 +252,15 @@ Section fundamental.
     { iDestruct (composition_return with "Hv2 H Hf Hfv") as "H".
       iApply (wp_wand_ctx with "H").
       iIntros (v1) "H'".
-      iDestruct "H'" as "[[H'|[H'|[H'|H']]] $]".
+      iDestruct "H'" as "[[H'|[H'|[H'|H']]] (%f1 & Hf & Hfv)]";
+      iSplitL "H'"; try by iExists _,_; iFrame.
       { by iLeft. }
       { iRight. by iLeft. }
       { iRight. iRight. by iLeft. }
       { by repeat iRight. }
     }
     { rewrite fixpoint_interp_call_host_eq.
-      iDestruct "H" as (? ? ? ? ? ?) "[>%Heqch [>%Htf [>%Hin' [>%Hb' [>#Hval #H]]]]]".
+      iDestruct "H" as (? ? ? ? ? ?) "[>%Heqch [>%Htf [>%Hin' [>%Hb' [#Hval #H]]]]]".
       rewrite -/(wp_wasm_ctx _ _ _ _ _ _).
 
       rewrite Heqch.
@@ -263,16 +271,16 @@ Section fundamental.
       eassert (llfill _ _ = iris.of_val (callHostV _ _ _ (llh_append vh0 [e]))) as ->.
       { simpl. rewrite llfill_sh_append. eauto. }
       iApply wp_value;[done|].
-      iSplitR "Hf Hfv";[|iExists _;iFrame].
+      iSplitR "Hf Hall Hfv";[|iExists _,_;iFrame].
       repeat iRight.
       iNext.
       rewrite fixpoint_interp_call_host_eq.
       iExists _,_,_,_,_,_. do 4 (iSplitR;[eauto|]).
       { iPureIntro. apply llholed_basic_sh_append;auto. }
       iFrame "Hval". iModIntro.
-      iIntros (v1 f1) "#Hv1 [Hf Hfv]".
+      iIntros (v1 f1 all1) "#Hv1 [Hf Hfv] Hall".
       rewrite llfill_sh_append. simpl sfill.
-      iApply ("IH" with "[] Hf Hfv Hv1 H"). auto.
+      iApply ("IH" with "[] Hf Hfv Hall Hv1 H"). auto.
     }
   Qed.
     
@@ -284,8 +292,8 @@ Section fundamental.
   Proof.
     iIntros (Hbasic Ht1 Ht2).
     unfold semantic_typing, interp_expression.
-    iIntros (i all lh hl).
-    iIntros "#Hi #Hc" (f vs) "[Hf Hfv] #Hv".
+    iIntros (i lh hl).
+    iIntros "#Hi #Hc" (f all vs) "[Hf Hfv] Hall #Hv".
     
     iAssert (↪[frame] f -∗
              WP of_val vs ++ es
@@ -293,9 +301,9 @@ Section fundamental.
                       ∨ interp_br (tc_local C) i (tc_return C) hl vs1 lh (tc_label C)
                       ∨ interp_return_option (tc_return C) (tc_local C) i vs1
                       ∨ interp_call_host (tc_local C) i (tc_return C) hl vs1 lh (tc_label C) t2s) ∗
-                     (∃ f1,  ↪[frame]f1 ∗ interp_frame (tc_local C) i f1) }})%I with "[Hfv]" as "H1".
+                     (∃ f1 all1,  ↪[frame]f1 ∗ interp_frame (tc_local C) i f1 ∗ interp_allocator all1) }})%I with "[Hfv Hall]" as "H1".
     { iIntros "Hf".
-      iDestruct (Ht1 with "Hi Hc [$] Hv") as "H1".
+      iDestruct (Ht1 with "Hi Hc [$] Hall Hv") as "H1".
       iApply (wp_wand with "H1").
       unfold interp_val. iIntros (v). rewrite -or_assoc. auto. }
 
@@ -303,22 +311,42 @@ Section fundamental.
     rewrite app_assoc.
     iApply (wp_seq_can_trap_ctx).
     iFrame "∗ #".
-    iSplitR.
+    iSplitR; last (iSplitR; last iSplitL).
+    3:{
+      iIntros "Hf".  iSpecialize ("H1" with "Hf").
+      iApply (wp_wand with "H1").
+      iIntros (w) "(Hw & %f1 & %all1 & Hf & Hrest)".
+      iSplitL "Hw"; first iExact "Hw".
+      instantiate (1 := λ f, (∃ all, interp_frame (tc_local C) i f ∗ interp_allocator all)%I).
+      iExists _; iFrame; iExists _; iFrame. }
     { iIntros "[Hcontr | [Hcontr | [Hcontr | Hcontr] ] ]";[by iDestruct "Hcontr" as (? ?) "_"|..].
       { rewrite fixpoint_interp_br_eq. iDestruct "Hcontr" as (? ? ? ?) "[%H _]". done. }
       { iDestruct "Hcontr" as (? ? ?) "_";done. }
       { rewrite fixpoint_interp_call_host_eq. iDestruct "Hcontr" as (? ? ? ? ?  ?) "[%H _]";done. } }
-    iSplitR;[iIntros (?) "?"; iSplitR;[by iLeft;iLeft|eauto]|].
+    { iIntros (?) "(Hf & %all0 & Hfv & Hall)".
+      iSplitR; first by iLeft; iLeft. iExists _,_; iFrame.  } 
 
-    iIntros (w f') "[Hw [Hf Hfv]]".
+    iIntros (w f') "(Hw & Hf & %all0 & Hfv & Hall)".
     iDestruct "Hw" as "[#Hw|[Hbr|[Hret|Hch]]]".
     { iIntros (LI Hfill%lfilled_Ind_Equivalent);inversion Hfill;simplify_eq.
       erewrite app_nil_l, app_nil_r.
-      iApply (Ht2 with "[] [] [$]");iFrame "#". }
+      iApply (Ht2 with "[] [] [$] [$]");iFrame "#". }
 
-    { iApply (composition_br with "Hv Hbr Hf Hfv"). }
-    { iApply (composition_return with "Hv Hret Hf Hfv"). }
-    { iApply (composition_call_host with "Hi Hc Hch Hf Hfv"); auto. }
+    { iDestruct (composition_br with "Hv Hbr Hf Hfv") as "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(Hw & %f1 & Hf & Hfv)".
+      iFrame. iExists _,_. iFrame. 
+    }
+    { iDestruct (composition_return with "Hv Hret Hf Hfv") as "H".
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(Hw & %f1 & Hf & Hfv)".
+      iFrame. iExists _,_. iFrame.
+    }
+    { iDestruct (composition_call_host with "Hi Hc Hch Hf Hfv") as "H"; try done.
+      iApply (wp_wand_ctx with "H").
+      iIntros (?) "(Hw & %f1 & Hf & Hfv)".
+      iFrame. iExists _,_. iFrame. 
+    }
   Qed.
 
 End fundamental.

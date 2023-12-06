@@ -92,13 +92,13 @@ Section fundamental.
     
   (* ----------------------------------------- LOAD ---------------------------------------- *)
 
-  Lemma typing_load C a tp_sx t off : tc_memory C ≠ [] ->
+  Lemma typing_load C a tp_sx t off : tc_memory C ≠ [] -> t <> T_handle ->
                         load_store_t_bounds a (option_projl tp_sx) t ->
                         ⊢ semantic_typing C (to_e_list [BI_load t tp_sx a off]) (Tf [T_i32] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hnil Hload i all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Hnil Ht Hload i lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -115,7 +115,6 @@ Section fundamental.
     rewrite nth_error_lookup in Hlook1.
     rewrite nth_error_lookup in Hlook2.
     iApply fupd_wp.
-    iDestruct "Hfv" as "[Halloc Hfv]".
     iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
     iMod (na_inv_acc with "Hm Hown") as "(Hms & Hown & Hcls)";[solve_ndisj..|].
     iDestruct "Hms" as (ms) ">Hmemblock".
@@ -146,10 +145,10 @@ Section fundamental.
         iMod ("Hcls" with "[$Hown Hsize Hmem]") as "Hown".
         { iNext. iExists _. iFrame. }
         iModIntro.
-        iSplitR;[iLeft; iRight|iExists _;iFrame;iExists _;eauto].
+        iSplitR;[iLeft; iRight|iExists _,_;iFrame;iExists _;eauto].
         iExists _. iSplit;[eauto|]. iSimpl.
-        iSplit =>//. unfold interp_value.
-        destruct t;iSimpl;eauto.
+        iSplit => //. unfold interp_value.
+        destruct t;iSimpl;eauto. done.
       }
     }
 
@@ -158,7 +157,8 @@ Section fundamental.
       destruct (N_lt_dec (mem_length ms) ((Wasm_int.N_of_uint i32m z) + off + (N.of_nat (t_length t))))%N.
       { iApply wp_fupd.
         iApply (wp_wand _ _ _ (λ vs, (⌜vs = trapV⌝ ∗ _) ∗ _)%I with "[Hsize Hf]").
-        { by iApply (wp_load_failure with "[$Hf $Hsize]");[by rewrite Hlocs /=|by apply N.lt_gt|]. }
+        { iApply (wp_load_failure with "[$Hf $Hsize]") => //; first by rewrite Hlocs /=.
+          right. by apply N.lt_gt. } 
         iIntros (v) "[[-> Hsize] Hf]".
         iMod ("Hcls" with "[$Hown Hsize Hmem]") as "Hown".
         { iNext. iExists _. iFrame. }
@@ -177,8 +177,8 @@ Section fundamental.
         iModIntro.
         iSplitR;[iLeft; iRight|iExists _;iFrame;iExists _;eauto].
         iExists _. iSplit;[eauto|]. iSimpl.
-        iSplit =>//. unfold interp_value.
-        destruct t;iSimpl;eauto.
+        iSplit => //. unfold interp_value.
+        destruct t;iSimpl;eauto. done.
       }
 
     }

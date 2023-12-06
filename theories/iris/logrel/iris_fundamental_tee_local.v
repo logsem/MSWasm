@@ -27,8 +27,8 @@ Section fundamental.
                                  ⊢ semantic_typing C (to_e_list [BI_tee_local i]) (Tf [t] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hnth j all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Hnth j lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -59,11 +59,11 @@ Section fundamental.
       simpl. done. }
 
     iIntros (v) "[-> Hf]".
-    iSplitR;[|iExists _;iFrame].
-    { iLeft. iRight. iExists _. iSplit;eauto. iSimpl. iSplit =>//. }
-    iExists _. rewrite Heq //. iSplit =>//. 
+    iSplitR;[|iExists _,_;iFrame].
+    { iLeft. iRight. iExists _. iSplit;eauto. iSimpl. iSplit => //. }
+    iExists _. rewrite Heq //. iSplit => //. 
     iRight. subst locs. rewrite -fmap_insert_set_nth;[|auto].
-    iSimpl. iExists _. iSplit =>//.
+    iSimpl. iExists _. iSplit => //.
     rewrite -(list_insert_id (tc_local C) i t);[|auto].
     iApply big_sepL2_insert;iFrame "#".
     rewrite list_insert_id;auto.

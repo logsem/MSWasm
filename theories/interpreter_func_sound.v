@@ -726,7 +726,7 @@ Proof.
       pattern_match.
       exists (AI_basic (BI_br n)). exists es2'.
       (* unused ones *) exists 0. exists [::]. exists [::].
-      move=> /=. apply/andP. split => //=. apply/orP. left. apply/andP. by split => //=.
+      move. apply/andP. split; first done. apply/orP. left. apply/andP. by split => //=.
     + destruct p. destruct p. destruct (BinNat.N.eqb n1 (base h)).
       intro H; inversion H.
       by unfold crash_error; intro Habs; inversion Habs.
@@ -2545,9 +2545,12 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
-        subst.
-        by repeat econstructor.
-                split; last by subst. exists ME_empty.
+        subst. apply andb_prop in if_expr1 as [??].
+        apply andb_prop in H1 as [??]. destruct o => //.
+        econstructor. econstructor. apply rs_reinterpret.
+        intros -> => //. intros -> => //. done.
+          
+        split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.

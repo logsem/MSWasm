@@ -29,8 +29,8 @@ Section fundamental.
     ⊢ semantic_typing C (to_e_list [BI_br_table ins i]) (Tf (t1s ++ ts ++ [T_i32]) t2s).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hall all j lh hl).
-    iIntros "#Hi #Hc" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Hall j lh hl).
+    iIntros "#Hi #Hc" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -40,7 +40,7 @@ Section fundamental.
 
     iDestruct (big_sepL2_length with "Hv") as %Hlen.
     assert (∃ w ws', ws = ws' ++ [w]) as [w [ws' Heq]].
-    { induction ws using rev_ind;eauto. destruct t1s, ts =>//. } subst ws.
+    { induction ws using rev_ind;eauto. destruct t1s, ts => //. } subst ws.
     rewrite (app_assoc t1s ts).
     iDestruct (big_sepL2_app_inv with "Hv") as "[Hv' Hw]";[auto|].
     iDestruct (big_sepL2_app_inv_r with "Hv'") as (ws1 ws2 Heqw) "[Hv1 Hv2]".
@@ -88,7 +88,7 @@ Section fundamental.
         apply lookup_lt_is_Some_1;eauto. }
       revert Hall. move/andP=>[Hle Hplop].
 
-      iDestruct (typing_br _ _ t1s _ t2s with "Hi Hc [$] []") as "Hbr";[eauto..|].
+      iDestruct (typing_br _ _ t1s _ t2s with "Hi Hc [$] [$] []") as "Hbr";[eauto..|].
       { iRight. iExists _;eauto. }
       unfold interp_expression.
       iIntros (LI Hfill%lfilled_Ind_Equivalent);inversion Hfill;simplify_eq.
@@ -100,7 +100,7 @@ Section fundamental.
       eapply all_projection in Hall;eauto.
       revert Hall. move/andP=>[Hle Hplop].
       
-      iDestruct (typing_br _ _ t1s _ t2s with "Hi Hc [$] []") as "Hbr";[eauto..|].
+      iDestruct (typing_br _ _ t1s _ t2s with "Hi Hc [$] [$] []") as "Hbr";[eauto..|].
       { iRight. iExists _;eauto. }
       unfold interp_expression.
       iIntros (LI Hfill%lfilled_Ind_Equivalent);inversion Hfill;simplify_eq.

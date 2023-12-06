@@ -225,7 +225,7 @@ Section stack.
         (* [∗ list] k↦y ∈ bs,  ↦[ws][N.of_nat
                                       (N.to_nat (base v + N.of_nat (length s) * 4 + 4) +
                                        S (S (S (S k))))]y ∗ *)
-                               id v↣[allocated](base v, bound v) ∗
+                               id v↣[allocated] Some (base v, bound v) ∗
         ↦[wss][base v +
                   Z.to_N
                     (Z.of_N (offset v) +
@@ -252,7 +252,8 @@ Section stack.
         iNext.
         iCombine "Hbase Hs Hrest" as "H".
         instantiate (1 := λ x, (⌜ x = immV [] ⌝ ∗ _)%I).
-        iSplit => //.
+        iIntros "H'". iSplit => //.
+        iCombine "H H'" as "H".
         iExact "H". 
         4: by instantiate (1 := [p; p0; p1; p2]).
         4: done.
@@ -273,9 +274,8 @@ Section stack.
         simpl. rewrite Hoff Hbound. rewrite wasm_int_signed; last lia.
         lia.
 
-      - iIntros (w) "(((-> & H0 & H1 & H1') & H2 & H2') & H3)".
-        iSplit => //. 
-        iFrame.  
+      - iIntros (w) "((-> & (H0 & H0' & H0'') & H1 & H1' & H2 & H2') & H3)".
+        iSplit => //. iFrame.
         iExists bs.
         iSplit; last by iFrame.
         unfold two16.
@@ -317,7 +317,8 @@ Section stack.
         iApply wp_wand_r.
         iSplitL "Hf Hbase Hid".
       - iApply wp_segstore; last first => //. 
-        iFrame. instantiate (2 := λ x, ⌜ x = immV _ ⌝%I). iSplit => //.
+        iFrame. instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
+        iSplitR. iIntros "!> H". iSplit => //. iExact "H".
         iApply i32_wss. unfold handle_addr; rewrite Hoff N.add_0_r. done.
         rewrite Hoff Hbound. simpl. lia. done.
       - iIntros (w) "[(-> & Hid & Hbase) Hf]".
@@ -407,7 +408,7 @@ Section stack.
 
 
   Section valid.
-    Context `{!logrel_na_invs Σ}.
+    Context `{!logrel_na_invs Σ, !cinvG Σ, cancelg: cancelG Σ}.
     Set Bullet Behavior "Strict Subproofs".
 (*
     Lemma valid_push m t funcs :

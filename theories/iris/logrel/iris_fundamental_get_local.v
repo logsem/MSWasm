@@ -27,8 +27,8 @@ Section fundamental.
                                  ⊢ semantic_typing C (to_e_list [BI_get_local i]) (Tf [] [t]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hnth j all lh hl).
-    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f vs) "[Hf Hfv] #Hv".
+    iIntros (Hnth j lh hl).
+    iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
@@ -53,10 +53,10 @@ Section fundamental.
     { iApply (wp_get_local with "[] [$Hf]");[subst;eauto|].
       simpl. done. }
     iIntros (v) "[-> Hf]".
-    iSplitR;[|iExists _;iFrame].
+    iSplitR;[|iExists _,_;iFrame].
     { iLeft. iRight. iExists _. iSplit;eauto.
       iSplit;[|done]. eauto. }
-    iExists locs. iSplit =>//.
+    iExists locs. iSplit => //.
     iRight. iExists _. eauto.
   Qed.
 

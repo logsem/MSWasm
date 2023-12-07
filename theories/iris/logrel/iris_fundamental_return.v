@@ -72,8 +72,8 @@ Section fundamental.
         apply/eqP. simpl. rewrite app_nil_r. auto. }
     }
     iIntros (v) "[-> Hf]".
-    iSplitR;[|iFrame; admit].
+    iSplitR;[|iFrame; by iExists _].
     iRight. iExists _. iSplit;eauto.
-  Admitted. 
+  Qed. 
 
 End fundamental.

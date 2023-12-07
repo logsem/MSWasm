@@ -283,9 +283,8 @@ Section InterpInstance.
     iExists (g_val v).
     destruct v => /=.
     iFrame.
-  Admitted. 
-(*    destruct g_val => /=; try by iExists _.
-  Qed. *)
+    destruct g_val => /=; try by iExists _.
+  Admitted.  (* What to do with imported handles? *)
   
   Lemma import_resources_wasm_typecheck_alloc E v_imps t_imps wfs wts wms wgs :
     import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs ={E}=∗

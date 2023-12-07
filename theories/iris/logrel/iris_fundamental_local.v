@@ -127,7 +127,8 @@ Section fundamental.
       iIntros (v) "[-> Hf]".
       iFrame.
       iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame.
-      admit. } (* by iLeft. } *)
+      iSplitR; last by iExists _.
+      by iLeft. } 
     
     { iDestruct "Hv'" as (v' ->) "#Hv'".
       iSimpl.
@@ -146,7 +147,7 @@ Section fundamental.
         rewrite fmap_length. auto. }
       iIntros (v) "[-> Hf]". iFrame.
       iDestruct "Hf0v" as (?) "[_ [_ Hown]]".
-      iFrame. admit. } (* iRight. iExists _. eauto. } *)
+      iFrame. iSplitR; last by iExists _. iRight. iExists _. eauto. } 
     
     { rewrite fixpoint_interp_br_eq.
       iDestruct "Hbr" as (n vh vs' p -> Hbase Hdepth) "Hbr".
@@ -183,7 +184,7 @@ Section fundamental.
         rewrite fmap_length. auto. }
       iIntros (v) "[-> Hf]". iFrame.
       iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame.
-      admit. } (* iRight. iExists _. eauto. } *)
+      iSplitR; last by iExists _. iRight. iExists _. eauto. } 
     
     { iDestruct "Hret" as (vh vs' -> Hbase) "Hret".
       iDestruct "Hret" as (τs'') "[#Hws' _]".
@@ -213,11 +214,11 @@ Section fundamental.
         { apply to_of_val. }
         { rewrite fmap_length. auto. } }
       iIntros (v) "[-> Hf]". iFrame.
-      admit. }
-(*      iSplitR;[iRight;iExists _;eauto|].
-      iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame. } *)
+      iSplitR "Hall0"; last by iExists _.
+      iSplitR;[iRight;iExists _;eauto|].
+      iDestruct "Hf0v" as (?) "[_ [_ Hown]]". iFrame. } 
     { rewrite fixpoint_interp_call_host_eq.
       iDestruct "Hch" as (? ? ? ? ? ? ? ? Hcontr) "Hch". inversion Hcontr. }
-Admitted. 
+Qed. 
 
 End fundamental.

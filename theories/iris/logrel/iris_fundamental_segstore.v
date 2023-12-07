@@ -160,12 +160,7 @@ Section fundamental.
   
   Lemma arith: forall a b c d, (d <= a -> a < b - c + d -> b > c + a - d)%N.
   Proof. lia. Qed. 
-(*    intros a b c d H.
-    assert (c + a - d < b); last lia.
-    apply lt_plus in H.
-    2: admit.
-    apply lt_minus in H.
-    lia. *)
+
     
     
     

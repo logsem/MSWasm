@@ -56,7 +56,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝
                                       ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xx 42 |}
                                       ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xx 42))
-                                      ∗ na_own logrel_nais ⊤ ∗ interp_allocator all))
+                                      ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all))
                ∗ ↪[frame] f  }}}.
   Proof.
     iIntros (Hc Hn Ha Hg Hes Φ). iModIntro.
@@ -89,7 +89,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iApply wp_base_push;auto.
     rewrite -(app_nil_r [_]).
     iApply (wp_wand_ctx with "[Hf Hown Hn Hg Hall]").
-    iApply (wp_seq_can_trap_same_ctx _ (λ v, interp_values [] v ∗ na_own logrel_nais ⊤ ∗ interp_allocator all)%I).
+    iApply (wp_seq_can_trap_same_ctx _ (λ v, interp_values [] v ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all)%I).
 
     iSplitR;[by iIntros "[H _]";iDestruct "H" as (v) "[%Hcontr _]"|].
     iSplitR;[auto|].
@@ -171,7 +171,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
          ∗ interp_instance C [] i
          ∗ ∃ c, (N.of_nat n) ↦[wms][ 0%N ] (bits (VAL_int32 c)) }}}
       lse_return j
-      {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV [xx 42]⌝ ∗ interp_allocator all))
+      {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV [xx 42]⌝ ∗ ∃ all, interp_allocator all))
                ∗ ↪[frame] f  }}}.
   Proof.
     iIntros (Hc Hn Ha Hes Φ). iModIntro.
@@ -203,7 +203,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iApply wp_base_push;auto.
     rewrite -(app_nil_r [_]).
     
-    iApply (wp_seq_can_trap_same_ctx _ (λ v, interp_values [] v ∗ na_own logrel_nais ⊤ ∗ interp_allocator all)%I).
+    iApply (wp_seq_can_trap_same_ctx _ (λ v, interp_values [] v ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all)%I).
     iSplitR;[by iIntros "[H _]";iDestruct "H" as (v) "[%Hcontr _]"|].
     iSplitR;[auto|].
     iFrame.

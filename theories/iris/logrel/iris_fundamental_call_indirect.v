@@ -16,6 +16,7 @@ Section fundamental.
 
 
   Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
+  Set Bullet Behavior "Strict Subproofs".
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -86,21 +87,23 @@ Section fundamental.
 
     (* the index may still be out of bounds *)
     destruct (decide (table_size <= (Wasm_int.nat_of_uint i32m z))).
-    { iApply (wp_wand with "[-]");cycle 1.
-      { iIntros (v) "H". rewrite -or_assoc. iExact "H". }
-      admit. (* iApply wp_val_can_trap_app'. iFrame.
+    { iApply (wp_wand _ _ _ (λ x, (⌜ x = trapV ⌝ ∨ _) ∗ ∃ f0, ↪[frame]f0 ∗ ∃ all, _
+                                      )%I with "[-]"); last first. (* [iApply wp_val_can_trap_app'; iFrame; iSplitR|].   *)
+      { iIntros (v) "(H & %f0 & Hf & %all0 & Hrest)". rewrite -or_assoc.
+        iSplitL "H"; first iExact "H". iExists f0, all0.  iFrame "Hf". iExact "Hrest". }
+      iApply wp_val_can_trap_app'. iFrame.
       iSplitR.
       { iModIntro. rewrite fixpoint_interp_br_eq fixpoint_interp_call_host_eq.
         iIntros "[H|[H|[H|H]]]";[iDestruct "H" as (? ?) "_"
                                 |iDestruct "H" as (? ? ? ? ?) "_"
                                 |iDestruct "H" as (? ? ?) "_"
-                                |iDestruct "H" as (? ? ? ? ? ? ?) "[% _]"];try done. }
+                                |iDestruct "H" as (? ? ? ? ? ? ?) "[% _]"];try done. } 
       iIntros "Hf".
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_call_indirect_failure_outofbounds with "[$] [$]");auto.
         rewrite Heq /= //. }
-      iIntros (v) "[-> Hf]". iSplitR;[|iExists _;eauto].
-      by iLeft. *)
+      iIntros (v) "[-> Hf]". iSplitR; first by iLeft.
+      iExists _. iFrame. iExists _. iFrame. auto. 
     }
 
     (* otherwise the indirect call is a success, and we must find its function entry in the table interpretation *)
@@ -115,9 +118,10 @@ Section fundamental.
 
     (* if the entry is empty the indirect call traps *)
     destruct (fe);cycle 1.
-    { iApply (wp_wand with "[-]");cycle 1.
-      { iIntros (v) "H". rewrite -or_assoc. iExact "H". }
-      admit. (* iApply wp_val_can_trap_app'. iFrame.
+    { iApply (wp_wand _ _ _ (λ x, (⌜ x = trapV ⌝ ∨ _) ∗ ∃ f0, ↪[frame]f0 ∗ ∃ all, _)%I with "[-]");cycle 1.
+      { iIntros (v) "(H & %f0 & Hf & %all0 & Hrest)". rewrite -or_assoc.
+        iSplitL "H"; first iExact "H". iExists f0, all0. iFrame "Hf". iExact "Hrest". }
+      iApply wp_val_can_trap_app'. iFrame.
       iSplitR.
       { iModIntro. rewrite fixpoint_interp_br_eq fixpoint_interp_call_host_eq.
         iIntros "[H|[H|[H|H]]]";[iDestruct "H" as (? ?) "_"
@@ -132,8 +136,9 @@ Section fundamental.
         rewrite Heq /= //. }
       iIntros (v) "[[-> Ha] Hf]".
       iMod ("Hcls" with "[$Hown $Ha]") as "$". iModIntro.
-      iSplitR;[|iExists _;eauto].
-      by iLeft. *)
+      iSplitR; first
+        by iLeft.
+      iExists _; iFrame; iExists _; iFrame. auto.
     }
 
     iDestruct "Hfe" as (cl) "[Hn0 Hcl]".
@@ -144,9 +149,11 @@ Section fundamental.
     
     (* if the types fail the indirect call traps *)    
     destruct (function_type_eq_dec (cl_type cl) (Tf t1s t2s));cycle 1.
-    { iApply (wp_wand with "[-]");cycle 1.
-      { iIntros (v) "H". rewrite -or_assoc. iExact "H". }
-      admit. (* iApply wp_val_can_trap_app'. iFrame.
+    { iApply (wp_wand _ _ _ (λ x, (⌜ x = trapV ⌝ ∨ _) ∗ ∃ f0, ↪[frame]f0 ∗ ∃ all, _)%I
+               with "[-]");cycle 1.
+      { iIntros (v) "(H & %f0 & Hf & %all0 & Hrest)". rewrite -or_assoc.
+        iSplitL "H"; first iExact "H". iExists f0, all0. iFrame "Hf". iExact "Hrest". }
+      iApply wp_val_can_trap_app'. iFrame.
       iSplitR.
       { iModIntro. rewrite fixpoint_interp_br_eq fixpoint_interp_call_host_eq.
         iIntros "[H|[H|[H|H]]]";[iDestruct "H" as (? ?) "_"
@@ -165,8 +172,8 @@ Section fundamental.
       iMod ("Hcls'" with "[$Hown $Hn]") as "Hown".
       iMod ("Hcls" with "[$Hown $Ha]") as "Hown".
       iModIntro.
-      iSplitR;[|iExists _;iFrame;eauto].
-      by iLeft. *)
+      iSplitR;[|iExists _;iFrame;iExists _; iFrame;eauto].
+      by iLeft. 
     }
     
     (* otherwise, we reduce the call indirect to the appropriate function invocation *)
@@ -175,7 +182,7 @@ Section fundamental.
     iApply wp_base_push;[apply v_to_e_is_const_list|].
     
     iApply iRewrite_nil_r_ctx.
-    iApply (wp_wand_ctx _ _ _ (λne (v : leibnizO val), ((interp_val t2s v ∨ interp_call_host (tc_local C) j (tc_return C) hl v lh (tc_label C) t2s) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f)%I with "[-]").
+    iApply (wp_wand_ctx _ _ _ (λne (v : leibnizO val), ((interp_val t2s v ∨ interp_call_host (tc_local C) j (tc_return C) hl v lh (tc_label C) t2s) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f ∗ ∃ all, interp_allocator all)%I with "[-]").
     { iApply (wp_call_indirect_success_ctx with "[$] [$] [$] [-]");[rewrite Heq /= //..|].
       { rewrite nth_error_lookup in Htlook. rewrite Htlook//. f_equiv. auto. }
       iNext. iIntros "[Ha [Hn Hf]]".
@@ -211,7 +218,7 @@ Section fundamental.
           erewrite app_nil_l.
           iApply ("Hcl" with "[] Hown Hf Hall").
           iRight. iExists _. eauto. }
-        iIntros (v) "[[Hw | Hw] ($ & $ & %all0 & Hall)]".
+        iIntros (v) "[[Hw | Hw] ($ & $ & $)]". 
         { by iLeft. }
         { iRight. iClear "#". iLöb as "IH" forall (v).
           rewrite fixpoint_interp_call_host_cls_eq.
@@ -220,15 +227,15 @@ Section fundamental.
           iExists _,_,_,_,_,_. repeat (iSplit;[eauto|]).
           iModIntro. iIntros (v2 f all1) "? [? Hfrv] Hall".
           iDestruct "Hfrv" as (?) "[Hv1 [Hv2 ?]]".
-          iDestruct ("H" with "[$] [$] [$]") as "H'".
-          admit. (* iApply (wp_wand with "H'").
-          iIntros (w) "[[#Hw | Hw] [? ?]]".
-          { iSplitR;[by iLeft|].
-            iExists _. iFrame. iExists _. iFrame. }
+          iDestruct ("H" with "[$] [$] [$] [$]") as "H'".
+          iApply (wp_wand with "H'").
+          iIntros (w) "[[#Hw | Hw] ((%all2 & Hall) & Hf & Hown) ]".
+          { iSplitR; first admit. 
+            iExists _,_. iFrame. iExists _. iFrame. }
           { iSplitL "Hw".
             { repeat iRight. iNext.
-              iApply "IH". iFrame. }
-            iExists _. iFrame. iExists _. iFrame. }          *)
+              iApply ("IH" with "Hw"). }
+            iExists _,_. iFrame. iExists _. iFrame. }          
         }
       }
       { (* host function *)
@@ -243,7 +250,8 @@ Section fundamental.
         iModIntro.
         iApply wp_value.
         { instantiate (1:=callHostV _ _ _ _). eapply of_to_val. eauto. }
-        iFrame. iRight. iApply fixpoint_interp_call_host_eq.
+        iFrame. iSplitR "Hall"; last by iExists _.
+        iRight. iApply fixpoint_interp_call_host_eq.
         iExists _,_,_,_,_,_. do 3 (iSplit;[eauto|]).
         iSplit;[auto|].
         iSplit.
@@ -255,10 +263,10 @@ Section fundamental.
       }
     }
 
-    iIntros (v) "[[Hw Hown] Hf]".
-    iFrame. iSplitR "Hf".
+    iIntros (v) "([Hw Hown] & Hf & %all0 & Hall)".
+    iFrame. iSplitR "Hf Hall".
     { iDestruct "Hw" as "[Hw | Hw]";[by iLeft|by iRight;iRight;iRight]. }
-    iExists _. iFrame. eauto.
+    iExists _,_. iFrame. eauto.
   Admitted. 
     
 End fundamental.

@@ -684,7 +684,7 @@ Section logrel.
     end.
   
   Definition interp_expression_closure_no_host (τs : result_type) (f : frame) (all : allocator) (es : expr) : iProp Σ :=
-    (WP es {{ vs, (interp_val τs vs ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I. (* add existential for allocator ? *)
+    (WP es {{ vs, (interp_val τs vs ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ ∃ all, interp_allocator all }})%I.
 
   Definition semantic_typing_local_no_host (τctx : t_context) (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) : iProp Σ :=
     ⌜(tc_label τctx) = [] ∧ (tc_return τctx) = None⌝ ∧

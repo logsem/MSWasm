@@ -379,7 +379,7 @@ in
       end
     else CT_bot
   | BI_load t tp_sx a off =>
-    if (C.(tc_memory) != nil) && load_store_t_bounds a (option_projl tp_sx) t
+    if (C.(tc_memory) != nil) && (t != T_handle) && load_store_t_bounds a (option_projl tp_sx) t
     then type_update ts [::CTA_some T_i32] (CT_type [::t])
     else CT_bot
   | BI_segload t =>

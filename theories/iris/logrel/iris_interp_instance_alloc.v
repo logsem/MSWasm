@@ -99,8 +99,7 @@ Section InterpInstance.
         inversion Hfill;inversion H9;simplify_eq.
         repeat erewrite app_nil_l, app_nil_r.
         unfold interp_expression_closure_stuck_host.
-        iApply (wp_wand with "Hcont"). iIntros (v) "[[$ $] [$ Hall]]".
-        iExists _. iFrame. 
+        iApply (wp_wand with "Hcont"). iIntros (v) "[[$ $] [$ $]]".
       }
     }
     { simpl. auto. }

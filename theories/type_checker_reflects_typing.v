@@ -1852,7 +1852,8 @@ Proof with auto_rewrite_cond.
       destruct Hct2 as [tn' [Hct bet]]; subst.
       exists (tn' ++ [::T_i32]); split => //.
       apply bet_weakening.
-      apply bet_load => //; by destruct C.(tc_memory) => //=.
+      apply bet_load => //; destruct C.(tc_memory) => //=.
+      intros -> => //.
     + replace ([::CTA_some T_handle]) with (to_ct_list [::T_handle]) in Hct2 => //=.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
       exists (tn' ++ [::T_handle]); split => //.

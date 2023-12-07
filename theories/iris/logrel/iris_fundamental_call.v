@@ -52,7 +52,7 @@ Section fundamental.
     iApply iRewrite_nil_r_ctx;rewrite -app_assoc.
     iApply wp_base_push;[apply const_list_of_val|].
     iApply (wp_wand_ctx _ _ _ (λne (v : leibnizO val), ((interp_val tf2 v
-                                                         ∨ interp_call_host (tc_local C) j (tc_return C) hl v lh (tc_label C) tf2) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f)%I with "[-]").
+                                                         ∨ interp_call_host (tc_local C) j (tc_return C) hl v lh (tc_label C) tf2) ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all) ∗ ↪[frame]f)%I with "[-]").
     { iApply (wp_call_ctx with "Hf").
       { rewrite Hlocs /= -nth_error_lookup. eauto. }
       iNext. iIntros "Hf".
@@ -82,8 +82,11 @@ Section fundamental.
           iApply ("Hcl" with "[] Hown Hf Hall").
           iRight. iExists _. eauto. }
         iIntros (v) "[[Hw | Hw] ($ & $ & %all1 & Hall)]".
-        { by iLeft. }
-        { iRight. iClear "Hi Hcont Hfunc Hcl Hlocs". iLöb as "IH" forall (v).
+        { iSplitR "Hall"; first by iLeft.
+          by iExists _.
+        }
+        { iSplitR "Hall"; last by iExists _.
+          iRight. iClear "Hi Hcont Hfunc Hcl Hlocs". iLöb as "IH" forall (v).
           rewrite fixpoint_interp_call_host_cls_eq.
           rewrite fixpoint_interp_call_host_eq.
           iDestruct "Hw" as (? ? ? ? ? ? ? ? ? ?) "[#? #H]".
@@ -92,12 +95,12 @@ Section fundamental.
           iDestruct "Hfrv" as (?) "[-> [Hv2 ?]]".
           iDestruct ("H" with "[$] [$] [$] [$]") as "H'".
           iApply (wp_wand with "H'").
-          iIntros (w) "[[#Hw | Hw] (Hall & ? & ?)]".
+          iIntros (w) "[[#Hw | Hw] ([%all2 Hall] & ? & ?)]".
           { iSplitR; first admit. (* iSplitR;[by iLeft|]. *)
             iExists _,_. iFrame. iExists _. iFrame. auto. }
           { iSplitL "Hw".
             { repeat iRight. iNext.
-              admit. (* iApply ("IH" with "[] Hall Hw"). iFrame.*) }
+              iApply ("IH" with "Hw").  }
             iExists _,_. iFrame. iExists _. iFrame. auto. }          
         }
       }
@@ -112,7 +115,7 @@ Section fundamental.
         iModIntro.
         iApply wp_value.
         { instantiate (1:=callHostV _ _ _ _). eapply of_to_val. eauto. }
-        iFrame. iRight. iApply fixpoint_interp_call_host_eq.
+        iFrame. iSplitR; last by iExists _. iRight. iApply fixpoint_interp_call_host_eq.
         iExists _,_,_,_,_,_. do 3 (iSplit;[eauto|]).
         iSplit;[auto|].
         iSplit.
@@ -124,8 +127,8 @@ Section fundamental.
       }
     }
 
-    iIntros (v) "[[Hw Hown] Hf]".
-    iFrame. iSplitR "Hf".
+    iIntros (v) "[(Hw & Hown & %all0 & Hall) Hf]".
+    iFrame. iSplitR "Hf Hall".
     { iDestruct "Hw" as "[Hw | Hw]";[by iLeft|by iRight;iRight;iRight]. }
     iExists _,_. iFrame. eauto.
 Admitted. 

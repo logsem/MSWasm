@@ -273,7 +273,7 @@ Section logrel.
                                         ↪[frame] f -∗ na_own logrel_nais ⊤ -∗
                                         WP llfill vh (iris.of_val v2)
                                         {{ vs, ((* a later is necessary now that interp_handle is non pure *) ▷ interp_val τ2 vs
-                                                ∨ ▷ interp_call_host' vs) ∗ interp_allocator all ∗ ↪[frame] f ∗ na_own logrel_nais ⊤ }}
+                                                ∨ ▷ interp_call_host' vs) ∗ ( ∃ all, interp_allocator all) ∗ ↪[frame] f ∗ na_own logrel_nais ⊤ }}
                                ))
     )%I. (* Surely the host can change the frame and allocator ??? *)
 
@@ -670,7 +670,7 @@ Section logrel.
   (* --------------------------------------------------------------------------------------- *)
 
   Definition interp_expression_closure_stuck_host (hl : list (hostfuncidx * function_type)) (τs : result_type) (f : frame) (all: allocator) (es : expr) : iProp Σ :=
-    (WP es {{ vs, ((interp_val τs vs ∨ interp_call_host_cls hl τs vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I.
+    (WP es {{ vs, ((interp_val τs vs ∨ interp_call_host_cls hl τs vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ ∃ all, interp_allocator all }})%I. 
 
   Definition semantic_typing_local_stuck_host (hl : list (hostfuncidx * function_type)) (τctx : t_context) (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) : iProp Σ :=
     ⌜(tc_label τctx) = [] ∧ (tc_return τctx) = None⌝ ∧
@@ -684,7 +684,7 @@ Section logrel.
     end.
   
   Definition interp_expression_closure_no_host (τs : result_type) (f : frame) (all : allocator) (es : expr) : iProp Σ :=
-    (WP es {{ vs, (interp_val τs vs ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I.
+    (WP es {{ vs, (interp_val τs vs ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I. (* add existential for allocator ? *)
 
   Definition semantic_typing_local_no_host (τctx : t_context) (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) : iProp Σ :=
     ⌜(tc_label τctx) = [] ∧ (tc_return τctx) = None⌝ ∧
@@ -728,7 +728,7 @@ Class host_program_logic Σ `{HHB: HandleBytes, wasmG Σ} := {
 
     (* host wand *)
     wp_host_wand :
-    (∀ es Φ Ψ, WP es {{ Φ }} -∗ (∀ r, Φ r -∗ Ψ r) -∗ WP es {{ Ψ }});
+    (∀ es Φ Ψ, WPh es {{ Φ }} -∗ (∀ r, Φ r -∗ Ψ r) -∗ WPh es {{ Ψ }});
 
     (* host fupd intro *)
     fupd_wp_host :
@@ -746,16 +746,16 @@ Section logrel_host.
   Let val := iris.val.
 
   Definition interp_expression_closure (hctx : host_ctx) (τs : result_type)  (f : frame) (all: allocator) (es : expr) : iProp Σ :=
-    (WPh fill_host hctx es {{ λ vs, (interp_val τs (val_of_host_val vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }})%I.
+    (WPh fill_host hctx es {{ λ vs, (interp_val τs (val_of_host_val vs) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ ∃ all, interp_allocator all }})%I.
 
   Definition interp_closure_host (t2 : result_type) (hctx : host_ctx) tf1s tf2s (h : hostfuncidx) : iProp Σ :=
     □ ∀ vcs f all llh, interp_val tf1s (immV vcs) -∗
            na_own logrel_nais ⊤ -∗
            ↪[frame] f -∗ interp_allocator all -∗ 
            ▷ (∀ v2, interp_val tf2s v2 -∗ na_own logrel_nais ⊤ -∗ ↪[frame] f -∗ interp_allocator all -∗
-                               WPh fill_host hctx (llfill llh (iris.of_val v2)) {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }}) -∗
+                               WPh fill_host hctx (llfill llh (iris.of_val v2)) {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ ∃ all, interp_allocator all }}) -∗
            WPh fill_host hctx (llfill llh [AI_call_host (Tf tf1s tf2s) h vcs])
-           {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ interp_allocator all }}.
+           {{ λ r, (interp_val t2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame] f ∗ ∃ all, interp_allocator all }}. 
 
   Definition interp_host_calls (t2 : result_type) (hctx : host_ctx) (hl : list (hostfuncidx * function_type)) : iProp Σ :=
     [∗ list] ht ∈ hl, let '(h, t) := ht in
@@ -769,7 +769,7 @@ Section logrel_host.
     □ ∀ v f all, interp_val τ2 v -∗
              na_own logrel_nais ⊤ -∗          
              ↪[frame] f -∗ interp_allocator all -∗
-             WPh fill_host hctx (iris.of_val v) {{ λ r, (interp_val τ2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f ∗ interp_allocator all }}.
+             WPh fill_host hctx (iris.of_val v) {{ λ r, (interp_val τ2 (val_of_host_val r) ∗ na_own logrel_nais ⊤) ∗ ↪[frame]f ∗ ∃ all, interp_allocator all }}.
   
   Definition semantic_typing_local (τctx : t_context) (hl : list (hostfuncidx * function_type))
              (es : seq.seq basic_instruction) (ts : result_type) (tf : function_type) (hctx : host_ctx) : iProp Σ :=

@@ -90,14 +90,14 @@ Section fundamental.
     - by apply typing_tee_local. 
     - by apply typing_get_global. 
     - by eapply typing_set_global. 
-    - admit. (* by apply typing_load.  *)
+    - by apply typing_load. 
     - by apply typing_segload.
     - by apply typing_store. 
     - by apply typing_segstore.
-    - admit. (* by apply typing_slice. *)
+    - by apply typing_slice. 
     - by apply typing_segalloc.
-    - admit. (* by apply typing_handleadd. *)
-    - admit. (* by apply typing_getoffset. *)
+    - by apply typing_handleadd. 
+    - by apply typing_getoffset. 
     - by apply typing_segfree.
     - by apply typing_current_memory. 
     - by apply typing_grow_memory. 

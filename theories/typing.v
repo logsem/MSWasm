@@ -138,7 +138,7 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
   is_mut g ->
   be_typing C [::BI_set_global i] (Tf [::t] [::])
 | bet_load : forall C a off tp_sx t,
-  tc_memory C <> nil ->
+  tc_memory C <> nil -> t <> T_handle ->
   load_store_t_bounds a (option_projl tp_sx) t ->
   be_typing C [::BI_load t tp_sx a off] (Tf [::T_i32] [::t])
 | bet_segload : forall C t,

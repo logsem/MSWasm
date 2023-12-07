@@ -32,7 +32,7 @@ Section Host_instance.
       wp_fupd_host := _
     }.
   Next Obligation. simpl. iIntros (decls es Φ) "Hwp". iApply wp_lift_wasm. iFrame. Defined.
-  Next Obligation. iIntros (es Φ Ψ) "Hwp Hwand". iApply (wp_wand with "Hwp Hwand"). Defined.
+  Next Obligation. iIntros (es Φ Ψ) "Hwp Hwand". iApply (weakestpre.wp_wand with "Hwp Hwand"). Defined.
   Next Obligation. simpl. iIntros (e Φ) "Hwp". iApply weakestpre.fupd_wp. iFrame. Defined.
   Next Obligation. simpl. iIntros (e Φ) "Hwp". iApply weakestpre.wp_fupd. iFrame. Defined.
   
@@ -168,7 +168,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (Ξ = λ w1, (WP (([], iris.of_val w1) : host_expr)
                   {{ w2, Θ w2 }})%I) ->
     (Θ = λ w2, ((⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f ∗ interp_allocator all)%I) ->
+                                                   ↪[frame]f ∗ ∃ all, interp_allocator all)%I) ->
     (inst_funcs inst) !! log = Some log_func ->
 
     na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
@@ -205,7 +205,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
   Proof.
     iIntros (-> -> -> -> Hlog) "#Hh Hv #Hlog Hown Hf Hall".
     iLöb as "IH"
-  forall (w).
+  forall (w all).
     
     rewrite fixpoint_interp_call_host_cls_eq.
     iDestruct "Hv" as (? ? ? ? ? ?) "(>%Heq & >%Htf & >%Hin & >%Hbasic & #Hw & #Hcont)".
@@ -269,7 +269,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSimpl. rewrite -(app_nil_r (llfill vh [])).
 
     iApply (wp_seq_can_trap_ctx).
-    instantiate (1:=λ f', (⌜f' = {| f_locs := [xx 42]; f_inst := inst |}⌝ ∗ interp_allocator all)%I).
+    instantiate (1:=λ f', (⌜f' = {| f_locs := [xx 42]; f_inst := inst |}⌝ ∗ ∃ all, interp_allocator all)%I).
     instantiate (2:=λ vs,((interp_values [] vs
                            ∨ ▷ interp_call_host_cls
                                [(Mk_hostfuncidx h, Tf [T_i32] [])] [] vs) ∗ na_own logrel_nais ⊤)%I).
@@ -278,7 +278,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iIntros "[[H|H] _]";[by iDestruct "H" as (? ?) "_"|].
       by iDestruct "H" as (? ? ? ? ? ?) "[>%Hcontr _]". }
     iSplitR.
-    { iIntros (f') "(Hf' & -> & Hall)".
+    { iIntros (f') "(Hf' & -> & %all0 & Hall)".
       eassert (LH_rec [] 0 [] (LH_base [] []) [] = push_base (LH_base [] []) _ _ _ _) as ->.
       { simpl. eauto. }
       iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
@@ -290,7 +290,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       { iApply (wp_frame_trap with "Hf");eauto. }
       iIntros (v) "[-> Hf]".
       iApply iris_host.wp_value;eauto.
-      iFrame. by iLeft. }
+      iFrame. iSplitR; first by iLeft. iExists _. done. }
     iFrame "Hf". iSplitL.
     { iIntros "Hf". assert (llfill vh [] = llfill vh (iris.of_val (immV []))) as ->;[auto|].
       iDestruct ("Hcont" $! (immV []) with "[] Hall Hf Hown") as "Hc".
@@ -303,7 +303,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       - admit.
     }
 
-    iIntros (w f0) "[[[Hv|Hv] Hown] (Hf & -> & Hall)]".
+    iIntros (w f0) "[[[Hv|Hv] Hown] (Hf & -> & %all0 & Hall)]".
     { rewrite app_nil_r. 
       iDestruct (lse_log_return_value with "Hh Hv Hlog Hown Hf Hall") as "H".
       exact Hlog.
@@ -314,7 +314,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iExists _. iFrame. iIntros "Hf".
       iSpecialize ("H" with "Hf Hall").
       iApply (wp_wand with "H").
-      iIntros (?) "H". done.
+      iIntros (?) "H".
+      iApply (weakestpre.wp_wand with "H").
+      iIntros (?) "(H & Hf & Hall)". iFrame. iExists _. done.
     }
     { rewrite app_nil_r.
       iDestruct ("IH" with "Hv Hown Hf Hall") as "H".
@@ -332,7 +334,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     
   Lemma lse_log_spec C i f all g g_func es locs log log_func h idnstart inst (Φ : language.val wasm_host_lang -> iProp Σ):
     (Φ = λ w, ((⌜w = trapHV⌝ ∨ (⌜w = immHV []⌝ ∗ na_own logrel_nais ⊤))
-               ∗ ↪[frame] f ∗ interp_allocator all)%I) ->
+               ∗ ↪[frame] f ∗ ∃ all, interp_allocator all)%I) ->
     (tc_label C) = [] ∧ (tc_return C) = None ->
     be_typing (upd_local_label_return C locs [[]] (Some [])) es (Tf [] []) ->
     (inst_funcs inst) !! g = Some g_func ->
@@ -387,7 +389,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     instantiate (1:=λ f', (⌜f' = {|
                     f_locs := [xx 42];
                     f_inst := inst
-                               |}⌝ ∗ interp_allocator all)%I).
+                               |}⌝ ∗ ∃ all, interp_allocator all)%I).
     instantiate (2:=λ vs, ((interp_values [] vs ∨ interp_call_host_cls
                                                     [(Mk_hostfuncidx h, Tf [T_i32] [])] [] vs)
                              ∗ na_own logrel_nais ⊤)%I).
@@ -397,7 +399,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       { rewrite fixpoint_interp_call_host_cls_eq. iDestruct "Hcontr" as (? ? ? ? ? ? ?) "_";done. }
     }
     iSplitR.
-    { iIntros (f') "(Hf' & -> & Hall)".
+    { iIntros (f') "(Hf' & -> & %all0 & Hall)".
       eassert (LH_rec [] 0 [] (LH_base [] []) [] = push_base (LH_base [] []) _ _ _ _) as ->.
       { simpl. eauto. }
       iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
@@ -409,7 +411,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       { iApply (wp_frame_trap with "Hf");eauto. }
       iIntros (v) "[-> Hf]".
       iApply iris_host.wp_value;eauto.
-      iFrame. by iLeft. }
+      iFrame. iSplitR; first by iLeft. by iExists _.  }
     iFrame "Hf".
     iSplitR "Hlog".
     { iIntros "Hf". take_drop_app_rewrite 0.
@@ -438,7 +440,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       { iExists _. iFrame. auto. }
       iDestruct "Hv" as "[[Hv | Hv] | Hv]";auto. }
 
-    iIntros (w f') "[[Hv Hown] (Hf & -> & Hall)]".
+    iIntros (w f') "[[Hv Hown] (Hf & -> & %all0 & Hall)]".
     iSimpl. rewrite app_nil_r.
     iDestruct "Hv" as "[Hv | Hv]".
     { (* unknown call returned a value *)
@@ -450,7 +452,9 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iIntros (?) "(%f0 & H & Hf & Hall)".
       iExists _. iFrame. iIntros "Hf".
       iSpecialize ("H" with "Hf Hall").
-      done.
+      iApply (wp_wand with "H"). iIntros (?) "H".
+      iApply (weakestpre.wp_wand with "H"). iIntros (?) "(H & Hf & Hall)".
+      iFrame. by iExists _.
     }
     
     { (* unknown call invoked the host log function *)

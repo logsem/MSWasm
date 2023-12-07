@@ -777,7 +777,6 @@ Proof.
       destruct (load m (Wasm_int.N_of_uint i32m s0) off (t_length t)) eqn:HLoadResult.
       * destruct t; try by eexists [::AI_basic (BI_const (wasm_deserialise b _))];
                              eapply rm_silent, r_load_success; eauto.
-        eexists. eapply rm_silent, r_load_failure; eauto.
       * exists [::AI_trap].
         by eapply rm_silent, r_load_failure; eauto.
 

@@ -57,7 +57,7 @@ Section fundamental.
     iApply (wp_wand _ _ _ ((λ vs0,
                (interp_val τ2 vs0
                 ∨ interp_call_host_cls hl τ2 vs0) ∗
-               ↪[frame]f ∗ na_own logrel_nais ⊤ ∗ interp_allocator all)%I) with "[-]").
+               ↪[frame]f ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all)%I) with "[-]").
     { iApply (wp_frame_bind with "Hf");[auto|].
       iIntros "Hf".
       iApply wp_wasm_empty_ctx.
@@ -74,15 +74,41 @@ Section fundamental.
       iDestruct "Hv'" as "[[-> | Hv'] | [Hbr | [Hret | Hch] ]]";simpl language.of_val.
       { iDestruct (local_host_trap with "[$] [$] [$]") as "H".
         iApply (wp_wand_ctx with "H").
-        iIntros (v) "(%f1 & %all1 & H & Hf & Hall)".
-        iExists _. iFrame. iIntros "Hf". admit. (* iApply ("H" with "Hf Hall"). *)
+        iIntros (v) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
+        iFrame. by iExists _.
       }
-      { admit. (* iApply (local_host_val with "[$] [$] [$]"). *) }
-      { admit. (* iApply (local_host_br with "[$] [$] [$]"). *) }
-      { admit. (* iApply (local_host_ret with "[$] [$] [$]"). *) }
-      { admit. (* iApply (local_host_call with "[$] [$] [$]"). *) }
-    }
-    iIntros (v) "[$ [$ $]]".
+      { iDestruct(local_host_val with "[$] [$] [$] [$]") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
+        iFrame. by iExists _.
+      }
+      { iDestruct (local_host_br with "[$] [$] [$] Hall0") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
+        iFrame. iSplitL "H"; first admit. by iExists _.
+      }
+      { iDestruct (local_host_ret with "[$] [$] [$] [$]") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
+        iFrame. by iExists _.
+      }
+      { iDestruct (local_host_call with "[$] [$] [$] [$]") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
+        iFrame. by iExists _.
+      }
+    } 
+    iIntros (v) "($ & $ & $ & $)".
   Admitted. 
   
 End fundamental.

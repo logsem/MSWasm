@@ -58,7 +58,7 @@ Section fundamental.
     iApply (wp_wand _ _ _ ((λ vs0,
                (interp_val τ2 vs0
                 ∨ interp_call_host_cls hl τ2 vs0) ∗
-                 interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤)%I) with "[-]").
+                 (∃ all, interp_allocator all) ∗ ↪[frame]f ∗ na_own logrel_nais ⊤)%I) with "[-]").
     { iApply (wp_frame_bind with "Hf");[auto|].
       iIntros "Hf".
       iApply wp_wasm_empty_ctx.
@@ -75,36 +75,68 @@ Section fundamental.
       iDestruct "Hv'" as "[[-> | Hv'] | [Hbr | [Hret | Hch] ]]";simpl language.of_val.
       { iDestruct (local_host_trap f0 all0 τ1 τs i f all0 τ2 hl with "[$] [$] [$]") as "H".
         iApply (wp_wand_ctx with "H").
-        iIntros (v) "(%f1 & %all1 & H & Hf & Hall)".
-        iExists _. iFrame. iIntros "Hf". admit. (* iApply ("H" with "Hf Hall"). *)
+        iIntros (v) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H").
+        iIntros (?) "(H & Hfv & Hf & Hall)".
+        iFrame. by iExists _.
       }
-      { admit. (* iApply (local_host_val with "[$] [$] [$]"). *) }
-      { admit. (* iApply (local_host_br with "[$] [$] [$]"). *) }
-      { admit. (* iApply (local_host_ret with "[$] [$] [$]"). *) }
-      { admit. (* iApply (local_host_call with "[$] [$] [$]"). *) }
+      { iDestruct (local_host_val with "[$] [$] [$] [$]") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H").
+        iIntros (?) "(H & Hfv & Hf & Hall)".
+        iFrame. by iExists _.
+      } 
+      { iDestruct (local_host_br with "[$] [$] [$] [$]") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H").
+        iIntros (?) "(H & Hfv & Hf & Hall)".
+        iFrame. admit. (* by iExists _. *)
+      }
+      { iDestruct (local_host_ret with "[$] [$] [$] Hall0") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H").
+        iIntros (?) "(H & Hfv & Hf & Hall)".
+        iFrame. by iExists _.
+      }
+      { iDestruct (local_host_call with "[$] [$] [$] Hall0") as "H".
+        iApply (wp_wand_ctx with "H").
+        iIntros (?) "(%f1 & H & Hf & Hall)".
+        iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
+        iApply (wp_wand with "H").
+        iIntros (?) "(H & Hfv & Hf & Hall)".
+        iFrame. by iExists _.
+      }
     }
     
-    iIntros (v) "[[#Hres | #Hres] (Hall & Hf & Hown)]".
-    { iApply ("Hhreturn" with "Hres Hown Hf Hall"). }
+    iIntros (v) "[[#Hres | #Hres] ([%all0 Hall] & Hf & Hown)]".
+    { iApply ("Hhreturn" with "Hres Hown Hf Hall"). } 
     { iAssert (▷ interp_call_host_cls hl τ2 v)%I with "Hres" as "Hres'";iClear "Hres".
       iRevert "Hres'". iLöb as "IH"
-    forall (v);iIntros "#Hres".
+    forall (v all0);iIntros "#Hres".
 
       rewrite fixpoint_interp_call_host_cls_eq. iApply fupd_wp_host.
       iDestruct "Hres" as (? ? ? ? ? ?) "[>%Heq [>%Htf [>%Hin [>%Hb [#Hval Hres]]]]]".
       iModIntro.
-      rewrite Heq. simpl iris.of_val.
+      rewrite Heq. simpl iris.of_val. 
       iDestruct (big_sepL_elem_of with "Hhcalls") as "Hh";eauto.
       destruct tf. simplify_eq. unfold interp_closure_host.
-      iApply ("Hh" with "[Hval] Hown Hf Hall").
+      iApply ("Hh" with "[Hval] Hown Hf Hall []"). 
       { admit. }
       iNext. iIntros (v2) "#Hv2 Hown Hf Hall".
 
       iApply wp_host_bind.
       iDestruct ("Hres" with "Hv2 Hall Hf Hown") as "Hcont".
       iApply (wp_wand with "Hcont").
-      iIntros (v) "[[Hw|#Hw] (Hall & Hf & Hown)]".
-      { admit. (* iApply ("Hhreturn" with "Hw Hown Hf Hall"). *) }
+      iIntros (v) "[[Hw|#Hw] ([%all1 Hall] & Hf & Hown)]".
+      { iApply ("Hhreturn" with "[Hw] Hown Hf Hall").
+        admit. } 
       { iApply ("IH" with "Hall Hf Hown"). iModIntro. iNext. iFrame "Hw". }
     }
   Admitted. 

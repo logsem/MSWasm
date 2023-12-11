@@ -230,7 +230,7 @@ Section fundamental.
           iDestruct ("H" with "[$] [$] [$] [$]") as "H'".
           iApply (wp_wand with "H'").
           iIntros (w) "[[#Hw | Hw] ((%all2 & Hall) & Hf & Hown) ]".
-          { iSplitR; first admit. 
+          { iSplitR; first by iLeft. 
             iExists _,_. iFrame. iExists _. iFrame. }
           { iSplitL "Hw".
             { repeat iRight. iNext.
@@ -267,6 +267,6 @@ Section fundamental.
     iFrame. iSplitR "Hf Hall".
     { iDestruct "Hw" as "[Hw | Hw]";[by iLeft|by iRight;iRight;iRight]. }
     iExists _,_. iFrame. eauto.
-  Admitted. 
+  Qed. 
     
 End fundamental.

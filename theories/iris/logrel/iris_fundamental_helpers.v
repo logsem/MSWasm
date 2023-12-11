@@ -1354,14 +1354,14 @@ Section fundamental.
     
     iIntros (v') "[[Hv' | [Hv' | [Hv' | Hv']]] Hf]" ;iDestruct "Hf" as (f0 all0) "(Hf & Hfv & Hall)".
     { iApply wp_label_push_nil_inv. iApply wp_wasm_empty_ctx.
-      iDestruct "Hv'" as "[-> | Hv']".
-      { iApply (wp_wand with "[Hf]").
+      iDestruct "Hv'" as "[>%Hv | Hv']".
+      { subst v'. iApply (wp_wand with "[Hf]").
         { iApply (wp_label_trap with "Hf");[auto|].
           by instantiate (1:=(λ v, ⌜v = trapV⌝)%I). }
         iIntros (v0) "[-> Hf]".
         iSplitR "Hf Hfv Hall";[|iExists _,_;iFrame].
         iLeft. iLeft. done. }
-      iDestruct "Hv'" as (ws ->) "Hv'".
+      iDestruct "Hv'" as (ws) "[>%Hv Hv']". subst v'. 
       iApply (wp_wand with "[Hf]").
       { iApply (wp_label_value with "Hf");[eapply to_of_val|].
         by instantiate (1:=(λ v, ⌜v = immV _⌝)%I). }
@@ -1821,7 +1821,7 @@ Section fundamental.
 
   
   Lemma local_host_val v f0 all0 τ2 τ1 τs i f all hl :
-    interp_values τ2 v -∗
+    (* adding later here *) ▷ interp_values τ2 v -∗
     ↪[frame]f0 -∗
     interp_frame (τ1 ++ τs) i f0 -∗ interp_allocator all0 -∗
     WP iris.of_val v
@@ -1833,11 +1833,11 @@ Section fundamental.
         WP iris.of_val w
         @ NotStuck; ⊤ FRAME
         length τ2; f1
-        {{ w0, (interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
+        {{ w0, ((* adding a later here *) ▷ interp_val τ2 w0 ∨ interp_call_host_cls hl τ2 w0) ∗
                  interp_allocator all ∗ ↪[frame]f ∗ na_own logrel_nais ⊤ }}) ∗  ↪[frame]f1 ∗ interp_allocator all0 }}.
   Proof.
     iIntros "Hv' Hf0 Hf0v Hall0".
-    iDestruct "Hv'" as (v' ->) "#Hv'".
+    iDestruct "Hv'" as (v') "[>%Hv #Hv']"; subst.
     iSimpl. 
     iApply (wp_wand_ctx _ _ _ (λ vs, ⌜vs = immV _⌝ ∗ ↪[frame] _)%I with "[Hf0]").
     { iApply (wp_val_return with "Hf0") ;[apply v_to_e_is_const_list|].
@@ -1848,13 +1848,13 @@ Section fundamental.
       iFrame. eauto. }
     iIntros (v) "[-> Hf]".
     iExists _. iFrame. iIntros "Hf Hall".
-    iDestruct (big_sepL2_length with "Hv'") as %Hlen.
+    iDestruct (big_sepL2_length with "Hv'") as ">%Hlen".
     iApply (wp_wand _ _ _ (λ vs, ⌜vs = immV _⌝ ∗ ↪[frame] _)%I with "[Hf]").
     { iApply (wp_frame_value with "Hf");eauto. 1: apply to_of_val.
       rewrite fmap_length. auto. }
     iIntros (v) "[-> Hf]". iFrame.
     iDestruct "Hf0v" as (?) "[_ [_ Hown]]".
-    iFrame. iLeft. iRight. iExists _. eauto.
+    iFrame. iLeft. iRight. iExists _. iSplit; done.
   Qed.
 
   Lemma local_host_br v f0 all0 τ2 τ1 τs i f all hl :
@@ -2036,8 +2036,8 @@ Section fundamental.
     iApply (wp_wand with "Hcont").
     iIntros (v1) "[Hres Hf]".
     iDestruct "Hf" as (f2 all2) "(Hf2 & Hfv2 & Hall2)".
-    iDestruct "Hres" as "[[->|Hres] | [Hres | [Hres | Hres]]]".
-    { simpl of_val.
+    iDestruct "Hres" as "[[>%Htrap|Hres] | [Hres | [Hres | Hres]]]".
+    { subst. simpl of_val.
       iDestruct (local_host_trap with "[$] [$] [$]") as "Hcont".
       iApply (wp_wand_ctx with "Hcont").
       iIntros (v1) "H";iDestruct "H" as (?) "(H & Hf & Hall)";iExists _;iFrame.

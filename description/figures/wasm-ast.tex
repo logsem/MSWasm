@@ -7,8 +7,9 @@
 % \vspace{1\baselineskip}
 \[
   \begin{array}{rl}
-    \text{(value type)} ~ t &\dotdoteq \xxWithirtytwo~|~\xxWisixtyfour~|~\xxWfthirtytwo~|~\xxWfsixtyfour~\rr{|~\xxWhandle}\\
-    \text{(value)} ~\V{v} &\dotdoteq t.\xxWconst~c~\rr{|~\xxWhandle.\xxWconst~h}\\
+    \text{(numeric type)} ~ \V{nt} &\dotdoteq \xxWithirtytwo~|~\xxWisixtyfour~|~\xxWfthirtytwo~|~\xxWfsixtyfour~\\ %\rr{|~\xxWhandle}\\
+    \rr{\text{(value type)} ~ t} & \rr{\dotdoteq \V{nt}~|~\xxWhandle}\\
+    \text{(value)} ~\V{v} &\dotdoteq \V{nt}.\xxWconst~c~\rr{|~\xxWhandle.\xxWconst~h}\\
     \rr{\text{(byte tag)}~\V{tag}} & \rr{\dotdoteq \xxWNumeric ~|~\xxWHandle}
   \end{array}\qquad
   \begin{array}{rl}
@@ -22,7 +23,7 @@
   \begin{array}{@{}l@{}}
     \text{(basic instructions)}~b \dotdoteq
     \begin{array}[t]{@{}l@{}}
-      \V{v}~|~t.\KK{add}~|~\textit{other stackops}~|~
+      \rr{\V{nt}.\xxWimmediate~c}~|~t.\KK{add}~|~\textit{other stackops}~|~
       \KK{local.\{get/set\}}~i~|~\KK{global.\{get/set\}}~i~|~
       t.\KK{load}~\V{flags}~|~
       \\
@@ -39,7 +40,7 @@
   \begin{array}{@{}l@{}}
     \text{(administrative instructions)}~e \dotdoteq
     \begin{array}[t]{@{}l@{}}
-      \V{b}~|~\KK{trap}~|~\xxWinvoke~i~|~\xxWlabel{i}{\V{es}}{\V{es}}~|~
+      \V{b}~|~\rr{\V{v}}~|~\KK{trap}~|~\xxWinvoke~i~|~\xxWlabel{i}{\V{es}}{\V{es}}~|~
       \xxWlocal{i}{F}{\V{es}}~|~\xxWcallhost~\V{tf}~\V{hidx}~\V{vs}
     \end{array}
   \end{array}

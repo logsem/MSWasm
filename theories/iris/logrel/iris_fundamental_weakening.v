@@ -211,15 +211,16 @@ Section fundamental.
         2:{ instantiate (1 := λ f0, (∃ all0, interp_frame (tc_local C) i f0 ∗ interp_allocator all0)%I).
             iDestruct "Hf" as (f0 all0) "[??]".
             iExists _. iFrame. iExists _. iFrame. } 
-        instantiate (1:=((λ vs, (interp_values (ts ++ t2s) vs
+        instantiate (1:=((λ vs, ((* adding later here *) ▷  interp_values (ts ++ t2s) vs
                 ∨ ▷ (interp_call_host_br (tc_local C) i (tc_return C) hl).2
                       vs lh (tc_label C)
                   ∨ interp_return_option (tc_return C) (tc_local C) i vs
                     ∨ ▷ (interp_call_host_br (tc_local C) i (tc_return C) hl).1
                         vs lh (tc_label C) (ts ++ t2s)))%I)).
-        iDestruct "H" as "[[H|H]|[H|[H|H]]]";[by iLeft|..].
-        { iRight. iLeft.
-          iDestruct "H" as (ws' ->) "Hw".
+        iDestruct "H" as "[[H|H]|[H|[H|H]]]".
+        { iLeft. admit. } 
+        { iRight. iLeft. iNext. 
+          iDestruct "H" as (ws' ->) "Hw". 
           iSimpl. iExists _. iSplit;eauto.
           iApply big_sepL2_app;eauto. }
         { iRight. iRight. iLeft.
@@ -234,7 +235,8 @@ Section fundamental.
           iApply "IH";eauto.
         }
       }
-      iModIntro. iIntros "[Hcontr | [Hcontr | [Hcontr | Hcontr] ] ]";[by iDestruct "Hcontr" as (? ?) "_"|..].
+      iModIntro.
+      iIntros "[Hcontr | [Hcontr | [Hcontr | Hcontr] ] ]";[by iDestruct "Hcontr" as (?) "[>% _]"|..].
       { rewrite fixpoint_interp_br_eq. iDestruct "Hcontr" as (? ? ? ?) "[>%HH _]". done. }
       { iDestruct "Hcontr" as (? ? ?) "_";done. }
       { rewrite fixpoint_interp_call_host_eq. iDestruct "Hcontr" as (? ? ? ? ? ?) "[>%HH _]";done. }
@@ -250,7 +252,7 @@ Section fundamental.
     { iRight. by iLeft. }
     { iRight. iRight. by iLeft. }
     { by repeat iRight. }
-  Qed.
+Admitted. 
   
   (* -------------------------------------- WEAKENING -------------------------------------- *)
 

@@ -15,10 +15,10 @@ Section determ.
 
 
   Lemma reduce_grow_memory s f c me2 ws2 f2 es2 :
-    reduce s f [AI_basic (BI_const c); AI_basic BI_grow_memory] me2
+    reduce s f [AI_const c; AI_basic BI_grow_memory] me2
       ws2 f2 es2 -> me2 = ME_empty.
   Proof.
-    remember [AI_basic (BI_const c) ; AI_basic BI_grow_memory] as es.
+    remember [AI_const c ; AI_basic BI_grow_memory] as es.
     induction 1; try by inversion Heqes.
     subst. unfold lfilled, lfill in H0.
     destruct k => //.
@@ -80,6 +80,7 @@ Section determ.
      present *)
     destruct H.
     { destruct H ; clear IHnnn.
+      - only_one [AI_basic (BI_immediate v)] Hred2. done.
       - by apply unop_det.
       - by apply binop_det.
       - by apply binop_none_det.
@@ -91,14 +92,14 @@ Section determ.
       - by apply cvtop_reinterpret_det.
       - by only_one [AI_basic BI_unreachable] Hred2.
       - by only_one [AI_basic BI_nop] Hred2.
-      - by only_one [AI_basic (BI_const v) ; AI_basic BI_drop] Hred2.
+      - by only_one [AI_const v ; AI_basic BI_drop] Hred2.
       - by apply select_false_det.
       - by apply select_true_det.
       - by eapply block_det.
       - by eapply loop_det.
-      - only_one [AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_if tf e1s e2s)] Hred2 ;
+      - only_one [AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] Hred2 ;
           [done | by inversion Heqes ; subst].
-      - only_one [AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_if tf e1s e2s)] Hred2 ;
+      - only_one [AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] Hred2 ;
           [by inversion Heqes ; subst | done].
       - only_one [AI_label n es vs] Hred2.
         (* This is the rs_label_const case (i.e. Hred1 was [ [AI_label n es vs] -> es ]
@@ -227,14 +228,14 @@ Section determ.
           rewrite - (app_nil_l [_]) in Hfill'.
           rewrite - cat_app in Hfill'.
           eapply lfilled_br_and_reduce ; try exact Hfill ; try exact Hfill' ; try done.
-      - only_one [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_br_if i)] Hred2 ;
+      - only_one [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)] Hred2 ;
           [ done | subst ; exfalso ; by apply H0 ].
-      - only_one [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_br_if i)] Hred2 ;
+      - only_one [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)] Hred2 ;
           [ subst ; exfalso ; by apply H | done].
-      - only_one [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_br_table iss i)] Hred2.
+      - only_one [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)] Hred2.
         subst. rewrite H0 in H2. inversion H2 ; by subst.
         subst. apply (ssrnat.leq_trans H) in H1. rewrite ssrnat.ltnn in H1. false_assumption.
-      - only_one [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_br_table iss i)] Hred2.
+      - only_one [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)] Hred2.
         subst. apply (ssrnat.leq_trans H0) in H. rewrite ssrnat.ltnn in H. false_assumption.
         done.
       - (* [ only_one ] cannot be applied in the following cases, so we perform the 
@@ -329,16 +330,16 @@ Section determ.
         apply Logic.eq_sym in Hes ; exfalso ; no_reduce Hes Hred2.
         apply app_eq_nil in Hes as [-> _]. empty_list_no_reduce.
         rewrite Hxl1 in H ; inversion H.
-      - only_one [AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_const (VAL_handle h)); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
-      - only_one [AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_const (VAL_handle h)); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
-      - only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const (VAL_int32 c1));
-                  AI_basic (BI_const (VAL_int32 c2)); AI_basic BI_slice] Hred2.
+      - only_one [AI_const (VAL_int32 c); AI_const (VAL_handle h); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
+      - only_one [AI_const (VAL_int32 c); AI_const (VAL_handle h); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
+      - only_one [AI_const (VAL_handle h); AI_const (VAL_int32 c1);
+                  AI_const (VAL_int32 c2); AI_basic BI_slice] Hred2.
         subst. rewrite H4 in H1. inversion H1; subst; done.
         subst. rewrite H4 in H1; done.
-      - only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const (VAL_int32 c1));
-                  AI_basic (BI_const (VAL_int32 c2)); AI_basic BI_slice] Hred2;
+      - only_one [AI_const (VAL_handle h); AI_const (VAL_int32 c1);
+                  AI_const (VAL_int32 c2); AI_basic BI_slice] Hred2;
           subst; rewrite H4 in H1; inversion H1; subst; done.
-      - only_one [AI_basic (BI_const (VAL_handle h)); AI_basic BI_getoffset] Hred2.
+      - only_one [AI_const (VAL_handle h); AI_basic BI_getoffset] Hred2.
         done.
       - (* rs_trap case. [ only_one ] cannot be applied because the left-hand-side of Hred2
          is not an explicit list. We perform the case analysis by hand.
@@ -387,7 +388,7 @@ Section determ.
             
             by eapply lfilled_implies_starts.
             by inversion Hσ.
-            destruct e => // ; destruct b => //.
+            destruct e => //.
             unfold to_val, iris.to_val in He ; simpl in He.
             destruct He as [ He | He ] => //.
             unfold const_list ; rewrite forallb_app.
@@ -404,19 +405,19 @@ Section determ.
     - clear IHnnn ; only_one [AI_basic (BI_call i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; inversion H0 ; by subst.
     - clear IHnnn ;
-        only_one [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_call_indirect i)] Hred2.
+        only_one [AI_const (VAL_int32 c) ; AI_basic (BI_call_indirect i)] Hred2.
       + inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; by subst.
       + inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;
           rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H1 in H4 ;
           exfalso ; by apply H4.
       + inversion Heqes ; subst ; rewrite H in H2 ; inversion H2.
     - clear IHnnn ;
-        only_one [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_call_indirect i)] Hred2.
+        only_one [AI_const (VAL_int32 c) ; AI_basic (BI_call_indirect i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;
         rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H4 in H1 ;
         exfalso ; by apply H1.
     - clear IHnnn ;
-        only_one [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_call_indirect i)] Hred2.
+        only_one [AI_const (VAL_int32 c) ; AI_basic (BI_call_indirect i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; inversion H0.
     (* Invoke native *)
     - clear IHnnn.
@@ -433,27 +434,27 @@ Section determ.
             apply app_inj_tail in Heqes as [_ ?]) ;
           (try by rewrite (separate1) in Heqes ;
            apply app_inj_tail in Heqes as [_ ?]) ;
-         (try by rewrite (separate2 (AI_basic (BI_const _))) in Heqes ;
+         (try by rewrite (separate2 (AI_const _)) in Heqes ;
           apply app_inj_tail in Heqes as [_ ?]) ;
-         (try by rewrite (separate3 (AI_basic (BI_const _))) in Heqes ;
+         (try by rewrite (separate3 (AI_const _)) in Heqes ;
           apply app_inj_tail in Heqes as [_ ?]).
        destruct H5 ;
            (try by rewrite - (app_nil_l [_]) in Heqes ;
             apply app_inj_tail in Heqes as [_ ?]) ;
           (try by rewrite (separate1) in Heqes ;
            apply app_inj_tail in Heqes as [_ ?]) ;
-         (try by rewrite (separate2 (AI_basic (BI_const _))) in Heqes ;
+         (try by rewrite (separate2 (AI_const _)) in Heqes ;
           apply app_inj_tail in Heqes as [_ ?]) ;
-         (try by rewrite (separate3 (AI_basic (BI_const _))) in Heqes ;
+         (try by rewrite (separate3 (AI_const _)) in Heqes ;
           apply app_inj_tail in Heqes as [_ ?]).
       { destruct H5 ;
            (try by rewrite - (app_nil_l [_]) in Heqes ;
             apply app_inj_tail in Heqes as [_ ?]) ;
           (try by rewrite (separate1) in Heqes ;
            apply app_inj_tail in Heqes as [_ ?]) ;
-         (try by rewrite (separate2 (AI_basic (BI_const _))) in Heqes ;
+         (try by rewrite (separate2 (AI_const _)) in Heqes ;
           apply app_inj_tail in Heqes as [_ ?]) ;
-         (try by rewrite (separate3 (AI_basic (BI_const _))) in Heqes ;
+         (try by rewrite (separate3 (AI_const _)) in Heqes ;
           apply app_inj_tail in Heqes as [_ ?]).
         subst. filled_trap H6 Hxl1. apply in_app_or in Hxl1 as [|[|]] => //.
         assert (const_list (v_to_e_list vcs)) ; first by apply v_to_e_is_const_list.
@@ -524,7 +525,7 @@ Section determ.
        
     - clear IHnnn ; only_one [AI_basic (BI_get_local j)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; by inversion H0.
-    - clear IHnnn ; only_one [AI_basic (BI_const v) ; AI_basic (BI_set_local i)] Hred2.
+    - clear IHnnn ; only_one [AI_const v ; AI_basic (BI_set_local i)] Hred2.
       inversion Heqes ; subst ; clear Heqes H3 Hlen.
       assert (forall l i (v:value) vd vd', ssrnat.leq (S i) (length l) ->
                                       set_nth vd l i v = set_nth vd' l i v).
@@ -536,9 +537,9 @@ Section determ.
       simpl in H ; simpl in H1 ; simpl in H2 ; by subst.
     - clear IHnnn ; only_one [AI_basic (BI_get_global i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; by inversion H0.
-    - clear IHnnn ; only_one [AI_basic (BI_const v) ; AI_basic (BI_set_global i)] Hred2.
+    - clear IHnnn ; only_one [AI_const v ; AI_basic (BI_set_global i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; by inversion H0.
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ;
                               AI_basic (BI_load t None a off)] Hred2.
         inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; inversion H6 ;
@@ -546,36 +547,36 @@ Section determ.
         inversion Heqes ; subst ; rewrite H0 in H3 ; inversion H3 ; subst ;
         rewrite H1 in H4 ; inversion H4 ; subst ; rewrite H2 in H5 ; inversion H5 ;
           try by subst.
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ;
                               AI_basic (BI_load t None a off)] Hred2.
         
         inversion Heqes ; subst ; rewrite H in H3 ; inversion H3 ; subst ;
           rewrite H0 in H4 ; inversion H4 ; subst.
         destruct H1; first by subst. rewrite H1 in H5 ; inversion H5 ;
           try by subst.
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ;
                               AI_basic (BI_load t (Some (tp, sx)) a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;
         rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H1 in H4 ; inversion H4 ;
         try by subst. 
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ;
                               AI_basic (BI_load t (Some (tp, sx)) a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H in H2 ; inversion H2 ; subst ;
         rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H1 in H4 ; inversion H4 ;
         try by subst.   
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ; AI_basic (BI_const v) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t None a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ; AI_basic (BI_const v) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t None a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ; AI_basic (BI_const v) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t (Some tp) a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
-    - clear IHnnn ; only_one [AI_basic (BI_const (VAL_int32 k)) ; AI_basic (BI_const v) ;
+    - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t (Some tp) a off)] Hred2 ;
         inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
@@ -585,17 +586,17 @@ Section determ.
        determinism in these cases, but the second disjunct of the conclusion holds *)
     - right ; left.
       exists 0. split.
-      replace [AI_basic (BI_const (VAL_int32 c)); AI_basic BI_grow_memory] with
-        ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_grow_memory] ++ []).
+      replace [AI_const (VAL_int32 c); AI_basic BI_grow_memory] with
+        ([AI_const (VAL_int32 c)] ++ [AI_basic BI_grow_memory] ++ []).
       constructor => //=. by rewrite app_nil_r.
       by apply reduce_grow_memory in Hred2 as ->.
     - right ; left.
       exists 0. split.
-      replace [AI_basic (BI_const (VAL_int32 c)); AI_basic BI_grow_memory] with
-        ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_grow_memory] ++ []).
+      replace [AI_const (VAL_int32 c); AI_basic BI_grow_memory] with
+        ([AI_const (VAL_int32 c)] ++ [AI_basic BI_grow_memory] ++ []).
       constructor => //=. by rewrite app_nil_r.
       by apply reduce_grow_memory in Hred2 as ->.
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_basic (BI_segload t)] Hred2.
       inversion Heqes; subst. rewrite H5 in H13. inversion H13; subst. done.
       inversion Heqes; subst. rewrite H5 in H14 => //.
       inversion Heqes; subst. 
@@ -604,7 +605,7 @@ Section determ.
       destruct H0. unfold isNotAlloc in H0. unfold isAlloc in H4.
       destruct (find _ _) => //. rewrite H5 in H0.  destruct H0 => //.
       destruct H0 as [-> _] => //. 
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_basic (BI_segload t)] Hred2.
       inversion Heqes; subst. done.
       inversion Heqes; subst. rewrite H6 in H18. inversion H18; subst. 
       rewrite H10 in H22. inversion H22; subst. done. 
@@ -615,7 +616,7 @@ Section determ.
       destruct H. unfold isNotAlloc in H. unfold isAlloc in H4.
       destruct (find _ _) => //. destruct H => //.
       destruct H as [_ H] => //.
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] Hred2.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_basic (BI_segload t)] Hred2.
       inversion Heqes; subst. 
       destruct H1. by rewrite H in H5.
       destruct H.
@@ -630,7 +631,7 @@ Section determ.
       destruct H => //. unfold isNotAlloc in H. unfold isAlloc in H7.
       by destruct (find _ _). destruct H => //. by rewrite H in H9.
       by destruct H as [??].
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
       rewrite H6 in H14; inversion H14; subst. done.
       destruct H9. by rewrite H0 in H2.
       destruct H0.
@@ -639,7 +640,7 @@ Section determ.
       by destruct (find _ _). destruct H0 => //.
       rewrite (segstore_is_None _ H0) in H6. done.
       by destruct H0 as [-> _].
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
       rewrite H7 in H16; inversion H16; subst. done.
       destruct H10. by rewrite H in H2. destruct H.
       apply (ssrnat.leq_trans H) in H3. by rewrite ssrnat.ltnn in H3.
@@ -647,7 +648,7 @@ Section determ.
       by destruct (find _ _). destruct H => //.
       rewrite (segstore_is_None _ H) in H7. done.
       by destruct H as [_ ?].
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
       destruct H1. by rewrite H in H5.
       destruct H.
       apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
@@ -664,14 +665,14 @@ Section determ.
       by destruct H as [??].
     - right. right. left. eexists. unfold first_instr => //=.
     - right. right. left. eexists. unfold first_instr => //=.
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic BI_segfree] Hred2.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_basic BI_segfree] Hred2.
       inversion Heqes; subst => //=.
       inversion H1; subst. inversion H7; subst.
       rewrite H in H0; inversion H0; subst. done.
       inversion Heqes; subst => //=.
       inversion H1. unfold find_address in H7. rewrite H in H7. rewrite H3 H2 in H7.
       destruct H7 => //. destruct H7 => //.
-    - clear IHnnn; only_one [AI_basic (BI_const (VAL_handle h)); AI_basic BI_segfree] Hred2.
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_basic BI_segfree] Hred2.
        inversion Heqes; subst => //=.
        inversion H4. unfold find_address in H1. rewrite H in H1.
        rewrite H5 H6 in H1. destruct H1 => //. destruct H1 => //.

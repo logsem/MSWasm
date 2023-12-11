@@ -233,7 +233,7 @@ Qed.
     ▷ ((N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] (Some a)
        ∗ (N.of_nat a) ↦[wf] cl
        ∗ ↪[frame] f0 -∗ WP [AI_invoke a] @ s; E CTX d; lh {{ v, Φ v }}) -∗
-    WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] @ s; E CTX d; lh {{ v, Φ v }}.
+    WP [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] @ s; E CTX d; lh {{ v, Φ v }}.
   Proof.
     iIntros (Htype Hc) "Ha Hcl Hf Hcont".
     iIntros (LI Hfill).
@@ -254,7 +254,7 @@ Qed.
     rewrite gmap_of_list_lookup Nat2N.id in Hlook2. 
     set (σ := (s0,l,i0)).
     assert (reduce s0 {| f_locs := l; f_inst := i0 |}
-           [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
+           [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
            [AI_invoke a]) as Hred.
     { eapply rm_silent, r_call_indirect_success;eauto.
       { unfold stab_addr. destruct i0. simpl in *. destruct inst_tab;[done|]. inversion Hc.
@@ -299,7 +299,7 @@ Qed.
     ▷ ((N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] (Some a)
        ∗ (N.of_nat a) ↦[wf] cl
        ∗ ↪[frame] f0 -∗ WP [AI_invoke a] @ s; E {{ v, Φ v }}) -∗
-    WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] @ s; E {{ v, Φ v }}.
+    WP [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] @ s; E {{ v, Φ v }}.
   Proof.
     iIntros (? ?) "? ? ? H".
     iApply wp_wasm_empty_ctx.
@@ -316,7 +316,7 @@ Qed.
     (N.of_nat a) ↦[wf] cl -∗
     ↪[frame] f0 -∗
     ▷ (Φ trapV) -∗
-    WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] @ s; E {{ v, (Φ v ∗ (N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] (Some a)
+    WP [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] @ s; E {{ v, (Φ v ∗ (N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] (Some a)
                                                                                           ∗ (N.of_nat a) ↦[wf] cl)
                                                                                           ∗ ↪[frame] f0 }}.
   Proof.
@@ -331,7 +331,7 @@ Qed.
     rewrite gmap_of_list_lookup Nat2N.id in Hlook2. 
     set (σ := (s0,l,i0)).
     assert (reduce s0 {| f_locs := l; f_inst := i0 |}
-           [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
+           [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
            [AI_trap]) as Hred.
     { eapply rm_silent, r_call_indirect_failure1.
       { unfold stab_addr. instantiate (1:=a). destruct i0. simpl in *. destruct inst_tab;[done|]. inversion Hc.
@@ -364,7 +364,7 @@ Qed.
     (inst_tab (f_inst f0)) !! 0 = None -> (* no function table *)
     ↪[frame] f0 -∗
     ▷ (Φ trapV) -∗
-    WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+    WP [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
   Proof.
     iIntros (Hc) "Hf Hcont".
     iApply wp_lift_atomic_step;[auto|].
@@ -374,7 +374,7 @@ Qed.
     simplify_lookup.
     set (σ := (s0,l,i0)).
     assert (reduce s0 {| f_locs := l; f_inst := i0 |}
-           [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
+           [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
            [AI_trap]) as Hred.
     { eapply rm_silent, r_call_indirect_failure2.
       unfold stab_addr. destruct i0. simpl in *. destruct inst_tab;[done|]. inversion Hc. }
@@ -400,7 +400,7 @@ Qed.
     (N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] None -∗ (* but no index i *)
     ↪[frame] f0 -∗
     ▷ (Φ trapV) -∗
-    WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] @ s; E {{ v, (Φ v ∗ (N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] None)
+    WP [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] @ s; E {{ v, (Φ v ∗ (N.of_nat j) ↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m c)] None)
                                                                                           ∗ ↪[frame] f0 }}.
   Proof.
     iIntros (Hc) "Ha Hf Hcont".
@@ -412,7 +412,7 @@ Qed.
     simplify_lookup.
     set (σ := (s0,l,i0)).
     assert (reduce s0 {| f_locs := l; f_inst := i0 |}
-           [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
+           [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
            [AI_trap]) as Hred.
     { eapply rm_silent, r_call_indirect_failure2.
       { unfold stab_addr. destruct i0. simpl in *. destruct inst_tab;[done|]. inversion Hc.
@@ -443,7 +443,7 @@ Qed.
     (N.of_nat j) ↪[wtsize] max -∗ (* but is out of bounds *)
     ↪[frame] f0 -∗
     ▷ (Φ trapV) -∗
-    WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+    WP [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
   Proof.
     iIntros (Hc Hge) "#Ha Hf Hcont".
     iApply wp_lift_atomic_step;[auto|].
@@ -460,7 +460,7 @@ Qed.
     
     set (σ := (s0,l,i0)).
     assert (reduce s0 {| f_locs := l; f_inst := i0 |}
-           [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
+           [::AI_const (VAL_int32 c); AI_basic (BI_call_indirect i)] ME_empty s0 {| f_locs := l; f_inst := i0 |}
            [AI_trap]) as Hred.
     { eapply rm_silent, r_call_indirect_failure2.
       { unfold stab_addr. destruct i0. simpl in *. destruct inst_tab;[done|]. inversion Hc.

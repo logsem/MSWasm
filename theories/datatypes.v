@@ -203,7 +203,7 @@ Record t_context : Type := {
     tc_allocator : allocator_type;
   tc_local : list value_type;
   tc_label : list (list value_type);
-  tc_return : option (list value_type);
+    tc_return : option (list value_type);
 }.
 
 
@@ -213,13 +213,24 @@ Record t_context : Type := {
 WebAssembly computations manipulate values of the four basic value types:
 integers and floating-point data of 32 or 64 bit width each, respectively.
 *)
-Inductive value : Type := (* v *)
-  | VAL_int32 : i32 -> value
-  | VAL_int64 : i64 -> value
-  | VAL_float32 : f32 -> value
-| VAL_float64 : f64 -> value
-| VAL_handle : handle -> value 
-  .
+Inductive numerical_value : Type := (* v *)
+  | NVAL_int32 : i32 -> numerical_value
+  | NVAL_int64 : i64 -> numerical_value
+  | NVAL_float32 : f32 -> numerical_value
+| NVAL_float64 : f64 -> numerical_value
+.
+
+
+
+Inductive value : Type :=
+  | VAL_numeric : numerical_value -> value
+| VAL_handle : handle -> value
+.
+
+Definition VAL_int32 i := VAL_numeric (NVAL_int32 i).
+Definition VAL_int64 i := VAL_numeric (NVAL_int64 i).
+Definition VAL_float32 f := VAL_numeric (NVAL_float32 f).
+Definition VAL_float64 f := VAL_numeric (NVAL_float64 f).
 
 Inductive result : Type :=
   | result_values : list value -> result
@@ -354,7 +365,7 @@ Inductive basic_instruction : Type := (* be *)
 | BI_getoffset : basic_instruction
   | BI_current_memory
   | BI_grow_memory
-  | BI_const : value -> basic_instruction
+  | BI_immediate : numerical_value -> basic_instruction
   | BI_unop : value_type -> unop -> basic_instruction
   | BI_binop : value_type -> binop -> basic_instruction
   | BI_testop : value_type -> testop -> basic_instruction
@@ -482,6 +493,7 @@ instructions:
 *)
 Inductive administrative_instruction : Type := (* e *)
 | AI_basic : basic_instruction -> administrative_instruction
+| AI_const : value -> administrative_instruction
 | AI_trap
 | AI_invoke : funcaddr -> administrative_instruction
 | AI_label : nat -> seq administrative_instruction -> seq administrative_instruction -> administrative_instruction

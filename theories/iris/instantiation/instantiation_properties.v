@@ -3,7 +3,7 @@ From mathcomp Require Import ssreflect eqtype seq ssrbool ssrfun.
 Require Export datatypes operations properties opsem instantiation.
 From stdpp Require Import list fin_maps gmap.
 Require Export stdpp_aux.
-Require Export type_preservation type_progress.
+Require Export type_preservation type_progress iris_reduce_properties.
 
 
 Section module_typing_det.
@@ -187,7 +187,8 @@ Qed.
 
 
 Section Instantiation_properties.
-Context `{HHB : HandleBytes}.
+  Context `{HHB : HandleBytes}.
+  Set Bullet Behavior "Strict Subproofs".
 Definition ext_func_addrs := (map (fun x => match x with | Mk_funcidx i => i end)) ∘ ext_funcs.
 Definition ext_tab_addrs := (map (fun x => match x with | Mk_tableidx i => i end)) ∘ ext_tabs.
 Definition ext_mem_addrs := (map (fun x => match x with | Mk_memidx i => i end)) ∘ ext_mems.
@@ -554,13 +555,13 @@ Proof.
     destruct IHmodglobs as [? [? [? [? ?]]]] => //.
     + by lias.
     + by rewrite Heqfold_res.
-    repeat split => //.
-    + rewrite H.
+    + repeat split => //.
+      rewrite H.
       rewrite H0.
       rewrite app_length fmap_length combine_length.
       repeat f_equal.
       by lias.
-    + rewrite H0.
+      rewrite H0.
       rewrite - app_assoc.
       f_equal.
       rewrite combine_app => /=.
@@ -659,8 +660,8 @@ Lemma bet_const_exprs_len tc es t1 t2:
 Proof.
   move: t1 t2.
   induction es; move => t1 t2 Hconst Hbet; destruct t2 => //=.
-  { apply empty_typing in Hbet. by subst. }
-  { apply empty_typing in Hbet. by subst. }
+  { apply empty_btyping in Hbet. by subst. }
+  { apply empty_btyping in Hbet. by subst. }
   { rewrite <- cat1s in Hbet.
     apply composition_typing in Hbet.
     destruct Hbet as [ts [t1s [t2s [t3s [-> [Heqt2 [Hbet1 Hbet2]]]]]]].
@@ -728,7 +729,7 @@ Proof.
 Qed.
 
 Lemma const_no_reduce s f v me s' f' e':
-  reduce s f [AI_basic (BI_const v)] me s' f' e' ->
+  reduce s f [AI_const v] me s' f' e' ->
   False.
 Proof.
   move => Hred.
@@ -754,7 +755,7 @@ Proof.
 Qed.
   
 Lemma reduce_trans_const s1 f1 v1 mes s2 f2 v2:
-  reduce_trans (s1, f1, [AI_basic (BI_const v1)]) mes (s2, f2, [AI_basic (BI_const v2)]) ->
+  reduce_trans (s1, f1, [AI_const v1]) mes (s2, f2, [AI_const v2]) ->
   v1 = v2.
 Proof.
   move => Hred.
@@ -763,9 +764,52 @@ Proof.
   by apply const_no_reduce in H.
 Qed.
 
+Lemma reduce_trans_imm_to_const s1 f1 v1 mes s2 f2 v2:
+  reduce_trans (s1, f1, [AI_basic (BI_immediate v1)]) mes (s2, f2, [AI_const v2]) ->
+  v2 = VAL_numeric v1.
+Proof.
+  move => Hred.
+  inversion Hred => //.
+  destruct status' as [[??]?].
+  remember ([AI_basic (BI_immediate v1)]) as es1.
+  induction H ; inversion Heqes1; subst.
+  - inversion H => //; subst.
+    + inversion H1 => //; subst.
+      * inversion H0 => //.
+        destruct status' as [[??]?].
+        by apply const_no_reduce in H2.
+      * destruct vs => //.  destruct vs => //.
+      * destruct vs => //. destruct vs => //.
+      * unfold lfilled, lfill in H3. destruct lh => //.  destruct (const_list _) => //.
+        apply b2p in H3. destruct l => //.  destruct l => //.
+    + destruct vcs => //.
+    + destruct vcs => //.
+  - unfold lfilled, lfill in H4.
+    destruct k.
+    + destruct lh => //.
+      destruct (const_list _) eqn:Hconst => //.
+      apply b2p in H4. destruct l => //.
+      * destruct es => //.
+        -- apply empty_no_reduce in H => //.
+        -- destruct es => //. destruct l0 => //.
+           inversion H4; subst.
+           unfold lfilled, lfill in H5. simpl in H5.
+           rewrite app_nil_r in H5.
+           apply b2p in H5 as ->.
+           apply IHreduce => //.
+      * inversion H4; subst. simpl in Hconst. done.
+    + fold lfill in H4. destruct lh => //.
+      destruct (const_list _) eqn:Hconst => //.
+      destruct (lfill _ _ _) => //.
+      apply b2p in H4. destruct l => //.
+      inversion H4; subst. simpl in Hconst. done.
+Qed. 
+
+           
+
 Lemma reduce_get_global s f me s' f' i e:
   reduce s f [AI_basic (BI_get_global i)] me s' f' e ->
-  exists v, sglob_val s (f_inst f) i = Some v /\ e = [AI_basic (BI_const v)] /\ me = ME_empty.
+  exists v, sglob_val s (f_inst f) i = Some v /\ e = [AI_const v] /\ me = ME_empty.
 Proof.
   move => Hred.
   dependent induction Hred; subst; try by repeat destruct vcs => //.
@@ -795,7 +839,7 @@ Proof.
 Qed.
     
 Lemma reduce_trans_get_global s f mes s' f' i v:
-  reduce_trans (s, f, [AI_basic (BI_get_global i)]) mes (s', f', [AI_basic (BI_const v)]) ->
+  reduce_trans (s, f, [AI_basic (BI_get_global i)]) mes (s', f', [AI_const v]) ->
   sglob_val s (f_inst f) i = Some v.
 Proof.
   move => Hred.
@@ -854,11 +898,11 @@ Proof.
       destruct Hconst as [Hilen _].
       move/ssrnat.ltP in Hilen.
       rewrite <- Hsgveq in H3 => //.
-      by rewrite H3 in H1.
+      by rewrite H3 in H1; inversion H1.
     }
-    { destruct H1 as [mes H1]. apply reduce_trans_const in H1.
-      destruct H3 as [mes' H3]. apply reduce_trans_const in H3.
-      by subst.
+    { destruct H1 as [mes H1]. apply reduce_trans_imm_to_const in H1.
+      destruct H3 as [mes' H3]. apply reduce_trans_imm_to_const in H3.
+      rewrite - H3 in H1; inversion H1. done.
     }
   }
 Qed.
@@ -905,9 +949,9 @@ Proof.
       rewrite H1 in H3.
       by inversion H3.
     }
-    { destruct H1 as [? H1]. apply reduce_trans_const in H1.
-      destruct H3 as [? H3]. apply reduce_trans_const in H3.
-      subst; by inversion H1.
+    { destruct H1 as [? H1]. apply reduce_trans_imm_to_const in H1.
+      destruct H3 as [? H3]. apply reduce_trans_imm_to_const in H3.
+      inversion H1; inversion H3; subst => //. inversion H4; subst => //. 
     }
   }
 Qed.
@@ -954,9 +998,9 @@ Proof.
       rewrite H1 in H3.
       by inversion H3.
     }
-    { destruct H1 as [? H1]. apply reduce_trans_const in H1.
-      destruct H3 as [? H3]. apply reduce_trans_const in H3.
-      subst; by inversion H1.
+    { destruct H1 as [? H1]. apply reduce_trans_imm_to_const in H1.
+      destruct H3 as [? H3]. apply reduce_trans_imm_to_const in H3.
+      inversion H1; inversion H3; subst. inversion H4; subst => //. 
     }
   }
 Qed.
@@ -999,7 +1043,7 @@ Proof.
   destruct res_t as [s1 idt].
   remember (alloc_mems s1 (mod_mems m)) as res_m.
   destruct res_m as [s2 idm].
-  remember (alloc_globs s2 (mod_globals m) g_inits) as res_g.
+  remember (alloc_globs s2 (mod_globals m) [seq VAL_numeric i | i <- g_inits]) as res_g.
   destruct res_g as [s5 idg].
   symmetry in Heqres_f.
   symmetry in Heqres_t.
@@ -1021,7 +1065,7 @@ Proof.
   destruct res_t' as [s1' idt'].
   remember (alloc_mems s1' (mod_mems m)) as res_m'.
   destruct res_m' as [s2' idm'].
-  remember (alloc_globs s2' (mod_globals m) g_inits') as res_g'.
+  remember (alloc_globs s2' (mod_globals m) [seq VAL_numeric i | i <- g_inits']) as res_g'.
   destruct res_g' as [s5' idg'].
   symmetry in Heqres_f'.
   symmetry in Heqres_t'.
@@ -1180,6 +1224,8 @@ Proof.
     exfalso. apply lookup_ge_None in Hsgn. by lias.
   }
   split => //; last by subst.
+  rewrite map_length => //.
+  rewrite map_length => //. 
 Qed.
   
 Lemma instantiate_det s m vimps res res':

@@ -309,10 +309,10 @@ Definition wasm_deserialise (bs : bytes) (vt : value_type) : value :=
 
 Definition bits (v : value) : bytes :=
   match v with
-  | VAL_int32 c => serialise_i32 c
-  | VAL_int64 c => serialise_i64 c
-  | VAL_float32 c => serialise_f32 c
-  | VAL_float64 c => serialise_f64 c
+  | VAL_numeric (NVAL_int32 c) => serialise_i32 c
+  | VAL_numeric (NVAL_int64 c) => serialise_i64 c
+  | VAL_numeric (NVAL_float32 c) => serialise_f32 c
+  | VAL_numeric (NVAL_float64 c) => serialise_f64 c
   | VAL_handle h => serialise_handle h
   end.
 
@@ -352,12 +352,16 @@ Definition load_store_t_bounds (a : alignment_exponent) (tp : option packed_type
 End WasmBytes.
 
 
+Definition typeof_numerical (v : numerical_value) : value_type :=
+  match v with
+  | (NVAL_int32 _) => T_i32
+  | (NVAL_int64 _) => T_i64
+  | (NVAL_float32 _) => T_f32
+  | (NVAL_float64 _) => T_f64
+  end.
 Definition typeof (v : value) : value_type :=
   match v with
-  | VAL_int32 _ => T_i32
-  | VAL_int64 _ => T_i64
-  | VAL_float32 _ => T_f32
-  | VAL_float64 _ => T_f64
+  | VAL_numeric v => typeof_numerical v
   | VAL_handle _ => T_handle
   end.
 
@@ -415,14 +419,14 @@ Definition app_unop (op: unop) (v: value) :=
   match op with
   | Unop_i iop =>
     match v with
-    | VAL_int32 c => VAL_int32 (@app_unop_i i32t iop c)
-    | VAL_int64 c => VAL_int64 (@app_unop_i i64t iop c)
+    | VAL_numeric (NVAL_int32 c) => VAL_int32 (@app_unop_i i32t iop c)
+    | VAL_numeric (NVAL_int64 c) => VAL_int64 (@app_unop_i i64t iop c)
     | _ => v
     end
   | Unop_f fop =>
     match v with
-    | VAL_float32 c => VAL_float32 (@app_unop_f f32t fop c)
-    | VAL_float64 c => VAL_float64 (@app_unop_f f64t fop c)
+    | VAL_numeric (NVAL_float32 c) => VAL_float32 (@app_unop_f f32t fop c)
+    | VAL_numeric (NVAL_float64 c) => VAL_float64 (@app_unop_f f64t fop c)
     | _ => v
     end
   end.
@@ -469,28 +473,28 @@ Definition app_binop (op: binop) (v1: value) (v2: value) :=
   match op with
   | Binop_i iop =>
     match v1 with
-    | VAL_int32 c1 =>
+    | VAL_numeric (NVAL_int32 c1) =>
       match v2 with
-      | VAL_int32 c2 => option_map (fun v => VAL_int32 v) (@app_binop_i i32t iop c1 c2)
+      | VAL_numeric (NVAL_int32 c2) => option_map (fun v => VAL_int32 v) (@app_binop_i i32t iop c1 c2)
       |  _ => None
       end                              
-    | VAL_int64 c1 =>
+    | VAL_numeric (NVAL_int64 c1) =>
       match v2 with
-      | VAL_int64 c2 => option_map (fun v => VAL_int64 v) (@app_binop_i i64t iop c1 c2)
+      | VAL_numeric (NVAL_int64 c2) => option_map (fun v => VAL_int64 v) (@app_binop_i i64t iop c1 c2)
       |  _ => None
       end                              
     | _ => None
     end
   | Binop_f fop =>
     match v1 with
-    | VAL_float32 c1 =>
+    | VAL_numeric (NVAL_float32 c1) =>
       match v2 with
-      | VAL_float32 c2 => option_map (fun v => VAL_float32 v) (@app_binop_f f32t fop c1 c2)
+      | VAL_numeric (NVAL_float32 c2) => option_map (fun v => VAL_float32 v) (@app_binop_f f32t fop c1 c2)
       |  _ => None
       end                              
-    | VAL_float64 c1 =>
+    | VAL_numeric (NVAL_float64 c1) =>
       match v2 with
-      | VAL_float64 c2 => option_map (fun v => VAL_float64 v) (@app_binop_f f64t fop c1 c2)
+      | VAL_numeric (NVAL_float64 c2) => option_map (fun v => VAL_float64 v) (@app_binop_f f64t fop c1 c2)
       |  _ => None
       end                              
     | _ => None
@@ -543,28 +547,28 @@ Definition app_relop (op: relop) (v1: value) (v2: value) :=
   match op with
   | Relop_i iop =>
     match v1 with
-    | VAL_int32 c1 =>
+    | VAL_numeric (NVAL_int32 c1) =>
       match v2 with
-      | VAL_int32 c2 => @app_relop_i i32t iop c1 c2
+      | VAL_numeric (NVAL_int32 c2) => @app_relop_i i32t iop c1 c2
       |  _ => false
       end                              
-    | VAL_int64 c1 =>
+    | VAL_numeric (NVAL_int64 c1) =>
       match v2 with
-      | VAL_int64 c2 => @app_relop_i i64t iop c1 c2
+      | VAL_numeric (NVAL_int64 c2) => @app_relop_i i64t iop c1 c2
       |  _ => false
       end                              
     | _ => false
     end
   | Relop_f fop =>
     match v1 with
-    | VAL_float32 c1 =>
+    | VAL_numeric (NVAL_float32 c1) =>
       match v2 with
-      | VAL_float32 c2 => @app_relop_f f32t fop c1 c2
+      | VAL_numeric (NVAL_float32 c2) => @app_relop_f f32t fop c1 c2
       |  _ => false
       end                              
-    | VAL_float64 c1 =>
+    | VAL_numeric (NVAL_float64 c1) =>
       match v2 with
-      | VAL_float64 c2 => @app_relop_f f64t fop c1 c2
+      | VAL_numeric (NVAL_float64 c2) => @app_relop_f f64t fop c1 c2
       |  _ => false
       end                              
     | _ => false
@@ -694,13 +698,13 @@ Definition supdate_glob (s : store_record) (i : instance) (j : nat) (v : value) 
     (sglob_ind s i j).
 
 Definition is_const (e : administrative_instruction) : bool :=
-  if e is AI_basic (BI_const _) then true else false.
+  if e is AI_const _ then true else false.
 
 Definition const_list (es : seq administrative_instruction) : bool :=
   List.forallb is_const es.
 
 Definition those_const_list (es : list administrative_instruction) : option (list value) :=
-  those (List.map (fun e => match e with | AI_basic (BI_const v) => Some v | _ => None end) es).
+  those (List.map (fun e => match e with | AI_const v => Some v | _ => None end) es).
 
 Definition glob_extension (g1 g2: global) : bool.
 Proof.
@@ -755,7 +759,8 @@ Definition to_e_list (bes : seq basic_instruction) : seq administrative_instruct
 Definition to_b_single (e: administrative_instruction) : basic_instruction :=
   match e with
   | AI_basic x => x
-  | _ => BI_const (VAL_int32 (Wasm_int.Int32.zero))
+  | AI_const (VAL_numeric v) => BI_immediate v
+  | _ => BI_immediate (NVAL_int32 (Wasm_int.Int32.zero))
   end.
 
 Definition to_b_list (es: seq administrative_instruction) : seq basic_instruction :=
@@ -774,13 +779,13 @@ Fixpoint es_is_basic (es: seq administrative_instruction) :=
 (** [v_to_e_list]: 
     takes a list of [v] and gives back a list where each [v] is mapped to [Basic (EConst v)]. **)
 Definition v_to_e_list (ves : seq value) : seq administrative_instruction :=
-  map (fun v => AI_basic (BI_const v)) ves.
+  map (fun v => AI_const v) ves.
 
 (* interpreter related *)
 
-Fixpoint split_vals (es : seq basic_instruction) : seq value * seq basic_instruction :=
+Fixpoint split_vals (es : seq administrative_instruction) : seq value * seq administrative_instruction :=
   match es with
-  | (BI_const v) :: es' =>
+  | (AI_const v) :: es' =>
     let: (vs', es'') := split_vals es' in
     (v :: vs', es'')
   | _ => ([::], es)
@@ -794,7 +799,7 @@ Fixpoint split_vals (es : seq basic_instruction) : seq value * seq basic_instruc
     segment and [es] is the remainder of the original [es]. **)
 Fixpoint split_vals_e (es : seq administrative_instruction) : seq value * seq administrative_instruction :=
   match es with
-  | (AI_basic (BI_const v)) :: es' =>
+  | (AI_const v) :: es' =>
     let: (vs', es'') := split_vals_e es' in
     (v :: vs', es'')
   | _ => ([::], es)
@@ -810,7 +815,7 @@ Proof.
   generalize dependent vs ; generalize dependent e ; generalize dependent es'. 
   induction es => //= ; intros.
   destruct a => //= ; try by inversion H ; subst. 
-  destruct b => //= ; try by inversion H ; subst.
+(*  destruct b => //= ; try by inversion H ; subst. *)
   destruct (split_vals_e es) as [??] eqn:Hes.
   destruct l0 => //=.
   inversion H ; subst. by eapply IHes.
@@ -960,15 +965,15 @@ Definition result_types_agree (ts : result_type) r :=
 (* MAXIME: should cvt_[any type] of a handle value be something else than None ? *)
 Definition cvt_i32 (s : option sx) (v : value) : option i32 :=
   match v with
-  | VAL_int32 _ => None
-  | VAL_int64 c => Some (wasm_wrap c)
-  | VAL_float32 c =>
+  | VAL_numeric (NVAL_int32 _) => None
+  | VAL_numeric (NVAL_int64 c) => Some (wasm_wrap c)
+  | VAL_numeric (NVAL_float32 c) =>
     match s with
     | Some SX_U => Wasm_float.float_ui32_trunc f32m c
     | Some SX_S => Wasm_float.float_ui32_trunc f32m c
     | None => None
     end
-  | VAL_float64 c =>
+  | VAL_numeric (NVAL_float64 c) =>
     match s with
     | Some SX_U => Wasm_float.float_ui32_trunc f64m c
     | Some SX_S => Wasm_float.float_ui32_trunc f64m c
@@ -979,20 +984,20 @@ Definition cvt_i32 (s : option sx) (v : value) : option i32 :=
 
 Definition cvt_i64 (s : option sx) (v : value) : option i64 :=
   match v with
-  | VAL_int32 c =>
+  | VAL_numeric (NVAL_int32 c) =>
     match s with
     | Some SX_U => Some (wasm_extend_u c)
     | Some SX_S => Some (wasm_extend_s c)
     | None => None
     end
-  | VAL_int64 c => None
-  | VAL_float32 c =>
+  | VAL_numeric (NVAL_int64 c) => None
+  | VAL_numeric (NVAL_float32 c) =>
     match s with
     | Some SX_U => Wasm_float.float_ui64_trunc f32m c
     | Some SX_S => Wasm_float.float_si64_trunc f32m c
     | None => None
     end
-  | VAL_float64 c =>
+  | VAL_numeric (NVAL_float64 c) =>
     match s with
     | Some SX_U => Wasm_float.float_ui64_trunc f64m c
     | Some SX_S => Wasm_float.float_si64_trunc f64m c
@@ -1003,39 +1008,39 @@ Definition cvt_i64 (s : option sx) (v : value) : option i64 :=
 
 Definition cvt_f32 (s : option sx) (v : value) : option f32 :=
   match v with
-  | VAL_int32 c =>
+  | VAL_numeric (NVAL_int32 c) =>
     match s with
     | Some SX_U => Some (Wasm_float.float_convert_ui32 f32m c)
     | Some SX_S => Some (Wasm_float.float_convert_si32 f32m c)
     | None => None
     end
-  | VAL_int64 c =>
+  | VAL_numeric (NVAL_int64 c) =>
     match s with
     | Some SX_U => Some (Wasm_float.float_convert_ui64 f32m c)
     | Some SX_S => Some (Wasm_float.float_convert_si64 f32m c)
     | None => None
     end
-  | VAL_float32 c => None
-  | VAL_float64 c => Some (wasm_demote c)
+  | VAL_numeric (NVAL_float32 c) => None
+  | VAL_numeric (NVAL_float64 c) => Some (wasm_demote c)
   | VAL_handle _ => None
   end.
 
 Definition cvt_f64 (s : option sx) (v : value) : option f64 :=
   match v with
-  | VAL_int32 c =>
+  | VAL_numeric (NVAL_int32 c) =>
     match s with
     | Some SX_U => Some (Wasm_float.float_convert_ui32 f64m c)
     | Some SX_S => Some (Wasm_float.float_convert_si32 f64m c)
     | None => None
     end
-  | VAL_int64 c =>
+  | VAL_numeric (NVAL_int64 c) =>
     match s with
     | Some SX_U => Some (Wasm_float.float_convert_ui64 f64m c)
     | Some SX_S => Some (Wasm_float.float_convert_si64 f64m c)
     | None => None
     end
-  | VAL_float32 c => Some (wasm_promote c)
-  | VAL_float64 c => None
+  | VAL_numeric (NVAL_float32 c) => Some (wasm_promote c)
+  | VAL_numeric (NVAL_float64 c) => None
   | VAL_handle _ => None
   end.
 

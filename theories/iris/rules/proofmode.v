@@ -33,7 +33,7 @@ Hint Mode DecomposeLocal ! - - - - - : typeclass_instances.
 Instance DecomposeLocalConsHere : forall n f es l2, DecomposeLocal (AI_local n f es :: l2) [] n f es l2.
 Proof. intros. constructor. auto. Qed.
 
-Instance DecomposeLocalCons : forall n f es l2 l l' e, DecomposeLocal l2 l n f es l' -> DecomposeLocal ((AI_basic (BI_const e)) :: l2) (e :: l) n f es l'.
+Instance DecomposeLocalCons : forall n f es l2 l l' e, DecomposeLocal l2 l n f es l' -> DecomposeLocal ((AI_const e) :: l2) (e :: l) n f es l'.
 Proof.
   intros. constructor. inversion H. rewrite MkDecomposeLocal0.
   simpl. auto.
@@ -61,7 +61,7 @@ Hint Mode DecomposeLabel ! - - - - - : typeclass_instances.
 Instance DecomposeLabelConsHere : forall n f es l2, DecomposeLabel (AI_label n f es :: l2) [] n f es l2.
 Proof. intros. constructor. auto. Qed.
 
-Instance DecomposeLabelCons : forall n f es l2 l l' e, DecomposeLabel l2 l n f es l' -> DecomposeLabel ((AI_basic (BI_const e)) :: l2) (e :: l) n f es l'.
+Instance DecomposeLabelCons : forall n f es l2 l l' e, DecomposeLabel l2 l n f es l' -> DecomposeLabel ((AI_const e) :: l2) (e :: l) n f es l'.
 Proof.
   intros. constructor. inversion H. rewrite MkDecomposeLabel0.
   simpl. auto.
@@ -98,7 +98,7 @@ Proof. intros. constructor. auto. Qed.
 Instance DecomposeBaseConsHere : forall l e es l2, DecomposeBase l es [] l2 -> DecomposeBase (e :: l) (e :: es) [] l2.
 Proof. intros. constructor. inversion H;subst. simpl. auto. Qed.
 
-Instance DecomposeBaseCons : forall l l1 e l2 e', DecomposeBase l e l1 l2 -> DecomposeBase ((AI_basic (BI_const e')) :: l) e (e' :: l1) l2.
+Instance DecomposeBaseCons : forall l l1 e l2 e', DecomposeBase l e l1 l2 -> DecomposeBase ((AI_const e') :: l) e (e' :: l1) l2.
 Proof. intros. inversion H. constructor. subst. simpl. auto. Qed.
 
 Lemma decompose_base_list l e l1 l2 :

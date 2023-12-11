@@ -178,7 +178,7 @@ Note that this is a property very similar to Iris context.
       destruct H ;
         try (by filled0 Hfill i lh ;
              eapply rm_silent, r_simple; econstructor) ;
-        try (destruct v ; try (by inversion H) ; destruct b ; try (by inversion H)) ;
+        try (destruct v ; try (by inversion H));
         try (by filled1 Hfill i lh Hes es ;
              eapply rm_silent, r_simple; econstructor) ;
         try (by filled2 Hfill i lh Hes es ;
@@ -274,7 +274,7 @@ Note that this is a property very similar to Iris context.
         simpl.
         rewrite app_length.
         lia.
-        destruct He ; destruct e => //. destruct b => //. 
+        destruct He ; destruct e => //. 
         by const_list_app.
         apply in_app_or in Hxl1 as [Habs | Habs].
         intruse_among_values vs Habs H.
@@ -300,7 +300,7 @@ Note that this is a property very similar to Iris context.
         simpl.
         rewrite app_length.
         lia.
-        destruct He ; destruct e => //. destruct b => //. 
+        destruct He ; destruct e => //. 
         by const_list_app.
         apply in_app_or in Hxl1 as [Habs | Habs].
         intruse_among_values vs Habs H.
@@ -467,7 +467,7 @@ Note that this is a property very similar to Iris context.
         unfold lfilled, lfill.
         rewrite Hcvs.
         done.
-        destruct He ; destruct e => // ; destruct b => //.
+        destruct He ; destruct e => //.
         by const_list_app.
         apply first_values in Hfill as (_ & Habs & _) => //= ; try by (intros [? ?]). } 
     - left ; simple_filled Hfill i lh bef aft nn ll ll'.

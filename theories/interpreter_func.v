@@ -197,11 +197,11 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
     (* testops *)
     | AI_basic (BI_testop T_i32 testop) =>
-      if ves is (VAL_int32 c) :: ves' then
+      if ves is (VAL_numeric (NVAL_int32 c)) :: ves' then
         (s, f, RS_normal (vs_to_es ((VAL_int32 (wasm_bool (@app_testop_i i32t testop c))) :: ves')))
       else (s, f, crash_error)
     | AI_basic (BI_testop T_i64 testop) =>
-      if ves is (VAL_int64 c) :: ves' then
+      if ves is (VAL_numeric (NVAL_int64 c)) :: ves' then
         (s, f, RS_normal (vs_to_es ((VAL_int32 (wasm_bool (@app_testop_i i64t testop c))) :: ves')))
       else (s, f, crash_error)
     | AI_basic (BI_testop _ _) => (s, f, crash_error)
@@ -234,7 +234,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         (s, f, RS_normal (vs_to_es ves'))
       else (s, f, crash_error)
     | AI_basic BI_select =>
-      if ves is (VAL_int32 c) :: v2 :: v1 :: ves' then
+      if ves is (VAL_numeric (NVAL_int32 c)) :: v2 :: v1 :: ves' then
         if c == Wasm_int.int_zero i32m
         then (s, f, RS_normal (vs_to_es (v2 :: ves')))
         else (s, f, RS_normal (vs_to_es (v1 :: ves')))
@@ -255,20 +255,20 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                         (vs_to_es ves' ++ to_e_list es)]))
       else (s, f, crash_error)
     | AI_basic (BI_if tf es1 es2) =>
-      if ves is VAL_int32 c :: ves' then
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
         if c == Wasm_int.int_zero i32m
         then (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_block tf es2)]))
         else (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_block tf es1)]))
       else (s, f, crash_error)
     | AI_basic (BI_br j) => (s, f, RS_break j ves)
     | AI_basic (BI_br_if j) =>
-      if ves is VAL_int32 c :: ves' then
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
         if c == Wasm_int.int_zero i32m
         then (s, f, RS_normal (vs_to_es ves'))
         else (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_br j)]))
       else (s, f, crash_error)
     | AI_basic (BI_br_table js j) =>
-      if ves is VAL_int32 c :: ves' then
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
         let: k := Wasm_int.nat_of_uint i32m c in
         if Nat.ltb k (length js)
         then
@@ -282,7 +282,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         (s, f, RS_normal (vs_to_es ves ++ [::AI_invoke a]))
       else (s, f, crash_error)
     | AI_basic (BI_call_indirect j) =>
-      if ves is VAL_int32 c :: ves' then
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
         match stab_addr s f (Wasm_int.nat_of_uint i32m c) with
         | Some a =>
           match List.nth_error s.(s_funcs) a with
@@ -327,7 +327,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         if t is T_handle then
           (s, f, crash_error)
         else 
-      if ves is VAL_int32 k :: ves' then
+      if ves is VAL_numeric (NVAL_int32 k) :: ves' then
         expect
           (smem_ind s f.(f_inst))
           (fun j =>
@@ -438,13 +438,13 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
 
                 (** slice **)
   | AI_basic BI_slice =>
-      if ves is VAL_int32 c2 :: VAL_int32 c1 :: VAL_handle h :: ves' then
+      if ves is VAL_numeric (NVAL_int32 c2) :: VAL_numeric (NVAL_int32 c1) :: VAL_handle h :: ves' then
         if slice_handle h (Wasm_int.N_of_uint i32m c1) (Wasm_int.N_of_uint i32m c2) is Some h' then
           ((s, f, RS_normal (vs_to_es (VAL_handle h' :: ves'))))
         else ((s, f, RS_normal ((vs_to_es ves') ++ [::AI_trap])))
       else (s, f, crash_error)
     | AI_basic BI_handleadd =>
-        if ves is VAL_handle h :: VAL_int32 c :: ves' then
+        if ves is VAL_handle h :: VAL_numeric (NVAL_int32 c) :: ves' then
           expect (handle_add h (Wasm_int.Z_of_sint i32m c))
             ( fun v => ((s, f, RS_normal (vs_to_es (VAL_handle v :: ves')))))
             ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
@@ -458,7 +458,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
 (*        if t is T_handle then
           (s, f, crash_error)
         else  *)
-      if ves is VAL_int32 k :: ves' then
+      if ves is VAL_numeric (NVAL_int32 k) :: ves' then
         expect
           (smem_ind s f.(f_inst))
           (fun j =>
@@ -471,7 +471,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
           (s, f, crash_error)
       else (s, f, crash_error)
     | AI_basic (BI_store t None a off) =>
-      if ves is v :: VAL_int32 k :: ves' then
+      if ves is v :: VAL_numeric (NVAL_int32 k) :: ves' then
         if types_agree t v
         then
           expect
@@ -488,7 +488,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         else (s, f, crash_error)
       else (s, f, crash_error)
     | AI_basic (BI_store t (Some tp) a off) =>
-      if ves is v :: VAL_int32 k :: ves' then
+      if ves is v :: VAL_numeric (NVAL_int32 k) :: ves' then
         if types_agree t v
         then
           expect
@@ -513,7 +513,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
            else (s, f, crash_error))
         (s, f, crash_error)
     | AI_basic BI_grow_memory =>
-      if ves is VAL_int32 c :: ves' then
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
         expect
           (smem_ind s f.(f_inst))
           (fun j =>
@@ -528,7 +528,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
           (s, f, crash_error)
       else (s, f, crash_error)
     | AI_basic BI_segalloc =>
-        if ves is VAL_int32 c :: ves' then
+        if ves is VAL_numeric (NVAL_int32 c) :: ves' then
           let: l := operations.seg_length s.(s_segs) in
           let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
           if seg' is Some seg'' then
@@ -552,8 +552,8 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
 
 
-             
-    | AI_basic (BI_const _) => (s, f, crash_error)
+    | AI_basic (BI_immediate v) => (s, f, RS_normal ((vs_to_es ves) ++ [:: AI_const (VAL_numeric v)]))
+    | AI_const _ => (s, f, crash_error)
     | AI_invoke a =>
       match List.nth_error s.(s_funcs) a with
       | Some cl => 

@@ -152,7 +152,7 @@ Fixpoint to_val_instr (instr : administrative_instruction) : ValNotVal :=
   | AI_trap => Val trapV
   | AI_basic (BI_br i) => Val (brV (VH_base i [] []))
   | AI_basic BI_return => Val (retV (SH_base [] []))
-  | AI_basic (BI_const v) => Val (immV [v])
+  | AI_const v => Val (immV [v])
   | AI_label n labe es =>
       match merge_values_list (map to_val_instr es) with
       | Val (brV i vh) => 
@@ -446,7 +446,7 @@ Proof.
         assert (H1 = f_equal S Hi) as Hproof.
         apply Eqdep.EqdepTheory.UIP.
         by rewrite Hproof ; destruct Hi.
-        specialize (cons_length_rec (AI_basic (BI_const v0)) l0).
+        specialize (cons_length_rec (AI_const v0) l0).
         lia.
       + simpl in Hmerge.
         rewrite merge_trap in Hmerge.
@@ -552,7 +552,7 @@ Proof.
       assert (size_of_instruction (AI_label n0 l l0) < S n). simpl in Hsize. simpl. lia.
       rewrite (IHm s0 l0) => //=.
       destruct s0 => //=.
-      specialize (cons_length_rec (AI_basic (BI_const v)) l0).
+      specialize (cons_length_rec (AI_const v) l0).
       lia.
     + simpl in Hmerge.
       rewrite merge_trap in Hmerge.
@@ -617,7 +617,7 @@ Proof.
       assert (size_of_instruction (AI_label n0 l l0) < S n). simpl in Hsize. simpl. lia.
       erewrite (IHm _ l0) => //=.
       destruct l4 => //=. 
-      specialize (cons_length_rec (AI_basic (BI_const v)) l0).
+      specialize (cons_length_rec (AI_const v) l0).
       lia.
     + simpl in Hmerge.
       rewrite merge_trap in Hmerge.
@@ -707,7 +707,7 @@ Proof.
       assert (size_of_instruction (AI_local n0 f l) < S n). simpl in Hsize. simpl. lia.
       erewrite <- (IHm _ l) => //=.
       destruct l3 => //=. 
-      specialize (cons_length_rec (AI_basic (BI_const v)) l).
+      specialize (cons_length_rec (AI_const v) l).
       lia.
     + simpl in Hmerge.
       rewrite merge_trap in Hmerge.
@@ -917,7 +917,7 @@ Proof.
   destruct b => //= ; unfold to_val => /=.
   - rewrite merge_br => //.
   - rewrite merge_return => //.
-  - rewrite merge_prepend => /=.
+  - unfold to_val => /=. rewrite merge_prepend => /=.
     destruct e => //.
     assert (length_rec (a :: e) < n).
     unfold length_rec in Hlen ; simpl in Hlen.
@@ -965,7 +965,7 @@ Proof.
   destruct b => //= ; unfold to_val => /=.
   - by rewrite merge_br.
   - by rewrite merge_return.
-  - rewrite merge_prepend.
+  - unfold to_val => /=. rewrite merge_prepend.
     destruct (merge_values_list _) => //=.
     destruct v0 => //=.
   - unfold to_val => /=.
@@ -1035,7 +1035,7 @@ Proof.
 Qed.
 
 Lemma to_val_is_immV es vs :
-  to_val es = Some (immV vs) -> es = map (λ x, AI_basic (BI_const x)) vs.
+  to_val es = Some (immV vs) -> es = map (λ x, AI_const x) vs.
 Proof.
   generalize dependent vs.
   induction es => //=.
@@ -1086,19 +1086,36 @@ Proof.
   induction es => //= ; intro es'.
   destruct (to_val_instr a) eqn:Ha => //=.
   { destruct a => //= ; simpl in Ha.
-    { destruct b => //= ; inversion Ha ; subst.
-      by rewrite merge_br.
-      by rewrite merge_return.
+    - destruct b => //= ; inversion Ha ; subst.
+      + by rewrite merge_br.
+      + by rewrite merge_return. 
+    - inversion Ha; subst => /=. 
       rewrite merge_prepend.
-      destruct (merge_values_list _) eqn:Hmerge => //=.
-      destruct v => //=.
-      intro H ; inversion H ; subst.
-      rewrite (to_val_trap_is_singleton (e := es)) => //.
-      unfold to_val ; by rewrite Hmerge.
-      
-      intro H ; inversion H.
-      by erewrite IHes. }
-    { inversion Ha.
+      simpl. destruct (merge_values_list _) eqn:Hmerge => //=.
+      + destruct v => //=.
+        intro H ; inversion H ; subst.
+        rewrite (to_val_trap_is_singleton (e := es)) => //.
+        unfold to_val ; by rewrite Hmerge.
+      + intro H ; inversion H.
+        by erewrite IHes.
+    - inversion Ha; subst. rewrite merge_trap.
+      simpl. rewrite flatten_simplify.
+      destruct es => //. 
+      intros H; inversion H. done.
+    - destruct (merge_values_list (_ l0)) eqn:Hmerge => //.
+      destruct v0 => //.
+      destruct i => //.
+      destruct (vh_decrease lh) => //.
+      inversion Ha; subst. rewrite merge_br => //.
+      inversion Ha; subst. rewrite merge_return => //.
+      inversion Ha; subst. rewrite merge_call_host => //. 
+    - destruct (merge_values_list (_ l)) eqn:Hmerge => //=.
+      destruct v0 => //.
+      inversion Ha; subst. rewrite merge_call_host => //.
+    - inversion Ha; subst. rewrite merge_call_host => //. 
+  }
+(*    {
+    inversion Ha.
       rewrite merge_prepend.
       destruct (merge_values_list _) eqn:Hmerge => //=.
       assert (to_val es = Some v0) ; first by unfold to_val ; rewrite Hmerge.
@@ -1108,7 +1125,7 @@ Proof.
       by intro H' ; inversion H'.
       erewrite IHes => //.
       destruct e => //.
-      by intro H ; inversion H. }
+      by intro H ; inversion H. } 
     destruct (merge_values_list (map _ l0)) eqn:Hmerge => //.
     destruct v0 => //.
     destruct i => //.
@@ -1127,7 +1144,7 @@ Proof.
     rewrite merge_call_host => //.
     inversion Ha.
     rewrite merge_call_host => //.
-  }
+  } *)
   rewrite flatten_simplify.
   intro H ; inversion H.
   destruct a => // ; try by inversion Ha. 
@@ -1257,7 +1274,6 @@ Proof.
     }
     { simpl in Hsplit.
       destruct a => //.
-      destruct b => //.
       destruct (split_vals_e e1) eqn:Hsome.
       assert ((l, l0) = (vs, (e :: es)%SEQ)) as Heq%IHe1.
       { simplify_eq. auto. }
@@ -1365,7 +1381,7 @@ Proof.
     induction es1 => //=.
     intros.
     destruct a => //=.
-    destruct b => //=.
+    
     unfold to_val in Hes1 ; simpl in Hes1.
     rewrite merge_prepend in Hes1.
     destruct (merge_values_list _) eqn:Hmerge => //.
@@ -1378,7 +1394,7 @@ Proof.
     induction es1 => //=.
     intros.
     destruct a => //=.
-    destruct b => //=.
+    
     unfold to_val in Hes1 ; simpl in Hes1.
     rewrite merge_prepend in Hes1.
     destruct (merge_values_list _) eqn:Hmerge => //.
@@ -1391,7 +1407,7 @@ Proof.
     induction es1 => //=.
     intros.
     destruct a => //=.
-    destruct b => //=.
+    
     unfold to_val in Hes1 ; simpl in Hes1.
     rewrite merge_prepend in Hes1.
     destruct (merge_values_list _) eqn:Hmerge => //.
@@ -1414,7 +1430,7 @@ Proof.
   destruct b => //= ; unfold to_val => /=.
   - by rewrite merge_br flatten_simplify.
   - by rewrite merge_return flatten_simplify.
-  - rewrite merge_prepend.
+  - unfold to_val => /=. rewrite merge_prepend.
     unfold to_val in IHes1.
     destruct (merge_values_list _) eqn:Hmerge => //=.
     + destruct v0 => //=.
@@ -1451,7 +1467,7 @@ Proof.
   { destruct es1 => //=. unfold to_val => /=. rewrite of_to_val_instr => //. }
   { simpl in Hconst. apply andb_true_iff in Hconst as [Ha Hconst].
     destruct a => //.
-    destruct b => //.
+    
     simpl.
     unfold to_val => /=.
     rewrite merge_prepend.
@@ -1474,7 +1490,7 @@ Proof.
   }
   { simpl in Hconst. apply andb_true_iff in Hconst as [Ha Hconst].
     destruct a => //.
-    destruct b => //.
+    
     simpl.
     unfold to_val => /=.
     rewrite merge_prepend.
@@ -1502,7 +1518,7 @@ Proof.
   induction es => //= ; intros.
   by exists [].
        destruct a => //=.
-       destruct b => //=.
+       
        unfold to_val => /=.
        rewrite merge_prepend.
        apply IHes in H as [vs Htv].
@@ -1523,7 +1539,7 @@ Proof.
   destruct b => //= ; unfold to_val => /=. 
   - rewrite merge_br flatten_simplify => //.
   - rewrite merge_return flatten_simplify => //.
-  - rewrite merge_prepend.
+  - unfold to_val => /=. rewrite merge_prepend.
     unfold to_val in IH.
     destruct (merge_values_list _) => //.
     destruct v0 => //=.
@@ -1629,7 +1645,6 @@ Proof.
       exact H2.
       all : try done.
     + destruct v => //.
-      by destruct b => //=.
     + move/lfilledP in H2.
       inversion H2. subst es0 es.
       apply to_val_not_trap_interweave;auto.
@@ -1681,8 +1696,8 @@ Proof.
            assert (lfilled k lh es l2) ; first by unfold lfilled ; rewrite Hfill.
            destruct (lfilled_implies_llfill H1) as [llh Hfilled].
            eapply llfill_call_host_and_reduce ; first (exact HRed) ; (try exact Hfilled) => //=.
-      * destruct a => //.
-        destruct b => //=.
+      * destruct a => //=.
+        
         rewrite merge_prepend.
         unfold lfilled, lfill in H0 ; fold lfill in H0.
         rewrite Hl in H0.

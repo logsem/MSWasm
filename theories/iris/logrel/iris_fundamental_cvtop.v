@@ -30,10 +30,10 @@ Section fundamental.
     unfold cvt in Hcvt.
     destruct t1,v;eauto.
     all: unfold option_map in Hcvt.
-    all: (destruct (cvt_i32 sx w1);done) +
-           (destruct (cvt_i64 sx w1);done) +
-           (destruct (cvt_f32 sx w1);done) +
-           (destruct (cvt_f64 sx w1);done) + auto.
+    all: (destruct (cvt_i32 sx w1); inversion Hcvt; subst; iExists _;done) +
+           (destruct (cvt_i64 sx w1); inversion Hcvt; subst; iExists _;done) +
+           (destruct (cvt_f32 sx w1); inversion Hcvt; subst; iExists _;done) +
+           (destruct (cvt_f64 sx w1); inversion Hcvt; subst; iExists _;done) + auto.
   Qed.
 
   Lemma interp_value_reinterpret t1 w1 :

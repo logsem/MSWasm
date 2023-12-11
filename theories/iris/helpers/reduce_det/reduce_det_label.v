@@ -129,8 +129,7 @@ Proof.
     { exists [me], (bef ++ es' ++ aft), (s', f_locs f', f_inst f'), [].
       repeat split => //=. destruct f ; destruct f' => //=. } 
     destruct a ; try by inversion Ha.
-    destruct b ; try by inversion Ha.
-    assert (prim_step ([AI_basic (BI_const v)] ++ bef ++ es ++ aft)
+    assert (prim_step ([AI_const v] ++ bef ++ es ++ aft)
                       (s, f_locs f, f_inst f) [me'] es2
                       (ws2, f_locs f2, f_inst f2) []) as Hstep.
     { repeat split => //=. rewrite <- app_comm_cons in H. rewrite <- H.
@@ -146,8 +145,8 @@ Proof.
       destruct f ; simpl in H2. destruct f2 ; simpl in H2.
       assert (length_rec (bef ++ es ++ aft) < nnn).
       { rewrite H in Hlen. rewrite <- app_comm_cons in Hlen.
-        replace (AI_basic (BI_const v) :: (bef ++ es ++ aft)) with
-            ([AI_basic (BI_const v)] ++ (bef ++ es ++ aft)) in Hlen => //=.
+        replace (AI_const v :: (bef ++ es ++ aft)) with
+            ([AI_const v] ++ (bef ++ es ++ aft)) in Hlen => //=.
         rewrite app_length_rec in Hlen. simpl in Hlen. 
           by apply lt_S_n. }
       destruct (IHnnn _ _ _ _ _ _ _ H1 _ H2 H3) as [Hσ | [(i & Hstrat & Hme) |
@@ -157,37 +156,37 @@ Proof.
         inversion Hσ ; subst.
         replace (bef ++ es' ++ aft)%SEQ with (bef ++ es' ++ aft)%list in H8 => //=.
         rewrite H8. by rewrite Hves2.
-      - right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+      - right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_const v] [])
                                                  (bef ++ es ++ aft) les).
         unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
         split => //. eapply starts_with_lfilled => //=.
-      - right; right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+      - right; right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_const v] [])
                                                  (bef ++ es ++ aft) les).
         unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
         eapply starts_with_lfilled => //=.
       - repeat right. exists (i1 + 0),(i2 + 0),(i3 + 0). repeat split => //=.
-        assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+        assert (lfilled 0 (LH_base [AI_const v] [])
                         (bef ++ es ++ aft) les).
         unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
           by apply (starts_with_lfilled _ _ _ _ _ _ Hstart1 H4).
-          assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+          assert (lfilled 0 (LH_base [AI_const v] [])
                           (bef ++ es' ++ aft) les').
           unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
             by apply (starts_with_lfilled _ _ _ _ _ _ Hstart2 H4).
             destruct es2 ; simpl in Hstart3 ; first by inversion Hves2.
             unfold drop in Hstart3. inversion Hves2 ; subst.
-            assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
-                            es2 (AI_basic (BI_const v) :: es2)).
+            assert (lfilled 0 (LH_base [AI_const v] [])
+                            es2 (AI_const v :: es2)).
             unfold lfilled, lfill => //= ; by rewrite app_nil_r.
               by apply (starts_with_lfilled _ _ _ _ _ _ Hstart3 H). } 
     repeat right. exists 0,0,0.
-    assert (lfilled 0 (LH_base [AI_basic (BI_const v)] []) (bef ++ es ++ aft) les)
+    assert (lfilled 0 (LH_base [AI_const v] []) (bef ++ es ++ aft) les)
       as Hfill.
     { unfold lfilled, lfill => //=. rewrite H.
         by rewrite app_comm_cons app_nil_r. } 
     destruct (lfilled_trans Htrap' Hfill) as [lh'' ?]. simpl in H1.
     destruct (trap_reduce _ _ _ _ _ _ _ _ Htrap' Hles) as (lh''' & ? & Hσ').
-    assert (lfilled 0 (LH_base [AI_basic (BI_const v)] []) (bef ++ es' ++ aft) les')
+    assert (lfilled 0 (LH_base [AI_const v] []) (bef ++ es' ++ aft) les')
       as Hfill'.
     { unfold lfilled, lfill => //=. rewrite H0.
         by rewrite app_comm_cons app_nil_r. }
@@ -385,8 +384,8 @@ Proof.
     { exists [me], (bef ++ AI_label n es0 l0 :: aft), (s', f_locs f', f_inst f'), [].
       repeat split => //=. destruct f ; destruct f' => //=. } 
     destruct a ; try by inversion Ha.
-    destruct b ; try by inversion Ha.
-    assert (prim_step ([AI_basic (BI_const v)] ++ bef ++ AI_label n es0 l :: aft)
+
+    assert (prim_step ([AI_const v] ++ bef ++ AI_label n es0 l :: aft)
                       (s, f_locs f, f_inst f) [me'] es2
                       (ws2, f_locs f2, f_inst f2) []) as Hstep.
     { repeat split => //=. rewrite <- app_comm_cons in H. rewrite <- H.
@@ -400,8 +399,8 @@ Proof.
       destruct f ; simpl in H2. destruct f2 ; simpl in H2.
       assert (length_rec (bef ++ AI_label n es0 l :: aft) < nnn).
       { rewrite H in Hlen. rewrite <- app_comm_cons in Hlen.
-        replace (AI_basic (BI_const v) :: (bef ++ AI_label n es0 l :: aft)) with
-            ([AI_basic (BI_const v)] ++ (bef ++ AI_label n es0 l :: aft)) in Hlen => //=.
+        replace (AI_const v :: (bef ++ AI_label n es0 l :: aft)) with
+            ([AI_const v] ++ (bef ++ AI_label n es0 l :: aft)) in Hlen => //=.
         rewrite app_length_rec in Hlen. simpl in Hlen. 
           by apply lt_S_n. }          
       destruct (IHnnn _ _ _ _ _ _ _ Hles _ H2 H1) as [Hσ | [ (i & Hstart & Hme) |
@@ -412,37 +411,37 @@ Proof.
         replace (bef ++ AI_label n es0 l0 :: aft)%SEQ with
             (bef ++ AI_label n es0 l0 :: aft)%list in H7 => //=.
         rewrite H7. by rewrite Hves2.
-      - right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+      - right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_const v] [])
                                                  (bef ++ AI_label n es0 l :: aft) les).
         unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
         split => //. eapply starts_with_lfilled => //=.
-      - right; right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+      - right; right ; left. exists (i + 0). assert (lfilled 0 (LH_base [AI_const v] [])
                                                  (bef ++ AI_label n es0 l :: aft) les).
         unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
         eapply starts_with_lfilled => //=.
       - repeat right. exists (i1+0),(i2 + 0),(i3+0). repeat split => //=.
-        assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+        assert (lfilled 0 (LH_base [AI_const v] [])
                         (bef ++ AI_label n es0 l :: aft) les).
         unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
           by apply (starts_with_lfilled _ _ _ _ _ _ Hstart1 H3).
-          assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+          assert (lfilled 0 (LH_base [AI_const v] [])
                           (bef ++ AI_label n es0 l0 :: aft) les').
           unfold lfilled, lfill => //=. by subst ; rewrite app_nil_r.
             by apply (starts_with_lfilled _ _ _ _ _ _ Hstart2 H3).
             destruct es2 ; simpl in Hstart3 ; first by inversion Hves2.
             unfold drop in Hstart3. inversion Hves2 ; subst.
-            assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
-                            es2 (AI_basic (BI_const v) :: es2)).
+            assert (lfilled 0 (LH_base [AI_const v] [])
+                            es2 (AI_const v :: es2)).
             unfold lfilled, lfill => //= ; by rewrite app_nil_r.
               by apply (starts_with_lfilled _ _ _ _ _ _ Hstart3 H). } 
     repeat right. exists (0+0),(0+0),(0+0).
-    assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+    assert (lfilled 0 (LH_base [AI_const v] [])
                     (bef ++ AI_label n es0 l :: aft) les) as Hfill.
     { unfold lfilled, lfill => //=. rewrite H.
         by rewrite app_comm_cons app_nil_r. }
     destruct (lfilled_trans Htrap' Hfill) as [lh'' ?]. simpl in H1.
     destruct (trap_reduce _ _ _ _ _ _ _ _ Htrap' Hles) as (lh''' & ? & Hσ').
-    assert (lfilled 0 (LH_base [AI_basic (BI_const v)] [])
+    assert (lfilled 0 (LH_base [AI_const v] [])
                     (bef ++ AI_label n es0 l0 :: aft) les') as Hfill'.
     { unfold lfilled, lfill => //=. rewrite H0.
         by rewrite app_comm_cons app_nil_r. }

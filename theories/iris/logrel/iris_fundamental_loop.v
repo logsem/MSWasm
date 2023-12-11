@@ -118,7 +118,7 @@ Section fundamental.
     □ (∀ a a0 all, ⌜length a0 = length tn⌝ →
                ↪[frame]a -∗ interp_frame (tc_local C) i a -∗ interp_allocator all -∗
              □ ([∗ list] w;τ ∈ a0;tn, interp_value τ w) -∗
-             WP ((λ v : value, AI_basic (BI_const v)) <$> a0) ++
+             WP ((λ v : value, AI_const v) <$> a0) ++
                 to_e_list [BI_loop (Tf tn tm) es]
              {{ vs0,
                 (interp_val tm vs0
@@ -144,7 +144,7 @@ Section fundamental.
     unfold interp_br_body.
     destruct (pull_base_l_drop_len vh (length vs - length tn)) eqn:Hpb.
     erewrite vfill_pull_base_l_take_len;[|eauto].
-    pose proof (vfill_to_lfilled v (((λ x : value, AI_basic (BI_const x)) <$> l) ++ [AI_basic (BI_br j)])) as [Hle Hfill]. 
+    pose proof (vfill_to_lfilled v (((λ x : value, AI_const x) <$> l) ++ [AI_basic (BI_br j)])) as [Hle Hfill]. 
     erewrite <- lh_depth_pull_base_l_take_len in Hfill;[|eauto]. 
     rewrite Hsize -e in Hfill.
     assert (j - p = 0) as ->;[lia|].
@@ -179,7 +179,7 @@ Section fundamental.
     □ (∀ a a0 all, ⌜length a0 = length tn⌝ →
                ↪[frame]a -∗ interp_frame (tc_local C) i a -∗ interp_allocator all -∗
              □ ([∗ list] w;τ ∈ a0;tn, interp_value τ w) -∗
-             WP ((λ v : value, AI_basic (BI_const v)) <$> a0) ++
+             WP ((λ v : value, AI_const v) <$> a0) ++
                 to_e_list [BI_loop (Tf tn tm) es]
              {{ vs0,
                 (interp_val tm vs0

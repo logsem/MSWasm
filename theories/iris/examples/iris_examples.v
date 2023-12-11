@@ -21,18 +21,18 @@ Section Examples.
 
 Context `{!wasmG Σ, HHB: HandleBytes}.
 
-Definition xx i := (VAL_int32 (Wasm_int.int_of_Z i32m i)).
-Definition xb b := (VAL_int32 (wasm_bool b)).
+Definition xx i := (NVAL_int32 (Wasm_int.int_of_Z i32m i)).
+Definition xb b := (NVAL_int32 (wasm_bool b)).
 
 Let expr := iris.expr.
 
 Definition my_add : expr :=
-  [AI_basic (BI_const (xx 3));
-     AI_basic (BI_const (xx 2));
+  [AI_basic (BI_immediate (xx 3));
+     AI_basic (BI_immediate (xx 2));
   AI_basic (BI_binop T_i32 (Binop_i BOI_add))].
 
 Lemma myadd_spec (s : stuckness) (E : coPset) (Φ: val -> iProp Σ) (f0: frame): 
-  ↪[frame] f0 -∗ Φ (immV [xx 5]) -∗ WP my_add @ s; E {{ v, Φ v ∗  ↪[frame] f0  }}.
+  ↪[frame] f0 -∗ Φ (immV [VAL_numeric (xx 5)]) -∗ WP my_add @ s; E {{ v, Φ v ∗  ↪[frame] f0  }}.
 Proof.
   iIntros "Hf HP".
   iApply (wp_binop with "[$]");eauto.
@@ -40,10 +40,10 @@ Qed.
 
 (* An example to show framing from the stack. *)
 Definition my_add2: expr :=
-  [AI_basic (BI_const (xx 1));
-  AI_basic (BI_const (xx 2));
+  [AI_const (xx 1);
+  AI_const (xx 2);
   AI_basic (BI_binop T_i32 (Binop_i BOI_add));
-  AI_basic (BI_const (xx 2));
+  AI_const (xx 2);
   AI_basic (BI_binop T_i32 (Binop_i BOI_add))].
 
 Lemma myadd2_spec (s : stuckness) (E : coPset) (Φ: val -> iProp Σ) f0:
@@ -103,7 +103,7 @@ Lemma label_check_easy f0:
   ↪[frame] f0
   ⊢ WP [::AI_basic
          (BI_block (Tf [] [T_i32;T_i32])
-            [::BI_const (xx 2); BI_const (xx 3)] )] {{ λ v, ⌜v = immV [xx 2;xx 3]⌝ ∗ ↪[frame] f0}}.
+            [::BI_immediate (xx 2); BI_immediate (xx 3)] )] {{ λ v, ⌜v = immV [xx 2;xx 3]⌝ ∗ ↪[frame] f0}}.
 Proof.
   rewrite -iRewrite_nil_l.
   iIntros "Hf0"; iApply (wp_block with "[$]");eauto. iNext.

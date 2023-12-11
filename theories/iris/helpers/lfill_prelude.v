@@ -594,7 +594,6 @@ Proof.
     induction l => /=.
     + exists (VH_base i [] l0) => //=.
     + destruct a => //=.
-      destruct b => //=.
       rewrite list_extra.cons_app.
       rewrite - cat_app.
       apply IHl in Hl as (vh & ? & ?).
@@ -609,7 +608,6 @@ Proof.
         simpl in Hthose.
         inversion Hthose => //.
       * destruct a => //=.
-        destruct b => //=.
         rewrite list_extra.cons_app in Hthose.
         rewrite - cat_app in Hthose.
         apply those_app_inv in Hthose as (tl1 & tl2 & Hv0 & Hthose & Htl) => //.
@@ -631,7 +629,6 @@ Proof.
     + eexists ; split => //=.
       by rewrite Hvfill.
     + destruct a => //=.
-      destruct b => //=.
       rewrite list_extra.cons_app.
       rewrite - cat_app.
       specialize (IHl Hl) as (vh0 & Hvh0 & Hvfill0).
@@ -655,7 +652,7 @@ Proof.
   move/eqP in Hfill; subst LI.
   induction l.
   exists (LL_base [] l0) => //=.
-  destruct a => //. destruct b => //.
+  destruct a => //. 
   simpl in Hl.
   destruct (IHl Hl) as [llh Hfill].
   exists (llh_push_const llh [v]) => /=.
@@ -671,7 +668,7 @@ Proof.
   destruct IHk as [llh <-] => //.
   induction l.
   exists (LL_label [] n l0 llh l1) => //=.
-  destruct a => //. destruct b => //.
+  destruct a => //. 
   simpl in Hl.
   destruct (IHl Hl) as [llh0 Hfill].
   exists (llh_push_const llh0 [v]) => /=.
@@ -742,7 +739,7 @@ Proof.
       destruct lh. { simpl in Hvs'.
                      destruct Hvs' as [Hvs' | Hvs'].
                      { apply const_list_split in Hvs' as [? [[? ?]%const_list_split ?]%const_list_split].
-                       destruct e;try done. destruct b;try done. }
+                       destruct e;try done. }
                      { erewrite !app_assoc in Hvs'. rewrite -app_assoc in Hvs'.
                        rewrite -(app_nil_l [AI_trap]) in Hvs'.
                        apply first_values in Hvs' as [? [? ?]];auto;try by intros [? ?].
@@ -859,7 +856,7 @@ Proof.
                   destruct (const_list l) eqn:Hconst; inversion Heqles. rewrite H0 in Hvs'.
                   simplify_eq. destruct Hvs' as [Hvs' | Hvs'].
                   { apply const_list_split in Hvs' as [? [[? ?]%const_list_split ?]%const_list_split].
-                    destruct e;try done. destruct b;try done. (* apply He;eauto. *) }
+                    destruct e;try done.  }
                   { erewrite !app_assoc in Hvs'. rewrite -app_assoc in Hvs'.
                     rewrite -(app_nil_l [AI_trap]) in Hvs'.
                     apply first_values in Hvs' as [? [? ?]];auto;try by intros [? ?].
@@ -974,7 +971,7 @@ Proof.
       destruct lh. { simpl in Hvs'.
                      destruct Hvs' as [Hvs' | Hvs'].
                      { apply const_list_split in Hvs' as [? [[? ?]%const_list_split ?]%const_list_split].
-                       destruct e;try done. destruct b;try done. }
+                       destruct e;try done.  }
                      { erewrite !app_assoc in Hvs'. rewrite -app_assoc in Hvs'.
                        rewrite -(app_nil_l [AI_trap]) in Hvs'.
                        apply first_values in Hvs' as [? [? ?]];auto;try by intros [? ?].

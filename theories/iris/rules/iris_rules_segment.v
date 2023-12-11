@@ -349,7 +349,7 @@ Qed.
      ▷ (h.(id) ↣[allocated] Some x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [wasm_deserialise bv t])) ∗
    ↪[frame] f0 ∗ h.(id) ↣[allocated] Some x ∗ 
       ↦[wss][ handle_addr h ] tbv ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)) ;
+     (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ x, Φ x ∗ ↪[frame] f0 }})).
 
 (*Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
@@ -387,7 +387,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_const _], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     eapply rm_segload_success => //.
@@ -415,7 +415,7 @@ Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_typ
    ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
      ↦[wss][ handle_addr h ]
      tbv ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)) ;
+     (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }})).
 Proof.
   iIntros (Ht Htv Htbv Hvalid Hhi) "(HΦ & Hf0 & Halloc & Hwss)".
@@ -440,7 +440,7 @@ Qed.
     ▷ (h.(id) ↣[allocated] Some x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
    ↪[frame] f0 ∗ h.(id) ↣[allocated] Some x ∗ 
       ↦[wss][ handle_addr h ] tbv ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)) ;
+     (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ x, Φ x ∗ ↪[frame] f0 }})).
 (*Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
   (h: handle) (f0: frame) (x: N*N) hmem bc ts:
@@ -483,7 +483,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_const _], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     eapply rm_segload_handle_success => //.
@@ -515,7 +515,7 @@ Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:va
    ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
      ↦[wss][ handle_addr h ]
      tbv ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)) ;
+     (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }})).
 Proof.
   iIntros (Ht Htv Hts Hvalid Hhi Hmod Hbc) "(HΦ & Hf0 & Halloc & Hwss)".
@@ -529,7 +529,7 @@ Qed.
 Lemma wp_segload_failure1 (Φ: iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t: value_type) h (f: frame):
   valid h = false \/ (offset h + N.of_nat (t_length t) > bound h)%N \/ t = T_handle /\ (N.modulo (handle_addr h) handle_size <> N.of_nat 0)%N ->
   (▷ Φ trapV ∗ ↪[frame] f ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
+     (WP [AI_const (VAL_handle h); AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
 Proof.
   iIntros (Hfail) "[HΦ Hf0]".
   iApply wp_lift_atomic_step => //=.
@@ -585,7 +585,7 @@ Lemma wp_segload_failure2 (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:
   (▷ (id h ↣[allocated] None -∗ Φ (trapV)) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] None
                     ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)) ;
+     (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }})).
 Proof.
   iIntros "(HΦ & Hf0 & Halloc)".
@@ -1285,7 +1285,7 @@ Lemma wp_segstore (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: valu
   (▷ (id h ↣[allocated] Some x ∗ ↦[wss][handle_addr h] (List.map (fun b => (b, Numeric)) (bits v)) -∗ ϕ (immV [])) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
+  (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
   iIntros (Ht Hvt Htbs Hval Hhi) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
@@ -1347,7 +1347,7 @@ Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (
   (▷ (id h ↣[allocated] Some x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v)) -∗ ϕ (immV [])) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
+  (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
   iIntros (Ht Hvt Htbs Hval Hhi Hallign) "(HΦ & Hf0 & Hid & Hwss)".
   iApply wp_lift_atomic_step => //=.
@@ -1402,7 +1402,7 @@ Lemma wp_segstore_failure1 (Φ: iris.val -> iProp Σ) (s:stuckness) (E:coPset) v
   types_agree t v ->
   valid h = false \/ (offset h + N.of_nat (t_length t) > bound h)%N \/ t = T_handle /\ (N.modulo (handle_addr h) handle_size <> N.of_nat 0)%N ->
   (▷ Φ trapV ∗ ↪[frame] f ⊢
-     (WP [AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
+     (WP [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
 Proof.
   iIntros (Htv Hfail) "[HΦ Hf0]".
   iApply wp_lift_atomic_step => //=.
@@ -1456,7 +1456,7 @@ Lemma wp_segstore_failure2 (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset)
   h (f: frame):
   (▷ (id h ↣[allocated] None -∗ ϕ trapV) ∗
    ↪[frame] f ∗ h.(id) ↣[allocated] None) ⊢
-  (WP ([AI_basic (BI_const (VAL_handle h)); AI_basic (BI_const v); AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
+  (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
    iIntros "(HΦ & Hf0 & Halloc)".
   iApply wp_lift_atomic_step => //=.
@@ -1765,7 +1765,7 @@ Lemma wp_segfree h f0 b bts Φ s E:
   offset h = 0%N ->
   length bts = N.to_nat b ->
   (▷ (id h ↣[allocated] None -∗ Φ (immV [])) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] Some (base h, b)
-     ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
+     ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }})).
 Proof.
   iIntros (Hvalid Hoff Hbts) "(HΦ & Hf0 & Hwss & Halloc)".
@@ -1811,7 +1811,7 @@ Qed.
 Lemma wp_segfree_failure1 h f0 Φ s E :
    h.(offset) <> N.zero \/ h.(valid) = false ->
     ▷ (Φ trapV) ∗ ↪[frame] f0
-     ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
+     ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
 Proof.
   iIntros (Hinvalid) "(HΦ & Hf0)".
@@ -1845,7 +1845,7 @@ Qed.
 Lemma wp_segfree_failure2 h f0 Φ s E x y :
   x <> h.(base) ->
     ▷ (id h ↣[allocated]Some (x, y) -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]Some (x, y)
-     ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
+     ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
 Proof.
   iIntros (Hinvalid) "(HΦ & Hf0 & Halloc)".
@@ -1883,7 +1883,7 @@ Qed.
 
 Lemma wp_segfree_failure3 h f0 Φ s E:
   ▷ (id h ↣[allocated]None -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]None
-     ⊢ (WP [AI_basic (BI_const (VAL_handle h)) ;
+     ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
 Proof.
   iIntros "(HΦ & Hf0 & Halloc)".
@@ -2114,7 +2114,7 @@ Lemma wp_segalloc (n: N) (c: i32) (f0: frame) (s: stuckness) (E: coPset) (Φ : i
                                   ↦[wss][ base h ]repeat (#00%byte, Numeric) (N.to_nat n))) -∗ Φ w) ∗
                                                                     
     ↪[frame] f0  ⊢
-     (WP [AI_basic (BI_const (VAL_int32 c)) ;
+     (WP [AI_const (VAL_int32 c) ;
           AI_basic BI_segalloc] @ s; E
     {{ w, Φ w ∗ ↪[frame] f0 }})).
 Proof.
@@ -2131,18 +2131,18 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_const _], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     by eapply rm_segalloc_failure.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws' locs'] inst'] => //=.
     prim_split κ HStep H.
-    remember [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_segalloc] as es0.
+    remember [AI_const (VAL_int32 c) ; AI_basic BI_segalloc] as es0.
     remember {| f_locs := locs ; f_inst := winst |} as f.
     remember {| f_locs := locs' ; f_inst := inst' |} as f'.
-    replace [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_segalloc] with
-      ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_segalloc]) in Heqes0 => //=.
+    replace [AI_const (VAL_int32 c) ; AI_basic BI_segalloc] with
+      ([AI_const (VAL_int32 c)] ++ [AI_basic BI_segalloc]) in Heqes0 => //=.
     induction H ; try by inversion Heqes0 ;
       try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
     destruct H ; try by inversion Heqes0 ;

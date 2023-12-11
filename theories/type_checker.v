@@ -220,7 +220,8 @@ in
   if ts == CT_bot then CT_bot
   else
   match be with
-  | BI_const v => type_update ts [::] (CT_type [::typeof v])
+  | BI_immediate v => 
+      type_update ts [::] (CT_type [::typeof_numerical v])
   | BI_unop t op =>
     match op with
     | Unop_i _ => if is_int t

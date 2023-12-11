@@ -151,7 +151,7 @@ Inductive host_reduce: store_record -> vi_store -> list module -> list host_e ->
 | HR_get_global: ∀ s f vis ms g v_glob fs vs,
     (s_globals s) !! g = Some v_glob ->
     const_list vs ->
-    host_reduce s vis ms [H_get_global g] fs f vs ME_empty s vis ms [] fs f (AI_basic (BI_const (g_val v_glob)) :: vs)
+    host_reduce s vis ms [H_get_global g] fs f vs ME_empty s vis ms [] fs f (AI_const (g_val v_glob) :: vs)
 | HR_trap: ∀ s vis ms g fs f,
     host_reduce s vis ms [H_get_global g] fs f [::AI_trap] ME_empty s vis ms [] fs f [::AI_trap]
 
@@ -211,11 +211,13 @@ Proof.
   rewrite - (cat0s [e2]) in Hfill.
   destruct (is_const e1) eqn:He1, (is_const e2) eqn:He2 ;
     try by right ; (left + (right ; left)).
-  destruct e1, e2 ;
-    try by right ; right ; right ; (left + right ; eexists _,_,_ ; left + right).
+  destruct e1, e2.
+  all: try done.
+  all: try by right ; right ; right ; (left + right ; eexists _,_,_ ; left + right). 
   all: destruct (llfill_first_values Hfill Logic.eq_refl) as [??] => //.
-  all: destruct H0 as [_ ->] => //.
-  all: by left. 
+  all: try destruct H0 as [_ ->] => //.
+  all: try by left.
+
 Qed. 
 
 Lemma sfill_const_list sh es :
@@ -357,7 +359,7 @@ Definition observation := memory_event.
 Definition of_val (v: host_val) : host_expr := ([::], iris.of_val (val_of_host_val v)).
 
 Lemma of_val_imm (vs : list value) :
-  ([::], ((λ v : value, AI_basic (BI_const v)) <$> vs)) = of_val (immHV vs).
+  ([::], ((λ v : value, AI_const v) <$> vs)) = of_val (immHV vs).
 Proof. done. Qed.
 
 Definition to_val (e: host_expr) : option host_val :=
@@ -612,10 +614,10 @@ Proof.
     simpl in HStep. prim_split κ HStep H. 
     eapply get_global_host_det in H;[..|apply HR_get_global;eauto];[|apply v_to_e_is_const_list..].
     inversion H;subst. iFrame. iSimpl.
-    assert (iris.to_val (AI_basic (BI_const (g_val v)) :: v_to_e_list vs)%SEQ =
+    assert (iris.to_val (AI_const (g_val v) :: v_to_e_list vs)%SEQ =
               Some (immV (g_val v :: vs))).
     { rewrite separate1.
-      assert ([AI_basic (BI_const (g_val v))] = v_to_e_list [(g_val v)]) as ->;auto.
+      assert ([AI_const (g_val v)] = v_to_e_list [(g_val v)]) as ->;auto.
       erewrite v_to_e_cat. rewrite to_val_cons_immV. auto. }
     rewrite H0. iSimpl. iSplit => //.  iApply "HΦ". iFrame.
 Qed.
@@ -1198,7 +1200,7 @@ Proof.
     by rewrite fmap_length.
   }
   
-  assert (fmap typeof g_inits = fmap (tg_t ∘ modglob_type) m.(mod_globals)) as Hginitstype.
+  assert (fmap typeof_numerical g_inits = fmap (tg_t ∘ modglob_type) m.(mod_globals)) as Hginitstype.
   {
     unfold module_typing in Hmodtype.
     destruct m => /=.
@@ -1216,7 +1218,7 @@ Proof.
       inversion Hglobtype; subst; clear Hglobtype.
       simpl in *.
       unfold module_glob_typing in H5.
-      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_const v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
+      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_immediate v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
       repeat rewrite list_lookup_fmap in Hlookup.
       rewrite Hmgi Hgii in Hlookup.
       destruct mg.
@@ -1236,7 +1238,7 @@ Proof.
   destruct (alloc_funcs ws (mod_funcs m) inst_res) eqn:Hallocfunc.
   destruct (alloc_tabs s0 (map modtab_type (mod_tables m))) eqn:Halloctab.
   destruct (alloc_mems s1 (mod_mems m)) eqn:Hallocmem.
-  destruct (alloc_globs s2 (mod_globals m) g_inits) eqn:Hallocglob.
+  destruct (alloc_globs s2 (mod_globals m) (map VAL_numeric g_inits)) eqn:Hallocglob.
 
   remember (fmap (fun m_exp => {| modexp_name := modexp_name m_exp; modexp_desc := export_get_v_ext inst_res (modexp_desc m_exp) |}) m.(mod_exports)) as v_exps.
 
@@ -1333,7 +1335,7 @@ Proof.
         unfold ext_glob_addrs => /=.
         rewrite map_app => /=.
         f_equal.
-        apply alloc_glob_gen_index in Hallocglob as [-> ?]; last by lias.
+        apply alloc_glob_gen_index in Hallocglob as [-> ?]; last by rewrite map_length; lias.
         apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [? [? <-]]]]]].
         apply alloc_tab_gen_index in Halloctab as [? [? [? [? [? [? <-]]]]]].
         by apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [? [? <-]]]]]].
@@ -1350,8 +1352,8 @@ Proof.
         simpl in *.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
-        simpl. eexists.
-        by repeat constructor.
+        simpl. eexists. 
+        repeat econstructor.  econstructor. econstructor. econstructor.
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -1372,7 +1374,8 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        eexists. by repeat constructor.
+        eexists. repeat constructor. econstructor. instantiate (1 := (_,_,_)). econstructor.
+        econstructor. econstructor. econstructor. 
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -1393,7 +1396,8 @@ Proof.
         inversion Hmoddata; subst; clear Hmoddata.
         rewrite H0.
         simpl.
-        eexists. by repeat constructor.
+        eexists. repeat constructor. econstructor. instantiate (1 := (_,_,_)). econstructor.
+        econstructor. econstructor. econstructor.
       + apply lookup_ge_None in Hmdata.
         rewrite Hdinitslen in Hmdata.
         apply lookup_ge_None in Hmdata.
@@ -1401,7 +1405,7 @@ Proof.
         by constructor.
     - (* table initializers bound check *)
 
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? ?]]]]; last by lias.
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? ?]]]]; last by rewrite map_length; lias.
       apply alloc_mem_gen_index in Hallocmem as [? [? [? [? ?]]]].
       apply alloc_tab_gen_index in Halloctab as [? [? [? [? ?]]]].
       apply alloc_func_gen_index in Hallocfunc as [? [? [? [? ?]]]].
@@ -1560,7 +1564,7 @@ Proof.
     - (* memory initializers bound check *)
 
       
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by lias.
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by rewrite map_length; lias.
       apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[??]]]]]].
       apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[??]]]]]].
       apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[??]]]]]].
@@ -1958,7 +1962,7 @@ Proof.
     by rewrite fmap_length.
   }
   
-  assert (fmap typeof g_inits = fmap (tg_t ∘ modglob_type) m.(mod_globals)) as Hginitstype.
+  assert (fmap typeof_numerical g_inits = fmap (tg_t ∘ modglob_type) m.(mod_globals)) as Hginitstype.
   {
     unfold module_typing in Hmodtype.
     destruct m => /=.
@@ -1976,7 +1980,7 @@ Proof.
       inversion Hglobtype; subst; clear Hglobtype.
       simpl in *.
       unfold module_glob_typing in H5.
-      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_const v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
+      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_immediate v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
       repeat rewrite list_lookup_fmap in Hlookup.
       rewrite Hmgi Hgii in Hlookup.
       destruct mg.
@@ -1996,7 +2000,7 @@ Proof.
   destruct (alloc_funcs ws (mod_funcs m) inst_res) eqn:Hallocfunc.
   destruct (alloc_tabs s0 (map modtab_type (mod_tables m))) eqn:Halloctab.
   destruct (alloc_mems s1 (mod_mems m)) eqn:Hallocmem.
-  destruct (alloc_globs s2 (mod_globals m) g_inits) eqn:Hallocglob.
+  destruct (alloc_globs s2 (mod_globals m) (map VAL_numeric g_inits)) eqn:Hallocglob.
 
   remember (fmap (fun m_exp => {| modexp_name := modexp_name m_exp; modexp_desc := export_get_v_ext inst_res (modexp_desc m_exp) |}) m.(mod_exports)) as v_exps.
 
@@ -2095,7 +2099,7 @@ Proof.
         unfold ext_glob_addrs => /=.
         rewrite map_app => /=.
         f_equal.
-        apply alloc_glob_gen_index in Hallocglob as [-> ?]; last by lias.
+        apply alloc_glob_gen_index in Hallocglob as [-> ?]; last by rewrite map_length; lias.
         apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[? <-]]]]]].
         apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[? <-]]]]]].
         by apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[? <-]]]]]].
@@ -2113,7 +2117,7 @@ Proof.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
         simpl.
-        eexists; by repeat constructor.
+        eexists; repeat constructor. econstructor. instantiate (1 := (_,_,_)). repeat econstructor. econstructor. 
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -2134,7 +2138,7 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        eexists; by repeat constructor.
+        eexists; repeat econstructor. econstructor. econstructor. econstructor. 
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -2155,7 +2159,7 @@ Proof.
         inversion Hmoddata; subst; clear Hmoddata.
         rewrite H0.
         simpl.
-        eexists; by repeat constructor.
+        eexists; repeat econstructor. repeat econstructor.
       + apply lookup_ge_None in Hmdata.
         rewrite Hdinitslen in Hmdata.
         apply lookup_ge_None in Hmdata.
@@ -2163,7 +2167,7 @@ Proof.
         by constructor.
     - (* table initializers bound check *)
 
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by lias.
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by rewrite map_length; lias.
       apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[??]]]]]].
       apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[??]]]]]].
       apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[??]]]]]].
@@ -2323,7 +2327,7 @@ Proof.
 
       
       (* Method is similar to table initialisers, but details are a bit simpler *)
-      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by lias.
+      apply alloc_glob_gen_index in Hallocglob as [? [? [? [? [?[??]]]]]]; last by rewrite map_length; lias.
       apply alloc_mem_gen_index in Hallocmem as [? [? [? [? [?[??]]]]]].
       apply alloc_tab_gen_index in Halloctab as [? [? [? [? [?[??]]]]]].
       apply alloc_func_gen_index in Hallocfunc as [? [? [? [? [?[??]]]]]].

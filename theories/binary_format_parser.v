@@ -394,25 +394,25 @@ Definition parse_handle_instruction {n} : byte_parser basic_instruction n :=
     parse_segfree.
 
 Definition parse_i32_const {n} : be_parser n :=
-  exact_byte x41 &> ((fun x => BI_const (VAL_int32 x)) <$> parse_s32).
+  exact_byte x41 &> ((fun x => BI_immediate (NVAL_int32 x)) <$> parse_s32).
 
 Definition parse_i64_const {n} : be_parser n :=
-  exact_byte x42 &> ((fun x => BI_const (VAL_int64 x)) <$> parse_s64).
+  exact_byte x42 &> ((fun x => BI_immediate (NVAL_int64 x)) <$> parse_s64).
 
 Definition parse_f32_const {n} : be_parser n :=
-  exact_byte x43 &> ((fun x => BI_const (VAL_float32 x)) <$> parse_f32).
+  exact_byte x43 &> ((fun x => BI_immediate (NVAL_float32 x)) <$> parse_f32).
 
 Definition parse_f64_const {n} : be_parser n :=
-  exact_byte x44 &> ((fun x => BI_const (VAL_float64 x)) <$> parse_f64).
+  exact_byte x44 &> ((fun x => BI_immediate (NVAL_float64 x)) <$> parse_f64).
 
 
 
 
-Definition parse_handle {n} : byte_parser handle n :=
+(* Definition parse_handle {n} : byte_parser handle n :=
   (fun bs => handle_of_bytes (List.map compcert_byte_of_byte bs)) <$> (k_plus_one_anyTok 19).
 
 Definition parse_handle_const {n} : be_parser n :=
-  exact_byte xd0 &> ((fun x => BI_const (VAL_handle x)) <$> parse_handle).
+  exact_byte xd0 &> ((fun x => BI_const (VAL_handle x)) <$> parse_handle). *)
 
 (* :-( *)
 Definition parse_numeric_instruction {n} : be_parser n :=
@@ -420,7 +420,7 @@ Definition parse_numeric_instruction {n} : be_parser n :=
   parse_i64_const <|>
   parse_f32_const <|>
   parse_f64_const <|>
-  parse_handle_const <|>
+  (* parse_handle_const <|> *)
   exact_byte x45 $> BI_testop T_i32 TO_eqz <|>
   exact_byte x46 $> BI_relop T_i32 (Relop_i ROI_eq) <|>
   exact_byte x47 $> BI_relop T_i32 (Relop_i ROI_ne) <|>

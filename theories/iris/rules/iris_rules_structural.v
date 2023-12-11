@@ -44,7 +44,7 @@ Qed.
 Lemma wp_val (s : stuckness) (E : coPset) (Φ : val -> iProp Σ) (v0 : value) (es : language.expr wasm_lang) :
   ((¬ Φ trapV) ∗
   WP es @ NotStuck ; E {{ v, (Φ (val_combine (immV [v0]) v))  }}
-  ⊢ WP ((AI_basic (BI_const v0)) :: es) @ s ; E {{ v, Φ v }})%I.
+  ⊢ WP ((AI_const v0) :: es) @ s ; E {{ v, Φ v }})%I.
 Proof.
   iLöb as "IH" forall (v0 es Φ).
   iIntros "(Hntrap & H)".

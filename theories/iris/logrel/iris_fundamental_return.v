@@ -67,7 +67,7 @@ Section fundamental.
       { simpl. apply to_val_fmap. }
       { simpl. rewrite fmap_length. auto. }
       { simpl. rewrite - v_to_e_cat. rewrite <- app_assoc.
-        instantiate (2:=0). instantiate (1:= LH_base ((λ x : value, AI_basic (BI_const x)) <$> take (length t1s) ws) []).
+        instantiate (2:=0). instantiate (1:= LH_base ((λ x : value, AI_const x) <$> take (length t1s) ws) []).
         unfold lfilled. simpl. rewrite const_list_of_val.
         apply/eqP. simpl. rewrite app_nil_r. auto. }
     }

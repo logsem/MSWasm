@@ -166,3 +166,5 @@ Qed.
 Definition allocated_eq_dec : forall v1 v2 : gmap N (option (N * N)), {v1 = v2} + {v1 <> v2}.
 Proof. intros. solve_decision. Qed.
 
+Definition tc_handles_eq_dec : forall v1 v2 : gmap N unit, {v1 = v2} + {v1 <> v2}. 
+Proof. intros. solve_decision. Qed.

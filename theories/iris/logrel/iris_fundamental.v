@@ -65,7 +65,7 @@ Section fundamental.
   Theorem be_fundamental C es τ : be_typing C es τ -> ⊢ semantic_typing C (to_e_list es) τ.
   Proof.
     induction 1.
-    - admit. (* by apply typing_const.  *)
+    - by apply typing_const.  
     - by apply typing_unop. 
     - by apply typing_binop. 
     - by apply typing_testop. 
@@ -108,7 +108,7 @@ Section fundamental.
       + apply IHbe_typing1. 
       + apply IHbe_typing2. 
     - by apply typing_weakening. 
-  Admitted.
+  Qed. 
 
   
   Corollary be_fundamental_local C es τ1 τ2 τs : (tc_label C) = [] ∧ (tc_return C) = None ->

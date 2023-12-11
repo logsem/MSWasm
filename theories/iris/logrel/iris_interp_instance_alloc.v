@@ -702,7 +702,7 @@ Section InterpInstance.
          tc_return := None
        |} in
     Forall2 (module_glob_typing c') mglobs gts ->
-    (typeof <$> g_inits = (tg_t ∘ modglob_type) <$> mglobs) ->
+    (typeof_numerical <$> g_inits = (tg_t ∘ modglob_type) <$> mglobs) ->
     glob_inits = module_inst_global_init (module_inst_build_globals mglobs) g_inits ->
 
     module_inst_resources_glob glob_inits inst_g ={E}=∗
@@ -728,14 +728,14 @@ Section InterpInstance.
       simpl.
       iApply na_inv_alloc.
       iNext. iExists _. iFrame.
-      assert ((typeof <$> g_inits) !! k = Some (typeof v)).
+      assert ((typeof_numerical <$> g_inits) !! k = Some (typeof_numerical v)).
       { rewrite list_lookup_fmap. rewrite Hg_inits. eauto. }
       rewrite Hinittyp in H.
       rewrite (list_fmap_compose (modglob_type) (datatypes.tg_t) mglobs) in H.
       apply list_lookup_fmap_inv in H as [gt [Heq1 H]].
       rewrite list_lookup_fmap Hmglobs' /= in H. simplify_eq.
       simpl in Heq1. rewrite -Heq1.
-      admit. (* iApply interp_value_type_of. *) }
+      destruct v; by iExists _. } 
     { apply list_lookup_fmap_inv in Hglob as [g [Hgeq Hg]].
       destruct g,modglob_type;simpl in *.
       eapply Forall2_lookup_l in Hginitsval as [gt [Hgt Htyp]];eauto.
@@ -747,7 +747,7 @@ Section InterpInstance.
       iNext. iExists _. iFrame.
       iApply bitzero_interp_value.
     }
-Admitted. 
+Qed. 
 
   Lemma get_import_count_length m t_imps c :
     Forall2 (λ imp e, module_import_typing c (imp_desc imp) e) (mod_imports m) t_imps ->
@@ -2012,7 +2012,7 @@ Admitted.
          prefix (ext_mem_addrs v_imp_descs) inst.(inst_memory) /\ (* insert equivalent for seg? *)
          prefix (ext_glob_addrs v_imp_descs) inst.(inst_globs)) ->
     (* module_init_values m inst tab_inits mem_inits glob_inits -> *)
-    typeof <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->
+    typeof_numerical <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->
     
     ([∗ map] _↦cl ∈ wfs, interp_closure hl (cl_type cl) cl)%I -∗ (* we must assume that the imported closures are valid *)
     ([∗ map] n↦t ∈ wts, interp_table (tab_size t) (interp_closure_pre C wfs inst hl) n) -∗ (* that imported tables are valid, note that the table might be reinitialized by current module *)

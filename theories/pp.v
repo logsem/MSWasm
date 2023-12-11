@@ -130,12 +130,16 @@ Definition pp_handle (h : handle) : string :=
   "base = " ++ of_N h.(base) ++ ", offset = " ++ of_N h.(offset) ++ ", bound = " ++ of_N h.(bound) ++ ", valid = " ++ (if h.(valid) then "true" else "false") ++ ", id = " ++ of_N h.(id).
 
 
+Definition pp_numerical_value (v : numerical_value) : string :=
+  match v with
+  | (NVAL_int32 i) => pp_value_type T_i32 ++ ".const " ++ with_fg FG_green (pp_i32 i) ++ newline
+  | (NVAL_int64 i) => pp_value_type T_i64 ++ ".const " ++ with_fg FG_green (pp_i64 i) ++ newline
+  | (NVAL_float32 f) => pp_value_type T_f32 ++ ".const " ++ with_fg FG_green (pp_f32 f) ++ newline
+  | (NVAL_float64 f) => pp_value_type T_f64 ++ ".const " ++ with_fg FG_green (pp_f64 f) ++ newline
+  end.
 Definition pp_value (v : value) : string :=
   match v with
-  | VAL_int32 i => pp_value_type T_i32 ++ ".const " ++ with_fg FG_green (pp_i32 i) ++ newline
-  | VAL_int64 i => pp_value_type T_i64 ++ ".const " ++ with_fg FG_green (pp_i64 i) ++ newline
-  | VAL_float32 f => pp_value_type T_f32 ++ ".const " ++ with_fg FG_green (pp_f32 f) ++ newline
-  | VAL_float64 f => pp_value_type T_f64 ++ ".const " ++ with_fg FG_green (pp_f64 f) ++ newline
+  | VAL_numeric v => pp_numerical_value v
   | VAL_handle h => pp_value_type T_handle ++ ".const " ++ with_fg FG_green (pp_handle h) ++ newline
   end.
 
@@ -309,8 +313,8 @@ Fixpoint pp_basic_instruction (i : indentation) (be : basic_instruction) : strin
       indent i (with_fg be_style "segalloc" ++ newline)
   | BI_segfree =>
       indent i (with_fg be_style "segfree" ++ newline)
-  | BI_const v =>
-    indent i (pp_value v)
+  | BI_immediate v =>
+    indent i (pp_numerical_value v)
   | BI_unop vt (Unop_i uoi) =>
     indent i (pp_value_type vt ++ "." ++ pp_unary_op_i uoi ++ newline)
   | BI_unop vt (Unop_f uof) =>
@@ -368,6 +372,7 @@ Fixpoint pp_administrative_instruction (n : indentation) (e : administrative_ins
     String.concat "" (List.map (pp_administrative_instruction n) es) in
   match e with
   | AI_basic be => pp_basic_instruction n be
+  | AI_const v => indent n (pp_value v)
   | AI_trap => indent n (with_fg ae_style "trap" ++ newline)
   | AI_invoke a =>
     indent n (with_fg ae_style "invoke" ++ string_of_nat a ++ newline)

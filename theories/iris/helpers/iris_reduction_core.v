@@ -86,7 +86,7 @@ Section reduction_core.
            eexists _, vs0, afte0, [], [], _ ;
            repeat split ; try done ; try (by rewrite app_nil_r) ;
                by econstructor);
-      try (by left ; rewrite (separate1 (AI_basic (BI_const _))) in Heq ;
+      try (by left ; rewrite (separate1 (AI_const _)) in Heq ;
            repeat rewrite app_assoc in Heq ;
            repeat rewrite - (app_assoc (_ ++ _)) in Heq ;
            rewrite - app_comm_cons in Heq ;
@@ -280,7 +280,7 @@ Section reduction_core.
                 rewrite app_comm_cons in Hbefs ;
                 get_tail a ys ys' y' Htail' ;
                 rewrite Htail' in Hbefs ;
-                rewrite (separate1 (AI_basic (BI_const _))) in Hbefs ;
+                rewrite (separate1 (AI_const _)) in Hbefs ;
                 repeat rewrite catA in Hbefs ;
                 rewrite assoc_list_seq in Hbefs ;
                 apply app_inj_tail in Hbefs as [Hys' ->] ;
@@ -321,7 +321,7 @@ Section reduction_core.
            eexists _, vs0, afte0, [], [], _;
            repeat split ; try done ; try (by rewrite app_nil_r) ;
              by econstructor; econstructor);
-  try (by left ; rewrite (separate1 (AI_basic (BI_const _))) in Heq ;
+  try (by left ; rewrite (separate1 (AI_const _)) in Heq ;
            repeat rewrite app_assoc in Heq ;
            repeat rewrite - (app_assoc (_ ++ _)) in Heq ;
            rewrite - app_comm_cons in Heq ;
@@ -523,7 +523,7 @@ Section reduction_core.
                 rewrite app_comm_cons in Hbefs ;
                 get_tail a ys ys' y' Htail' ;
                 rewrite Htail' in Hbefs ;
-                rewrite (separate1 (AI_basic (BI_const _))) in Hbefs ;
+                rewrite (separate1 (AI_const _)) in Hbefs ;
                 repeat rewrite catA in Hbefs ;
                 rewrite assoc_list_seq in Hbefs ;
                 apply app_inj_tail in Hbefs as [Hys' ->] ;
@@ -538,7 +538,7 @@ Section reduction_core.
                   repeat apply andb_true_iff in Hvs0 as [Hvs0 _] ;
                   done
                 | by econstructor; econstructor]]) .
-    { destruct H as [ | ? ? ? ? ? Hr | ? ? ? ? Hr | | | | ? ? ? ? ? Hr1 Hr2 |
+    { destruct H as [ | | ? ? ? ? ? Hr | ? ? ? ? Hr | | | | ? ? ? ? ? Hr1 Hr2 |
                       ? ? ? ? Hr1 Hr2 | ? ? ? Hr1 Hr2 Hr3 | | | | ? ? ? Hr | ? ? ? Hr |
                       ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4 | ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4 |
                       ? ? ? ? Hr | ? ? ? ? Hr | ? ? ? Hr | | ? ? ? ? ? ? Hr1 Hr2 Hr3 |
@@ -557,7 +557,7 @@ Section reduction_core.
                 repeat split ; try done ; try (by rewrite app_nil_r) ;
                   by repeat econstructor).
       21: try (destruct v ; (try destruct b) ; try by inversion Hr).   
-      all: try (by  left ; rewrite (separate1 (AI_basic (BI_const _))) in Heq ; 
+      all: try (by  left ; rewrite (separate1 (AI_const _)) in Heq ; 
                 repeat rewrite app_assoc in Heq  ;
                 repeat rewrite - (app_assoc (_ ++ _)) in Heq ;
                 rewrite - app_comm_cons in Heq ;
@@ -751,7 +751,7 @@ Section reduction_core.
                      rewrite app_comm_cons in Hbefs ;
                      get_tail a ys ys' y' Htail' ;
                      rewrite Htail' in Hbefs ;
-                     rewrite (separate1 (AI_basic (BI_const _))) in Hbefs ;
+                     rewrite (separate1 (AI_const _)) in Hbefs ;
                      repeat rewrite catA in Hbefs ;
                      rewrite assoc_list_seq in Hbefs ;
                      apply app_inj_tail in Hbefs as [Hys' ->] ;
@@ -1071,7 +1071,7 @@ Section reduction_core.
         rewrite Htail2 app_comm_cons app_comm_cons in Hbefs.
         get_tail a vs2 vs3 b3 Htail3.
         rewrite Htail3 in Hbefs.
-        rewrite (separate1 (AI_basic _)) in Hbefs.
+        rewrite (separate1 (AI_const _)) in Hbefs.
         rewrite (separate1 _ [_]) in Hbefs.
         repeat rewrite assoc_list_seq in Hbefs.
         repeat rewrite app_assoc in Hbefs.
@@ -1393,7 +1393,7 @@ Section reduction_core.
         rewrite Htail2 app_comm_cons app_comm_cons in Hbefs.
         get_tail a vs2 vs3 b3 Htail3.
         rewrite Htail3 in Hbefs.
-        rewrite (separate1 (AI_basic _)) in Hbefs.
+        rewrite (separate1 (AI_const _)) in Hbefs.
         rewrite (separate1 _ [_]) in Hbefs.
         repeat rewrite assoc_list_seq in Hbefs.
         repeat rewrite app_assoc in Hbefs.
@@ -1755,7 +1755,7 @@ Section reduction_core.
           rewrite app_comm_cons in Hbefs ;
           get_tail a ys ys' y' Htail' ;
           rewrite Htail' in Hbefs ;
-          rewrite (separate1 (AI_basic (BI_const _))) in Hbefs ;
+          rewrite (separate1 (AI_const _)) in Hbefs ;
           repeat rewrite catA in Hbefs ;
           rewrite assoc_list_seq in Hbefs ;
           apply app_inj_tail in Hbefs as [Hys' ->] ;
@@ -1903,7 +1903,7 @@ Section reduction_core.
           rewrite app_comm_cons in Hbefs ;
           get_tail a ys ys' y' Htail' ;
           rewrite Htail' in Hbefs ;
-          rewrite (separate1 (AI_basic (BI_const _))) in Hbefs ;
+          rewrite (separate1 (AI_const _)) in Hbefs ;
           repeat rewrite catA in Hbefs ;
           rewrite assoc_list_seq in Hbefs ;
           apply app_inj_tail in Hbefs as [Hys' ->] ;
@@ -2223,7 +2223,7 @@ Section reduction_core.
         rewrite Htail2 app_comm_cons app_comm_cons in Hbefs.
         get_tail a vs2 vs3 b3 Htail3.
         rewrite Htail3 in Hbefs.
-        rewrite (separate1 (AI_basic _)) in Hbefs.
+        rewrite (separate1 (AI_const _)) in Hbefs.
         rewrite (separate1 _ [_]) in Hbefs.
         repeat rewrite assoc_list_seq in Hbefs.
         repeat rewrite app_assoc in Hbefs.
@@ -2546,7 +2546,7 @@ Section reduction_core.
         rewrite Htail2 app_comm_cons app_comm_cons in Hbefs.
         get_tail a vs2 vs3 b3 Htail3.
         rewrite Htail3 in Hbefs.
-        rewrite (separate1 (AI_basic _)) in Hbefs.
+        rewrite (separate1 (AI_const _)) in Hbefs.
         rewrite (separate1 _ [_]) in Hbefs.
         repeat rewrite assoc_list_seq in Hbefs.
         repeat rewrite app_assoc in Hbefs.

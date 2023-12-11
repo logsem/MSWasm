@@ -57,28 +57,29 @@ Section split_reduce_properties.
        inversion Heqes.
     { destruct H ;
         repeat (destruct es1 ; first (by inversion Heqes ; subst ; inversion Hes1)) ;
-        inversion Heqes.
-      - solve_prim_step_split_reduce_r H4 [AI_basic (BI_const (app_unop op v))]
+        inversion Heqes. 
+      - solve_prim_step_split_reduce_r H3 [AI_const (VAL_numeric v)] Heqf0; by apply rm_silent, r_simple, rs_immediate.
+      - solve_prim_step_split_reduce_r H4 [AI_const (app_unop op v)]
                                        Heqf0 ; by apply rm_silent, r_simple, rs_unop.
-      - solve_prim_step_split_reduce_r H6 [AI_basic (BI_const v)] Heqf0 ;
+      - solve_prim_step_split_reduce_r H6 [AI_const v] Heqf0 ;
           by apply rm_silent, r_simple, rs_binop_success.
       - solve_prim_step_split_reduce_r H6 [AI_trap] Heqf0 ; by apply rm_silent, r_simple,
             rs_binop_failure.
       - solve_prim_step_split_reduce_r
-          H4 [AI_basic (BI_const (VAL_int32 (wasm_bool (app_testop_i (e:=i32t) testop c))))]
+          H4 [AI_const (VAL_int32 (wasm_bool (app_testop_i (e:=i32t) testop c)))]
           Heqf0 ; by apply rm_silent, r_simple, rs_testop_i32.
       - solve_prim_step_split_reduce_r
-          H4 [AI_basic (BI_const (VAL_int32 (wasm_bool (app_testop_i (e:=i64t) testop c))))]
+          H4 [AI_const (VAL_int32 (wasm_bool (app_testop_i (e:=i64t) testop c)))]
           Heqf0 ; by apply rm_silent, r_simple, rs_testop_i64.
       - solve_prim_step_split_reduce_r
-          H5 [AI_basic (BI_const (VAL_int32 (wasm_bool (app_relop op v1 v2))))]
+          H5 [AI_const (VAL_int32 (wasm_bool (app_relop op v1 v2)))]
           Heqf0 ; by apply rm_silent, r_simple,  rs_relop.
-      - solve_prim_step_split_reduce_r H6 [AI_basic (BI_const v')] Heqf0 ;
+      - solve_prim_step_split_reduce_r H6 [AI_const v'] Heqf0 ;
           by apply rm_silent, r_simple, rs_convert_success.
       - solve_prim_step_split_reduce_r H6 [AI_trap] Heqf0 ;
           by apply rm_silent, r_simple, rs_convert_failure.
       - solve_prim_step_split_reduce_r
-          H7 [AI_basic (BI_const (wasm_deserialise (bits v) t2))] Heqf0 ;
+          H7 [AI_const (wasm_deserialise (bits v) t2)] Heqf0 ;
           by apply rm_silent, r_simple, rs_reinterpret.
       - solve_prim_step_split_reduce_r H3 [AI_trap] Heqf0 ;
           by apply rm_silent, r_simple, rs_unreachable.
@@ -86,9 +87,9 @@ Section split_reduce_properties.
                                        Heqf0 ; by apply rm_silent, r_simple, rs_nop.
       - solve_prim_step_split_reduce_r H4 ([] : seq.seq administrative_instruction)
                                        Heqf0 ; by apply rm_silent, r_simple, rs_drop.
-      - solve_prim_step_split_reduce_r H7 [AI_basic (BI_const v2)] Heqf0 ;
+      - solve_prim_step_split_reduce_r H7 [AI_const v2] Heqf0 ;
           by apply rm_silent, r_simple, rs_select_false.
-      - solve_prim_step_split_reduce_r H7 [AI_basic (BI_const v1)] Heqf0 ;
+      - solve_prim_step_split_reduce_r H7 [AI_const v1] Heqf0 ;
           by apply rm_silent, r_simple, rs_select_true.
       - left ; destruct (first_non_value _ Hes1) as (vs1 & e1 & es'1 & Hvs1 & He1 & Hes'1).
         rewrite Hes'1 in Heqes. rewrite <- app_assoc in Heqes.
@@ -100,7 +101,7 @@ Section split_reduce_properties.
         rewrite <- He. rewrite <- Heqf. rewrite <- Heqf0. rewrite Hn1.
         apply rm_silent, r_simple. apply (rs_block es H H2 H3 H4).
         destruct He1 as [? | ?] => //.
-        destruct e1 => //. destruct b => //.
+        destruct e1 => //. 
         destruct e1 => //. 
       - left ; destruct (first_non_value _ Hes1) as (vs1 & e1 & es'1 & Hvs1 & He1 & Hes'1).
         rewrite Hes'1 in Heqes. rewrite <- app_assoc in Heqes.
@@ -113,7 +114,7 @@ Section split_reduce_properties.
         apply rm_silent, r_simple. apply (rs_loop es H H2 H3 H4).
         intros ; unfold to_val in He1.
         destruct He1 as [?| ?].
-        destruct e1 => //. destruct b => //. destruct e1 => //. 
+        destruct e1 => //. destruct e1 => //. 
       - solve_prim_step_split_reduce_r H5 [AI_basic (BI_block tf e2s)] Heqf0 ;
           by apply rm_silent, r_simple, rs_if_false.
       - solve_prim_step_split_reduce_r H5 [AI_basic (BI_block tf e1s)] Heqf0 ;
@@ -141,7 +142,7 @@ Section split_reduce_properties.
         rewrite <- Heqf. rewrite Heqf0. apply rm_silent, r_simple. rewrite Hn1.
         apply (rs_return f0 H H2 H3).
       - destruct es1. subst. destruct a ; try by inversion H.
-        destruct b ; try by inversion H. inversion H4. subst.
+        inversion H4. subst.
         solve_prim_step_split_reduce_r H6 [a; a; AI_basic (BI_set_local i1)]
                                        Heqf0 ;
           by apply rm_silent, r_simple , rs_tee_local.
@@ -214,24 +215,24 @@ Section split_reduce_properties.
       destruct He1 as [?| ?].
       destruct e1 => // ; destruct b => //. destruct e1 => //. 
       rewrite H2. by apply v_to_e_is_const_list. 
-    - solve_prim_step_split_reduce_r H3 [AI_basic (BI_const v)] Heqf0.
+    - solve_prim_step_split_reduce_r H3 [AI_const v] Heqf0.
       apply rm_silent, r_get_local. by rewrite <- Heqf0.
     - apply Logic.eq_sym, app_eq_nil in H6 as [Hn1 Hn2] ; rewrite Hn1 ; rewrite Hn2.
       left ; exists []. repeat split => //=. subst.
       by apply rm_silent, (r_set_local s H H1 H2).
-    - solve_prim_step_split_reduce_r H3 [AI_basic (BI_const v)] Heqf0.
+    - solve_prim_step_split_reduce_r H3 [AI_const v] Heqf0.
       apply rm_silent, r_get_global. by rewrite <- Heqf0.
     - solve_prim_step_split_reduce_r H4 ([] : seq.seq administrative_instruction)
                                      Heqf0.
       by apply rm_silent, r_set_global ; rewrite <- Heqf0.
-    - solve_prim_step_split_reduce_r H7 [AI_basic (BI_const (wasm_deserialise bs t))]
+    - solve_prim_step_split_reduce_r H7 [AI_const (wasm_deserialise bs t)]
                                      Heqf0.
       rewrite <- Heqf0.
       by apply rm_silent, (r_load_success a0 H H1 H2).
     - solve_prim_step_split_reduce_r H6 [AI_trap] Heqf0.
       rewrite <- Heqf0.
       by apply rm_silent, (r_load_failure a0 H H1).
-    - solve_prim_step_split_reduce_r H6 [AI_basic (BI_const (wasm_deserialise bs t))]
+    - solve_prim_step_split_reduce_r H6 [AI_const (wasm_deserialise bs t)]
                                      Heqf0.
       rewrite <- Heqf0 ;
         by apply rm_silent, (r_load_packed_success a0 H H1 H2).
@@ -247,16 +248,16 @@ Section split_reduce_properties.
         by rewrite <- Heqf0 ; apply rm_silent, (r_store_packed_failure a0 H H1 H2 H3).
     - apply Logic.eq_sym, app_eq_nil in H5 as [Hn1 Hn2] ; rewrite Hn1 ; rewrite Hn2.
       left ;
-        exists [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (ssrnat.nat_of_bin n)))))].
+        exists [AI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (ssrnat.nat_of_bin n))))].
       repeat split => //=. rewrite <- Heqf0. rewrite <- Heqf.
       by apply rm_silent, (r_current_memory H H1 H2).
     - apply Logic.eq_sym, app_eq_nil in H7 as [Hn1 Hn2] ; rewrite Hn1 ; rewrite Hn2.
       left ;
-        exists [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (ssrnat.nat_of_bin n)))))].
+        exists [AI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (ssrnat.nat_of_bin n))))].
       repeat split => //=. rewrite <- Heqf0. rewrite <- Heqf.
       by apply rm_silent, (r_grow_memory_success H H1 H2).
     - apply Logic.eq_sym, app_eq_nil in H6 as [Hn1 Hn2] ; rewrite Hn1 ; rewrite Hn2.
-      left ; exists [AI_basic (BI_const (VAL_int32 int32_minus_one))].
+      left ; exists [AI_const (VAL_int32 int32_minus_one)].
       repeat split => //=. rewrite <- Heqf0. rewrite <- Heqf.
       by apply rm_silent, (r_grow_memory_failure (n := n) _ H H1).
     - symmetry in H10; apply app_eq_nil in H10 as [-> ->].
@@ -367,7 +368,6 @@ Section split_reduce_properties.
         { rewrite H3 in Hbef ; simpl in Hbef.
           apply Logic.eq_sym, andb_true_iff in Hbef as [Ha Hbef].
           destruct a ; try by inversion Ha.
-          destruct b ; try by inversion Ha.
           unfold iris.to_val in Hes1. simpl in Hes1.
           rewrite merge_prepend in Hes1.
           unfold iris.to_val in Heqtv.
@@ -391,20 +391,20 @@ Section split_reduce_properties.
                      exists m, 1 <= 2
                           /\ m <= S (S (length (es ++ aft)%list))
                           /\ lfilled 0
-                                    (LH_base [AI_basic (BI_const v0)]
-                                             (drop m ([AI_basic (BI_const v0) ; AI_trap]
+                                    (LH_base [AI_const v0]
+                                             (drop m ([AI_const v0 ; AI_trap]
                                                         ++ (es ++ aft))))
-                                    [AI_trap] (AI_basic (BI_const v0) :: (es' ++ aft)%list)
+                                    [AI_trap] (AI_const v0 :: (es' ++ aft)%list)
                           /\ (s', l0, i0) = (s, l, i)
                           /\ opsem.reduce s
                                          {| f_locs := l ; f_inst := i |}
-                                         [AI_basic (BI_const v0); AI_trap] me s
+                                         [AI_const v0; AI_trap] me s
                                          {| f_locs := l ; f_inst := i |} [AI_trap] /\
                             ([] : seq.seq administrative_instruction) = [] /\
                             ([] : seq.seq administrative_instruction) = [] /\ me = ME_empty)).
           { intro Hn. assert (length es0 < S (length es0)) ; first lia.
             destruct (Hn _ H0) as (m & Hs1 & Hs2 & Hs3 & Hs4 & Hs5 & Hs6 & Hs7 & Hs8).
-            exists m.  exists (LH_base [AI_basic (BI_const v0)] []). repeat split => //=.
+            exists m.  exists (LH_base [AI_const v0] []). repeat split => //=.
             unfold lfilled, lfill => //=. by subst. }
           intros len' Hlen'. clear H4 Hes1 Hbef Ha Heqtv Heqes H Hmerge.
           generalize dependent es0. generalize dependent es.
@@ -422,7 +422,7 @@ Section split_reduce_properties.
             repeat split => //=. lia. rewrite app_length. lia.
             unfold lfilled, lfill. simpl. by rewrite drop_app.
             rewrite Heqf in Heqf0 ; by inversion Heqf0.
-            apply rm_silent, r_simple. apply (rs_trap (lh := LH_base [AI_basic (BI_const v0)] [])).
+            apply rm_silent, r_simple. apply (rs_trap (lh := LH_base [AI_const v0] [])).
             intro Habs ; inversion Habs. unfold lfilled, lfill => //=. }
           destruct ves ; inversion Heqes0.
           rewrite H10 in H1. cut (const_list (AI_trap :: ves) = true).
@@ -463,7 +463,7 @@ Section split_reduce_properties.
               rewrite Heqes0 in Hlen'. rewrite Hz in Hlen'. simpl in Hlen'.
               rewrite app_assoc in Hlen'. rewrite app_length in Hlen'. simpl in Hlen'.
               rewrite Nat.add_1_r in Hlen'. by apply lt_S_n.
-              assert (length ([AI_basic (BI_const v0)] ++ (es' ++ zs)%SEQ ++ (z :: aft)%SEQ)%list < S len).
+              assert (length ([AI_const v0] ++ (es' ++ zs)%SEQ ++ (z :: aft)%SEQ)%list < S len).
               subst les'. rewrite Hz in Hlen.
               repeat rewrite app_length in Hlen.
               repeat rewrite app_length.
@@ -547,7 +547,7 @@ Section split_reduce_properties.
       by rewrite <- Heqlfilledk'.
       intros ; unfold to_val in He.
       destruct He as [? | ?].
-      destruct e => //. destruct b => //. destruct e => //. 
+      destruct e => //. destruct e => //. 
       unfold iris.to_val => /=.
     - solve_prim_step_split_reduce_r H1 [AI_local n f' es'] Heqf0.
       by apply rm_local.
@@ -556,15 +556,15 @@ Section split_reduce_properties.
   
   Lemma reduce_ves: forall v es es' σ σ' efs obs,
       reducible es σ ->
-      prim_step ([AI_basic (BI_const v)] ++ es) σ obs es' σ' efs ->
-      (es' = [AI_basic (BI_const v)] ++ drop 1 es' /\ prim_step es σ obs (drop 1 es') σ' efs)
+      prim_step ([AI_const v] ++ es) σ obs es' σ' efs ->
+      (es' = [AI_const v] ++ drop 1 es' /\ prim_step es σ obs (drop 1 es') σ' efs)
       \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\ lfilled 0 lh' [AI_trap] es /\ σ = σ' /\ obs = [ME_empty]). 
   Proof.
     cut (forall n v es es' σ σ' efs obs,
             length es < n ->
             reducible es σ ->
-            prim_step ([AI_basic (BI_const v)] ++ es) σ obs es' σ' efs ->
-            (es' = [AI_basic (BI_const v)] ++ drop 1 es' /\
+            prim_step ([AI_const v] ++ es) σ obs es' σ' efs ->
+            (es' = [AI_const v] ++ drop 1 es' /\
                prim_step es σ obs (drop 1 es') σ' efs)
             \/ (exists lh lh', lfilled 0 lh [AI_trap] es' /\
                            lfilled 0 lh' [AI_trap] es /\ σ = σ' /\ obs = [ME_empty])).
@@ -578,7 +578,7 @@ Section split_reduce_properties.
     destruct σ' as [[[??]?]?].
     destruct obs => //. destruct obs => //.
     destruct Hves as (Hred & Hefs).
-    remember ([AI_basic (BI_const v)] ++ es)%list as ves.
+    remember ([AI_const v] ++ es)%list as ves.
     remember {| f_locs := l ; f_inst := i |} as f.
     remember {| f_locs := l0 ; f_inst := i0 |} as f0.
     induction Hred as [ s f ces s' f' es' HredSil | | | | | | | | | | | s f ces les me s' f' ces' les' k lh Hred IHreduce Hles Hles' | ];
@@ -601,7 +601,7 @@ Section split_reduce_properties.
     {  unfold language.prim_step, wasm_lang, iris.prim_step in H ;
         destruct σ0 as [[[??]?]?].
        destruct obs0 => //. destruct obs0 => //. destruct H as (Hred0 & Hefs0).
-       destruct Hredsimpl as [ | | | | | | | | | | | | | |
+       destruct Hredsimpl as [ | | | | | | | | | | | | | | |
                                vs es' n m t1s t2s Hconst Hlenvs Ht1s Ht2s |
                                vs es' n m t1s t2s Hconst Hlenvs Ht1s Ht2s |
                              | | | | | | | | | | | | | | | | | | ] ;
@@ -715,11 +715,11 @@ Section split_reduce_properties.
           subst => //=.
           right. exists (LH_base [] (a0 :: aft)), (LH_base [] (a0 :: aft)).
           split ; unfold lfilled, lfill => //=.
-          remember [AI_basic (BI_const v) ; AI_trap] as ces.
+          remember [AI_const v ; AI_trap] as ces.
           remember {| f_locs := l ; f_inst := i |} as f.
           remember {| f_locs := l0 ; f_inst := i0 |} as f'.
-          replace [AI_basic (BI_const v) ; AI_trap] with
-            ([AI_basic (BI_const v)] ++ [AI_trap]) in Heqces => //=.
+          replace [AI_const v ; AI_trap] with
+            ([AI_const v] ++ [AI_trap]) in Heqces => //=.
           induction Hred ; try by inversion Heqces ;
             try by apply app_inj_tail in Heqces as [_ Habs] ; inversion Habs.
           destruct H0 ; try by inversion Heqces ;
@@ -730,7 +730,7 @@ Section split_reduce_properties.
           destruct bef0. { destruct es ; first by empty_list_no_reduce.
                            inversion H0.
                            apply Logic.eq_sym, app_eq_unit in H4 as [[Hes Haft]|[Hes Haft]].
-                           subst. remember [AI_basic (BI_const v)] as ev.
+                           subst. remember [AI_const v] as ev.
                            apply Logic.eq_sym in Heqev.
                            exfalso ; no_reduce Heqev Hred.
                            unfold lfilled, lfill in H1.
@@ -772,7 +772,7 @@ Section split_reduce_properties.
           [ (es' & H1 & H2) | (n & m & lh & H1 & H2 & Hσ) ].
         { assert (reducible ces (s,l,i)).
           unfold reducible, language.reducible. exists obs0, es', σ0, efs0 => //=.
-          assert (prim_step ([AI_basic (BI_const v)] ++ ces) (s,l,i) [me] ces'
+          assert (prim_step ([AI_const v] ++ ces) (s,l,i) [me] ces'
                             (s',l0,i0) []).
           repeat split => //=. by subst.
           assert (length ces < len) as Hlences.

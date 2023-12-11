@@ -63,7 +63,7 @@ Ltac only_one_reduction Heqes0 Hred :=
   (try by inversion Heqes0) ;
   (try by found_intruse (AI_invoke a) Heqes0 Hxl1) ;
   (* reduce_simple case : *)
-  first (destruct H as [ | | | | | | | | | | | | | | 
+  first (destruct H as [ | | | | | | | | | | | | | | | 
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
                        | | | | | | | | | | | | | | | | | | 

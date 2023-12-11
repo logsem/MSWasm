@@ -1913,7 +1913,7 @@ Proof with auto_rewrite_cond.
       exists (tn' ++ [::T_i32]); split => //.
       apply bet_weakening.
       apply bet_grow_memory => //; by destruct C.(tc_memory) => //=.
-    + assert (c_types_agree (type_update cts (to_ct_list [::]) (CT_type [::typeof v])) tm) as Hct3.
+    + assert (c_types_agree (type_update cts (to_ct_list [::]) (CT_type [::typeof_numerical n])) tm) as Hct3.
       * simplify_type_update.
         by unfold produce => //=.
       * apply type_update_type_agree in Hct3.
@@ -1921,7 +1921,8 @@ Proof with auto_rewrite_cond.
         rewrite cats0 in Hct.
         exists tn'; split => //.
         apply bet_weakening_empty_1.
-        by apply bet_const.
+        apply bet_const. 
+        
     + replace ([::CTA_some v]) with (to_ct_list [::v]) in Hct2 => //=.
       apply type_update_type_agree in Hct2.
       destruct Hct2 as [tn' [Hct bet]]; subst.

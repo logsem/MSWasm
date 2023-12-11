@@ -124,10 +124,10 @@ Proof.
   - move=> es es'. destruct es => //=.
     + by inversion 1.
     + case a; try by inversion 1; [idtac].
-      move => b. case b; try by inversion 1.
-      move => v H.  by destruct (split_vals_e es).
+      move => b. (* case b; try by inversion 1. *)
+      move => H.  by destruct (split_vals_e es).
   - move => a l H es es' HSplit. unfold split_vals_e in HSplit.
-    destruct es => //. destruct a0 => //. destruct b => //.
+    destruct es => //. destruct a0 => //. 
     fold split_vals_e in HSplit.
     destruct (split_vals_e es) eqn:Heqn. inversion HSplit; subst.
     simpl. f_equal. by apply: H.
@@ -140,7 +140,7 @@ Proof. by []. Qed.
 Lemma v_to_e_list0 : v_to_e_list [::] = [::].
 Proof. reflexivity. Qed.
 
-Lemma v_to_e_list1 : forall v, v_to_e_list [:: v] = [:: AI_basic (BI_const v)].
+Lemma v_to_e_list1 : forall v, v_to_e_list [:: v] = [:: AI_const v].
 Proof. reflexivity. Qed.
 
 Lemma e_is_trapP : forall e, reflect (e = AI_trap) (e_is_trap e).
@@ -280,7 +280,7 @@ Proof.
   by apply IHes1.
 Qed.
 
-Lemma const_list_is_basic: forall es,
+(* Lemma const_list_is_basic: forall es,
     const_list es ->
     es_is_basic es.
 Proof.
@@ -290,7 +290,7 @@ Proof.
   - destruct a => //.
     unfold e_is_basic. by eauto.
   - by apply IHes.                                 
-Qed.
+Qed. *)
 
 Lemma to_b_list_rev: forall es : seq administrative_instruction,
     rev (to_b_list es) = to_b_list (rev es).
@@ -327,7 +327,7 @@ Proof.
   - by exists [::].
   - move => HConst.
     move/andP in HConst. destruct HConst.
-    destruct a => //=. destruct b => //=.
+    destruct a => //=. 
     edestruct IHes => //=.
     exists (v :: x). simpl. by rewrite H1.
 Qed.
@@ -778,6 +778,7 @@ Definition lfilled_pickable_rec_gen_measure (LI : seq administrative_instruction
   TProp.max
     (seq_administrative_instruction_rect'
        (fun _ => 0)
+       (fun _ => 0)
        0
        (fun _ => 0)
        (fun _ LI1 LI2 m1 m2 => 1 + TProp.max m2)
@@ -870,7 +871,7 @@ Proof.
   }
   case: (list_split_pickable2 (fun vs es => decidable_and (Dcl vs) (Dparse es)) es').
   - move=> [[vs es''] [E1 [C Ex]]].
-    destruct es'' as [| [| | | n es1 LI | |] es2];
+    destruct es'' as [| [| | | | n es1 LI | |] es2];
       try solve [ exfalso; move: Ex => [? [? [? [? E']]]]; inversion E' ].
     clear Ex. rewrite E1.
     have I_LI: (lfilled_pickable_rec_gen_measure LI < m)%coq_nat.
@@ -1051,6 +1052,15 @@ Proof.
   by rewrite cats0 in H.
 Qed.
 
+Lemma et_weakening_empty_2: forall s C es ts t1s,
+    e_typing s C es (Tf t1s [::]) ->
+    e_typing s C es (Tf (ts ++ t1s) ts).
+Proof.
+  move => s C es ts t1s HType.
+  assert (e_typing s C es (Tf (ts ++ t1s) (ts ++ [::]))); first by apply ety_weakening.
+  by rewrite cats0 in H.
+Qed.
+
 Lemma bet_weakening_empty_both: forall C es ts,
     be_typing C es (Tf [::] [::]) ->
     be_typing C es (Tf ts ts).
@@ -1060,12 +1070,32 @@ Proof.
   by rewrite cats0 in H.
 Qed.
 
-Lemma empty_typing: forall C t1s t2s,
+Lemma et_weakening_empty_both: forall s C es ts,
+    e_typing s C es (Tf [::] [::]) ->
+    e_typing s C es (Tf ts ts).
+Proof.
+  move => s C es ts HType.
+  assert (e_typing s C es (Tf (ts ++ [::]) (ts ++ [::]))); first by apply ety_weakening.
+  by rewrite cats0 in H.
+Qed.
+
+Lemma empty_btyping: forall C t1s t2s,
     be_typing C [::] (Tf t1s t2s) ->
     t1s = t2s.
 Proof.
   move => C t1s t2s HType.
   gen_ind_subst HType => //.
+  - by destruct es.
+  - f_equal. by eapply IHHType.
+Qed.
+
+Lemma empty_typing: forall s C t1s t2s,
+    e_typing s C [::] (Tf t1s t2s) ->
+    t1s = t2s.
+Proof.
+  move => s C t1s t2s HType.
+  gen_ind_subst HType => //.
+  - destruct bes => //. by apply empty_btyping in H.
   - by destruct es.
   - f_equal. by eapply IHHType.
 Qed.
@@ -1124,6 +1154,7 @@ Proof.
     by repeat split => //=; rewrite -catA.
 Qed.
 
+
 Lemma composition_typing: forall C es1 es2 t1s t2s,
     be_typing C (es1 ++ es2) (Tf t1s t2s) ->
     exists ts t1s' t2s' t3s, t1s = ts ++ t1s' /\
@@ -1167,6 +1198,10 @@ Lemma e_composition_typing_single: forall s C es1 e t1s t2s,
 Proof.
   move => s C es1 es2 t1s t2s HType.
   gen_ind_subst HType; extract_listn.
+  - (* const *)
+    repeat eexists. instantiate (1 := [::]). instantiate (1 := [::]). done.
+    done. apply ety_a'. done. apply bet_empty.
+    econstructor.
   - (* basic *)
     apply b_e_elim in H3. destruct H3. subst.
     rewrite to_b_list_concat in H.
@@ -1254,7 +1289,7 @@ Proof.
   generalize dependent t3s.
   induction es2' => //=.
   - move => t3s t2s t1s es2 HType2 H1 H2 es1 HType1. destruct es2 => //=. rewrite cats0.
-    apply empty_typing in HType2. by subst.
+    apply empty_btyping in HType2. by subst.
   - move => t3s t2s t1s es2 HType2 H1 H2 es1 HType1.
     rewrite rev_cons in H2. rewrite -cats1 in H2.
     rewrite H2 in HType2.
@@ -1292,7 +1327,7 @@ Proof.
   generalize dependent t3s.
   induction es2' => //=.
   - move => t3s t2s t1s es2 HType2 H1 H2 es1 HType1. destruct es2 => //=. rewrite cats0.
-    apply et_to_bet in HType2. apply empty_typing in HType2. by subst.
+    apply et_to_bet in HType2. apply empty_btyping in HType2. by subst.
   - by [].
   - move => t3s t2s t1s es2 HType2 H1 H2 es1 HType1.
     rewrite rev_cons in H2. rewrite -cats1 in H2.
@@ -1306,6 +1341,16 @@ Proof.
     symmetry. by apply revK.
     by apply HType1.
     by apply ety_weakening.
+Qed.
+
+Lemma et_composition_front: forall s C e es t1s t2s t3s,
+    e_typing s C [::e] (Tf t1s t2s) ->
+    e_typing s C es (Tf t2s t3s) ->
+    e_typing s C (e :: es) (Tf t1s t3s).
+Proof.
+  intros.
+  rewrite - cat1s.
+  by eapply et_composition'; eauto.
 Qed.
 
 End composition_typing_proofs.
@@ -2355,3 +2400,4 @@ Proof.
 Qed. 
 
 End arithmetics.
+

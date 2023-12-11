@@ -18,13 +18,13 @@ Local Definition to_val := iris.to_val.
 (* The following atomicity definition will be useful for opening invariants *)
 Definition is_atomic (e : expr) : Prop :=
   match e with
-  | [::AI_basic (BI_const (VAL_int32 _)); AI_basic (BI_load _ _ _ _)] => True
-  | [::AI_basic (BI_const (VAL_handle _)); AI_basic (BI_segload _)] => True
-  | [::AI_basic (BI_const (VAL_int32 _)); AI_basic (BI_const _); AI_basic (BI_store _ _ _ _)] => True
-  | [::AI_basic (BI_const (VAL_handle _)); AI_basic (BI_const _); AI_basic (BI_segstore _)] => True
-  | [::AI_basic (BI_const (VAL_handle _)); AI_basic BI_segfree] => True
-  | [::AI_basic (BI_const (VAL_int32 _)); AI_basic BI_segalloc] => True
-  | [::AI_basic (BI_const _); AI_basic (BI_set_global _)] => True
+  | [::AI_const (VAL_numeric (NVAL_int32 _)); AI_basic (BI_load _ _ _ _)] => True
+  | [::AI_const (VAL_handle _); AI_basic (BI_segload _)] => True
+  | [::AI_const (VAL_numeric (NVAL_int32 _)); AI_const _; AI_basic (BI_store _ _ _ _)] => True
+  | [::AI_const (VAL_handle _); AI_const _; AI_basic (BI_segstore _)] => True
+  | [::AI_const (VAL_handle _); AI_basic BI_segfree] => True
+  | [::AI_const (VAL_numeric (NVAL_int32 _)); AI_basic BI_segalloc] => True
+  | [::AI_const _; AI_basic (BI_set_global _)] => True
   | [::AI_basic (BI_get_global _)] => True
   | [::AI_trap] => True
   | _ => False
@@ -37,13 +37,13 @@ Ltac destruct_match_goal :=
   end.
 Lemma is_atomic_eq (e : expr) :
   is_atomic e ->
-  (∃ k x1 x2 x3 x4, e = [::AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_load x1 x2 x3 x4)]) ∨
-      (∃ k x1, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic (BI_segload x1)]) ∨
-    (∃ k v x1 x2 x3 x4, e = [::AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_const v); AI_basic (BI_store x1 x2 x3 x4)]) ∨
-    (∃ k v x1, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic (BI_const v); AI_basic (BI_segstore x1)]) ∨
-    (∃ k, e = [::AI_basic (BI_const (VAL_handle k)); AI_basic BI_segfree]) ∨
-            (∃ k, e = [::AI_basic (BI_const (VAL_int32 k)); AI_basic BI_segalloc]) \/
-  (∃ v g, e = [::AI_basic (BI_const v); AI_basic (BI_set_global g)]) ∨
+  (∃ k x1 x2 x3 x4, e = [::AI_const (VAL_int32 k); AI_basic (BI_load x1 x2 x3 x4)]) ∨
+      (∃ k x1, e = [::AI_const (VAL_handle k); AI_basic (BI_segload x1)]) ∨
+    (∃ k v x1 x2 x3 x4, e = [::AI_const (VAL_int32 k); AI_const v; AI_basic (BI_store x1 x2 x3 x4)]) ∨
+    (∃ k v x1, e = [::AI_const (VAL_handle k); AI_const v; AI_basic (BI_segstore x1)]) ∨
+    (∃ k, e = [::AI_const (VAL_handle k); AI_basic BI_segfree]) ∨
+            (∃ k, e = [::AI_const (VAL_int32 k); AI_basic BI_segalloc]) \/
+  (∃ v g, e = [::AI_const v; AI_basic (BI_set_global g)]) ∨
   (∃ g, e = [::AI_basic (BI_get_global g)]) ∨
   (e = [::AI_trap]).
 Proof.
@@ -51,7 +51,7 @@ Proof.
   do 2 (destruct e;try done).
   { destruct a;try done.
     destruct b;try done. right. right. right. right. right. eauto.
-    destruct v;try done.
+    destruct v;try done. destruct n; try done.
     right. right. right. right. right. right. right. by right. }
   do 1 (destruct e;try done).
   { revert He. cbn. repeat destruct_match_goal.
@@ -69,7 +69,7 @@ Qed.
 
 Lemma atomic_no_hole_load s0 f es me s' f' es' k lh k0 x0 x1 x2 x3 :
   reduce s0 f es me s' f' es' -> 
-  lfilled k lh es [::AI_basic (BI_const (VAL_int32 k0)); AI_basic (BI_load x0 x1 x2 x3)] ->
+  lfilled k lh es [::AI_const (VAL_int32 k0); AI_basic (BI_load x0 x1 x2 x3)] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.  
   intros Hred Hfill.
@@ -86,7 +86,7 @@ Qed.
 
 Lemma atomic_no_hole_segload s0 f es me s' f' es' k lh k0 x0:
   reduce s0 f es me s' f' es' -> 
-  lfilled k lh es [::AI_basic (BI_const (VAL_handle k0)); AI_basic (BI_segload x0)] ->
+  lfilled k lh es [::AI_const (VAL_handle k0); AI_basic (BI_segload x0)] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.  
   intros Hred Hfill.
@@ -103,7 +103,7 @@ Qed.
     
 Lemma atomic_no_hole_store s0 f es me s' f' es' k lh k0 v x0 x1 x2 x3 :
   reduce s0 f es me s' f' es' -> 
-  lfilled k lh es [::AI_basic (BI_const (VAL_int32 k0)); AI_basic (BI_const v); AI_basic (BI_store x0 x1 x2 x3)] ->
+  lfilled k lh es [::AI_const (VAL_int32 k0); AI_const v; AI_basic (BI_store x0 x1 x2 x3)] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.
   intros Hred Hfill.
@@ -127,7 +127,7 @@ Qed.
 
 Lemma atomic_no_hole_segstore s0 f es me s' f' es' k lh k0 v x0 :
   reduce s0 f es me s' f' es' -> 
-  lfilled k lh es [::AI_basic (BI_const (VAL_handle k0)); AI_basic (BI_const v); AI_basic (BI_segstore x0 )] ->
+  lfilled k lh es [::AI_const (VAL_handle k0); AI_const v; AI_basic (BI_segstore x0 )] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.
   intros Hred Hfill.
@@ -150,7 +150,7 @@ Qed.
 
 Lemma atomic_no_hole_segfree s0 f es me s' f' es' k lh k0 :
   reduce s0 f es me s' f' es' -> 
-  lfilled k lh es [::AI_basic (BI_const (VAL_handle k0));  AI_basic (BI_segfree)] ->
+  lfilled k lh es [::AI_const (VAL_handle k0);  AI_basic (BI_segfree)] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.
   intros Hred Hfill.
@@ -167,7 +167,7 @@ Qed.
 
 Lemma atomic_no_hole_segalloc s0 f es me s' f' es' k lh k0 :
   reduce s0 f es me s' f' es' -> 
-  lfilled k lh es [::AI_basic (BI_const (VAL_int32 k0)); AI_basic BI_segalloc] ->
+  lfilled k lh es [::AI_const (VAL_int32 k0); AI_basic BI_segalloc] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.
   intros Hred Hfill.
@@ -206,7 +206,7 @@ Qed.
 
 Lemma atomic_no_hole_set_global s0 f es me s' f' es' k lh v g :
   reduce s0 f es me s' f' es' ->
-  lfilled k lh es [::AI_basic (BI_const v); AI_basic (BI_set_global g)] ->
+  lfilled k lh es [::AI_const v; AI_basic (BI_set_global g)] ->
   lh = LH_base [] [] ∧ k = 0.
 Proof.
   intros Hred Hfill.

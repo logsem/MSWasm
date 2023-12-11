@@ -210,7 +210,7 @@ Fixpoint vh_increase_repeat m (vh : valid_holed m) n : valid_holed (n + m) :=
 
 Fixpoint vh_of_lh lh i :=
   match lh with
-  | LH_base bef aft => match those (map (λ x, match x with AI_basic (BI_const v) => Some v
+  | LH_base bef aft => match those (map (λ x, match x with AI_const v => Some v
                                                      |  _ => None end) bef) with
                       | Some bef => Some (VH_base i bef aft)
                       |  _ => None end
@@ -218,7 +218,7 @@ Fixpoint vh_of_lh lh i :=
       match i with
       | 0 => None
       | S i => 
-          match those (map (λ x, match x with AI_basic (BI_const v) => Some v
+          match those (map (λ x, match x with AI_const v => Some v
                                          |  _ => None end) bef) with
           |  Some bef => match vh_of_lh lh i with
                         | Some vh => Some (VH_rec bef n es vh aft)
@@ -229,27 +229,27 @@ Fixpoint vh_of_lh lh i :=
 
 Fixpoint lh_of_vh i (vh : valid_holed i) :=
   match vh with
-  | VH_base _ bef aft => LH_base (map (λ x, AI_basic (BI_const x)) bef) aft
-  | VH_rec _ bef n es vh aft => LH_rec (map (λ x, AI_basic (BI_const x)) bef) n es
+  | VH_base _ bef aft => LH_base (map (λ x, AI_const x) bef) aft
+  | VH_rec _ bef n es vh aft => LH_rec (map (λ x, AI_const x) bef) n es
                                       (lh_of_vh vh) aft end.
 
 Fixpoint lh_of_sh sh :=
   match sh with
-  | SH_base bef aft => LH_base (map (λ x, AI_basic (BI_const x)) bef) aft
-  | SH_rec bef n es sh aft => LH_rec (map (λ x, AI_basic (BI_const x)) bef) n es
+  | SH_base bef aft => LH_base (map (λ x, AI_const x) bef) aft
+  | SH_rec bef n es sh aft => LH_rec (map (λ x, AI_const x) bef) n es
                                     (lh_of_sh sh) aft end. 
 
 Fixpoint llh_of_lh lh :=
   match lh with
   | LH_base bef aft =>
       match those (map (λ x, match x with
-                             | AI_basic (BI_const v) => Some v
+                             | AI_const v => Some v
                              | _ => None end) bef) with
       | Some bef => Some (LL_base bef aft)
       | None => None end 
   | LH_rec bef n es lh aft =>
       match those (map (λ x, match x with
-                             | AI_basic (BI_const v) => Some v
+                             | AI_const v => Some v
                              | _ => None end) bef) with
       | Some bef =>
           match llh_of_lh lh with

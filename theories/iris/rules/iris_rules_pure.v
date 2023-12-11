@@ -11,12 +11,36 @@ Section iris_rules_pure.
 Context `{HHB: HandleBytes}.
 Context `{!wasmG Σ}.
 
+Lemma wp_immediate (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v : numerical_value) f0:
+  ↪[frame] f0 -∗
+  ▷ Φ (immV [VAL_numeric v]) -∗
+  WP [AI_basic (BI_immediate v)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+Proof.
+  iIntros "Hf HΦ".
+  iApply wp_lift_atomic_step. simpl ; trivial.
+  iIntros (σ ns κ κs nt) "Hσ !>".
+  iSplit.
+  - iPureIntro.
+    destruct s => //=.
+    unfold language.reducible, language.prim_step => /=.
+    exists [ME_empty], [AI_const (VAL_numeric v)], σ, [].
+    destruct σ as [[ws locs] inst].
+    unfold iris.prim_step => /=.
+    repeat split => //. apply rm_silent, r_simple. apply rs_immediate.
+  - destruct σ as [[ws locs] inst].
+    iIntros "!>" (es σ2 efs HStep) "!>".
+    destruct σ2 as [[ ws' locs'] inst'].
+    prim_split κ HStep H.
+    only_one_reduction H. iFrame.
+Qed.
+
+
 (* numerics *)
 Lemma wp_unop (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v v' : value) (t: value_type) (op: unop) f0:
   app_unop op v = v' ->
   ↪[frame] f0 -∗
   ▷ Φ (immV [v']) -∗
-  WP [AI_basic (BI_const v); AI_basic (BI_unop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+  WP [AI_const v; AI_basic (BI_unop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
 Proof.
   iIntros (Hunop) "Hf HΦ".
   iApply wp_lift_atomic_step. simpl ; trivial.
@@ -25,7 +49,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const v')], σ, [].
+    exists [ME_empty], [AI_const v'], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //. apply rm_silent, r_simple. rewrite <- Hunop. apply rs_unop.
@@ -40,7 +64,7 @@ Lemma wp_binop (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v1 v2 v
   app_binop op v1 v2 = Some v ->
   ↪[frame] f0 -∗
   ▷ Φ (immV [v]) -∗
-  WP [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+  WP [AI_const v1; AI_const v2; AI_basic (BI_binop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
 Proof.
   iIntros (Hbinop) "Hf HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -49,7 +73,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const v)], σ, [].
+    exists [ME_empty], [AI_const v], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -67,7 +91,7 @@ Lemma wp_binop_failure (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) 
   app_binop op v1 v2 = None ->
   ▷ Φ trapV -∗
   ↪[frame] f0 -∗
-  WP [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_binop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+  WP [AI_const v1; AI_const v2; AI_basic (BI_binop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
 Proof.
   iIntros (Hbinop) "Hf HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -94,7 +118,7 @@ Lemma wp_relop (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v1 v2 :
   app_relop op v1 v2 = b ->
   ↪[frame] f0 -∗
   ▷ Φ (immV [(VAL_int32 (wasm_bool b))]) -∗
-  WP [AI_basic (BI_const v1); AI_basic (BI_const v2); AI_basic (BI_relop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+  WP [AI_const v1; AI_const v2; AI_basic (BI_relop t op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
 Proof.
   iIntros (Hrelop) "Hf HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -103,7 +127,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
+    exists [ME_empty], [AI_const (VAL_int32 (wasm_bool b))], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -121,7 +145,7 @@ Lemma wp_testop_i32 (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v 
   app_testop_i (e:=i32t) op v = b ->
   ↪[frame] f0 -∗
   ▷ Φ (immV [(VAL_int32 (wasm_bool b))]) -∗
-    WP [AI_basic (BI_const (VAL_int32 v)); AI_basic (BI_testop T_i32 op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+    WP [AI_const (VAL_int32 v); AI_basic (BI_testop T_i32 op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
 Proof.
   iIntros (Htestop) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -130,7 +154,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
+    exists [ME_empty], [AI_const (VAL_int32 (wasm_bool b))], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -148,7 +172,7 @@ Lemma wp_testop_i64 (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v 
   app_testop_i (e:=i64t) op v = b ->
   ↪[frame] f0 -∗
   ▷ Φ (immV [(VAL_int32 (wasm_bool b))]) -∗
-    WP [AI_basic (BI_const (VAL_int64 v)); AI_basic (BI_testop T_i64 op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
+    WP [AI_const (VAL_int64 v); AI_basic (BI_testop T_i64 op)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Htestop) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -157,7 +181,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const (VAL_int32 (wasm_bool b)))], σ, [].
+    exists [ME_empty], [AI_const (VAL_int32 (wasm_bool b))], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -176,7 +200,7 @@ Lemma wp_cvtop_convert (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) 
   types_agree t1 v ->
   ↪[frame] f0 -∗
   ▷Φ (immV [v']) -∗
-    WP [AI_basic (BI_const v); AI_basic (BI_cvtop t2 CVO_convert t1 sx)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
+    WP [AI_const v; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hcvtop Htype) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -185,7 +209,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const v')], σ, [].
+    exists [ME_empty], [AI_const v'], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -204,7 +228,7 @@ Lemma wp_cvtop_convert_failure (s : stuckness) (E : coPset) (Φ : iris.val -> iP
   types_agree t1 v ->
   ↪[frame] f0 -∗
   ▷Φ (trapV) -∗
-    WP [AI_basic (BI_const v); AI_basic (BI_cvtop t2 CVO_convert t1 sx)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
+    WP [AI_const v; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hcvtop Htypes) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -234,7 +258,7 @@ Lemma wp_cvtop_reinterpret (s : stuckness) (E : coPset) (Φ : iris.val -> iProp 
   t2 <> T_handle ->
   ↪[frame] f0 -∗
   ▷Φ (immV [v']) -∗
-    WP [AI_basic (BI_const v); AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
+    WP [AI_const v; AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)] @ s; E {{ v, Φ v ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hcvtop Htype Ht1 Ht2) "Hf0 HΦ".
   iApply wp_lift_atomic_step => //=.
@@ -243,7 +267,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const v')], σ, [].
+    exists [ME_empty], [AI_const v'], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -314,7 +338,7 @@ Qed.
 Lemma wp_drop (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) v f0 :
   ↪[frame] f0 -∗
   ▷Φ (immV []) -∗
-    WP [AI_basic (BI_const v) ; AI_basic BI_drop] @ s; E {{ w, Φ w ∗ ↪[frame] f0}}.
+    WP [AI_const v ; AI_basic BI_drop] @ s; E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros "Hf0 HΦ".
   iApply wp_lift_atomic_step. simpl ; trivial.
@@ -338,8 +362,8 @@ Qed.
 Lemma wp_select_false (s: stuckness) (E :coPset) (Φ : iris.val -> iProp Σ) n v1 v2 f0 :
   n = Wasm_int.int_zero i32m ->
   ↪[frame] f0 -∗
-  ▷Φ (immV [v2]) -∗ WP [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ;
-                      AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_select) ] @ s;
+  ▷Φ (immV [v2]) -∗ WP [AI_const v1 ; AI_const v2 ;
+                      AI_const (VAL_int32 n) ; AI_basic (BI_select) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hn) "Hf0 HΦ".
@@ -349,7 +373,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const v2)], σ, [].
+    exists [ME_empty], [AI_const v2], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
     apply rm_silent, r_simple ; by apply rs_select_false.
@@ -363,8 +387,8 @@ Qed.
 Lemma wp_select_true (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) n v1 v2 f0 :
   n <> Wasm_int.int_zero i32m ->
   ↪[frame] f0 -∗
-  ▷Φ (immV [v1]) -∗ WP [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ;
-                      AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_select) ] @ s;
+  ▷Φ (immV [v1]) -∗ WP [AI_const v1 ; AI_const v2 ;
+                      AI_const (VAL_int32 n) ; AI_basic (BI_select) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hn) "Hf0 HΦ".
@@ -372,7 +396,7 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.
   - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const v1)], σ, [].
+    exists [ME_empty], [AI_const v1], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
     apply rm_silent, r_simple ; by apply rs_select_true.
@@ -388,8 +412,8 @@ Qed.
 Lemma wp_slice (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h v1 v2 h' f0 :
   slice_handle h (Wasm_int.N_of_uint i32m v1) (Wasm_int.N_of_uint i32m v2) = Some h' ->
   ↪[frame] f0 -∗
-  ▷Φ (immV [VAL_handle h']) -∗ WP [AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_const (VAL_int32 v1)) ;
-                      AI_basic (BI_const (VAL_int32 v2)) ; AI_basic (BI_slice) ] @ s;
+  ▷Φ (immV [VAL_handle h']) -∗ WP [AI_const (VAL_handle h) ; AI_const (VAL_int32 v1) ;
+                      AI_const (VAL_int32 v2) ; AI_basic (BI_slice) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hn) "Hf0 HΦ".
@@ -397,7 +421,7 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.
   - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_basic (BI_const (VAL_handle h'))], σ, [].
+    exists [ME_empty], [AI_const (VAL_handle h')], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
     apply rm_silent, r_simple ; by eapply rs_slice_success.
@@ -411,8 +435,8 @@ Qed.
 Lemma wp_slice_failure (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h v1 v2 f0 :
   slice_handle h (Wasm_int.N_of_uint i32m v1) (Wasm_int.N_of_uint i32m v2) = None ->
   ↪[frame] f0 -∗
-  ▷Φ (trapV) -∗ WP [AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_const (VAL_int32 v1)) ;
-                      AI_basic (BI_const (VAL_int32 v2)) ; AI_basic (BI_slice) ] @ s;
+  ▷Φ (trapV) -∗ WP [AI_const (VAL_handle h) ; AI_const (VAL_int32 v1) ;
+                      AI_const (VAL_int32 v2) ; AI_basic (BI_slice) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hn) "Hf0 HΦ".
@@ -435,8 +459,8 @@ Lemma wp_handleadd (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ) h h' c
   handle_add h (Wasm_int.Z_of_sint i32m c) = Some h' ->
   ↪[frame] f0 -∗
     ▷Φ (immV [VAL_handle h']) -∗
-    WP [AI_basic (BI_const (VAL_int32 c)) ; 
-        AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
+    WP [AI_const (VAL_int32 c) ; 
+        AI_const (VAL_handle h) ; AI_basic (BI_handleadd) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hh) "Hf0 HΦ".
@@ -444,7 +468,7 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.
   - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
-    eexists [ME_empty], [AI_basic (BI_const (VAL_handle _))], σ, [].
+    eexists [ME_empty], [AI_const (VAL_handle _)], σ, [].
     destruct σ as [[ws  locs ] inst].
     unfold iris.prim_step => /=. repeat split => //.
     apply rm_silent, r_simple ; by eapply rs_handleadd_success.
@@ -460,8 +484,8 @@ Lemma wp_handleadd_failure (s: stuckness) (E : coPset) (Φ: iris.val -> iProp Σ
   handle_add h (Wasm_int.Z_of_sint i32m c) = None ->
   ↪[frame] f0 -∗
     ▷Φ (trapV) -∗
-    WP [AI_basic (BI_const (VAL_int32 c)) ; 
-        AI_basic (BI_const (VAL_handle h)) ; AI_basic (BI_handleadd) ] @ s;
+    WP [AI_const (VAL_int32 c) ; 
+        AI_const (VAL_handle h) ; AI_basic (BI_handleadd) ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0}}.
 Proof.
   iIntros (Hh) "Hf0 HΦ".
@@ -482,7 +506,7 @@ Qed.
 
 Lemma wp_getoffset s E Φ h f0:
   ↪[frame] f0 -∗ ▷Φ (immV [VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h)))]) -∗
-    WP [AI_basic (BI_const (VAL_handle h)); AI_basic BI_getoffset ] @ s;
+    WP [AI_const (VAL_handle h); AI_basic BI_getoffset ] @ s;
 E {{ w, Φ w ∗ ↪[frame] f0 }}.
 Proof.
   iIntros "Hf0 HΦ".
@@ -490,7 +514,7 @@ Proof.
   iIntros (σ ns κ κs nt) "Hσ !>".
   iSplit.
   - iPureIntro. destruct s => //=. unfold language.reducible, language.prim_step => /=.
-    eexists [ME_empty], [AI_basic (BI_const (VAL_int32 _))], σ, [].
+    eexists [ME_empty], [AI_const (VAL_int32 _)], σ, [].
     destruct σ as [[ws locs] inst].
     unfold iris.prim_step => /=. repeat split => //.
     apply rm_silent, r_simple; by eapply rs_getoffset.

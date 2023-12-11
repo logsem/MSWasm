@@ -280,7 +280,7 @@ Definition ext_t_globs :=
       | _ => None
       end).
 
-Definition alloc_module (s : store_record) (m : module) (imps : list v_ext) (gvs : list value)
+Definition alloc_module (s : store_record) (m : module) (imps : list v_ext) (gvs : list numerical_value)
     (s'_inst_exps : store_record * instance * seq module_export) : bool :=
   let '(s'_goal, inst, exps) := s'_inst_exps in
   let '(s1, i_fs) := alloc_funcs s m.(mod_funcs) inst in
@@ -288,7 +288,7 @@ Definition alloc_module (s : store_record) (m : module) (imps : list v_ext) (gvs
   let '(s3, i_ms) := alloc_mems s2 m.(mod_mems) in
 (*   let '(s4, i_ss) := alloc_segs s3 m.(mod_segs) in
   let '(s5, i_as) := alloc_allocators s4 m.(mod_alls) in *)
-  let '(s', i_gs) := alloc_globs s3 m.(mod_globals) gvs in
+  let '(s', i_gs) := alloc_globs s3 m.(mod_globals) (map VAL_numeric gvs) in
   (s'_goal == s') &&
   (inst.(inst_types) == m.(mod_types)) &&
   (inst.(inst_funcs) == List.map (fun '(Mk_funcidx i) => i) (List.app (ext_funcs imps) i_fs)) &&
@@ -429,7 +429,7 @@ Definition module_seg_typing (s : segment_type) : bool :=
 
 Definition const_expr (c : t_context) (b_e : basic_instruction) : bool :=
   match b_e with
-  | BI_const _ => true
+  | BI_immediate _ => true
   | BI_get_global k =>
     (k < length c.(tc_global)) &&
     match List.nth_error c.(tc_global) k with
@@ -641,24 +641,24 @@ End module_typing.
 Section module_instantiation.
   Context `{HHB: HandleBytes}.
 
-Definition instantiate_globals inst (s' : store_record) m g_inits : Prop :=
+Definition instantiate_globals inst (s' : store_record) m (g_inits: list numerical_value) : Prop :=
   List.Forall2 (fun g v =>
                   exists mes,
       opsem.reduce_trans (s', (Build_frame nil inst), operations.to_e_list g.(modglob_init))
-                       mes  (s', (Build_frame nil inst), [::AI_basic (BI_const v)]))
+                       mes  (s', (Build_frame nil inst), [::AI_const (VAL_numeric v)]))
     m.(mod_globals) g_inits.
 
 Definition instantiate_elem inst (s' : store_record) m e_offs : Prop :=
   List.Forall2 (fun e c =>
                   exists mes, opsem.reduce_trans (s', (Build_frame nil inst), operations.to_e_list e.(modelem_offset))
-                        mes (s', (Build_frame nil inst), [::AI_basic (BI_const (VAL_int32 c))]))
+                        mes (s', (Build_frame nil inst), [::AI_const (VAL_int32 c)]))
     m.(mod_elem)
     e_offs.
 
 Definition instantiate_data inst (s' : store_record) m d_offs : Prop :=
   List.Forall2 (fun d c =>
                   exists mes, opsem.reduce_trans (s', (Build_frame nil inst), operations.to_e_list d.(moddata_offset))
-                        mes (s', (Build_frame nil inst), [::AI_basic (BI_const (VAL_int32 c))]))
+                        mes (s', (Build_frame nil inst), [::AI_const (VAL_int32 c)]))
     m.(mod_data)
         d_offs.
 
@@ -738,7 +738,7 @@ Definition instantiate
                        (s : store_record) (m : module) (v_imps : list v_ext)
                        (z : (store_record * instance * list module_export) * option nat) : Prop :=
   let '((s_end, inst, v_exps), start) := z in
-  exists t_imps t_exps s' g_inits e_offs d_offs,
+  exists t_imps t_exps s' (g_inits: list numerical_value) e_offs d_offs,
     module_typing m t_imps t_exps /\
     List.Forall2 (external_typing s) v_imps t_imps /\
     alloc_module s m v_imps g_inits (s', inst, v_exps) /\

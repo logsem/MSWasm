@@ -45,7 +45,7 @@ Section wasm_lang_properties.
   Let to_val := iris.to_val.
 
   Lemma v_to_e_is_fmap vs :
-    v_to_e_list vs = (fun x => AI_basic (BI_const x)) <$> vs.
+    v_to_e_list vs = (fun x => AI_const x) <$> vs.
   Proof. done. Qed. 
   
   Lemma to_val_cat (es1 es2: list administrative_instruction) (vs: list value) :
@@ -179,7 +179,7 @@ Section wasm_lang_properties.
 
   Lemma to_val_br_base es1 n l e :
     iris.to_val es1 = Some (brV (VH_base n l e)) ->
-    es1 = (fmap (fun v => AI_basic (BI_const v)) l) ++ [AI_basic (BI_br n)] ++ e.
+    es1 = (fmap (fun v => AI_const v) l) ++ [AI_basic (BI_br n)] ++ e.
   Proof.
     intro.
     apply of_to_val in H.
@@ -188,7 +188,7 @@ Section wasm_lang_properties.
 
   Lemma to_val_br_rec es1 n bef m es (vh : valid_holed n) aft :
     iris.to_val es1 = Some (brV (VH_rec bef m es vh aft)) ->
-    exists LI, es1 = (fmap (fun v => AI_basic (BI_const v)) bef) ++ [AI_label m es LI] ++ aft
+    exists LI, es1 = (fmap (fun v => AI_const v) bef) ++ [AI_label m es LI] ++ aft
           /\ iris.to_val LI = Some (brV (vh_increase vh)).
   Proof.
     intro.
@@ -204,7 +204,7 @@ Section wasm_lang_properties.
 
   Lemma to_val_ret_base es1 l e :
     iris.to_val es1 = Some (retV (SH_base l e)) ->
-    es1 = (fmap (fun v => AI_basic (BI_const v)) l) ++ [AI_basic BI_return] ++ e.
+    es1 = (fmap (fun v => AI_const v) l) ++ [AI_basic BI_return] ++ e.
   Proof.
     intro.
     apply of_to_val in H.
@@ -213,7 +213,7 @@ Section wasm_lang_properties.
 
   Lemma to_val_call_host_base es1 l e tf h vcs:
     iris.to_val es1 = Some (callHostV tf h vcs (LL_base l e)) ->
-    es1 = (fmap (fun v => AI_basic (BI_const v)) l) ++ [AI_call_host tf h vcs] ++ e.
+    es1 = (fmap (fun v => AI_const v) l) ++ [AI_call_host tf h vcs] ++ e.
   Proof.
     intro.
     apply of_to_val in H.
@@ -222,7 +222,7 @@ Section wasm_lang_properties.
 
   Lemma to_val_ret_rec es1 bef m es sh aft :
     iris.to_val es1 = Some (retV (SH_rec bef m es sh aft)) ->
-    exists LI, es1 = (fmap (fun v => AI_basic (BI_const v)) bef) ++ [AI_label m es LI] ++ aft
+    exists LI, es1 = (fmap (fun v => AI_const v) bef) ++ [AI_label m es LI] ++ aft
           /\ iris.to_val LI = Some (retV sh).
   Proof.
     intro.
@@ -238,7 +238,7 @@ Section wasm_lang_properties.
 
   Lemma to_val_call_host_rec_label es1 bef m es sh aft tf h vcs:
     iris.to_val es1 = Some (callHostV tf h vcs (LL_label bef m es sh aft)) ->
-    exists LI, es1 = (fmap (fun v => AI_basic (BI_const v)) bef) ++ [AI_label m es LI] ++ aft
+    exists LI, es1 = (fmap (fun v => AI_const v) bef) ++ [AI_label m es LI] ++ aft
           /\ iris.to_val LI = Some (callHostV tf h vcs sh).
   Proof.
     intro.
@@ -315,8 +315,8 @@ Section wasm_lang_properties.
       unfold iris.to_val in Hes ; simpl in Hes.
       subst. rewrite merge_br flatten_simplify in Hes => //.
       unfold iris.to_val in Hes ; simpl in Hes ; subst.
-      by rewrite merge_return flatten_simplify in Hes.
-      subst. unfold iris.to_val in Hes ; simpl in Hes.
+      by rewrite merge_return flatten_simplify in Hes. } 
+(*      subst. unfold iris.to_val in Hes ; simpl in Hes.
       rewrite merge_prepend in Hes.
       unfold iris.to_val in IHes.
       destruct (merge_values_list _) eqn:Hmerge => //.
@@ -324,12 +324,23 @@ Section wasm_lang_properties.
       assert (to_val es = Some trapV) ;
         first by unfold to_val, iris.to_val ; rewrite Hmerge.
       apply to_val_trap_is_singleton in H as ->.
-      exists [AI_basic (BI_const v)], AI_trap, [] ; repeat split => //.
+      exists [AI_const v], AI_trap, [] ; repeat split => //.
       by right.
       destruct IHes as (vs & e0 & es' & Hvs & He & Hes0) => //.
-      exists (AI_basic (BI_const v) :: vs), e0, es' ;
+      exists (AI_const v :: vs), e0, es' ;
         repeat split => //.
-      by rewrite Hes0. }
+      by rewrite Hes0. } *)
+    { subst. unfold iris.to_val in Hes; simpl in Hes.
+      rewrite merge_prepend in Hes.
+      unfold iris.to_val in IHes.
+      destruct (merge_values_list _) eqn:Hmerge => //.
+      - simpl in Hes. destruct v0 => //.
+        assert (to_val es = Some trapV); first by unfold to_val, iris.to_val; rewrite Hmerge.
+        apply to_val_trap_is_singleton in H as ->.
+        exists [AI_const v], AI_trap, []; repeat split => //.
+        by right.
+      - destruct IHes as (vs & e0 & es' & Hvs & He & Hes0) => //.
+        exists (AI_const v :: vs), e0, es'; repeat split => //. by rewrite Hes0.  } 
     subst. exists [], AI_trap, es. repeat split => //=. by right.
     subst. exists [], (AI_label n l l0), es. repeat split => //=.
     left.
@@ -574,7 +585,7 @@ Section wasm_lang_properties.
     { rewrite !app_assoc. repeat erewrite app_assoc. auto. }
     rewrite Heq2 in Heqcopy. clear Heq2. unfold to_val in He. unfold to_val in HH.
     apply first_values in Heqcopy as [Heq1 [Heq2 Heq3]];auto.
-    2:{ (destruct HH as [He' | [[-> _] | [[?  ->] | [-> | [ (?&?&?& ->) | [ (? & ? & ? & -> & [ (? & ? & HLI) | [[? HLI] | (?&?&?&?&HLI) ] ]) | (? & ? & ? & ? & ? & ? & ? & -> & HLI) ] ]]]]]) => //. destruct e' => //. destruct b => //. }
+    2:{ (destruct HH as [He' | [[-> _] | [[?  ->] | [-> | [ (?&?&?& ->) | [ (? & ? & ? & -> & [ (? & ? & HLI) | [[? HLI] | (?&?&?&?&HLI) ] ]) | (? & ? & ? & ? & ? & ? & ? & -> & HLI) ] ]]]]]) => //. destruct e' => //. }
     2: by apply const_list_app. 
     subst e'.
     rewrite -Heq1 in Heq.
@@ -1377,7 +1388,7 @@ Section wasm_lang_properties.
         apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
         + rewrite app_comm_cons in Hfilled.
           assert (length_rec LI < m) ;
-            first by specialize (cons_length_rec (AI_basic (BI_const v)) LI) ; lia.
+            first by specialize (cons_length_rec (AI_const v) LI) ; lia.
           specialize (IHm _ H _ _ _ Hfilled i1 lh1).
           unfold to_val in IHm at 1.
           unfold iris.to_val in IHm.
@@ -1388,7 +1399,7 @@ Section wasm_lang_properties.
         + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
           unfold lfilled, lfill => //=.
           assert (length_rec ((es1 ++ es2) ++ aft) < m).
-          { specialize (cons_length_rec (AI_basic (BI_const v))
+          { specialize (cons_length_rec (AI_const v)
                                         ((es1 ++ es2) ++ aft)) as H1.
             rewrite app_comm_cons in Hsize.
             repeat rewrite - cat_app in Hsize.
@@ -1515,7 +1526,7 @@ Section wasm_lang_properties.
         apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
         + rewrite app_comm_cons in Hfilled.
           assert (length_rec LI < m) ;
-            first by specialize (cons_length_rec (AI_basic (BI_const v)) LI) ; lia.
+            first by specialize (cons_length_rec (AI_const v) LI) ; lia.
           specialize (IHm _ H _ _ _ Hfilled s0).
           unfold to_val in IHm at 1.
           unfold iris.to_val in IHm.
@@ -1526,7 +1537,7 @@ Section wasm_lang_properties.
         + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
           unfold lfilled, lfill => //=.
           assert (length_rec ((es1 ++ es2) ++ aft) < m).
-          { specialize (cons_length_rec (AI_basic (BI_const v))
+          { specialize (cons_length_rec (AI_const v)
                                         ((es1 ++ es2) ++ aft)) as H1.
             rewrite app_comm_cons in Hsize.
             repeat rewrite - cat_app in Hsize.
@@ -1633,7 +1644,7 @@ Section wasm_lang_properties.
         apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
         + rewrite app_comm_cons in Hfilled.
           assert (length_rec LI < m) ;
-            first by specialize (cons_length_rec (AI_basic (BI_const v)) LI) ; lia.
+            first by specialize (cons_length_rec (AI_const v) LI) ; lia.
           specialize (IHm _ H _ _ _ Hfilled l2).
           unfold to_val in IHm at 1.
           unfold iris.to_val in IHm.
@@ -1645,7 +1656,7 @@ Section wasm_lang_properties.
         + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
           unfold lfilled, lfill => //=.
           assert (length_rec ((es1 ++ es2) ++ aft) < m).
-          { specialize (cons_length_rec (AI_basic (BI_const v))
+          { specialize (cons_length_rec (AI_const v)
                                         ((es1 ++ es2) ++ aft)) as H1.
             rewrite app_comm_cons in Hsize.
             repeat rewrite - cat_app in Hsize.
@@ -1773,6 +1784,7 @@ Section wasm_lang_properties.
 
   Section to_val_None.
     Context `{HHB: HandleBytes}.
+    
 
     Definition dummy_all := {| allocated := gmap.gmap_empty; next_free := 0%N |}.
     
@@ -1818,7 +1830,7 @@ Section wasm_lang_properties.
 End to_val_None.
   
   Lemma to_val_cons_immV v l :
-    iris.to_val (AI_basic (BI_const v) :: iris.of_val (immV l)) = Some (immV (v :: l)).
+    iris.to_val (AI_const v :: iris.of_val (immV l)) = Some (immV (v :: l)).
   Proof.
     rewrite separate1.
     erewrite to_val_cat_inv;eauto.
@@ -1827,7 +1839,7 @@ End to_val_None.
   Qed.
   Lemma to_val_cons_brV i (lh : valid_holed i) v es :
     iris.to_val es = Some (brV lh) ->
-    iris.to_val (AI_basic (BI_const v) :: es) = Some (brV (vh_push_const lh [v])).
+    iris.to_val (AI_const v :: es) = Some (brV (vh_push_const lh [v])).
   Proof.
     intros Hes.
     unfold to_val,iris.to_val. cbn.
@@ -1841,7 +1853,7 @@ End to_val_None.
   Qed.
   Lemma to_val_cons_retV s v es :
     iris.to_val es = Some (retV s) ->
-    iris.to_val (AI_basic (BI_const v) :: es) = Some (retV (sh_push_const s [v])).
+    iris.to_val (AI_const v :: es) = Some (retV (sh_push_const s [v])).
   Proof.
     intros Hes.
     unfold to_val,iris.to_val. cbn.
@@ -1855,7 +1867,7 @@ End to_val_None.
   Qed.
   Lemma to_val_cons_callHostV tf h cvs s v es :
     iris.to_val es = Some (callHostV tf h cvs s) ->
-    iris.to_val (AI_basic (BI_const v) :: es) = Some (callHostV tf h cvs (llh_push_const s [v])).
+    iris.to_val (AI_const v :: es) = Some (callHostV tf h cvs (llh_push_const s [v])).
   Proof.
     intros Hes.
     unfold to_val,iris.to_val. cbn.
@@ -1869,7 +1881,7 @@ End to_val_None.
   Qed.
   Lemma to_val_cons_None es v :
     iris.to_val es = None ->
-    iris.to_val (AI_basic (BI_const v) :: es) = None.
+    iris.to_val (AI_const v :: es) = None.
   Proof.
     intros Hes.
     rewrite separate1.

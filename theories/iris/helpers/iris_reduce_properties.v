@@ -108,7 +108,7 @@ Ltac no_reduce Heqes Hred :=
   [ destruct H as [ e e' s f H | | | | | a | a | a | | | | | | | | | | | | | | ] ;
     (try by inversion Heqes) ; (try by found_intruse (AI_invoke a) Heqes Hxl1) ;
                     
-    destruct H as [ | | | | | | | | | | | | | | 
+    destruct H as [ | | | | | | | | | | | | | | | 
                     vs es n' m t1s' t2s Hconst Hvs Ht1s Ht2s |
                     vs es n' m t1s' t2s Hconst Hvs Ht1s Ht2s |
                   | | | | | | | | | | | | | | | | | |
@@ -213,10 +213,10 @@ Section reduce_properties_lemmas.
     exfalso ; eapply empty_no_reduce => //=.
 
   Lemma test_no_reduce1 s f v me s' f' es' :
-    reduce s f [AI_basic (BI_const v)] me s' f' es' -> False.
+    reduce s f [AI_const v] me s' f' es' -> False.
   Proof.
     intro Hred.
-    remember [AI_basic (BI_const v)] as es in Hred.
+    remember [AI_const v] as es in Hred.
     apply Logic.eq_sym in Heqes.
     no_reduce Heqes Hred.
   Qed.
@@ -231,20 +231,20 @@ Section reduce_properties_lemmas.
   Qed.
 
   Lemma test_no_reduce2 s f v1 v2 me s' f' es' :
-    reduce s f [AI_basic (BI_const v1) ; AI_basic (BI_const v2)] me s' f' es' -> False.
+    reduce s f [AI_const v1 ; AI_const v2] me s' f' es' -> False.
   Proof.
     intro Hred.
-    remember [AI_basic (BI_const v1) ; AI_basic (BI_const v2)] as es in Hred.
+    remember [AI_const v1 ; AI_const v2] as es in Hred.
     apply Logic.eq_sym in Heqes.
     no_reduce Heqes Hred.
   Qed.
 
   Lemma test_no_reduce3 s f v1 v2 v3 me s' f' es' :
-    reduce s f [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ; AI_basic (BI_const v3)] me
+    reduce s f [AI_const v1 ; AI_const v2 ; AI_const v3] me
            s' f' es' -> False.
   Proof.
     intro Hred.
-    remember [AI_basic (BI_const v1) ; AI_basic (BI_const v2) ; AI_basic (BI_const v3)]
+    remember [AI_const v1 ; AI_const v2 ; AI_const v3]
       as es in Hred.
     apply Logic.eq_sym in Heqes.
     no_reduce Heqes Hred.
@@ -280,7 +280,7 @@ Section reduce_properties_lemmas.
   Qed.
   
   Lemma reduce_store_false_2 s0 f s' f' es es' me x0 x1 x2 x3 v :
-    es = [AI_basic (BI_const v); AI_basic (BI_store x0 x1 x2 x3)] ->
+    es = [AI_const v; AI_basic (BI_store x0 x1 x2 x3)] ->
     reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Heq Hred.
@@ -298,7 +298,7 @@ Section reduce_properties_lemmas.
   Qed.
   
   Lemma reduce_segstore_false_2 s0 f s' f' es es' me x0 v :
-    es = [AI_basic (BI_const v); AI_basic (BI_segstore x0 )] ->
+    es = [AI_const v; AI_basic (BI_segstore x0 )] ->
     reduce s0 f es me s' f' es' -> False.
   Proof.
     intros Heq Hred.
@@ -445,7 +445,7 @@ Ltac not_enough_arguments s f vs obj t1s me s' f' es' :=
      (destruct H as [ e e' s f H | | | | | | | | | | | | | | | | | | | | | ];
       (try by found_intruse obj Heqes Hxl1);
       (try by apply app_inj_tail in Heqes ; destruct Heqes as [ _ Habs ]; inversion Habs);
-       try (destruct H as [ | | | | | | | | | | | | | | 
+       try (destruct H as [ | | | | | | | | | | | | | | | 
                       vs' es n' m t1s' t2s' Hconst' Hvs' Ht1s' Ht2s' |
                       vs' es n' m t1s' t2s' Hconst' Hvs' Ht1s' Ht2s' |
                     | | | | | | | | | | | | | | | i v | | | 
@@ -778,11 +778,11 @@ Section reduce_properties_lemmas.
   Qed.
     
   Lemma AI_trap_reduce_det v ws f me ws' f' es':
-    reduce ws f ([AI_basic (BI_const v); AI_trap]) me ws' f' es' ->
+    reduce ws f ([AI_const v; AI_trap]) me ws' f' es' ->
     (ws', f', es', me) = (ws, f, [AI_trap], ME_empty).
   Proof.
     move => HReduce.
-    remember ([AI_basic (BI_const v); AI_trap]) as es0.
+    remember ([AI_const v; AI_trap]) as es0.
     induction HReduce => //=; subst; try by do 2 destruct vcs => //=.
     - inversion H; subst; clear H => //; try by do 2 destruct vcs => //=.
       inversion H0; subst; clear H0 => //; by do 3 destruct vs => //=.
@@ -1003,22 +1003,22 @@ Section reduce_properties_lemmas.
       (try by left ; eexists 0, (LH_base [] []), [] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
        (try by rewrite app_nil_r) ; econstructor ) ;  
-      (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)] , _, _ ;
+      (try by left ; eexists 0, (LH_base [] []), [AI_const _] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
        (try by rewrite app_nil_r) ; econstructor) ; 
-      (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                                  AI_basic (BI_const _) ] , _, _ ;
+      (try by left ; eexists 0, (LH_base [] []), [AI_const _ ;
+                                                  AI_const _ ] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
        (try by rewrite app_nil_r) ; econstructor ).
     induction H ;
       (try by left ; eexists 0, (LH_base [] []), [] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
        (try by rewrite app_nil_r) ; econstructor; econstructor ) ;  
-      (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)] , _, _ ;
+      (try by left ; eexists 0, (LH_base [] []), [AI_const _] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
        (try by rewrite app_nil_r) ; econstructor; econstructor) ; 
-      (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                                  AI_basic (BI_const _) ] , _, _ ;
+      (try by left ; eexists 0, (LH_base [] []), [AI_const _ ;
+                                                  AI_const _ ] , _, _ ;
        repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
        (try by rewrite app_nil_r) ; econstructor; econstructor ).
     { destruct H ;
@@ -1038,18 +1038,18 @@ Section reduce_properties_lemmas.
             (by apply (rs_return _ H H0 H1)) +
             constructor)
         ) ;
-        (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)] , _, _ ;
+        (try by left ; eexists 0, (LH_base [] []), [AI_const _] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
          (try by rewrite app_nil_r) ; constructor ; constructor ; econstructor
         ) ;
-        (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                                    AI_basic (BI_const _) ] , _, _ ;
+        (try by left ; eexists 0, (LH_base [] []), [AI_const _ ;
+                                                    AI_const _ ] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
          (try by rewrite app_nil_r) ; constructor ; constructor ; econstructor 
         );
-        (try by left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                                    AI_basic (BI_const _) ;
-                                                    AI_basic (BI_const _) ] , _, _ ;
+        (try by left ; eexists 0, (LH_base [] []), [AI_const _ ;
+                                                    AI_const _ ;
+                                                    AI_const _ ] , _, _ ;
          repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
          (try by rewrite app_nil_r) ; constructor ; constructor ; econstructor 
         );
@@ -1337,7 +1337,7 @@ Section reduce_properties_lemmas.
                     apply (IHn es' (LH_base vs0 es0) es) => //=.
                     do 2 rewrite app_length in Hlen. simpl in Hlen.
                     lia. unfold lfilled, lfill ; rewrite Hvs0 ; by subst.
-                    destruct e0 => // ; destruct b => //.
+                    destruct e0 => //.
                     unfold to_val, iris.to_val in He0 ; simpl in He0.
                     destruct He0 as [? | ?] => //.
                     by const_list_app. }

@@ -158,7 +158,7 @@ Qed.
 Lemma v_to_e_list0 : v_to_e_list [::] = [::].
 Proof. reflexivity. Qed.
 
-Lemma v_to_e_list1 : forall v, v_to_e_list [:: v] = [:: AI_basic (BI_const v)].
+Lemma v_to_e_list1 : forall v, v_to_e_list [:: v] = [:: AI_const v].
 Proof. reflexivity. Qed. 
 
 Lemma ves_projection: forall vs e es vs' e' es',

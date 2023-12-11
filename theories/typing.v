@@ -31,7 +31,10 @@ Definition upd_label C lab :=
     (tc_allocator C)
     (tc_local C)
     lab
-    (tc_return C).
+    (tc_return C)
+.
+
+
 
 Definition plop2 C i ts :=
   List.nth_error (tc_label C) i == Some ts.
@@ -64,7 +67,7 @@ Inductive relop_type_agree: value_type -> relop -> Prop :=
   .
   
 Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Prop :=
-| bet_const : forall C v, be_typing C [::BI_const v] (Tf [::] [::typeof v])
+| bet_const : forall C v, be_typing C [::BI_immediate v] (Tf [::] [::typeof_numerical v])
 | bet_unop : forall C t op,
     unop_type_agree t op -> be_typing C [::BI_unop t op] (Tf [::t] [::t])
 | bet_binop : forall C t op,
@@ -142,32 +145,22 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
   load_store_t_bounds a (option_projl tp_sx) t ->
   be_typing C [::BI_load t tp_sx a off] (Tf [::T_i32] [::t])
 | bet_segload : forall C t,
-(*    tc_segment C <> nil ->
-    tc_allocator C <> nil -> *)
-    (* MAXIME: do I need a load_store_t_bounds here? *)
     be_typing C [::BI_segload t] (Tf [::T_handle] [::t])
 | bet_store : forall C a off tp t,
   tc_memory C <> nil ->
   load_store_t_bounds a tp t ->
   be_typing C [::BI_store t tp a off] (Tf [::T_i32; t] [::])
 | bet_segstore : forall C t,
-(*    tc_segment C <> nil ->
-    tc_allocator C <> nil -> *)
-    (* MAXIME: do I need a load_store_t_bounds here? *)
     be_typing C [::BI_segstore t] (Tf [::T_handle ; t] [::])
 | bet_slice : forall C,
     be_typing C [::BI_slice] (Tf [::T_handle; T_i32 ; T_i32] [::T_handle])
 | bet_segalloc : forall C,
-(*    tc_segment C <> nil ->
-    tc_allocator C <> nil -> *)
     be_typing C [::BI_segalloc] (Tf [::T_i32] [::T_handle])
 | bet_handleadd : forall C,
     be_typing C [::BI_handleadd] (Tf [::T_i32 ; T_handle] [::T_handle])
 | bet_getoffset : forall C,
     be_typing C [::BI_getoffset] (Tf [::T_handle] [::T_i32])
 | bet_segfree : forall C,
-(*    tc_segment C <> nil ->
-    tc_allocator C <> nil -> *)
     be_typing C [::BI_segfree] (Tf [::T_handle] [::])
 | bet_current_memory : forall C,
   tc_memory C <> nil ->
@@ -339,7 +332,8 @@ Inductive cl_typing : store_record -> function_closure -> function_type -> Prop 
     cl_typing s (FC_func_host tf h) tf
   .
 
-Inductive e_typing : store_record -> t_context -> seq administrative_instruction -> function_type -> Prop :=
+  Inductive e_typing : store_record -> t_context -> seq administrative_instruction -> function_type -> Prop :=
+  | ety_const: forall s C v, e_typing s C [::AI_const v] (Tf [::] [::typeof v])
 | ety_a : forall s C bes tf,
   be_typing C bes tf -> e_typing s C (to_e_list bes) tf
 | ety_composition : forall s C es e t1s t2s t3s,

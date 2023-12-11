@@ -177,7 +177,7 @@ Section trap_rules.
   Lemma wp_val_trap (s : stuckness) (E : coPset) v0 (es1 : language.expr wasm_lang) f f' :
     ↪[frame] f ∗
      (↪[frame] f -∗ WP es1 @ NotStuck; E {{ w, ⌜w = trapV⌝ ∗ ↪[frame] f' }})
-     ⊢ WP ((AI_basic (BI_const v0)) :: es1) @ s; E {{ w, ⌜w = trapV⌝ ∗ ↪[frame] f' }}.
+     ⊢ WP ((AI_const v0) :: es1) @ s; E {{ w, ⌜w = trapV⌝ ∗ ↪[frame] f' }}.
   Proof.
   iLöb as "IH" forall (v0 es1 f f').
   iIntros "(Hntrap & H)".
@@ -721,7 +721,7 @@ Section trap_rules.
   Lemma wp_val_can_trap (s : stuckness) (E : coPset) (Φ : val -> iProp Σ) (v0 : value) (es : language.expr wasm_lang) f Φf :
     ((Φ trapV ={E}=∗ ⌜False⌝) ∗ ↪[frame] f ∗
        (↪[frame] f -∗ WP es @ NotStuck ; E {{ v, (⌜v = trapV⌝ ∨ (Φ (val_combine (immV [v0]) v))) ∗ ∃ f, ↪[frame] f ∗ Φf f }})
-       ⊢ WP ((AI_basic (BI_const v0)) :: es) @ s ; E {{ v, (⌜v = trapV⌝ ∨ Φ v) ∗ ∃ f, ↪[frame] f ∗ Φf f }})%I.
+       ⊢ WP ((AI_const v0) :: es) @ s ; E {{ v, (⌜v = trapV⌝ ∨ Φ v) ∗ ∃ f, ↪[frame] f ∗ Φf f }})%I.
   Proof.
   iLöb as "IH" forall (v0 es Φ f).
   iIntros "(Hntrap & H & Hf)".
@@ -738,7 +738,7 @@ Section trap_rules.
       { iApply fupd_wp. iMod ("Hntrap" with "Hcontr") as "?". done. }
       iDestruct "H" as (f0) "[Hf0 Hf0v]".
       iApply (wp_wand  _ _ _ (λ v, ⌜v = trapV⌝ ∗ ↪[frame] f0)%I with "[Hf0]").
-      { rewrite -(take_drop 1 [AI_basic (BI_const v0); AI_trap]);simpl take;simpl drop.
+      { rewrite -(take_drop 1 [AI_const v0; AI_trap]);simpl take;simpl drop.
         rewrite -(app_nil_r [AI_trap]).
         iApply (wp_trap with "[] Hf0");auto. }
       iIntros (v) "[-> H]". iSplitR;[|iExists _;iFrame]. by iLeft. }

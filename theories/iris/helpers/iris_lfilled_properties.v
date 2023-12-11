@@ -141,7 +141,7 @@ Section lfilled_properties.
     lh_minus_Ind (LH_rec vs n es lh es') (LH_rec vs n es lh' es') lh''.
 
   Lemma to_e_list_fmap l :
-    fmap (fun v => AI_basic (BI_const v)) l = v_to_e_list l.
+    fmap (fun v => AI_const v) l = v_to_e_list l.
   Proof.
     induction l;auto.
   Qed.
@@ -570,11 +570,11 @@ Section lfilled_properties.
 
   Definition lh_prepend lh v :=
     match lh with
-    | LH_base bef aft => LH_base (AI_basic (BI_const v) :: bef) aft
-    | LH_rec bef n es lh aft => LH_rec (AI_basic (BI_const v) :: bef) n es lh aft end.
+    | LH_base bef aft => LH_base (AI_const v :: bef) aft
+    | LH_rec bef n es lh aft => LH_rec (AI_const v :: bef) n es lh aft end.
 
   Lemma lfilled_prepend i lh es v LI :
-    lfilled i lh es LI -> lfilled i (lh_prepend lh v) es (AI_basic (BI_const v) :: LI).
+    lfilled i lh es LI -> lfilled i (lh_prepend lh v) es (AI_const v :: LI).
   Proof.
     destruct i, lh ; unfold lfilled, lfill ; destruct (const_list l) eqn:Hl => //=.
     - intros H ; apply b2p in H ; subst ; rewrite Hl => //=.
@@ -583,9 +583,9 @@ Section lfilled_properties.
   Qed.
   
   Lemma lfilled_vLI i lh e es v LI :
-    lfilled i lh (e :: es) (AI_basic (BI_const v) :: LI) ->
+    lfilled i lh (e :: es) (AI_const v :: LI) ->
     (exists lh', lh_prepend lh' v = lh /\ lfilled i lh' (e :: es) LI) \/
-      i = 0 /\ e = AI_basic (BI_const v) /\ exists aft, lh = LH_base [] aft /\ es ++ aft = LI.
+      i = 0 /\ e = AI_const v /\ exists aft, lh = LH_base [] aft /\ es ++ aft = LI.
   Proof.
     intros Hfilled.
     unfold lfilled, lfill in Hfilled ; destruct i, lh ; destruct (const_list l) eqn:Hl => //.

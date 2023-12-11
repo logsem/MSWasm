@@ -154,7 +154,7 @@ Proof.
   iSplit.
   - iPureIntro.
     destruct s => //=.
-    exists [ME_empty], [AI_basic (BI_const v)], (ws, locs, inst), [].
+    exists [ME_empty], [AI_const v], (ws, locs, inst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     by apply rm_silent, r_get_local.
@@ -169,7 +169,7 @@ Lemma wp_set_local (s : stuckness) (E : coPset) (v : value) (i: nat) (Φ: iris.v
   i < length (f_locs f) ->
   ▷ Φ (immV []) -∗
   ↪[frame] f -∗
-  WP ([AI_basic (BI_const v); AI_basic (BI_set_local i)]) @ s; E {{ w, Φ w  ∗ ↪[frame] (Build_frame (set_nth v (f_locs f) i v) (f_inst f)) }}.
+  WP ([AI_const v; AI_basic (BI_set_local i)]) @ s; E {{ w, Φ w  ∗ ↪[frame] (Build_frame (set_nth v (f_locs f) i v) (f_inst f)) }}.
 Proof.
   iIntros (Hlen) "HΦ Hli".
   iApply wp_lift_atomic_step => //=.
@@ -202,10 +202,10 @@ Qed.
 
 Lemma wp_tee_local (s : stuckness) (E : coPset) (v : value) (i : nat) (Φ : iris.val -> iProp Σ) f :
   ⊢ ↪[frame] f -∗
-    ▷ (↪[frame] f -∗ WP [AI_basic (BI_const v) ; AI_basic (BI_const v) ;
+    ▷ (↪[frame] f -∗ WP [AI_const v ; AI_const v ;
                        AI_basic (BI_set_local i)]
      @ s ; E {{ Φ }}) -∗
-             WP [AI_basic (BI_const v) ; AI_basic (BI_tee_local i)] @ s ; E {{ Φ }}.
+             WP [AI_const v ; AI_basic (BI_tee_local i)] @ s ; E {{ Φ }}.
 Proof.
   iIntros "Hf Hwp".
   iApply wp_lift_step => //=.
@@ -260,7 +260,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold reducible, language.prim_step => /=.
-    eexists [ME_empty], [AI_basic (BI_const (g_val g))], (ws, locs, _), [].
+    eexists [ME_empty], [AI_const (g_val g)], (ws, locs, _), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     by apply rm_silent, r_get_global.
@@ -275,7 +275,7 @@ Lemma wp_set_global (s : stuckness) (E : coPset) (v: value) (f: frame) (n: nat) 
   ▷ Φ (immV []) -∗
   ↪[frame] f -∗
   N.of_nat k ↦[wg] g -∗
-  WP [AI_basic (BI_const v); AI_basic (BI_set_global n)] @ s; E {{ w, Φ w ∗ N.of_nat k ↦[wg] Build_global (g_mut g) v ∗ ↪[frame] f }}.
+  WP [AI_const v; AI_basic (BI_set_global n)] @ s; E {{ w, Φ w ∗ N.of_nat k ↦[wg] Build_global (g_mut g) v ∗ ↪[frame] f }}.
 Proof.
   iIntros (Hinstg) "HΦ Hinst Hglob".
   iApply (wp_wand _ _ _ (λ w, (Φ w ∗ N.of_nat k ↦[wg] Build_global (g_mut g) v) ∗  ↪[frame]f)%I with "[-]");[|iIntros (?) "[[? ?] ?]";iFrame].
@@ -1059,7 +1059,7 @@ Lemma length_bits v t:
   types_agree t v -> length (bits v) = t_length t.
 Proof.
   intros. unfold bits.
-  destruct v ; destruct t ; try by inversion H.
+  destruct v ; try destruct n; destruct t ; try by inversion H.
   destruct HHB. rewrite length_serialise. done.
 Qed.
 
@@ -1567,7 +1567,7 @@ Proof.
   unfold wasm_deserialise.
   destruct t ;
     unfold bits ;
-    destruct v ; (try by inversion Htv).
+    destruct v ; try destruct n; (try by inversion Htv).
   rewrite Memdata.decode_encode_int.
   rewrite Z.mod_small.
   by rewrite Wasm_int.Int32.repr_unsigned.
@@ -1593,7 +1593,7 @@ Proof.
   unfold wasm_deserialise.
   destruct t ; simpl in Hlen.
   1-4:repeat (destruct bs ; try by inversion Hlen) ;
-    unfold bits.
+    unfold bits; simpl.
   - unfold serialise_i32.
     rewrite Wasm_int.Int32.unsigned_repr ;
       unfold Memdata.decode_int, Memdata.int_of_bytes,  Memdata.rev_if_be.
@@ -1786,7 +1786,7 @@ Lemma wp_load_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:
   (▷ Φ (immV [wasm_deserialise bv t]) ∗
    ↪[frame] f0 ∗
      N.of_nat n ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ] bv ⊢
-     (WP [AI_basic (BI_const (VAL_int32 k)) ;
+     (WP [AI_const (VAL_int32 k) ;
           AI_basic (BI_load t None a off)] @ s; E {{ w, (Φ w ∗ (N.of_nat n) ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ]bv) ∗ ↪[frame] f0 }})).
 Proof.
   iIntros (Hhandle Htv Hinstn) "[HΦ [Hf0 Hwms]]".
@@ -1817,7 +1817,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_const _], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     eapply rm_silent, r_load_success => //.
@@ -1844,7 +1844,7 @@ Lemma wp_load (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) 
    ↪[frame] f ∗
      N.of_nat n ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ]
      (bits v) ⊢
-     (WP [AI_basic (BI_const (VAL_int32 k)) ;
+     (WP [AI_const (VAL_int32 k) ;
           AI_basic (BI_load t None a off)] @ s; E {{ w, (Φ w ∗ (N.of_nat n) ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ](bits v)) ∗ ↪[frame] f }})).
 Proof.
   iIntros (Hhandle Htv Hinstn) "[HΦ [Hf0 Hwms]]".
@@ -1861,7 +1861,7 @@ Lemma wp_load_packed_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPs
   (▷ Φ (immV [wasm_deserialise bv t]) ∗
    ↪[frame] f0 ∗
      N.of_nat n ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ] bv ⊢
-     (WP [AI_basic (BI_const (VAL_int32 k)) ;
+     (WP [AI_const (VAL_int32 k) ;
           AI_basic (BI_load t (Some (tp, sx)) a off)] @ s; E {{ w, (Φ w ∗ (N.of_nat n) ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ]bv) ∗ ↪[frame] f0 }})).
 Proof.
   iIntros (Htv Hinstn) "[HΦ [Hf0 Hwms]]".
@@ -1890,7 +1890,7 @@ Proof.
   - iPureIntro.
     destruct s => //=.
     unfold language.reducible, language.prim_step => /=.
-    eexists [_], [AI_basic (BI_const _)], (ws, locs, winst), [].
+    eexists [_], [AI_const _], (ws, locs, winst), [].
     unfold iris.prim_step => /=.
     repeat split => //.
     eapply rm_silent, r_load_packed_success => //.
@@ -1912,7 +1912,7 @@ Lemma wp_load_failure (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset)
   f0.(f_inst).(inst_memory) !! 0 = Some n ->
   t = T_handle \/ ((Wasm_int.N_of_uint i32m k) + off + (N.of_nat (t_length t)) > len)%N ->
   (▷ Φ trapV ∗ ↪[frame] f0 ∗ (N.of_nat n) ↦[wmlength] len  ⊢
-     (WP [AI_basic (BI_const (VAL_int32 k)) ;
+     (WP [AI_const (VAL_int32 k) ;
           AI_basic (BI_load t None a off)] @ s; E {{ w, (Φ w ∗ (N.of_nat n) ↦[wmlength] len) ∗ ↪[frame] f0 }})).
 Proof.
   iIntros (Htv Hinstn) "[HΦ [Hf0 Hwms]]".
@@ -1985,7 +1985,7 @@ Lemma wp_load_packed_failure (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset)
   f0.(f_inst).(inst_memory) !! 0 = Some n ->
   ((Wasm_int.N_of_uint i32m k) + off + (N.of_nat (tp_length tp)) > len)%N ->
   (▷ Φ trapV ∗ ↪[frame] f0 ∗ (N.of_nat n) ↦[wmlength] len  ⊢
-     (WP [AI_basic (BI_const (VAL_int32 k)) ;
+     (WP [AI_const (VAL_int32 k) ;
           AI_basic (BI_load t (Some (tp,sx)) a off)] @ s; E {{ w, (Φ w ∗ (N.of_nat n) ↦[wmlength] len) ∗ ↪[frame] f0 }})).
 Proof.
   iIntros (Htv Hinstn) "[HΦ [Hf0 Hwms]]".
@@ -2037,7 +2037,7 @@ Lemma wp_store (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: value_t
   (▷ ϕ (immV []) ∗
    ↪[frame] f ∗
   N.of_nat n ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ] bs) ⊢
-  (WP ([AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_const v); AI_basic (BI_store t None a off)]) @ s; E {{ w, (ϕ w ∗ (N.of_nat n) ↦[wms][ Wasm_int.N_of_uint i32m k + off ] (bits v)) ∗ ↪[frame] f }}).
+  (WP ([AI_const (VAL_int32 k); AI_const v; AI_basic (BI_store t None a off)]) @ s; E {{ w, (ϕ w ∗ (N.of_nat n) ↦[wms][ Wasm_int.N_of_uint i32m k + off ] (bits v)) ∗ ↪[frame] f }}).
 Proof.
   iIntros (Hvt Hbs Hinstn) "[HΦ [Hf0 Hwms]]".
   iApply wp_lift_atomic_step => //=.
@@ -2052,6 +2052,7 @@ Proof.
   assert (types_agree t vinit) as Hvinit.
   { rewrite Heqvinit. by apply deserialise_type. }
   destruct (bits vinit) eqn:Hb. destruct vinit ; inversion Hb.
+  destruct n0 => //.
   assert (length (serialise_handle h) = 0) as Habs ; first by rewrite H0.
   destruct HHB. simpl in Habs. rewrite length_serialise in Habs.
   assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
@@ -2120,7 +2121,7 @@ Lemma wp_store_packed (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: 
   (▷ ϕ (immV []) ∗
    ↪[frame] f0 ∗
   N.of_nat n ↦[wms][ N.add (Wasm_int.N_of_uint i32m k) off ] bs) ⊢
-   (WP ([AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_const v); AI_basic (BI_store t (Some tp) a off)]) @ s; E
+   (WP ([AI_const (VAL_int32 k); AI_const v; AI_basic (BI_store t (Some tp) a off)]) @ s; E
                   {{ w, (ϕ w ∗ (N.of_nat n) ↦[wms][ Wasm_int.N_of_uint i32m k + off ] bytes_takefill #00%byte (tp_length tp) 
              (bits v)) ∗ ↪[frame] f0 }}).
 Proof.
@@ -2189,7 +2190,7 @@ Lemma wp_store_failure (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t:
   ((Wasm_int.N_of_uint i32m k) + off + (N.of_nat (t_length t)) > len)%N ->
   (▷ ϕ (trapV) ∗
    ↪[frame] f0 ∗ (N.of_nat n) ↦[wmlength] len) ⊢
-  (WP ([AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_const v); AI_basic (BI_store t None a off)]) @ s; E {{ w, (ϕ w ∗ (N.of_nat n) ↦[wmlength] len) ∗ ↪[frame] f0 }}).
+  (WP ([AI_const (VAL_int32 k); AI_const v; AI_basic (BI_store t None a off)]) @ s; E {{ w, (ϕ w ∗ (N.of_nat n) ↦[wmlength] len) ∗ ↪[frame] f0 }}).
 Proof.
   iIntros (Htypes Htv Hinstn) "[HΦ [Hf0 Hwms]]".
   iApply wp_lift_atomic_step => //=.
@@ -2237,7 +2238,7 @@ Lemma wp_store_packed_failure (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPs
   ((Wasm_int.N_of_uint i32m k) + off + (N.of_nat (tp_length tp)) > len)%N ->
   (▷ ϕ (trapV) ∗
    ↪[frame] f0 ∗ (N.of_nat n) ↦[wmlength] len) ⊢
-  (WP ([AI_basic (BI_const (VAL_int32 k)); AI_basic (BI_const v); AI_basic (BI_store t (Some tp) a off)]) @ s; E {{ w, (ϕ w ∗ (N.of_nat n) ↦[wmlength] len) ∗ ↪[frame] f0 }}).
+  (WP ([AI_const (VAL_int32 k); AI_const v; AI_basic (BI_store t (Some tp) a off)]) @ s; E {{ w, (ϕ w ∗ (N.of_nat n) ↦[wmlength] len) ∗ ↪[frame] f0 }}).
 Proof.
   iIntros (Htypes Htv Hinstn) "[HΦ [Hf0 Hwms]]".
   iApply wp_lift_atomic_step => //=.
@@ -2304,7 +2305,7 @@ Proof.
   iSplit.
   - iPureIntro.
     destruct s => //=.
-    eexists [_], [AI_basic (BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (ssrnat.nat_of_bin (N.div n page_size)))))], (ws, locs, winst), [].
+    eexists [_], [AI_const (VAL_int32 (Wasm_int.int_of_Z i32m (ssrnat.nat_of_bin (N.div n page_size))))], (ws, locs, winst), [].
 
     unfold iris.prim_step => /=.
     repeat split => //.
@@ -2560,7 +2561,7 @@ Lemma wp_grow_memory (s: stuckness) (E: coPset) (k: nat) (f : frame)
      (N.of_nat k) ↦[wmlength] n ∗
      ▷ Φ (immV [VAL_int32 (Wasm_int.int_of_Z i32m (ssrnat.nat_of_bin (n `div` page_size)%N))]) ∗
      ▷ Ψ (immV [VAL_int32 int32_minus_one]))
-    ⊢ WP [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_grow_memory)]
+    ⊢ WP [AI_const (VAL_int32 c) ; AI_basic (BI_grow_memory)]
     @ s; E {{ w, ((Φ w ∗
                     ((N.of_nat k) ↦[wms][ n ]
                     repeat #00%byte (N.to_nat (Wasm_int.N_of_uint i32m c * page_size))) ∗
@@ -2594,11 +2595,11 @@ Proof.
   - iIntros "!>" (es σ2 efs HStep). 
     destruct σ2 as [[ws' locs'] inst'] => //=.
     prim_split κ HStep H.
-    remember [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_grow_memory] as es0.
+    remember [AI_const (VAL_int32 c) ; AI_basic BI_grow_memory] as es0.
     remember {| f_locs := locs ; f_inst := winst |} as f.
     remember {| f_locs := locs' ; f_inst := inst' |} as f'.
-    replace [AI_basic (BI_const (VAL_int32 c)) ; AI_basic BI_grow_memory] with
-      ([AI_basic (BI_const (VAL_int32 c))] ++ [AI_basic BI_grow_memory]) in Heqes0 => //=.
+    replace [AI_const (VAL_int32 c) ; AI_basic BI_grow_memory] with
+      ([AI_const (VAL_int32 c)] ++ [AI_basic BI_grow_memory]) in Heqes0 => //=.
     induction H ; try by inversion Heqes0 ;
       try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
     destruct H ; try by inversion Heqes0 ;

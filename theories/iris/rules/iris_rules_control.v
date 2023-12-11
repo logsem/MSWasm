@@ -1030,7 +1030,7 @@ Section control_rules.
     n ≠ Wasm_int.int_zero i32m ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_block tf e1s)] @ s; E CTX i; lh {{ Φ }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_if tf e1s e2s)] @ s; E CTX i; lh {{ Φ }}.
+     -∗ WP [::AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] @ s; E CTX i; lh {{ Φ }}.
   Proof.
     iIntros (Hn) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1064,9 +1064,9 @@ Section control_rules.
         iFrame.
         iIntros "?"; iSpecialize ("HP" with "[$]").
         by iApply "HP".
-        all: by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+        all: by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                 [AI_basic (BI_if tf' e1s e2s)]
-                                [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_if tf' e1s e2s)]) ;
+                                [AI_const (VAL_int32 n) ; AI_basic (BI_if tf' e1s e2s)]) ;
           first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
           eapply lfilled_trans in Hfill as [lh' Hfilln] ; eauto;
           eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1077,7 +1077,7 @@ Section control_rules.
     n ≠ Wasm_int.int_zero i32m ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_block tf e1s)] @ s; E FRAME n1; f1 CTX i; lh {{ v, Φ v }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_if tf e1s e2s)] @ s; E FRAME n1; f1 CTX i; lh {{ v, Φ v }}.
+     -∗ WP [::AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] @ s; E FRAME n1; f1 CTX i; lh {{ v, Φ v }}.
   Proof.
     iIntros (Hn) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1131,7 +1131,7 @@ Section control_rules.
     c ≠ Wasm_int.int_zero i32m ->
     ↪[frame] f -∗
      ▷ (↪[frame] f -∗ WP [::AI_basic (BI_block tf e1s)] @ s; E {{ w, Φ w }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_if tf e1s e2s)] @ s; E {{ w, Φ w }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_if tf e1s e2s)] @ s; E {{ w, Φ w }}.
   Proof.
     iIntros (?) "Hf HP".
     iApply wp_wasm_empty_ctx. iApply (wp_if_true_ctx with "[$]");eauto.
@@ -1143,7 +1143,7 @@ Section control_rules.
     n = Wasm_int.int_zero i32m ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_block tf e2s)] @ s; E CTX i; lh {{ Φ }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_if tf e1s e2s)] @ s; E CTX i; lh {{ Φ }}.
+     -∗ WP [::AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] @ s; E CTX i; lh {{ Φ }}.
   Proof.
     iIntros (Hn) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1175,9 +1175,9 @@ Section control_rules.
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]].
       5: { eapply rm_label. apply rm_silent, r_simple;eauto. eapply rs_if_false;eauto.
            eauto. eauto. }
-      all: try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+      all: try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                   [AI_basic (BI_if tf e1s e2s)]
-                                  [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_if tf e1s e2s)]) ;
+                                  [AI_const (VAL_int32 n) ; AI_basic (BI_if tf e1s e2s)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         eapply lfilled_trans in Hfill as [lh' Hfilln] ; eauto;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1194,7 +1194,7 @@ Section control_rules.
     n = Wasm_int.int_zero i32m ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_block tf e2s)] @ s; E FRAME n1; f1 CTX i; lh {{ v, Φ v }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_if tf e1s e2s)] @ s; E FRAME n1; f1 CTX i; lh {{ v, Φ v }}.
+     -∗ WP [::AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] @ s; E FRAME n1; f1 CTX i; lh {{ v, Φ v }}.
   Proof.
     iIntros (Hn) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1228,9 +1228,9 @@ Section control_rules.
       eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                [AI_basic (BI_if tf e1s e2s)]
-                               [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_if tf e1s e2s)]) ;
+                               [AI_const (VAL_int32 n) ; AI_basic (BI_if tf e1s e2s)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1249,7 +1249,7 @@ Section control_rules.
     c = Wasm_int.int_zero i32m ->
     ↪[frame] f -∗
      ▷ (↪[frame] f -∗ WP [::AI_basic (BI_block tf e2s)] @ s; E {{ w, Φ w }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_if tf e1s e2s)] @ s; E {{ w, Φ w }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_if tf e1s e2s)] @ s; E {{ w, Φ w }}.
   Proof.
     iIntros (?) "Hf HP".
     iApply wp_wasm_empty_ctx. iApply (wp_if_false_ctx with "[$]");eauto.
@@ -1261,7 +1261,7 @@ Section control_rules.
     n ≠ Wasm_int.int_zero i32m ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_br i)] @ s; E CTX j; lh {{ Φ }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_br_if i)] @ s; E CTX j; lh {{ Φ }}.
+     -∗ WP [::AI_const (VAL_int32 n); AI_basic (BI_br_if i)] @ s; E CTX j; lh {{ Φ }}.
   Proof.
     iIntros (Hn) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1290,9 +1290,9 @@ Section control_rules.
       prim_split κ HStep H.
       iApply bi.sep_exist_l.
       only_one_reduction H ;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                [AI_basic (BI_br_if i)]
-                               [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_br_if i)]) ;
+                               [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         eapply lfilled_trans in Hfill as [lh' Hfilln] ; eauto;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1305,7 +1305,7 @@ Section control_rules.
     n ≠ Wasm_int.int_zero i32m ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_br i)] @ s; E FRAME n1; f1 CTX j; lh {{ v, Φ v }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 n)); AI_basic (BI_br_if i)] @ s; E FRAME n1; f1 CTX j; lh {{ v, Φ v }}.
+     -∗ WP [::AI_const (VAL_int32 n); AI_basic (BI_br_if i)] @ s; E FRAME n1; f1 CTX j; lh {{ v, Φ v }}.
   Proof.
     iIntros (Hn) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1339,9 +1339,9 @@ Section control_rules.
       eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] | 
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                [AI_basic (BI_if tf e1s e2s)]
-                               [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_if tf e1s e2s)]) ;
+                               [AI_const (VAL_int32 n) ; AI_basic (BI_if tf e1s e2s)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1360,7 +1360,7 @@ Section control_rules.
     c ≠ Wasm_int.int_zero i32m ->
     ↪[frame] f -∗
      ▷ (↪[frame] f -∗ WP [::AI_basic (BI_br i)] @ s; E {{ w, Φ w }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_if i)] @ s; E {{ w, Φ w }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_if i)] @ s; E {{ w, Φ w }}.
   Proof.
     iIntros (?) "Hf HP".
     iApply wp_wasm_empty_ctx. iApply (wp_br_if_true_ctx with "[$]");eauto.
@@ -1373,7 +1373,7 @@ Section control_rules.
     c = Wasm_int.int_zero i32m ->
     ↪[frame] f -∗
      ▷ Φ (immV [])
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_if i)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_if i)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}.
   Proof.
     iIntros (Hn) "Hf HΦ".
     iApply wp_lift_atomic_step => //=.
@@ -1402,7 +1402,7 @@ Section control_rules.
     List.nth_error iss (Wasm_int.nat_of_uint i32m c) = Some j ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_br j)] @ s; E CTX k; lh {{ Φ }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_table iss i)] @ s; E CTX k; lh {{ Φ }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_table iss i)] @ s; E CTX k; lh {{ Φ }}.
   Proof.
     iIntros (Hiss Hj) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1431,9 +1431,9 @@ Section control_rules.
       prim_split κ HStep H.
       iApply bi.sep_exist_l.
       only_one_reduction H ;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 c))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 c)] [])
                                [AI_basic (BI_br_table iss i)]
-                               [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_br_table iss i)]) ;
+                               [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         eapply lfilled_trans in Hfill as [lh' Hfilln] ; eauto;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1447,7 +1447,7 @@ Section control_rules.
     List.nth_error iss (Wasm_int.nat_of_uint i32m c) = Some j ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_br j)] @ s; E FRAME n1; f1 CTX k; lh {{ v, Φ v }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_table iss i)] @ s; E FRAME n1; f1 CTX k; lh {{ v, Φ v }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_table iss i)] @ s; E FRAME n1; f1 CTX k; lh {{ v, Φ v }}.
   Proof.
     iIntros (Hiss Hj) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1481,9 +1481,9 @@ Section control_rules.
       eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                [AI_basic (BI_if tf e1s e2s)]
-                               [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_if tf e1s e2s)]) ;
+                               [AI_const (VAL_int32 n) ; AI_basic (BI_if tf e1s e2s)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1502,7 +1502,7 @@ Section control_rules.
     List.nth_error iss (Wasm_int.nat_of_uint i32m c) = Some j ->
     ↪[frame] f -∗
      ▷ (↪[frame] f -∗ WP [::AI_basic (BI_br j)] @ s; E {{ w, Φ w }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_table iss i)] @ s; E {{ w, Φ w }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_table iss i)] @ s; E {{ w, Φ w }}.
   Proof.
     iIntros (?) "Hf0 HP".
     iApply wp_wasm_empty_ctx. iApply (wp_br_table_ctx with "[$]") => //.
@@ -1514,7 +1514,7 @@ Section control_rules.
     ssrnat.leq (length iss) (Wasm_int.nat_of_uint i32m c) ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_br i)] @ s; E CTX j; lh {{ Φ }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_table iss i)] @ s; E CTX j; lh {{ Φ }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_table iss i)] @ s; E CTX j; lh {{ Φ }}.
   Proof.
     iIntros (Hiss) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1543,9 +1543,9 @@ Section control_rules.
       prim_split κ HStep H.
       iApply bi.sep_exist_l.
       only_one_reduction H ;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 c))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 c)] [])
                                [AI_basic (BI_br_table iss i)]
-                               [AI_basic (BI_const (VAL_int32 c)) ; AI_basic (BI_br_table iss i)]) ;
+                               [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         eapply lfilled_trans in Hfill as [lh' Hfilln] ; eauto;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1557,7 +1557,7 @@ Section control_rules.
     ssrnat.leq (length iss) (Wasm_int.nat_of_uint i32m c) ->
     ↪[frame] f0 -∗
      ▷ (↪[frame] f0 -∗ WP [::AI_basic (BI_br i)] @ s; E FRAME n1; f1 CTX j; lh {{ v, Φ v }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_table iss i)] @ s; E FRAME n1; f1 CTX j; lh {{ v, Φ v }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_table iss i)] @ s; E FRAME n1; f1 CTX j; lh {{ v, Φ v }}.
   Proof.
     iIntros (Hiss) "Hf0 HP".
     iIntros (LI Hfill).
@@ -1591,9 +1591,9 @@ Section control_rules.
       eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
                                                       (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]];
         try congruence;
-        try by assert (lfilled 0 (LH_base [AI_basic (BI_const (VAL_int32 n))] [])
+        try by assert (lfilled 0 (LH_base [AI_const (VAL_int32 n)] [])
                                [AI_basic (BI_if tf e1s e2s)]
-                               [AI_basic (BI_const (VAL_int32 n)) ; AI_basic (BI_if tf e1s e2s)]) ;
+                               [AI_const (VAL_int32 n) ; AI_basic (BI_if tf e1s e2s)]) ;
         first (by unfold lfilled, lfill => //= ; rewrite app_nil_r) ;
         destruct (lfilled_trans _ _ _ _ _ _ _ H Hfill) as [lh' Hfilln] ;
         eapply lfilled_implies_starts in Hfilln => //= ;
@@ -1612,7 +1612,7 @@ Section control_rules.
     length iss <= Wasm_int.nat_of_uint i32m c ->
     ↪[frame] f -∗
      ▷ (↪[frame] f -∗ WP [::AI_basic (BI_br i)] @ s; E {{ w, Φ w }})
-     -∗ WP [::AI_basic (BI_const (VAL_int32 c)); AI_basic (BI_br_table iss i)] @ s; E {{ w, Φ w }}.
+     -∗ WP [::AI_const (VAL_int32 c); AI_basic (BI_br_table iss i)] @ s; E {{ w, Φ w }}.
   Proof.
     iIntros (?) "Hf HP".
     iApply wp_wasm_empty_ctx. iApply (wp_br_table_length_ctx with "[$]");eauto; first by lias.

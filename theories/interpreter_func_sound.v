@@ -330,7 +330,7 @@ Ltac explode_and_simplify :=
       simplify_hypothesis HRevConst;
       try by [|apply: HRevConst]
     | context C [match ?v with
-                 | VAL_int32 _ => _
+                 | VAL_numeric _ => _
                  | _ => _
                  end] =>
       let Hb := fresh "Ev" in
@@ -549,6 +549,7 @@ Proof.
     (case; first by []) => fuel' I /=.
   - by destruct b; explode_and_simplify; try intro H ; inversion H ; right.
   - intro H ; inversion H ;  by right.
+  - intro H; by right.
   - by destruct f; explode_and_simplify; try intro H ; inversion H ; right.
   - explode_and_simplify; try by intro H ; inversion H ; right.
     destruct run_step_with_fuel as [[s'' vs''] r''] eqn: E.
@@ -635,13 +636,14 @@ Lemma run_one_step_fuel_enough : forall d tt e s f r,
 Proof.
   move=> + + e. induction e using administrative_instruction_ind';
     move=> d [[tt_s tt_f] tt_es] s' f' r //.
-  - simpl. destruct b; (try destruct v); explode_and_simplify; pattern_match => //.
+  - simpl. destruct b ; (try destruct v); explode_and_simplify; (try destruct n); (try destruct n0); explode_and_simplify; pattern_match => //. 
     destruct p. destruct p.
     destruct (BinNat.N.eqb n0 (base h));
       by inversion H1; subst. 
   - by pattern_match.
   - simpl. explode_and_simplify; try pattern_match => //.
-(*    destruct explode_and_simplify; by pattern_match. *)
+  (*    destruct explode_and_simplify; by pattern_match. *)
+  - simpl. explode_and_simplify; try pattern_match => //. 
   - rename l0 into es2.
     set fu := (run_one_step_fuel (AI_label n l es2)) .-1.
     simpl in fu.
@@ -720,8 +722,8 @@ Proof.
   destruct (split_vals_e es) as [vs2 es2] eqn:HSplit.
   apply split_vals_e_v_to_e_duality in HSplit.
   destruct es2 as [|e es2']=> //.
-  destruct e as [b| | |n0 l l0|n0 l l0| ]=> //; unfold e_is_trap in H.
-  - destruct b => //; (try destruct v); move:H; try explode_and_simplify.
+  destruct e as [b| | | |n0 l l0|n0 l l0| ]=> //; unfold e_is_trap in H.
+  - destruct b => //; (try destruct v); move:H; try explode_and_simplify; try destruct n0; try destruct n1; try explode_and_simplify; try done.
     + (* AI_basic (Br i0) *)
       pattern_match.
       exists (AI_basic (BI_br n)). exists es2'.
@@ -730,9 +732,9 @@ Proof.
     + destruct p. destruct p. destruct (BinNat.N.eqb n1 (base h)).
       intro H; inversion H.
       by unfold crash_error; intro Habs; inversion Habs.
+(*    + by unfold crash_error; intro Habs; inversion Habs.
     + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs.
+    + by unfold crash_error; intro Habs; inversion Habs. *)
   - move:H. by explode_and_simplify.
   - move:H. by explode_and_simplify;
     destruct host_application_impl; by explode_and_simplify.
@@ -795,8 +797,8 @@ Proof.
   destruct (split_vals_e es) as [vs2 es2] eqn:HSplit.
   apply split_vals_e_v_to_e_duality in HSplit.
   destruct es2 as [|e es2']=> //.
-  destruct e as [b| | | | |]=> //; unfold e_is_trap in H.
-  - destruct b => //; (try destruct v); move:H; try explode_and_simplify.
+  destruct e as [b| | | | | |]=> //; unfold e_is_trap in H.
+  - destruct b => //; (try destruct v); move:H; try explode_and_simplify; try destruct n0; try destruct n; try explode_and_simplify; try done.
     + (* AI_basic Return *)
       exists (AI_basic BI_return). exists es2'.
       exists 0. exists [::]. exists [::].
@@ -804,9 +806,9 @@ Proof.
     + destruct p. destruct p. destruct (BinNat.N.eqb n0 (base h)).
       by unfold crash_error; intro Habs; inversion Habs.
       by unfold crash_error; intro Habs; inversion Habs.
+(*    + by unfold crash_error; intro Habs; inversion Habs.
     + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs.
+    + by unfold crash_error; intro Habs; inversion Habs. *)
   - move:H. by explode_and_simplify.
   - move:H. by explode_and_simplify;
               destruct host_application_impl; explode_and_simplify.
@@ -1135,7 +1137,7 @@ Proof.
       + move/eqP in H0. by destruct lconst.
     - rewrite/operations.lfilled/operations.lfill. rewrite v_to_e_is_const_list. show_list_equality.
   }
-  destruct fuel as [|fuel] => //. destruct e as [b| |cl|n es1 es2|n f0 ess|].
+  destruct fuel as [|fuel] => //. destruct e as [b| | |cl|n es1 es2|n f0 ess|].
     { (** [AI_basic b] **) (* TODO: Separate this case as a lemma. *)
       destruct b.
       - (** [AI_basic Unreachable] **)
@@ -1172,12 +1174,13 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         by repeat econstructor.
 
       - (** [AI_basic Select] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
+        
         subst; split => //.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -1264,7 +1267,7 @@ Proof.
           apply Compare_dec.leb_complete in if_expr0. lias.
 
       - (** [AI_basic If] **)
-        simpl. explode_and_simplify; pattern_match; stack_frame; subst_rev_const_list; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; stack_frame; subst_rev_const_list; auto_frame.
         split; last by subst.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -1272,7 +1275,7 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         by repeat econstructor.
         split; last by subst.
@@ -1282,7 +1285,7 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         by repeat econstructor.
 
@@ -1290,7 +1293,7 @@ Proof.
         by pattern_match.
 
       - (** [AI_basic Br_if] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -1299,7 +1302,7 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         by repeat econstructor.
         split; last by subst.
@@ -1309,12 +1312,12 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         by repeat econstructor.
 
       - (** [AI_basic Br_table] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -1322,7 +1325,7 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         econstructor.
         econstructor.
@@ -1335,7 +1338,7 @@ Proof.
         done.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
-        rewrite (catA [:: AI_basic _]).
+        rewrite (catA [:: AI_const _]).
         done.
         
         + apply: rm_silent. apply: r_simple. apply: rs_br_table_length.
@@ -1361,7 +1364,7 @@ Proof.
         by eapply rm_silent, r_call.
 
       - (** [AI_basic (Call_indirect i0)] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         + split; last by subst. exists ME_empty.
           eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
@@ -1474,7 +1477,7 @@ Proof.
         
 
       - (** [AI_basic (Load v o a0 s0)] **)
-        simpl. explode_and_simplify; try (pattern_match; auto_frame).
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; try (pattern_match; auto_frame).
         + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
@@ -1857,7 +1860,7 @@ Proof.
           
      
       - (** [AI_basic (Store v o a0 s0)] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         + split; last by subst.
           exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
@@ -2231,7 +2234,7 @@ Proof.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
       - (** [AI_basic BI_slice] **)
-        simpl; explode_and_simplify; pattern_match; auto_frame.
+        simpl; explode_and_simplify; try destruct n; try destruct n0; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -2260,7 +2263,7 @@ Proof.
         subst.
         by repeat econstructor.
       - (** [AI_basic BI_segalloc] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         unfold operations.seg_grow in option_expr.
         destruct (BinNat.N.leb _ page_limit) eqn:Hlimit; try by inversion option_expr.
         assert (salloc (s_segs s) (s_alls s) (operations.seg_length (s_segs s)) (Wasm_int.N_of_uint i32m s0) 
@@ -2328,7 +2331,7 @@ Proof.
 
 
       - (** [AI_basic BI_handleadd] **)
-        simpl; explode_and_simplify; pattern_match; auto_frame.
+        simpl; explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst.
         exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
         unfold lfilled, lfill.
@@ -2413,7 +2416,7 @@ Proof.
 
         
       - (** [AI_basic Grow_memory] **)
-        simpl. explode_and_simplify. pattern_match. auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -2425,8 +2428,18 @@ Proof.
         subst. rewrite - nat_bin.
         by apply rm_silent; apply: r_grow_memory_success => //=.
 
+
       - (** [AI_basic (Econst _)] **)
-        by pattern_match.
+        simpl. explode_and_simplify; pattern_match; auto_frame.
+        split; last by subst. exists ME_empty.
+        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list.
+        instantiate ( 2 := [:: _]) => //=.
+        unfold lfilled, lfill.
+        rewrite v_to_e_is_const_list => /=.
+        instantiate (1 :=[:: _]) => //=. 
+        repeat econstructor.
 
       - (** [AI_basic Unop v u] **)
         simpl. explode_and_simplify;  pattern_match; auto_frame.
@@ -2471,7 +2484,7 @@ Proof.
         by repeat econstructor.
 
       - (** [AI_basic (Testop v t)] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
+        simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
 (*        destruct v => //.
         destruct v => //.
         inversion H2; subst. *)
@@ -2572,13 +2585,16 @@ Proof.
         by repeat econstructor.
         
     }
+    { (** [Const] **)
+      by pattern_match.
+    } 
     { (** [Trap] **)
       by pattern_match.
     }
     { (** [Invoke] **)
       simpl. explode_and_simplify.
       - (** [Func_native] **)
-        pattern_match; auto_frame.
+        pattern_match; auto_frame. 
         split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.

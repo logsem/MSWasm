@@ -55,7 +55,7 @@ Section fundamental.
 
     unfold interp_expression_closure.
     iApply (wp_wand _ _ _ ((λ vs0,
-               ((* added later here *) ▷ interp_val τ2 vs0
+               (interp_val τ2 vs0
                 ∨ interp_call_host_cls hl τ2 vs0) ∗
                ↪[frame]f ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all)%I) with "[-]").
     { iApply (wp_frame_bind with "Hf");[auto|].
@@ -77,8 +77,7 @@ Section fundamental.
         iIntros (v) "(%f1 & H & Hf & Hall)".
         iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
         iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
-        iFrame. iSplitR "Hall"; last by iExists _.
-        iDestruct "H" as "[?|?]"; [iLeft; by iNext | iRight; done].
+        iFrame. by iExists _.
       }
       { iDestruct(local_host_val with "[$] [$] [$] [$]") as "H".
         iApply (wp_wand_ctx with "H").
@@ -99,16 +98,14 @@ Section fundamental.
         iIntros (?) "(%f1 & H & Hf & Hall)".
         iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
         iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
-        iFrame. iSplitR "Hall"; last by iExists _.
-        iDestruct "H" as "[?|?]"; [by iLeft; iNext | by iRight].
+        iFrame. by iExists _.
       }
       { iDestruct (local_host_call with "[$] [$] [$] [$]") as "H".
         iApply (wp_wand_ctx with "H").
         iIntros (?) "(%f1 & H & Hf & Hall)".
         iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
         iApply (wp_wand with "H"). iIntros (?) "(H & Hall & Hf & Hown)".
-        iFrame. iSplitL "H"; last by iExists _.
-        iDestruct "H" as "[?|?]"; [by iLeft; iNext | by iRight].
+        iFrame. by iExists _.
       }
     } 
     iIntros (v) "($ & $ & $ & $)".

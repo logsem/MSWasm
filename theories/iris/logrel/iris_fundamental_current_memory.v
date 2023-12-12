@@ -34,9 +34,9 @@ Section fundamental.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
       iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
-    iDestruct "Hv" as (ws ->) "Hv".
+    iDestruct "Hv" as (ws) "[-> Hv]".
 
-    iDestruct (big_sepL2_length with "Hv") as %Hlen.
+    iDestruct (big_sepL2_length with "Hv") as "%Hlen".
     destruct ws;[|done]. rewrite app_nil_l.
 
     iDestruct (interp_instance_get_mem with "Hi") as (τm mem Hlook1 Hlook2) "[_ #Hm]";auto.

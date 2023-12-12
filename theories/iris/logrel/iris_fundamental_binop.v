@@ -25,7 +25,7 @@ Section fundamental.
   Lemma binop_type_agree_interp t op w1 w2 :
     binop_type_agree t op →
     ⊢ interp_value (Σ:=Σ) t w1 -∗
-    interp_value t w2 -∗
+      interp_value t w2 -∗
     ∀ w, ⌜app_binop op w1 w2 = Some w⌝ -∗ interp_value t w.
   Proof.
     iIntros (Hbinop) "Hw1 Hw2".
@@ -90,8 +90,8 @@ Section fundamental.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").
       { iApply (wp_trap with "[] [$]");auto. }
       iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
-    { iDestruct "Hv" as (ws ->) "Hv".
-      iDestruct (big_sepL2_length with "Hv") as %Hlen.
+    { iDestruct "Hv" as (ws) "[-> Hv]".
+      iDestruct (big_sepL2_length with "Hv") as "%Hlen".
       destruct ws as [|w1 ws];[done|destruct ws as [|w2 ws];[done|destruct ws;[|done]]].
       iSimpl in "Hv".
       iDestruct "Hv" as "[Hv1 [Hv2 _]]".
@@ -105,7 +105,8 @@ Section fundamental.
         iSplitR;[|iExists _,_;iFrame].
         iLeft. iRight.
         iExists _. iSplit;auto.
-        iSimpl. iSplit => //. iApply (binop_type_agree_interp with "Hv1 Hv2");eauto.
+        iSimpl. iSplit => //.
+        iApply (binop_type_agree_interp with "Hv1 Hv2");eauto.
         rewrite Hsome. eauto. }
 
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗  ↪[frame]f)%I with "[Hf]").

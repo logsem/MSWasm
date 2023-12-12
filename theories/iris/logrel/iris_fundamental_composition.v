@@ -201,7 +201,7 @@ Section fundamental.
 
     iAssert (↪[frame] f -∗
              WP llfill vh (iris.of_val v2)
-             {{ vs1, (⌜vs1 = trapV⌝ ∨ (* added a later *) ▷ interp_values t2s vs1
+             {{ vs1, (⌜vs1 = trapV⌝ ∨ interp_values t2s vs1
                       ∨ ▷ interp_br (tc_local C) i (tc_return C) hl vs1 lh (tc_label C)
                       ∨ interp_return_option (tc_return C) (tc_local C) i vs1
                       ∨ ▷ interp_call_host (tc_local C) i (tc_return C) hl vs1 lh (tc_label C) t2s) ∗
@@ -211,7 +211,7 @@ Section fundamental.
       iApply (wp_wand with "Hcont").
       unfold interp_val. iIntros (v0). iIntros "(H & Hf)". iFrame.
       iDestruct "H" as "[[H|H]|[H|[H|H]]]".
-      - iLeft. admit.
+      - by iLeft. 
       - iRight; iLeft => //.
       - do 2 iRight; iLeft => //.
       - do 3 iRight; iLeft => //.
@@ -228,7 +228,7 @@ Section fundamental.
         iSplitL "Hv"; first iExact "Hv".
         iExists _. iFrame.
         instantiate (1 := λ f, (∃ all, interp_frame (tc_local C) i f ∗ interp_allocator all)%I). iExists _. iExact "Hrest". } 
-    { iIntros "[Hcontr | [Hcontr | [Hcontr | Hcontr] ] ]";[by iDestruct "Hcontr" as (?) "[>% _]"|..].
+    { iIntros "[Hcontr | [Hcontr | [Hcontr | Hcontr] ] ]";[by iDestruct "Hcontr" as (?) "[% _]"|..].
       { rewrite fixpoint_interp_br_eq. iDestruct "Hcontr" as (? ? ? ?) "[>%H _]". done. }
       { iDestruct "Hcontr" as (? ? ?) "_";done. }
       { rewrite fixpoint_interp_call_host_eq. iDestruct "Hcontr" as (? ? ? ? ? ?) "[>%H _]";done. } }
@@ -238,7 +238,7 @@ Section fundamental.
     iDestruct "Hw0" as "[#H|[H|[H|H]]]".
     { iApply wp_wasm_empty_ctx.
       iDestruct (Ht2 with "Hi Hc [$] Hall []") as "Ht2".
-      { iRight. admit. (* iFrame "H". *) }
+      { iRight. done. }
       iApply (wp_wand with "Ht2").
       iIntros (v1) "H'".
       iDestruct "H'" as "[[H'|[H'|[H'|H']]] $]".
@@ -290,7 +290,7 @@ Section fundamental.
       rewrite llfill_sh_append. simpl sfill.
       iApply ("IH" with "[] Hf Hfv Hall Hv1 H"). auto.
     }
-Admitted. 
+Qed. 
     
   (* -------------------------------------- COMPOSITION ------------------------------------ *)
 

@@ -56,7 +56,7 @@ Section fundamental.
     unfold interp_expression_closure.
     iApply wp_host_bind.
     iApply (wp_wand _ _ _ ((λ vs0,
-               ((* added a later here *) ▷ interp_val τ2 vs0
+               (interp_val τ2 vs0
                 ∨ interp_call_host_cls hl τ2 vs0) ∗
                  (∃ all, interp_allocator all) ∗ ↪[frame]f ∗ na_own logrel_nais ⊤)%I) with "[-]").
     { iApply (wp_frame_bind with "Hf");[auto|].
@@ -79,8 +79,7 @@ Section fundamental.
         iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
         iApply (wp_wand with "H").
         iIntros (?) "(H & Hfv & Hf & Hall)".
-        iFrame. iSplitL "H"; last by iExists _.
-        iDestruct "H" as "[?|?]"; [by iLeft| by iRight].
+        iFrame. by iExists _. 
       }
       { iDestruct (local_host_val with "[$] [$] [$] [$]") as "H".
         iApply (wp_wand_ctx with "H").
@@ -104,8 +103,7 @@ Section fundamental.
         iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
         iApply (wp_wand with "H").
         iIntros (?) "(H & Hfv & Hf & Hall)".
-        iFrame. iSplitL "H"; last by iExists _.
-        iDestruct "H" as "[?|?]"; [by iLeft| by iRight].
+        iFrame. by iExists _.
       }
       { iDestruct (local_host_call with "[$] [$] [$] Hall0") as "H".
         iApply (wp_wand_ctx with "H").
@@ -113,19 +111,18 @@ Section fundamental.
         iExists _. iFrame. iIntros "Hf". iDestruct ("H" with "Hf Hall") as "H".
         iApply (wp_wand with "H").
         iIntros (?) "(H & Hfv & Hf & Hall)".
-        iFrame. iSplitL "H"; last by iExists _.
-        iDestruct "H" as "[?|?]"; [by iLeft | by iRight].
+        iFrame. by iExists _.
       }
     }
     
     iIntros (v) "[[#Hres | #Hres] ([%all0 Hall] & Hf & Hown)]".
     { iApply ("Hhreturn" with "Hres Hown Hf Hall"). } 
-    { iAssert (▷ interp_call_host_cls hl τ2 v)%I with "Hres" as "Hres'";iClear "Hres".
-      iRevert "Hres'". iLöb as "IH"
-    forall (v all0);iIntros "#Hres".
+    { iAssert (▷ interp_call_host_cls hl τ2 v)%I with "Hres" as "Hres'";iClear "Hres". 
+      iRevert "Hres'". iLöb as "IH" 
+                                 forall (v all0);iIntros "#Hres".
 
       rewrite fixpoint_interp_call_host_cls_eq. iApply fupd_wp_host.
-      iDestruct "Hres" as (? ? ? ? ? ?) "[>%Heq [>%Htf [>%Hin [>%Hb [#Hval Hres]]]]]".
+      iDestruct "Hres" as (? ? ? ? ? ?) "[>%Heq [>%Htf [>%Hin [>%Hb [#Hval Hres]]]]]". 
       iModIntro.
       rewrite Heq. simpl iris.of_val. 
       iDestruct (big_sepL_elem_of with "Hhcalls") as "Hh";eauto.

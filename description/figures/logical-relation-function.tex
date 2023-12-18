@@ -1,0 +1,38 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+\flushleft
+\fbox{$\CLvalid \llbracket \V{ts} \rightarrow \V{ts}' \rrbracket_{\V{hfs}} : \V{Closure} \rightarrow \iProp$}
+\[
+\begin{array}{l}
+%
+  \CLvalid \llbracket \V{ts} \rightarrow \V{ts}' \rrbracket_{\V{hfs}}{ \left( \NCl{\V{ts} \rightarrow \V{ts}'}{(\V{inst},\V{tlocs})}{e} \right) } \triangleq
+\\[.5em]
+  \quad
+  \begin{array}{l}
+    \always \forall \V{vs}, f,\rr{\V{allocator}}, \Vvalid \llbracket \V{ts} \rrbracket(\immV\V{vs}) \ast{} \NaTok{\top} \ast{} {\frameR{F}} \rr{\ast{} \Avalid(\V{allocator})} \wand
+  \\
+                       % \wprefr{e}{n}{\{ i; \V{vcs}~\mdoubleplus~[0; \cdots; 0]_{\V{tlocs}} \}}{\lambda v, \Vvalid \llbracket \V{ts}' \rrbracket(v) \ast \NaTok{\top} \ast \frameR{f} }\\[1.5em]
+  \quad
+    \Evalid\llbracket \V{ts}' \rrbracket_{(F,\V{hfs})}(\K{\textbf{local}}_{\K{len}(\V{ts}')}\{\V{inst}; \V{vs}~\mdoubleplus~\KK{zeros}(\V{tlocs})\}~\K{\textbf{label}}_{\K{len}(\V{ts}')}\{\epsilon\}~\V{e}~\K{\textbf{end}}~\K{\textbf{end}})\\[1em]
+%
+  \end{array}
+\\
+  \CLvalid \llbracket \V{ts} \rightarrow \V{ts}' \rrbracket_{\V{hfs}}{ \left( \HCl{\V{ts} \rightarrow \V{ts}'}{h} \right) } \triangleq (h,\V{ts} \rightarrow \V{ts}') \in \V{hfs}\\[1em]
+  %\always \forall \V{vcs}, \Vvalid \llbracket \V{ts} \rrbracket(\V{vcs}) \wand \wprehost{h(\V{vcs})}{\Vvalid \llbracket \V{ts}' \rrbracket}\\[1em]
+%
+\end{array}
+\]
+
+\fbox{$\Fvalid \llbracket \V{ts} \rightarrow \V{ts}' \rrbracket_{\V{hfs}} : \nat \rightarrow \iProp$}
+\[
+\begin{array}{rcl}
+%
+	\Fvalid \llbracket \V{ts} \rightarrow \V{ts}' \rrbracket_{\V{hfs}}(n) & \triangleq & \exists \V{cl}, \NaInv{\namesp_{\V{wf}}.n}{n \wfpt \V{cl}} \ast \later \CLvalid \llbracket \V{ts} \rightarrow \V{ts}' \rrbracket_{\V{hfs}}(\V{cl})
+%
+\end{array}
+\]
+
+\end{document}

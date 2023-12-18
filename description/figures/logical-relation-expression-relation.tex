@@ -1,0 +1,34 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+
+\flushleft
+
+\fbox{$\Evalidaux \llbracket \V{ts} \rrbracket_* : \V{Expr} \rightarrow \iProp$} \hspace{1em} \fbox{$\Evalid \llbracket \V{ts} \rrbracket_*^* : \V{Lholed} \times \V{Expr} \rightarrow \iProp$}
+\[
+\begin{array}{rcl}
+%
+  \Evalidaux \llbracket \V{ts} \rrbracket_{(F,\V{hfs})}(\V{es}) & \triangleq & \wpre{\V{es}}{\begin{aligned} \V{w}, & (\Vvalid \llbracket \V{ts} \rrbracket(\V{w}) \vee \Hvalid \llbracket \V{ts} \rrbracket_{\V{hfs}}(\V{w})) \ast{} \NaTok{\top} \ast {\frameR{F}} \\ & \rr{\ast{}~ \exists\V{allocator}, \Avalid(\V{allocator})} \end{aligned} } \\[.5em]
+% \end{array}
+% \begin{array}{rcl}
+  \Evalid \llbracket \V{ts} \rrbracket_{(\tau l, \V{inst},\V{hfs})}^{\tau_{\K{lbs}},\tau_{\K{ret}}}(\V{lh}, \V{es}) & \triangleq & \wpre{\V{es}}{\V{w},
+  \begin{array}{l@{}}
+    \left(
+    \begin{array}{l}
+      \Vvalid \llbracket \V{ts} \rrbracket(\V{w})
+      \vee \Hvalid \llbracket \V{ts} \rrbracket_{(\tau l, \V{inst},\V{hfs})}^{\tau_{\K{lbs}},\tau_{\K{ret}}}(\V{w})
+    \\
+      {} \vee \BRvalid \llbracket \tau_{\K{lbs}} \rrbracket^{\tau_{\K{ret}}}_{(\tau l, \V{inst}, \V{hfs})}(\V{w},\V{lh}) \vee
+                                                                                                                 \Rvalid \llbracket \tau_{\K{ret}} \rrbracket_{(\tau l, \V{inst})}(\V{w})
+    \end{array}
+    \right) \ast {}
+  \\
+    \exists F, \rr{\V{allocator}}, \FRvalid\llbracket \tau l \rrbracket_{\V{inst}}(F) \rr{~\ast{}~ \Avalid(\V{allocator})}
+  \end{array} }
+%
+\end{array}
+\]
+
+\end{document}

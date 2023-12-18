@@ -1,0 +1,42 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+\flushleft
+\fbox{$\Tvalid \llbracket \{ \V{min}; \V{max} \} \rrbracket : \nat \rightarrow \iProp$}
+\[
+\begin{array}{rcl}
+%
+  \Tvalid \llbracket \{ \V{min}; \V{max} \} \rrbracket(t) & \triangleq & \exists n, m, t \wtlimpt m \ast{~} m \leq \V{max} \ast{~} t \wtlenpt n \ast{} \\
+                                          &            & \Sep_{i \in [0..n]} \exists \tau s, \eta s, \V{fe}, \NaInv{\namesp_{\V{wt}}.(t,i)}{t \wtpt{i} \V{fe}} \ast \Fvalid \llbracket \tau s \rightarrow \eta s \rrbracket(\V{fe})
+%
+\end{array}
+\]
+
+\fbox{$\Mvalid \llbracket \{ \V{min}; \V{max} \} \rrbracket : \nat \rightarrow \iProp$}
+\[
+\begin{array}{rcl}
+%
+	\Mvalid \llbracket \{ \V{min}; \V{max} \} \rrbracket(n) & \triangleq & \exists (\V{mem} : \K{memory}), \NaInv{\namesp_{\V{wm}}.n}
+				{\begin{array}{l} n \wmlenpt \K{MemLen}(\V{mem}) \\ \Sep_{i\mapsto b \in \K{MemData}(\V{mem})} n \wmpt{i} b \end{array}} \ast {}
+\\
+	& & \V{min} \le \K{MemLen}(\V{mem}) \wedge \V{max} = \K{MemMax}(\V{mem})
+%
+\end{array}
+\]
+
+\fbox{$\Gvalid \llbracket \{ \mu; \tau \} \rrbracket : \nat \rightarrow \iProp$}
+\[
+\begin{array}{rcl}
+%
+	\Gvalid \llbracket \{ \K{\textbf{mut}}; \tau \} \rrbracket(n) & \triangleq & \NaInv{\namesp_{\V{wg}}.n}{\exists w, n \wgpt \{ \K{\textbf{mut}}; w\} \ast \Wvalid \llbracket \tau \rrbracket(w)}\\[.5em]
+	\Gvalid \llbracket \{ \K{\textbf{immut}}; \tau \} \rrbracket(n) & \triangleq & \exists (P : \K{valuetype} \rightarrow \K{value} \rightarrow \iProp), \\
+	& & \qquad{} (\always \forall w, P(\tau)(w) \wand \Wvalid \llbracket \tau \rrbracket(w)) \ast {}
+	\\
+	& & \qquad{} \NaInv{\namesp_{\V{wg}}.n}{\exists w, n \wgpt \{ \K{\textbf{immut}}; w\} \ast P \llbracket \tau \rrbracket(w)}
+%
+\end{array}
+\]
+
+\end{document}

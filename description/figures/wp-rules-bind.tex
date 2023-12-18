@@ -1,0 +1,21 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+\footnotesize
+
+
+
+\[ \inferrule[\texttt{wp\_local\_bind}]{\frameR{F} \ast{}
+ \left[\frameR{F_1} \wand \wpre{\V{es}}{w, \exists F'_1, \frameR{F'_1}}\ast{}\left(\frameR{F} \wand \wprefr{w}{n}{F'_1}{w, \Phi(w)}\right) \right]}
+{\wprefr{\V{es}}{n}{F_1}{w, \Phi(w)}} \]
+
+
+\[ \inferrule[\texttt{wp\_ctx\_bind}]{
+  \wpre{es}{w, \wpre{\V{lh}_i[w]}{w', \Phi(w')}}
+}{
+  \wpre{\V{lh}_i[es]}{w', \Phi(w')}
+} \]
+
+
+\end{document}

@@ -1,0 +1,30 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+\flushleft
+
+\fbox{$\Vvalid \llbracket \V{ts} \rrbracket : \V{LogVal} \rightarrow \iProp$}
+\[
+\begin{aligned}
+\mathrm{ValidHandleAddr}(\V{addr},\V{base'},\V{bound'})\triangleq\; &\mathrm{aligned}(\V{base'}+\V{addr},\xxWhandlesize)~\wedge \\& 0\leq\V{addr} \wedge \V{addr}+\V{bound'}\leq \V{bound'} \end{aligned} \]
+\[
+\begin{array}{rcl}
+  %
+  \Wvalid \llbracket \xxWhandle \rrbracket(\V{v}) & \triangleq & \exists h, \V{v} = \xxWhandle.\xxWconst~h~\ast \\
+  & & \Big(h.\xxWvalid = \xxCfalse~\vee \\
+  & & \;\exists\gamma, \V{base'}, \V{bound'}, \ownGhost{\gamma_{\mathrm{toks}}}{\authfrag(h.\xxWid\hookrightarrow(\gamma, \V{base'}, \V{bound'}))} \ast{} \\
+  & & \quad \V{base'} \leq h.\xxWbase \ast{} \V{base'} + \V{bound'} \geq h.\xxWbase + h.\xxWbound \ast{} \\
+  & & \quad \CInv{\gamma}{\begin{aligned} \exists\V{tbs}, &|\V{tbs}| = \V{bound'} \ast{} \wsspt{\V{base'}}\V{tbs}\ast{}\\& \forall\V{addr}, \mathrm{ValidHandleAddr}(\V{addr}, \V{base'}, \V{bound'})\wand \\& \big((\exists\V{off}, 0\leq\V{off}<\xxWhandlesize \wedge \\ & \qquad \V{tbs}[\V{addr}+\V{off}]=(-,\xxWNumeric)) \vee \\& \Wvalid\llbracket\xxWhandle\rrbracket(\xxWhandle.\xxWconst~\\ & \qquad\xxWdeserialisehandle(\\ & \qquad\mathrm{untag}(\V{tbs}[\V{addr}..\V{addr}+\xxWhandlesize])))\big) \end{aligned}}\Big)
+  \\
+  && \\
+        \Wvalid \llbracket t \rrbracket(\V{v}) & \triangleq & \exists \V{c}, \V{v} = t.\KK{const}~\V{c}\qquad(t \neq \xxWhandle) \\
+	\Vvalid \llbracket [t_1, \cdots,  t_n] \rrbracket(\V{w}) & \triangleq & \V{w} = \trapV \vee {} \\
+	      & & \exists \V{v}_1, \cdots, \V{v}_n,  \V{w} = \immV~[\V{v}_1,\cdots,\V{v}_n] \wedge
+	        \Wvalid \llbracket t_1 \rrbracket(\V{v}_1) \wedge \cdots \wedge \Wvalid \llbracket t_n \rrbracket(\V{v}_n)
+%
+\end{array}
+\]
+
+\end{document}

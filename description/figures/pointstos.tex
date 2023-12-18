@@ -1,0 +1,51 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+Points-to predicates for components of the WebAssembly store
+% Removed the predicates that we don't mention in our rules
+\begin{align*}
+\begin{array}{ll}
+  i\wfpt\V{cl} & \text{Ownership of a function closure}
+  \\
+  i\wtpt{\V{idx}} \V{addr} & \text{Ownership of a function address in the table}
+  \\
+%    i\wtspt{\V{idx}} \V{addrs} & \text{Ownership of a list of function addresses in the table}
+%        \\
+  i \wtlenpt \V{n} & \text{Ownership of the length of a table}
+  \\
+    i \wtlimpt \V{\KK{option}~n} & \text{Ownership of the maximum length of a table}
+  \\
+  i \wmpt{\V{addr}} \V{b} & \text{Ownership of a byte in heap memory}
+    \\
+     i \wmspt{\V{addr}} \V{bv} & \text{Ownership of a list of bytes in heap memory}
+	\\
+  i \wmlenpt \V{n} & \text{Ownership of size of a heap memory}
+  \\
+  \wspt{\V{addr}} \V{tb} & \text{Ownership of a tagged byte in segment memory}
+  \\
+  \wsspt{\V{addr}} \V{tbs} & \text{Ownership of a list of tagged bytes in segment memory}
+  \\
+  \V{id}\allpt(\V{addr},\V{bound}) & \text{Ownership of a handle \xxWid in the allocator}
+  \\
+%    i \wmlimpt \V{\KK{option}~n} & \text{Ownership of themaximum size of a memory}
+%      \\
+  i\wgpt\{\V{mutability};\V{v}\} & \text{Ownership of a global variable}
+\end{array}
+\end{align*}
+%\rao{add length/maxsize predicates (can't really omit them since they're used in the proof rules), and the missed \texttt{wts}/\texttt{wm}}
+Points-to predicate for ownership of the WebAssembly frame
+\[ \frameR F \]
+%Points-to predicates for components of the host state
+%\begin{align*}
+%\begin{array}{ll}
+%  \V{vi} \hvpt \V{export} & \text{Ownership of an import value store}
+%\\
+%  \V{vm} \hmpt m & \text{Ownership of a module}
+%\\
+%  \V{hidx} \hapt a & \text{Ownership of a host action}
+%\end{array}
+%\end{align*}
+
+\end{document}

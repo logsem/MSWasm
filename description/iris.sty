@@ -259,9 +259,11 @@
 %% Non-atomic invariants
 \newcommand*\pid{p}
 \newcommand\NaInv[2]{\boxedassert{#2}[#1]_\textlog{NaInv}}
+\newcommand\CInv[2]{\boxedassert{#2}[#1]_\textlog{CInv}}
 
 \newcommand*\NaTok[1]{{[}\textrm{NaInv}:#1{]}}
 \newcommand*\NaTokE[2]{{[}\textrm{NaInv}:#1.#2{]}}
+\newcommand*\CTok[1]{{[}\textrm{CInv}:#1{]}}
 
 %% View Shifts
 \NewDocumentCommand \vsGen {O{} m O{}}%

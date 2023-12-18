@@ -1,0 +1,18 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+\footnotesize
+
+
+\[ \inferrule[\texttt{wp\_handleadd}]{h.\xxWoffset+c\geq0 \ast{} h'=\{\xxWbase = h.\xxWbase,~\xxWoffset=h.\xxWoffset+c,~\xxWbound=h.\xxWbound,~\xxWvalid=h.\xxWvalid,~\xxWid=h.\xxWid\} \ast{}\\ \later\Phi(\immV[\xxWhandle.\xxWconst~h'])\ast{}\frameR{F}}{\wpre{(\xxWithirtytwo.\xxWconst~c;~\xxWhandle.\xxWconst~h;~\xxWhandleadd)}{w,\Phi(w)\ast{}\frameR{F}}} \]
+
+\[ \inferrule[\texttt{wp\_handleadd\_failure}]{h.\xxWoffset+c<0 \ast{} \later\Phi(\trapV)\ast{}\frameR{F}}{\wpre{(\xxWithirtytwo.\xxWconst~c;~\xxWhandle.\xxWconst~h;~\xxWhandleadd)}{w,\Phi(w)\ast{}\frameR{F}}} \]
+
+\[ \inferrule[\texttt{wp\_slice}]{0\leq c_1 < h.\xxWbound\ast{} c_1\leq c_2 \ast{}h'=\{ \xxWbase = h.\xxWbase + c_1,\;\;\xxWoffset = h.\xxWoffset,\;\; \xxWbound = h.\xxWbound - c_2,\;\; \xxWvalid = h.\xxWvalid,\;\; \xxWid = h.\xxWid \}\ast{}\\
+  \later\Phi(\immV[\xxWhandle.\xxWconst~h'])\ast{}\frameR{F}}{\wpre{(\xxWhandle.\xxWconst~h;~\xxWithirtytwo.\xxWconst~c_1;~\xxWithirtytwo.\xxWconst~c_2;~\xxWslice)}{w,\Phi(w)\ast{}\frameR{F}}} \]
+
+\[ \inferrule[\texttt{wp\_slice\_failure}]{\big(c_1 < 0 \vee c_1 \geq h.\xxWbound\vee c_1 > c_2 \big)\ast{}
+\later\Phi(\trapV)\ast{}\frameR{F}}{\wpre{(\xxWhandle.\xxWconst~h;~\xxWithirtytwo.\xxWconst~c_1;~\xxWithirtytwo.\xxWconst~c_2;~\xxWslice)}{w,\Phi(w)\ast{}\frameR{F}}} \]
+
+\end{document}

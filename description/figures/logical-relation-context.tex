@@ -1,0 +1,17 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+\flushleft
+
+
+\fbox{$\CTXvalid \llbracket C \rrbracket_{(\V{inst},\V{hfs})} : \V{Lholed} \rightarrow \iProp $}
+\[
+  \CTXvalid \llbracket \{ \cdots; \tau l; \tau_{\K{lbs}}; \tau_{\K{ret}} \} \rrbracket_{(\V{inst},\V{hfs})}(\V{lh})
+  \triangleq
+    \K{StructuralCond}(\tau_{\K{lbs}},\V{lh}) \ast
+    \displaystyle \underset{j\mapsto\V{ts} \in \tau_{\K{lbs}}}{\Conv}\CONTvalid\llbracket \V{ts} \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{\tau_{\K{lbs}}, \tau_{\K{ret}}}(\V{lh},j)
+\]
+
+\end{document}

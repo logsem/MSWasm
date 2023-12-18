@@ -46,6 +46,7 @@
 \newcommand{\CTXvalid}{\ensuremath{\mathcal{C}\!\mathit{tx}}}
 \newcommand{\CONTvalid}{\ensuremath{\mathcal{K}}}
 \newcommand{\Hvalid}{\ensuremath{\mathcal{H}}}
+\newcommand{\Avalid}{\ensuremath{\mathcal{A}\!\mathit{llocator}}}
 
 % special wasm constructs
 \newcommand{\NCl}[3]{\ensuremath{\{ #2; #3\}^{\K{NativeCl}}_{#1}}}
@@ -54,6 +55,8 @@
 
 % ::=
 \newcommand{\dotdoteq}{\ensuremath{\mathrel{\mbox{:\hspace{-0.05em}:\hspace{-0.05em}\raisebox{-0.07ex}{=}}}}\xspace}
+
+\newcommand{\Conv}{\mathop{\scalebox{1.5}{\raisebox{-0.2ex}{$\ast$}}}}%
 
 % hack to put text closer to arrow (source: https://tex.stackexchange.com/questions/94572/xrightarrow-position-of-text-over-an-arrow-should-be-lower)
 \usepackage{ifthen}
@@ -69,6 +72,12 @@
   \ifthenelse{\equal{#2}{\empty}}
   { \xmapsto{ \protect{ \yaHelper[ #4 ]{ #3 } } } } % there's no text below
   { \xmapsto[ \protect{ \yaHelper[ #2 ]{ #1 } } ]{ \protect{ \yaHelper[ #4 ]{ #3 } } } } % there's text below
+}
+
+\newcommandx{\yrightarrowtail}[4][1=\empty, 2=\empty, 4=\empty, usedefault=@]{%
+  \ifthenelse{\equal{#2}{\empty}}
+  { \xrightarrow{ \protect{ \yaHelper[ #4 ]{ #3 } } } } % there's no text below
+  { \xrightarrow[ \protect{ \yaHelper[ #2 ]{ #1 } } ]{ \protect{ \yaHelper[ #4 ]{ #3 } } } } % there's text below
 }
 
 \newcommandx{\yhookrightarrow}[4][1=\empty, 2=\empty, 4=\empty, usedefault=@]{%
@@ -92,6 +101,9 @@
 \newcommand{\wmlimpt}{\ensuremath{\yhookrightarrow{\K{mlim}}[-2pt]}}
 \newcommand{\wmspt}[1]{\ensuremath{\ymapsto{\K{wms}}[-2pt]_{#1}}}
 \newcommand{\wmpt}[1]{\ensuremath{\ymapsto{\K{wm}}[-2pt]_{#1}}}
+\newcommand{\wsspt}[1]{\ensuremath{\ymapsto{\K{wss}}[-2pt]_{#1}}}
+\newcommand{\wspt}[1]{\ensuremath{\ymapsto{\K{ws}}[-2pt]_{#1}}}
+\newcommand{\allpt}{\ensuremath{\yrightarrowtail{\K{allocated}}[-2pt]}}
 \newcommand{\wgpt}{\ensuremath{\ymapsto{\K{wg}}[-2pt]}}
 \newcommand{\wtlenpt}{\ensuremath{\yhookrightarrow{\K{tlen}}[-2.5pt]}}
 \newcommand{\wtlimpt}{\ensuremath{\yhookrightarrow{\K{tlim}}[-2.5pt]}}
@@ -248,7 +260,8 @@
 #2_{#1}[#3] = #4%
 }}
 \newcommand\xxWinvoke{\ensuremath{\mathbf{invoke}}\xspace}
-\newcommand\xxSome{\ensuremath{\mathsf{Some}}}
+\newcommand\xxSome{\ensuremath{\mathsf{Some}}\xspace}
+\newcommand\xxNone{\ensuremath{\mathsf{None}}\xspace}
 
 % Logical values
 \newcommand\immV[1]{\ensuremath{\KK{immV}~\mathit{#1}}}

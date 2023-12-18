@@ -220,9 +220,9 @@ One subtlety arises from reading handles, which necessitates tagging the bytes t
 
 Previous works on \mswasm~\cite{mswasm} limit themselves to the case of one single module. In \irismswasm, we generalise to the full module system. Rather than operating as for heap memory with several memories in the store and the frame remembering which memory each module uses, we choose to only keep one segment memory present in the store, and that segment memory is shared by all modules. This helps to underline that the encapsulation properties no longer stem from \wasm's module system, but from the handles themselves providing fine-grained memory safety. As a result, the frame doesn't need to keep track of any additional information in order to accomodate \mswasm.
 
-To keep track of live handles, we use an \emph{allocator}. \citet{mswasm} does not go into much detail about how this allocator should be implemented, only stating it should allow for the definition of allocation and freeing functions that have some properties which they only define intuitively. In \irismswasm, we define the allocator as a map from the space of handle \xxWid{}s to pairs of integers representing the handle's original base address and bound.
+To keep track of live handles, we use an \emph{allocator}. \citet{mswasm} does not go into much detail about how this allocator should be implemented, only stating it should allow for the definition of allocation and freeing functions that have some properties which they only define intuitively. In \irismswasm, we define the allocator as a map from the space of handle \xxWid{}s to either \xxNone symbolising a handle that has been freed, or \xxSome pair of integers representing the handle's original base address and bound.
 
-This means allocating and freeing handles can be defined simply by adding and removing from this map, and these operations can be performed with the \xxWsegalloc and \xxWsegfree instructions. Basing ourselves on \citet{mswasm}, we impose several conditions on the handle to be freed: its \xxfield{base} field must be the original address the handle got allocated as (i.e. the handle cannot have been sliced, see next paragraph), its offset must be zero, and its validity bit must be \xxCtrue. %As for allocation, 
+This means allocating a handle is defined by adding to this map, and freeing a handle is defined by updating its value to \xxNone. In \mswasm, these operations can be performed with the \xxWsegalloc and \xxWsegfree instructions. Basing ourselves on \citet{mswasm}, we impose several conditions on the handle to be freed: its \xxfield{base} field must be the original address the handle got allocated as (i.e. the handle cannot have been sliced, see next paragraph), its offset must be zero, and its validity bit must be \xxCtrue.
 
 Finally, two operations on handles are defined to allow for pointer arithmetics and restrictions on the accessible area of a handle: \xxWhandleadd and \xxWslice. As is custom when working with capabilities, these instructions are allowed to create corrupt handles with an \xxWoffset pointing outside the handle's allowed range; an exception is only raised if one later tries to read or write using this handle. This is to reflect real-world behaviour where a forbidden pointer might often be created but never used e.g. right before a loop is exited.
 
@@ -248,6 +248,72 @@ The changes \irismswasm brings to \mswasm are:
 
 
 \section{\irismswasm: a program logic for \mswasm}
+
+\irismswasm builds on top of \iriswasm~\cite{iriswasm} and provides a fully mechanised program logic for \mswasm. We recall in figures~\ref{fig:wp-rules-pure, fig:wp-rules-bind, fig:wp-rules-functions, fig:wp-rules-resources, fig:wp-rules-control} the program logic rules for \iriswasm, and introduce rules for \irismswasm in figures~\ref{fig:wp-rules-segment, fig:wp-rules-handles}. All of these rules mirror the operational semantics described above, and have been proven true in the Coq proof assistant.
+
+These rules are phrased in the Iris~\cite{iris} separation logic framework and make use of the \emph{weakest precondition} construct. Intuitively, \( \wpre{\V{es}}{w,~\Phi(w)} \) means that when running the program made up of expressions \V{es}, the program runs without errors, and if it terminates, the resulting value \( w \) satisfies predicate \( \Phi \).
+
+As is common in separation logic, the rules are also phrased with \emph{resources} as prepositions. These resources represent ownership of the frame or of specific parts of the store: for example, the resource \( n\wmspt{i}{\V{bs}} \) indicates that in the \( n-\)th heap memory of the store, at address \( i \), are written bytes \V{bs}. The owner of this resource may read or write at this address. Other resources include \( \frameR{F} \) which asserts ownership of the frame \( F \), and other points-to predicates for other parts of the store. We introduce two new resources for the segment memory: \( \wsspt{i}{\V{tbs}} \) asserts ownership of tagged bytes \V{tbs} at address \( i \) of the segment memory (note how there is no \( n \) as in the corresponding resource for the heap memory, since as explained earlier, all modules shaer a common segment memory) and \( \V{id}\allpt(\V{addr},\V{bound}) \) asserts that the handle \xxWid \V{id} is present in the allocator with value \( (\V{addr},\V{bound}) \). All the predicates are recapped in figure~\cite{fig:pointstos}.
+
+As is described by \citet{iriswasm}, \iriswasm defines a set of \emph{logical values} for the program logic. These logical values encompass not only constants (i.e. what in \wasm is called a value), but also \xxWtrap, a value that symbolises an execution that has failed, and other expressions that are stuck, such as a \KK{br} instruction if placed in a sufficiently shallow context, a \xxWreturn that isn't inside a \KK{local}, or a call to a host function. \irismswasm does not elaborate more on these logical values, so we do not provide here a longer introduction to these.
+
+\import{figures/}{wprules}
+\begin{figure}
+\import{figures/}{pointstos}
+\caption{The points-to assertions corresponding to the various components of the state}
+\label{fig:pointstos}
+\end{figure}
+
+\section{Logical Relation}
+
+In order to allow reasoning about interaction of a given module with untrusted unknown code, we provide a logical relation for \irismswasm that opens the door for proofs about robust safety. This logical relation builds on the one introduced for \iriswasm~\cite{iriswasm}. The most notable changes are the value interpretation for handles, and the addition of an interpretation for the allocator.
+
+\begin{figure}[t]
+\import{figures/}{logical-relation}
+\label{app:fig:lrv}
+\caption{A logical relation for values}
+\end{figure}
+
+The value interpretation is shown in figure~\ref{app:fig:lrv}. The value interpretation for numerical values and for logical values are straighforward; let us focus on the value interpretation for handle values. It states that a value is in the interpretation for handles if it is a handle \( h \), and this handle either is invalid, or as an invariant we hold \emph{valid} (see below) segment memory locations corresponding to that handle. Looking more closely, we actually hold memory locations for a fragment of segment memory at least greater than the one described by the handle -- this is to allow slicing.
+
+The ghost resource outside of the invariant simply serves to relate the handle \xxWid with the invariant name: it is a fragment view of a mapping from \xxWid{}s to invariant names; the interpretation for the allocator holds the authoritative view. The ghost name \( \gamma_{\mathrm{toks}} \) for that ghost value is a global value that is also used by the interpretation for the allocator.
+
+Instead of a true invariant, we use the \emph{cancellable invariant} concept of Iris. This variation on invariants requires a token \( \CTok{\gamma} \) to be open, and crucially they can be cancelled by an operation that simply revokes that token. This allows us to free handles. 
+
+By \emph{valid} segment memory locations, we mean the second part of the invariant: any address that might store a handle (i.e. is within bounds and is aligned with the handle size) either has at least one byte tagged as \xxWNumeric, or holds a value that is in the value interpretation for handles. This mirrors the usual intuition of `what is stored at the location pointed at by the capability is valid', the complexity of \mswasm being that the handle does not point to just a single location but rather a list of tagged bytes that might be accessed at a number of different offsets. Luckily the interpretation for numerical values is always vacuously true (since deserialising always yields a value of the desired type) and we have restricted what address a handle can be read from, hence our value interpretation.
+
+\begin{figure}[t]
+  \import{figures/}{logical-relation-allocator}
+  \label{app:fig:lra}
+  \caption{A logical relation for the allocator}
+\end{figure}
+
+The second big addition to the logical relation of \iriswasm is the interpretation for the allocator, shown in figure~\ref{app:fig:lra}. 
+
+The rest of the logical relation is presented in figures \ref{app:fig:lri, app:fig:lrc, app:fig:lre}, with the additions that \irismswasm brings to \iriswasm shown in red. These are all to do with adding an allocator and its associated resources everywhere there is a weakest precondition: this is to allow the code that is executing to access the segment memory. The post-conditions of the weakest preconditions now also include an allocator, which is always existentially quantified to symbolise that the execution of the code might have modified the allocator.
+
+\begin{figure}[t]
+  \import{figures/}{logical-relation-function}
+  \import{figures/}{logical-relation-instance}
+  \import{figures/}{logical-relation-instance-context}
+  \import{figures/}{logical-relation-context}
+\label{app:fig:lri}
+\caption{Our logical relation for instances}
+\end{figure}
+
+\begin{figure}[t]
+  \import{figures/}{logical-relation-expression}
+\label{app:fig:lrc}
+\caption{Our logical relation for control flow}
+\end{figure}
+
+\begin{figure}[t]
+\import{figures/}{logical-relation-frame}
+\import{figures/}{logical-relation-expression-relation}
+\label{app:fig:lre}
+\caption{Our logical relation for frames and expressions}
+\end{figure}
+
 
 \section{Examples}
 

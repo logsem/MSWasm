@@ -5,6 +5,7 @@
 
 \begin{figure}
 
+  \[ \mathrm{aligned}(a,b) := a~\mathrm{modulo}~b=0 \]
   \[ \mathrm{compatible}(\V{addr},\V{off}, \V{ainst}):= \forall \V{id}~\V{addr}'~\V{off}', \V{ainst}.\xxfield{allocated}(\V{id})=\mathrm{Some}(\V{addr}',\V{off}')\implies \begin{aligned} &\V{addr}+\V{off}\leq\V{addr}' \\&\vee\\& \V{addr} \geq\V{addr}'+\V{off}'\end{aligned} \]
   
 \[ \inferrule{\V{addr}\leq\mathrm{length}(\V{sinst}.\xxfield{segdata})\and \V{ainst}.\xxfield{allocated}(\V{id})=\mathrm{None} \and\mathrm{compatible}(\V{addr},\V{off},\V{ainst}) \and\\ \V{sinst}'=\{ \xxfield{segdata} = \V{sinst}.\xxfield{segdata}[\V{addr}..\V{addr}+\V{off} := 0],\;\;\xxfield{max}=\V{sinst}.\xxfield{max} \} \and\\ \V{ainst}'=\{ \xxfield{allocated} = \V{ainst}.\xxfield{allocated}[\V{id}\mapsto\mathrm{Some}(\V{addr}, \V{off})], \xxfield{nextFree} = \V{ainst}.\xxfield{nextFree}\}}{\xxsalloc{\V{sinst}}{\V{ainst}}{\V{addr}}{\V{off}}{\V{id}}{\V{sinst}'}{\V{ainst}'}} \]
@@ -19,14 +20,14 @@ Note: we do not require that \( \V{addr} + \V{off} \leq \mathrm{length}(\V{sinst
 \begin{figure}
 \[ \inferrule{t\neq\xxWhandle\and \rr{(}0\leq h.\xxfield{offset}\rr{)} \and h.\xxfield{offset}+\mathrm{sizeof}(t)\rr{\,\leq\,} h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and\\ \mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \\ \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t)]=\V{tbs}\and \mathrm{deserialise}(t, \mathrm{untag}(\V{tbs}))=\V{c}}{(S,F,[\xxWhandle.\xxWconst~h;~\xxWsegload~t]\hookrightarrow(S,F,[t.\xxWconst~c])} \]
 
-\[ \inferrule{t=\xxWhandle\and \rr{(}0\leq h.\xxfield{offset}\rr{)} \and h.\xxfield{offset}+\mathrm{sizeof}(t)\rr{\,\leq\,}h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and \\ \mathrm{isSome}(S.\xxfield{allocator}.{allocated}(h.\xxfield{id}))\and \\ \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t)]=\V{tbs}\and \mathrm{deserialise}(t, \mathrm{untag}(\V{tbs}))=\V{h'} \\
+\[ \inferrule{t=\xxWhandle\and \rr{(}0\leq h.\xxfield{offset}\rr{)} \and h.\xxfield{offset}+\mathrm{sizeof}(t)\rr{\,\leq\,}h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and \\ \mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \\ \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t)]=\V{tbs}\and \mathrm{deserialise}(t, \mathrm{untag}(\V{tbs}))=\V{h'} \\
 \mathrm{aligned}(\V{addr}, \xxWhandlesize) \and b = \mathrm{allHandle}(\mathrm{tags}(\V{tbs})) \and h_f = \mathrm{updateValid}(h', b \wedge h'.\xxfield{valid})}{(S,F,[\xxWhandle.\xxWconst~h;~\xxWsegload~t]\hookrightarrow(S,F,[t.\xxWconst~h_f])} \]
 
-\[ \inferrule{t\neq\xxWhandle\and \rr{(} 0\leq h.\xxfield{offset}\rr{)} \and h.\xxfield{offset}+\mathrm{sizeof}(t)\rr{\,\leq\,}h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and \\\mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and \mathrm{serialise}(t, \V{v}) = \V{bs} \and \\ \V{seg'} = S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t) := \mathrm{addTag}(\V{bs},\xxWNumeric)] \and
-  S' = \{ S\text{ with } \xxfield{seg}=\V{sinst}' \}}{(S,F,[\xxWhandle.\xxWconst~h;t.\xxWconst~\V{v};~\xxWsegstore~t]\hookrightarrow(S',F,[])} \]
+\[ \inferrule{t\neq\xxWhandle\and \xxTypeof{\V{v}}=t\and \rr{(} 0\leq h.\xxfield{offset}\rr{)} \and h.\xxfield{offset}+\mathrm{sizeof}(t)\rr{\,\leq\,}h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and \\\mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and \mathrm{serialise}(t, \V{v}) = \V{bs} \and \\ \V{seg'} = S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t) := \mathrm{addTag}(\V{bs},\xxWNumeric)] \and
+  S' = \{ S\text{ with } \xxfield{seg}=\V{sinst}' \}}{(S,F,[\xxWhandle.\xxWconst~h;\V{v};~\xxWsegstore~t]\hookrightarrow(S',F,[])} \]
 
 \[ \inferrule{t=\xxWhandle\and \rr{(} 0\leq h.\xxfield{offset} \rr{)} \and h.\xxfield{offset}+\mathrm{sizeof}(t)\rr{\,\leq\,} h.\xxfield{bound}\and h.\xxfield{valid}=\xxCtrue\and\\ \mathrm{isSome}(S.\xxfield{allocator}.\xxfield{allocated}(h.\xxfield{id}))\and \V{addr}=h.\xxfield{base}+h.\xxfield{offset}\and \mathrm{serialise}(t, h') = \V{bs} \and \\ \V{seg'} = S.\xxfield{seg}[\V{addr}..\V{addr}+\mathrm{sizeof}(t) := \mathrm{addTag}(\V{bs},\xxWHandle)] \and
-  S' = \{ S\text{ with } \xxfield{seg}=\V{sinst}' \} \and \mathrm{aligned}(\V{addr}, \xxWhandlesize)}{(S,F,[\xxWhandle.\xxWconst~h;t.\xxWconst~h';~\xxWsegstore~t]\hookrightarrow(S',F,[])} \]
+  S' = \{ S\text{ with } \xxfield{seg}=\V{sinst}' \} \and \mathrm{aligned}(\V{addr}, \xxWhandlesize)}{(S,F,[\xxWhandle.\xxWconst~h;\xxWhandle.\xxWconst~h';~\xxWsegstore~t]\hookrightarrow(S',F,[])} \]
 
 \[ \inferrule{\xxsalloc{S.\xxfield{seg}}{S.\xxfield{allocator}}{\V{addr}}{\V{off}}{\V{id}}{\V{sinst}'}{\V{ainst}'}\and S'=\{ S\text{ with } \xxfield{seg}=\V{sinst}',\;\; \xxfield{allocator}=\V{ainst}'\} \\
   h = \{ \xxfield{base} = \V{addr},\;\; \xxfield{offset} = 0, \;\; \xxfield{bound}=\V{off}, \;\; \xxWvalid = \xxCtrue, \;\; \xxWid=\V{id} \} }{(S,F,[\xxWithirtytwo.\xxWconst~c;~\xxWsegalloc])\hookrightarrow(S',F,[\xxWhandle.\xxWconst~h])} \]

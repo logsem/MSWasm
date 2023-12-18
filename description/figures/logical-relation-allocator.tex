@@ -1,0 +1,19 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+\flushleft
+
+\fbox{$\Avalid : \V{Allocator} \rightarrow \iProp$}
+\[
+\begin{array}{rcl}
+  %
+  \Avalid (\V{allocator}) & \triangleq & \exists f, \ownGhost{\gamma_{\mathrm{tok}}}{\authfull f} \ast{} \\ & & \quad \forall (\V{id}\mapsto\gamma,\V{base},\V{bound})\in f,
+  \\ & & \qquad \exists y, \V{allocator}.\xxfield{allocated}(\V{id})=y \ast{} \V{id}\allpt y \ast{} \\ & & \qquad \mathrm{if}~y~\mathrm{is}~\xxSome(\V{base'},\V{bound'})\mathrm{,~then}
+  \\ & & \qquad\quad \V{base}=\V{base'}\ast{}\V{bound}=\V{bound'}\ast{}\CTok{\gamma}
+%
+\end{array}
+\]
+
+\end{document}

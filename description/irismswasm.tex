@@ -288,7 +288,7 @@ By \emph{valid} segment memory locations, we mean the second part of the invaria
   \caption{A logical relation for the allocator}
 \end{figure}
 
-The second big addition to the logical relation of \iriswasm is the interpretation for the allocator, shown in figure~\ref{app:fig:lra}. 
+The second big addition to the logical relation of \iriswasm is the interpretation for the allocator, shown in figure~\ref{app:fig:lra}. It asserts that there exists a mapping from handle \xxWid{}s to invariant names, such that this mapping agrees with the fragments from the handle value interpretation, and for every binding in this map, there is a corresponding binding in the allocator, and if that binding is to a live handle, then we hold the token that will allow us to open the cancellable invariant from the handle value interpretation.
 
 The rest of the logical relation is presented in figures \ref{app:fig:lri, app:fig:lrc, app:fig:lre}, with the additions that \irismswasm brings to \iriswasm shown in red. These are all to do with adding an allocator and its associated resources everywhere there is a weakest precondition: this is to allow the code that is executing to access the segment memory. The post-conditions of the weakest preconditions now also include an allocator, which is always existentially quantified to symbolise that the execution of the code might have modified the allocator.
 
@@ -304,7 +304,13 @@ The rest of the logical relation is presented in figures \ref{app:fig:lri, app:f
 \begin{figure}[t]
   \import{figures/}{logical-relation-expression}
 \label{app:fig:lrc}
-\caption{Our logical relation for control flow}
+\caption{Our logical relation for control flow, part 1}
+\end{figure}
+
+\begin{figure}[t]
+  \import{figures/}{logical-relation-call-host-br}
+  \label{app:fig:lrb}
+  \caption{Our logical relation for control flow, part 2}
 \end{figure}
 
 \begin{figure}[t]

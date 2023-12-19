@@ -1,0 +1,91 @@
+% !TEX root = ../paper.tex
+\documentclass{standalone}
+\input{macros}
+\begin{document}
+
+
+\flushleft
+
+\fbox{$\Hvalid \llbracket \V{ts} \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{\tau_{\K{lbs}}, \tau_{\K{ret}}} : \V{Val} \times \V{Lholed} \rightarrow \iProp$}
+\[
+  \begin{array}{l}
+    % 
+    \Hvalid \llbracket \V{ts} \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{\tau_{\K{lbs}}, \tau_{\K{ret}}}(w,\V{lh})  \triangleq \\
+    \quad \begin{array}{l}
+           \exists \V{llh}, \V{vs}, \V{ft}, \V{hidx}, \V{ts}_1, \V{ts}_2,\\
+           \quad w = \xxWcallhostV~~\V{ft}~\V{hidx}~\V{vs}~\V{llh} ~\ast \\
+           \quad ft = \V{ts}_1 \rightarrow \V{ts}_2 ~\ast \\
+           \quad (\V{hidx},\V{ft}) \in \V{hfs} ~\ast \\
+           \quad \K{allBasicInstr}(\V{llh}) ~\ast \\
+           \quad \Vvalid \llbracket \V{ts}_1 \rrbracket(\V{vs}) ~\ast \\
+           \quad \always~\forall \V{vs}', F, \rr{\V{allocator}}, 
+           \Vvalid \llbracket \V{ts}_2 \rrbracket(\V{vs}') ~\ast{}
+           \FRvalid \llbracket \tau l \rrbracket_{\V{inst}}(F) ~\rr{\ast{}~\Avalid(\V{allocator})}\wand\\
+           \quad \wpre{\V{llh}[\V{vs}']}
+    % {\K{len}(\V{ts}_{j - p})}
+    % {\V{vs} \mdoubleplus \        [\V{vs},k,\V{es},\V{lh}'_{m}, \V{es}']}
+	         {\V{w},
+                   \begin{array}{l}
+                     \left(
+          \begin{array}{l}
+          \Vvalid \llbracket \tau_{\K{lbs}} \rrbracket(\V{w}) \vee {} \\
+          \later \Hvalid \llbracket \V{ts} \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{\tau_{\K{lbs}}, \tau_{\K{ret}}}(\V{w}, \V{lh}) \vee {} \\
+	  \later \BRvalid \llbracket \V{ts} \rrbracket_{(\tau l, \V{inst},\V{hfs})}^{\tau_{ret}}{ \left( \V{w},\V{lh} \right) } \vee {}
+	  \\
+	  \Rvalid \llbracket \tau_{ret} \rrbracket_{(\tau l, \V{inst})}(w)
+	  \end{array}
+	  \right) \ast {}
+	\\
+	\exists F, \rr{\V{allocator}}, \FRvalid\llbracket \tau l \rrbracket_{\V{inst}}(F)\rr{~\ast{}~ \Avalid(\V{allocator})}\\[1em]
+        \end{array}}
+         \end{array}
+     % 
+  \end{array}
+\]
+
+
+
+\fbox{$\BRvalid \llbracket [\V{ts}_1; \cdots; \V{ts}_l] \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{\tau_{ret}} : \V{Val} \times \V{Lholed} \rightarrow \iProp$}
+% \jean{an asterisk as a superscript is confusing; something fishy is happening with it}
+\[
+\begin{array}{l}
+  \BRvalid \llbracket [\V{ts}_1; \cdots; \V{ts}_l] \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{\tau_{ret}}(w,\V{lh}_n) \triangleq
+\\
+  \quad
+  \begin{array}{l}
+    \exists \V{lh}'''_{p},j, w = \V{lh}'''_{p}[\K{\textbf{br }j}]~ \ast
+  \\
+    \exists \V{vs}',\V{vs}, k, \V{es}, \V{lh}'_m, \V{es}', \V{lh}''_{n - S(j - p)}, \V{ts}',
+  \\
+    \V{lh}_n(n - S(j - p)) = (\V{vs},k,\V{es},\V{lh}'_m,\V{es}') \ast {}
+  \\
+    \K{outer}_{n - S(j - p)}(\V{lh}_n) = \V{lh}''_{n - S(j - p)} \ast {}
+  \\
+    \V{lh}'''_p(0) = (\V{vs}',-) \ast {}
+  \\
+    \Vvalid\llbracket \V{ts}' \app \V{ts}_{j - p} \rrbracket(\V{vs}') \ast {}
+  \\
+    \forall F, \rr{\V{allocator}}, \FRvalid\llbracket \tau l \rrbracket_{\V{inst}}(F) \rr{~\ast{}~\Avalid(\V{allocator})} \wand
+  \\
+    \wprectxml{\V{vs}}{k}{\V{es}}{\V{lh}_{m}'}{\V{es'}}{\K{drop}~(\K{len}(\V{ts}'))~\V{vs}' \app [\KK{br}~(j - p)]}
+    % {\K{len}(\V{ts}_{j - p})}
+    % {\V{vs} \mdoubleplus \        [\V{vs},k,\V{es},\V{lh}'_{m}, \V{es}']}
+	{\V{w},
+        \begin{array}{l}
+          \left(
+          \begin{array}{l}
+          (\exists \tau s, \Vvalid \llbracket \tau s \rrbracket(\V{w})) \vee {} \\
+          \later \left( \exists \tau s, \Hvalid \llbracket \tau s \rrbracket_{(\tau l, \V{inst}, \V{hfs})}^{[\V{ts}_{S(S(j - p))}, \cdots, \V{ts}_l], \tau_{ret}}(\V{w}) \right) \vee {} \\
+	  \later \BRvalid \llbracket [\V{ts}_{S(S(j - p))}, \cdots, \V{ts}_l] \rrbracket_{(\tau l, \V{inst},\V{hfs})}^{\tau_{ret}}{ \left( \V{w},\V{lh}''_{n - S(j - p)} \right) } \vee {}
+	  \\
+	  \Rvalid \llbracket \tau_{ret} \rrbracket_{(\tau l, \V{inst})}(w)
+	  \end{array}
+	  \right) \ast {}
+	\\
+	  \exists F, \rr{\V{allocator}}, \FRvalid\llbracket \tau l \rrbracket_{\V{inst}}(F)\rr{~\ast{}~ \Avalid(\V{allocator})}\\[1em]
+	\end{array}}
+  \end{array}
+\end{array}
+\]
+
+\end{document}

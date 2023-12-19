@@ -271,7 +271,7 @@ In order to allow reasoning about interaction of a given module with untrusted u
 \begin{figure}[t]
 \import{figures/}{logical-relation}
 \label{app:fig:lrv}
-\caption{A logical relation for values}
+\caption{Our logical relation for values}
 \end{figure}
 
 The value interpretation is shown in figure~\ref{app:fig:lrv}. The value interpretation for numerical values and for logical values are straighforward; let us focus on the value interpretation for handle values. It states that a value is in the interpretation for handles if it is a handle \( h \), and this handle either is invalid, or as an invariant we hold \emph{valid} (see below) segment memory locations corresponding to that handle. Looking more closely, we actually hold memory locations for a fragment of segment memory at least greater than the one described by the handle -- this is to allow slicing.
@@ -285,12 +285,12 @@ By \emph{valid} segment memory locations, we mean the second part of the invaria
 \begin{figure}[t]
   \import{figures/}{logical-relation-allocator}
   \label{app:fig:lra}
-  \caption{A logical relation for the allocator}
+  \caption{Our logical relation for the allocator}
 \end{figure}
 
 The second big addition to the logical relation of \iriswasm is the interpretation for the allocator, shown in figure~\ref{app:fig:lra}. It asserts that there exists a mapping from handle \xxWid{}s to invariant names, such that this mapping agrees with the fragments from the handle value interpretation, and for every binding in this map, there is a corresponding binding in the allocator, and if that binding is to a live handle, then we hold the token that will allow us to open the cancellable invariant from the handle value interpretation.
 
-The rest of the logical relation is presented in figures \ref{app:fig:lri, app:fig:lrc, app:fig:lre}, with the additions that \irismswasm brings to \iriswasm shown in red. These are all to do with adding an allocator and its associated resources everywhere there is a weakest precondition: this is to allow the code that is executing to access the segment memory. The post-conditions of the weakest preconditions now also include an allocator, which is always existentially quantified to symbolise that the execution of the code might have modified the allocator.
+The rest of the logical relation is presented in figures \ref{app:fig:lri, app:fig:lrc, app:fig:lrb, app:fig:lre}, with the additions that \irismswasm brings to \iriswasm shown in red. These are all to do with adding an allocator and its associated resources everywhere there is a weakest precondition: this is to allow the code that is executing to access the segment memory. The post-conditions of the weakest preconditions now also include an allocator, which is always existentially quantified to symbolise that the execution of the code might have modified the allocator.
 
 \begin{figure}[t]
   \import{figures/}{logical-relation-function}

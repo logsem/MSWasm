@@ -7,6 +7,9 @@ all: $(TEXFILE).pdf
 
 # Compile main tex file
 $(TEXFILE).pdf: $(TEXFILE).tex $(DEPENDS) $(BIBFILES)
+	latex $(TEXFILE)
+	bibtex $(TEXFILE)
+	pdflatex $(TEXFILE)
 	pdflatex $(TEXFILE)
 
 

@@ -103,8 +103,7 @@ Section fundamental.
     - by apply typing_grow_memory. 
     - by apply typing_nil. 
     - rewrite to_e_list_cat.
-      eapply typing_composition.
-      + simpl. auto. 
+      eapply typing_composition; first done.
       + apply IHbe_typing1. 
       + apply IHbe_typing2. 
     - by apply typing_weakening. 

@@ -120,7 +120,7 @@ Proof.
                                            ∗ ↪[frame] _)%I)).
     iSplitR ; first by iIntros "[%Habs _]".
     iSplitL "Hf".
-  - iApply (wp_tee_local with "Hf").
+  - fold_const. iApply (wp_tee_local with "Hf").
     iIntros "!> Hf".
     rewrite separate1.
     iApply wp_val_app => //.
@@ -188,7 +188,7 @@ Proof.
     rewrite (separate2 (AI_basic _)).
     iApply wp_val_app => //.
     iSplitR ; first by iIntros "!> [%Habs _]".
-    iApply (wp_binop with "Hf") => //.
+    unfold i32const; fold_const. iApply (wp_binop with "Hf") => //.
     simpl.
     iModIntro.
     iPureIntro.
@@ -217,7 +217,7 @@ Proof.
                                        N.of_nat n↦[wms][Wasm_int.N_of_uint i32m
                                                                            (Wasm_int.int_of_Z i32m (Z.of_N v)) + N.zero]bits (value_of_uint (v + N.of_nat (length s) * 4))) ∗ ↪[frame] f1)%I).
     iSplit ; first by iIntros "!> [[%Habs _] _]".
-    iApply wp_store => //.
+    fold_const. iApply wp_store => //.
     instantiate (1 := bits (value_of_uint (v + N.of_nat (length (a :: s)) * 4))) => //=.
     subst f1 => //=.
     iSimpl.
@@ -426,7 +426,7 @@ Section valid.
           { iApply (wp_frame_value with "Hf");eauto.
             by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I). } 
           iIntros (?) "[-> Hf]". iFrame. iSplit; last by iExists _.
-          iLeft. iRight. iExists [VAL_int32 s]. iSplit;auto. iSplit; simpl;auto. eauto.
+          iLeft. iRight. iExists [VAL_int32 s]. iSplit;auto. iSplit; simpl;auto. 
         * iDestruct (stack_pure with "Hstack") as "(_ & _ & %Hstkbound & Hstack)".
           take_drop_app_rewrite (length (is_empty_op)).
           iApply wp_seq.
@@ -492,3 +492,4 @@ End valid.
 
 End stack.    
       
+

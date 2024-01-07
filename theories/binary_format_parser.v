@@ -339,6 +339,9 @@ Definition parse_handleadd {n} : byte_parser basic_instruction n :=
 Definition parse_getoffset {n} : byte_parser basic_instruction n :=
   exact_byte xd2 &> (exact_byte x00 $> BI_getoffset).
 
+Definition parse_isdummy {n} : byte_parser basic_instruction n :=
+  exact_byte xd0 &> (exact_byte x00 $> BI_isdummy).
+
 Definition parse_segfree {n} : byte_parser basic_instruction n :=
   exact_byte xcf &> (exact_byte x00 $> BI_segfree).
 
@@ -391,19 +394,20 @@ Definition parse_handle_instruction {n} : byte_parser basic_instruction n :=
     parse_segalloc <|>
     parse_handleadd <|>
     parse_getoffset <|>
+    parse_isdummy <|>
     parse_segfree.
 
 Definition parse_i32_const {n} : be_parser n :=
-  exact_byte x41 &> ((fun x => BI_immediate (NVAL_int32 x)) <$> parse_s32).
+  exact_byte x41 &> ((fun x => BI_const (NVAL_int32 x)) <$> parse_s32).
 
 Definition parse_i64_const {n} : be_parser n :=
-  exact_byte x42 &> ((fun x => BI_immediate (NVAL_int64 x)) <$> parse_s64).
+  exact_byte x42 &> ((fun x => BI_const (NVAL_int64 x)) <$> parse_s64).
 
 Definition parse_f32_const {n} : be_parser n :=
-  exact_byte x43 &> ((fun x => BI_immediate (NVAL_float32 x)) <$> parse_f32).
+  exact_byte x43 &> ((fun x => BI_const (NVAL_float32 x)) <$> parse_f32).
 
 Definition parse_f64_const {n} : be_parser n :=
-  exact_byte x44 &> ((fun x => BI_immediate (NVAL_float64 x)) <$> parse_f64).
+  exact_byte x44 &> ((fun x => BI_const (NVAL_float64 x)) <$> parse_f64).
 
 
 

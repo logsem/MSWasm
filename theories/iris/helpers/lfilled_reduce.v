@@ -9,7 +9,7 @@ Ltac filled0 Hfill i lh :=
   let nn := fresh "nn" in
   let ll := fresh "ll" in
   let ll' := fresh "ll" in
-  left ; simple_filled Hfill i lh bef aft nn ll ll' ;
+  left ; simple_filled Hfill i lh bef aft nn ll ll' ; try destruct_const;
   apply Logic.eq_sym, app_eq_unit in Hfill as [[ -> Hfill ] | [ _ Hfill ]] ;
   [ apply app_eq_unit in Hfill as [[ -> _ ] | [ -> -> ]] ;
     [ by empty_list_no_reduce
@@ -35,11 +35,11 @@ Ltac filled1 Hfill i lh Hes1 es1 :=
   let nn := fresh "nn" in
   let ll := fresh "ll" in
   let ll' := fresh "ll" in
-  left ; simple_filled Hfill i lh bef aft nn ll ll' ;
+  left ; simple_filled Hfill i lh bef aft nn ll ll' ; try destruct_const;
   destruct bef as [| a bef];
   [ destruct es1 as [| a es1]; first (by empty_list_no_reduce) ;
     destruct es1 as [ | a0 es1] ;
-    first (by inversion Hfill ; subst ; exfalso ; values_no_reduce) ;
+    first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ; repeat rewrite const_const) ;
     inversion Hfill as [[ Ha Ha0 Hnil ]] ;
     apply Logic.eq_sym in Hnil ;
     apply app_eq_nil in Hnil as [-> ->] ;
@@ -76,13 +76,13 @@ Ltac filled2 Hfill i lh Hes1 es1 :=
   let nn := fresh "nn" in
   let ll := fresh "ll" in
   let ll' := fresh "ll'" in
-  left ; simple_filled Hfill i lh bef aft nn ll ll' ;
+  left ; simple_filled Hfill i lh bef aft nn ll ll' ; try destruct_const;
   destruct bef as [| a bef];
   [ destruct es1 as [| a es1] ; first (by empty_list_no_reduce ) ;
     destruct es1 as [| a0 es1] ;
-    first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ) ;
+    first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ; repeat rewrite const_const ) ;
     destruct es1 as [| a1 es1];
-    first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ) ;
+    first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ; repeat rewrite const_const ) ;
     inversion Hfill as [[ Ha Ha0 Ha1 Hnil]] ;
     apply Logic.eq_sym, app_eq_nil in Hnil as [-> ->] ;
     eexists ; 
@@ -93,7 +93,7 @@ Ltac filled2 Hfill i lh Hes1 es1 :=
   | destruct bef as [| a0 bef] ;
     [ destruct es1 as [| a0 es1] ; first (by empty_list_no_reduce ) ;
       destruct es1 as [| a1 es1] ;
-      first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ) ;
+      first (by inversion Hfill ; subst ; exfalso ; values_no_reduce ; repeat rewrite const_const) ;
       inversion Hfill as [[ Ha Ha0 Ha1 Hnil ]] ;
       apply Logic.eq_sym, app_eq_nil in Hnil as [-> ->] ;
       remember [a0 ; a1] as es eqn:Heqes ;
@@ -116,6 +116,7 @@ Ltac filled2 Hfill i lh Hes1 es1 :=
 
 Section lfilled_reduce_properties.
   Context `{ HHB : HandleBytes }.
+  Set Bullet Behavior "Strict Subproofs".
   Let reducible := @iris.program_logic.language.reducible wasm_lang.
 
   Let expr := iris.expr.
@@ -167,23 +168,29 @@ Note that this is a property very similar to Iris context.
            rewrite - Heqf - Heqf' ; by econstructor) ;
       try (filled2 Hfill i lh Hes es ;
            rewrite - Heqf - Heqf' ; by econstructor).
+
+
+    
     destruct H; 
       try (filled0 Hfill i lh ;
-           rewrite - Heqf - Heqf' ; by eapply rm_silent; econstructor) ;
+           rewrite - Heqf - Heqf' ; by eapply rm_silent; econstructor);
       try (filled1 Hfill i lh Hes es ;
-           rewrite - Heqf - Heqf' ; by eapply rm_silent; econstructor) ;
+           rewrite - Heqf - Heqf' ; by eapply rm_silent; econstructor)  ;
       try (filled2 Hfill i lh Hes es ;
            rewrite - Heqf - Heqf' ; by eapply rm_silent; econstructor).
     { rewrite Heqf' in Heqf ; inversion Heqf ; subst ; clear Heqf.
-      destruct H ;
-        try (by filled0 Hfill i lh ;
-             eapply rm_silent, r_simple; econstructor) ;
-        try (destruct v ; try (by inversion H));
+      destruct H. 
+      all: try (by filled0 Hfill i lh ;
+             eapply rm_silent, r_simple; econstructor).
+      24: destruct v; try destruct b => //.
+      24: fold (AI_const (VAL_numeric n)) in Hfill.
+      25: fold (AI_const (VAL_handle h)) in Hfill.
+      all: try ((* destruct v ; try *) (by inversion H)) ;
         try (by filled1 Hfill i lh Hes es ;
              eapply rm_silent, r_simple; econstructor) ;
         try (by filled2 Hfill i lh Hes es ;
              eapply rm_silent, r_simple; econstructor).
-      - simple_filled Hfill i lh bef aft nn ll ll'.
+      - simple_filled Hfill i lh bef aft nn ll ll'; try destruct_const.
         destruct bef.
         repeat (destruct es; first by inversion Hfill ; subst ; exfalso ; values_no_reduce).
         inversion Hfill ; subst.
@@ -274,7 +281,7 @@ Note that this is a property very similar to Iris context.
         simpl.
         rewrite app_length.
         lia.
-        destruct He ; destruct e => //. 
+        destruct He ; destruct e => //.  destruct b => //. 
         by const_list_app.
         apply in_app_or in Hxl1 as [Habs | Habs].
         intruse_among_values vs Habs H.
@@ -300,7 +307,7 @@ Note that this is a property very similar to Iris context.
         simpl.
         rewrite app_length.
         lia.
-        destruct He ; destruct e => //. 
+        destruct He ; destruct e => //. destruct b => //.
         by const_list_app.
         apply in_app_or in Hxl1 as [Habs | Habs].
         intruse_among_values vs Habs H.
@@ -467,7 +474,7 @@ Note that this is a property very similar to Iris context.
         unfold lfilled, lfill.
         rewrite Hcvs.
         done.
-        destruct He ; destruct e => //.
+        destruct He ; destruct e => //. destruct b => //.
         by const_list_app.
         apply first_values in Hfill as (_ & Habs & _) => //= ; try by (intros [? ?]). } 
     - left ; simple_filled Hfill i lh bef aft nn ll ll'.
@@ -558,11 +565,11 @@ Note that this is a property very similar to Iris context.
                 Hcore & Hes0')
             | (lht0 & lht1 & Hfill0 & Hfill1 & Hσ & ->)].
           - exact Hes.
-            exact HLI.
-            exact Hbef0.
-            exact Hbef2.
-            exact Hfillm.
-            left.
+          - exact HLI.
+          - exact Hbef0.
+          - exact Hbef2.
+          - exact Hfillm.
+          - left.
             exists (bc0 ++ core' ++ ac0).
             repeat split.
             eapply rm_label.
@@ -718,7 +725,7 @@ Note that this is a property very similar to Iris context.
         rewrite app_nil_r in H0.
         subst.
         apply IHHLI => //=.
-        destruct He ; destruct e => // ; destruct b => //. 
+      + destruct He ; destruct e => // ; destruct b => //. 
       + by const_list_app.
   Qed.
 

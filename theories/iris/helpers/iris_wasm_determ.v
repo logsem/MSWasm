@@ -29,7 +29,7 @@ Section determ.
     subst; by apply IHreduce.
     destruct es; first empty_list_no_reduce.
     destruct es; inversion H0; subst.
-    exfalso. values_no_reduce.
+    exfalso. values_no_reduce => //.
     destruct es => //.
     destruct l => //. destruct es; first empty_list_no_reduce.
     inversion H0 => //. destruct es => //.
@@ -40,7 +40,7 @@ Section determ.
     fold lfill in H0. destruct lh => //. destruct (const_list l) => //.
     destruct (lfill _ _ _) => //.
     move/eqP in H0.
-    destruct l => //. destruct l => //. destruct l => //.
+    destruct l; first by destruct c. destruct l => //. destruct l => //.
   Qed. 
     
     
@@ -80,7 +80,7 @@ Section determ.
      present *)
     destruct H.
     { destruct H ; clear IHnnn.
-      - only_one [AI_basic (BI_immediate v)] Hred2. done.
+(*      - only_one [AI_basic (BI_immediate v)] Hred2. done. *)
       - by apply unop_det.
       - by apply binop_det.
       - by apply binop_none_det.
@@ -97,10 +97,9 @@ Section determ.
       - by apply select_true_det.
       - by eapply block_det.
       - by eapply loop_det.
-      - only_one [AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] Hred2 ;
-          [done | by inversion Heqes ; subst].
-      - only_one [AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] Hred2 ;
-          [by inversion Heqes ; subst | done].
+      - only_one [AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] Hred2.
+        subst; done. 
+      - only_one [AI_const (VAL_int32 n); AI_basic (BI_if tf e1s e2s)] Hred2; by subst.  
       - only_one [AI_label n es vs] Hred2.
         (* This is the rs_label_const case (i.e. Hred1 was [ [AI_label n es vs] -> es ]
          with vs a list of values). Now when called, [ only_one ] can only reduce the 
@@ -113,8 +112,8 @@ Section determ.
          these for when we will handle the rs_label_trap and rs_br cases (the next 2) ;
          the r_label case will also face this difficulty (among many others inherent to
          the nature of r_label *)
-        + done.
-        + done.
+(*        + done.
+        + done. *)
         + unfold lfilled, lfill in H2.
           destruct i. { destruct lh ; last by false_assumption.
                         destruct (const_list l) ; last by false_assumption.
@@ -147,8 +146,8 @@ Section determ.
           apply andb_true_iff in H as [_ Habs] ; by inversion Habs.
           apply Logic.eq_sym, app_eq_nil in H4 as [_ Habs] ; inversion Habs.
       - only_one [AI_label n es [AI_trap]] Hred2.
-        + done.
-        + done.
+(*        + done.
+        + done. *)
         + rewrite <- H5 in H1. unfold lfilled, lfill in H1.
           destruct i. { destruct lh ; last by false_assumption.
                         destruct (const_list l) ; last by false_assumption.
@@ -228,16 +227,14 @@ Section determ.
           rewrite - (app_nil_l [_]) in Hfill'.
           rewrite - cat_app in Hfill'.
           eapply lfilled_br_and_reduce ; try exact Hfill ; try exact Hfill' ; try done.
-      - only_one [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)] Hred2 ;
-          [ done | subst ; exfalso ; by apply H0 ].
-      - only_one [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)] Hred2 ;
-          [ subst ; exfalso ; by apply H | done].
+      - only_one [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)] Hred2.  by subst. 
+      - only_one [AI_const (VAL_int32 n) ; AI_basic (BI_br_if i)] Hred2; by subst. 
       - only_one [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)] Hred2.
         subst. rewrite H0 in H2. inversion H2 ; by subst.
         subst. apply (ssrnat.leq_trans H) in H1. rewrite ssrnat.ltnn in H1. false_assumption.
       - only_one [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)] Hred2.
         subst. apply (ssrnat.leq_trans H0) in H. rewrite ssrnat.ltnn in H. false_assumption.
-        done.
+        (* done. *)
       - (* [ only_one ] cannot be applied in the following cases, so we perform the 
          case analysis by hand *)
         left ; remember [AI_local n f0 es] as es0.
@@ -330,7 +327,8 @@ Section determ.
         apply Logic.eq_sym in Hes ; exfalso ; no_reduce Hes Hred2.
         apply app_eq_nil in Hes as [-> _]. empty_list_no_reduce.
         rewrite Hxl1 in H ; inversion H.
-      - only_one [AI_const (VAL_int32 c); AI_const (VAL_handle h); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
+      - only_one [AI_const (VAL_int32 c); AI_const (VAL_handle h); AI_basic BI_handleadd] Hred2.
+        1-2:inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
       - only_one [AI_const (VAL_int32 c); AI_const (VAL_handle h); AI_basic BI_handleadd] Hred2; inversion Heqes; subst; rewrite H0 in H2; inversion H2; by subst.
       - only_one [AI_const (VAL_handle h); AI_const (VAL_int32 c1);
                   AI_const (VAL_int32 c2); AI_basic BI_slice] Hred2.
@@ -340,14 +338,16 @@ Section determ.
                   AI_const (VAL_int32 c2); AI_basic BI_slice] Hred2;
           subst; rewrite H4 in H1; inversion H1; subst; done.
       - only_one [AI_const (VAL_handle h); AI_basic BI_getoffset] Hred2.
-        done.
+      - only_one [AI_const (VAL_handle dummy_handle); AI_basic BI_isdummy] Hred2.
+      - only_one [AI_const (VAL_handle h); AI_basic BI_isdummy] Hred2.
+(*        done. *)
       - (* rs_trap case. [ only_one ] cannot be applied because the left-hand-side of Hred2
          is not an explicit list. We perform the case analysis by hand.
          We make extensive use of the [ filled_trap ] tactic, which concludes false
          from a hypothesis [ lfilled k lh [AI_trap] [some explicit list] ] *)
         induction Hred2 ; try by filled_trap H0 Hxl1. 
         destruct H1 ; try by filled_trap H0 Hxl1.
-        { destruct H1 ; try by filled_trap H0 Hxl1.
+        { destruct H1 ; try by filled_trap H0 Hxl1; try destruct_const.
           - filled_trap H0 Hxl1. apply in_app_or in Hxl1 as [Habs | Habs].
             intruse_among_values vs Habs H1. destruct Habs => //=.
           - filled_trap H0 Hxl1. apply in_app_or in Hxl1 as [Habs | Habs].
@@ -388,9 +388,9 @@ Section determ.
             
             by eapply lfilled_implies_starts.
             by inversion Hσ.
-            destruct e => //.
-            unfold to_val, iris.to_val in He ; simpl in He.
-            destruct He as [ He | He ] => //.
+            destruct e => //. destruct b => //.
+            1-2:unfold to_val, iris.to_val in He ; simpl in He.
+            1-2:destruct He as [ He | He ] => //.
             unfold const_list ; rewrite forallb_app.
             apply andb_true_iff ; split => //=.
           }
@@ -529,16 +529,17 @@ Section determ.
       inversion Heqes ; subst ; clear Heqes H3 Hlen.
       assert (forall l i (v:value) vd vd', ssrnat.leq (S i) (length l) ->
                                       set_nth vd l i v = set_nth vd' l i v).
-      { intro. induction l ; intros i v vd1 vd2 Hlen. inversion Hlen.
+      { intro. induction l ; intros i vv vd1 vd2 Hlen. inversion Hlen.
         destruct i => //=. simpl in Hlen ; apply ssrnat.ltnSE in Hlen.
-        by rewrite (IHl i v vd1 vd2 Hlen). }
-      rewrite (H3 _ _ v0 vd0 vd H0) in H4. rewrite <- H4 in H1.
+        by rewrite (IHl i vv vd1 vd2 Hlen). }
+      rewrite (H3 _ _ v0 vd0 vd H0) in H4. assert (v = v0); first by destruct v,v0; inversion H6.
+      subst. rewrite <- H4 in H1.
       destruct f' ; destruct f'0 ; destruct f.
       simpl in H ; simpl in H1 ; simpl in H2 ; by subst.
     - clear IHnnn ; only_one [AI_basic (BI_get_global i)] Hred2.
       inversion Heqes ; subst ; rewrite H in H0 ; by inversion H0.
     - clear IHnnn ; only_one [AI_const v ; AI_basic (BI_set_global i)] Hred2.
-      inversion Heqes ; subst ; rewrite H in H0 ; by inversion H0.
+      destruct v,v0; inversion Heqes ; subst => //; rewrite H in H0 ; by inversion H0.
     - clear IHnnn ; only_one [AI_const (VAL_int32 k) ;
                               AI_basic (BI_load t None a off)] Hred2.
         inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
@@ -565,20 +566,20 @@ Section determ.
         rewrite H0 in H3 ; inversion H3 ; subst ; rewrite H1 in H4 ; inversion H4 ;
         try by subst.   
     - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
-                              AI_basic (BI_store t None a off)] Hred2 ;
-        inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
+                              AI_basic (BI_store t None a off)] Hred2. 
+      1-2:destruct v,v0; inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst => // ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
     - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t None a off)] Hred2 ;
-        inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
+        destruct v,v0; inversion Heqes ; subst => //; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
     - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t (Some tp) a off)] Hred2 ;
-        inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
+        destruct v, v0 => //; inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
     - clear IHnnn ; only_one [AI_const (VAL_int32 k) ; AI_const v ;
                               AI_basic (BI_store t (Some tp) a off)] Hred2 ;
-        inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
+        destruct v, v0 => //; inversion Heqes ; subst ; rewrite H0 in H4 ; inversion H4 ; subst ;
         rewrite H1 in H5 ; inversion H5 ; subst ; rewrite H2 in H6 ; by inversion H6.
     - clear IHnnn ; only_one [AI_basic BI_current_memory] Hred2.
       rewrite H in H2 ; inversion H2 ; subst ; rewrite H0 in H3 ; by inversion H3.
@@ -631,38 +632,39 @@ Section determ.
       destruct H => //. unfold isNotAlloc in H. unfold isAlloc in H7.
       by destruct (find _ _). destruct H => //. by rewrite H in H9.
       by destruct H as [??].
-    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
-      rewrite H6 in H14; inversion H14; subst. done.
-      destruct H9. by rewrite H0 in H2.
-      destruct H0.
-      apply (ssrnat.leq_trans H0) in H3. by rewrite ssrnat.ltnn in H3.
-      destruct H0 => //. unfold isNotAlloc in H0; unfold isAlloc in H4.
-      by destruct (find _ _). destruct H0 => //.
-      rewrite (segstore_is_None _ H0) in H6. done.
-      by destruct H0 as [-> _].
-    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
-      rewrite H7 in H16; inversion H16; subst. done.
-      destruct H10. by rewrite H in H2. destruct H.
-      apply (ssrnat.leq_trans H) in H3. by rewrite ssrnat.ltnn in H3.
-      destruct H => //. unfold isNotAlloc in H; unfold isAlloc in H4.
-      by destruct (find _ _). destruct H => //.
-      rewrite (segstore_is_None _ H) in H7. done.
-      by destruct H as [_ ?].
-    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; inversion Heqes; subst => //.
-      destruct H1. by rewrite H in H5.
-      destruct H.
-      apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
-      destruct H => //. unfold isNotAlloc in H; unfold isAlloc in H7.
-      by destruct (find _ _). destruct H => //.
-      rewrite (segstore_is_None _ H) in H9. done.
-      by destruct H as [-> _].
-         destruct H1. by rewrite H in H5.
-         destruct H.
-      apply (ssrnat.leq_trans H) in H6. by rewrite ssrnat.ltnn in H6.
-      destruct H => //. unfold isNotAlloc in H; unfold isAlloc in H7.
-      by destruct (find _ _). destruct H => //.
-      rewrite (segstore_is_None _ H) in H10. done.
-      by destruct H as [??].
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; destruct v,v0; inversion Heqes; subst => //.
+      1-2:rewrite H6 in H14; inversion H14; subst; done.
+      1-2:destruct H9. all: try by rewrite H0 in H2.
+      1-2:destruct H0.
+      all: try by apply (ssrnat.leq_trans H0) in H3; rewrite ssrnat.ltnn in H3.
+      1-2:destruct H0 => //. all: try by unfold isNotAlloc in H0; unfold isAlloc in H4;
+        destruct (find _ _).
+      1-2:destruct H0 => //.
+      all: try by rewrite (segstore_is_None _ H0) in H6. 
+      1-2:by destruct H0 as [-> _].
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; destruct v,v0; inversion Heqes; subst => //.
+      1-2:rewrite H7 in H16; inversion H16; subst; done.
+      1-2:destruct H10. all: try by rewrite H in H2. 1-2:destruct H.
+      all: try by apply (ssrnat.leq_trans H) in H3; rewrite ssrnat.ltnn in H3.
+      1-2:destruct H => //. all: try by unfold isNotAlloc in H; unfold isAlloc in H4;
+        destruct (find _ _). 1-2:destruct H => //.
+      all: try by rewrite (segstore_is_None _ H) in H7. 
+      1-2:by destruct H as [_ ?].
+    - clear IHnnn; only_one [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] Hred2; destruct v,v0; inversion Heqes; subst => //.
+      1-2:destruct H1. all: try by rewrite H in H5.
+      1-2:destruct H.
+      all: try by apply (ssrnat.leq_trans H) in H6; rewrite ssrnat.ltnn in H6.
+      1-2:destruct H => //. all: try by unfold isNotAlloc in H; unfold isAlloc in H7;
+      destruct (find _ _). 1-2:destruct H => //.
+      all: try by rewrite (segstore_is_None _ H) in H9. 
+      1-2:by destruct H as [-> _].
+      1-2:destruct H1. all: try by rewrite H in H5.
+      1-2:destruct H.
+      all: try by apply (ssrnat.leq_trans H) in H6; rewrite ssrnat.ltnn in H6.
+      1-2:destruct H => //. all: try by unfold isNotAlloc in H; unfold isAlloc in H7;
+        destruct (find _ _). 1-2:destruct H => //.
+      all: try by rewrite (segstore_is_None _ H) in H10. 
+      1-2:by destruct H as [??].
     - right. right. left. eexists. unfold first_instr => //=.
     - right. right. left. eexists. unfold first_instr => //=.
     - clear IHnnn; only_one [AI_const (VAL_handle h); AI_basic BI_segfree] Hred2.

@@ -429,7 +429,7 @@ Definition module_seg_typing (s : segment_type) : bool :=
 
 Definition const_expr (c : t_context) (b_e : basic_instruction) : bool :=
   match b_e with
-  | BI_immediate _ => true
+  | BI_const _ => true
   | BI_get_global k =>
     (k < length c.(tc_global)) &&
     match List.nth_error c.(tc_global) k with

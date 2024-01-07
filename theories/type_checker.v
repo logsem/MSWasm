@@ -220,7 +220,7 @@ in
   if ts == CT_bot then CT_bot
   else
   match be with
-  | BI_immediate v => 
+  | BI_const v => 
       type_update ts [::] (CT_type [::typeof_numerical v])
   | BI_unop t op =>
     match op with
@@ -246,6 +246,9 @@ in
       type_update ts [::CTA_some T_i32; CTA_some T_handle] (CT_type [::T_handle])
   | BI_getoffset =>
       type_update ts [::CTA_some T_handle] (CT_type [::T_i32])
+  | BI_isdummy =>
+      type_update ts [::CTA_some T_handle] (CT_type [::T_i32])
+                  
   | BI_testop t _ =>
     if is_int_t t
     then type_update ts [::CTA_some t] (CT_type [::T_i32])

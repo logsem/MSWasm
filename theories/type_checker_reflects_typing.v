@@ -1898,6 +1898,11 @@ Proof with auto_rewrite_cond.
       exists (tn' ++ [::T_handle]); split => //.
       apply bet_weakening.
       apply bet_getoffset => //.
+    + replace [::CTA_some T_handle] with (to_ct_list [::T_handle]) in Hct2 => //.
+      apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
+      exists (tn' ++ [::T_handle]); split => //.
+      apply bet_weakening.
+      apply bet_isdummy => //.
     + assert (c_types_agree (type_update cts (to_ct_list [::]) (CT_type [::T_i32])) tm) as Hct3.
       * simplify_type_update.
         by unfold produce => //=.

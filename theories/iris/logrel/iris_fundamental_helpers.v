@@ -100,7 +100,7 @@ Section fundamental.
   Lemma const_list_of_val vs :
     const_list (of_val (immV vs)).
   Proof.
-    induction vs;auto. Qed.
+    induction vs;auto. destruct a => //. Qed.
 
   Lemma lh_depth_push_base lh n es es1 vs2 :
     lh_depth (push_base lh n es es1 vs2) = S (lh_depth lh).
@@ -1120,7 +1120,7 @@ Section fundamental.
   Lemma const_list_map ws1 :
     const_list (map (λ x : value, AI_const x) ws1).
   Proof.
-    induction ws1;auto.
+    induction ws1;auto. destruct a => //. 
   Qed.
 
   Lemma lfilled_simple_get_base_pull j sh e LI ws1 ws2 :
@@ -1458,20 +1458,20 @@ Section fundamental.
       revert l Heq. induction es;intros l Heq.
       { destruct l;try done. }
       destruct l;try done.
-(*      simpl in Heq. inversion Heq;subst.
-      apply IHes in H1. done. *) }
+      simpl in Heq. inversion Heq;subst.
+      apply IHes in H1. done. }
     { intros Heq. cbn in Heq.
       revert l Heq. induction es;intros l Heq.
       { destruct l;try done. }
       destruct l;try done.
-      (* simpl in Heq. inversion Heq;subst.
-      apply IHes in H1. done. *) }
+      simpl in Heq. inversion Heq;subst.
+      apply IHes in H1. done. }
     { intros Heq. cbn in Heq.
       revert l Heq. induction es;intros l Heq.
       { destruct l;try done. }
       destruct l;try done.
-(*      simpl in Heq. inversion Heq;subst.
-      apply IHes in H1. done. *) }
+      simpl in Heq. inversion Heq;subst.
+      apply IHes in H1. done. }
   Qed.
 
   Lemma llfill_local vh n f e :
@@ -1514,54 +1514,67 @@ Section fundamental.
     { exfalso. revert l Hv. simpl. induction vh;intros l' Hv.
       { simpl in Hv. revert l' Hv.
         induction l;intros l' Hv.
-        { destruct l' =>//. }
-        { destruct l' =>//. inversion Hv. eapply IHl;eauto. }
+        { destruct l' => //. destruct v => //. }
+        { destruct l' => //. inversion Hv. eapply IHl;eauto. }
       }
       { simpl in Hv.
         revert l Hv.
         induction l';intros l Hv.
-        { destruct l =>//. }
-        { destruct l =>//. inversion Hv. eapply IHl';eauto. }
+        { destruct l => //. }
+        { destruct l => //.
+          { destruct a => //. }
+          inversion Hv. eapply IHl';eauto. }
       }
       { simpl in Hv.
         revert l Hv.
         induction l';intros l Hv.
-        { destruct l =>//. }
-        { destruct l =>//. inversion Hv. eapply IHl';eauto. }
+        { destruct l => //. }
+        { destruct l => //. { destruct a => //. } inversion Hv. eapply IHl';eauto. }
       }
     }
     { simpl in Hv. destruct vh;simpl in Hv.
-      { destruct l,l0 =>//. }
-      { destruct l =>//. }
-      { destruct l =>//. }
+      { destruct l,l0 => //.
+        - destruct v => //.
+        - destruct a,v => //. 
+      }
+      { destruct l => //. destruct v => //.  }
+      { destruct l => //. destruct v => //. }
     }
     { exfalso. simpl in Hv. remember (BI_br i).
-(*      assert (∀ w, b = BI_immediate w -> False) as HH;[intros w; rewrite Heqb;done|]. *)
+      assert (∀ w, b = BI_const w -> False) as HH;[intros w; rewrite Heqb;done|]. 
       clear Heqb.
       revert i lh Hv.
       induction vh;intros i lh Hv.
       { destruct lh;simpl in Hv.
         { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //.
-(*          { inversion Hv. subst. eapply HH.
-            eauto. } *)
-          inversion Hv. by apply IHl in H1. }
+          { inversion Hv. destruct v => //. } 
+          { inversion Hv. subst. destruct a => //. eapply HH. inversion H0 => //.  } 
+          { inversion Hv. by apply IHl in H1. } } 
         { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //.
-          inversion Hv. by apply IHl in H1. }
+          { inversion Hv. destruct v => //. }
+          { inversion Hv. subst. destruct a => //. } 
+          { inversion Hv. by apply IHl in H1. } }
       }
       { destruct lh;simpl in Hv.
         { revert l2 Hv;induction l;intros l2 Hv;destruct l2 => //.
-(*          { inversion Hv. subst. eapply HH. eauto. } *)
+          { inversion Hv. destruct v => //. } 
+          { inversion Hv. subst. destruct a => //.  eapply HH. inversion H0 => //. } 
           inversion Hv. by apply IHl in H1. }
         { revert l2 Hv;induction l;intros l2 Hv;destruct l2 => //.
           { simpl in Hv. simplify_eq.
             simpl in IHvh. apply IHvh in H1. done. }
+          { inversion Hv. destruct v => //. }
+          { inversion Hv. subst. destruct a => //. } 
           inversion Hv. by apply IHl in H1. }
       }
       { destruct lh;simpl in Hv.
-        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 =>//.
-(*          { inversion Hv. subst. eapply HH. eauto. } *)
+        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //.
+          { inversion Hv. destruct v => //. } 
+          { inversion Hv. subst. destruct a => //. eapply HH. inversion H0 => //. } 
           inversion Hv. by apply IHl in H1. }
-        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 =>//.
+        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //.
+          { inversion Hv. destruct v => //. }
+          { inversion Hv. subst. destruct a => //. } 
           inversion Hv. by apply IHl in H1. }        
       }
     }
@@ -1569,39 +1582,60 @@ Section fundamental.
       revert s Hv.
       induction vh;intros s Hv.
       { destruct s;simpl in Hv.
-        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 =>//.
-          inversion Hv. by apply IHl in H1. }
-        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 =>//.
-          inversion Hv. by apply IHl in H1. }
+        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //; inversion Hv. 
+          { destruct v => //. }
+          { subst. destruct a => //. } 
+          by apply IHl in H1. }
+        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //;
+                                                                inversion Hv.
+          { destruct v => //. }
+          { subst. destruct a => //. } 
+          by apply IHl in H1. }
       }
       { destruct s;simpl in Hv.
-        { revert l2 Hv;induction l;intros l2 Hv;destruct l2 =>//.
-          inversion Hv. by apply IHl in H1. }
-        { revert l2 Hv;induction l;intros l2 Hv;destruct l2 =>//.
+        { revert l2 Hv;induction l;intros l2 Hv;destruct l2 => //; inversion Hv.
+          { destruct v => //. }
+          { subst. destruct a => //. } 
+          by apply IHl in H1. }
+        { revert l2 Hv;induction l;intros l2 Hv;destruct l2 => //.
           { simpl in Hv. simplify_eq.
             simpl in IHvh. apply IHvh in H1. done. }
-          inversion Hv. by apply IHl in H1. }
+          all: inversion Hv.
+          { destruct v => //. }
+          { subst. destruct a => //. }
+          by apply IHl in H1. }
       }
       { destruct s;simpl in Hv.
-        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 =>//.
-          inversion Hv. by apply IHl in H1. }
-        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 =>//.
-          inversion Hv. by apply IHl in H1. }        
+        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //;
+                                                                inversion Hv.
+          { destruct v => //. }
+          { subst. destruct a => //. }
+          by apply IHl in H1. }
+        { revert l1 Hv;induction l;intros l1 Hv;destruct l1 => //;
+                                                                inversion Hv.
+          { destruct v => //. }
+          { subst. destruct a => //. }
+          by apply IHl in H1. }        
       }      
     }
     { exfalso. simpl in Hv.
       revert l0 Hv.
       induction vh;intros s Hv.
       { destruct s;simpl in Hv.
-        all: revert l2 Hv;induction l0;intros l2 Hv;destruct l2 =>//.
-        all: inversion Hv; by apply IHl0 in H1. }
+        all: revert l2 Hv;induction l0;intros l2 Hv;destruct l2 => //.
+        all: inversion Hv; try by apply IHl0 in H1.
+        all: try by destruct v.
+        all: try by subst; destruct a.
+      }
       { destruct s;simpl in Hv.
-        all: revert l3 Hv;induction l0;intros l3 Hv;destruct l3 =>//.
+        all: revert l3 Hv;induction l0;intros l3 Hv;destruct l3 => //.
         all: inversion Hv;subst. all: try by apply IHl0 in H1.
+        all: try by destruct v => //. all: try by destruct a.
         by apply IHvh in H2. }
       { destruct s;simpl in Hv.
-        all: revert l2 Hv;induction l0;intros l2 Hv;destruct l2 =>//.
+        all: revert l2 Hv;induction l0;intros l2 Hv;destruct l2 => //.
         all: inversion Hv;subst. all: try by apply IHl0 in H1.
+        all: try by destruct v. all: try by destruct a.
         by apply IHvh in H2. }
     }
   Qed.
@@ -1675,7 +1709,7 @@ Section fundamental.
     induction l;simpl in *.
     { inversion Hin. }
     { inversion Hin.
-      { simplify_eq. }
+      { simplify_eq. rewrite const_const in Ha => //. }
       { simplify_eq. apply IHl. auto. }
     }
   Qed.
@@ -1704,7 +1738,8 @@ Section fundamental.
         { rewrite Heq. apply elem_of_app. right. constructor. }
         
         apply elem_of_app in H as [Hcontr|H].
-        { exfalso. clear -Hcontr. induction l'=>//;simpl in Hcontr;inversion Hcontr.
+        { exfalso. clear -Hcontr. induction l'=> //;simpl in Hcontr;inversion Hcontr.
+          { by destruct a. } 
           simplify_eq. apply IHl'. auto. }
         apply elem_of_app in H as [Hcontr|H];auto.
         { exfalso. clear -He Hcontr. induction e';inversion Hcontr.
@@ -1721,6 +1756,7 @@ Section fundamental.
         
         apply elem_of_app in H as [Hcontr|H].
         { exfalso. clear -Hcontr. induction l'=>//;simpl in Hcontr;inversion Hcontr.
+          { by destruct a. } 
           simplify_eq. apply IHl'. auto. }
         apply elem_of_app in H as [Hcontr|H];auto.
         { exfalso. clear -He Hcontr. induction e';inversion Hcontr.

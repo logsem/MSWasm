@@ -38,10 +38,9 @@ Definition new_stack :=
     i32const 65536 ;
     BI_segalloc ;
     BI_tee_local 0 ;
-    BI_const (value_of_handle dummy_handle) ;
-    BI_relop T_handle (Relop_h ROH_eq) ;  
+    BI_isdummy ;
     BI_if (Tf [] [T_handle]) [
-        BI_const (value_of_handle dummy_handle)
+        BI_get_local 0
       ] [
         BI_get_local 0 ;
         i32const 0;
@@ -97,43 +96,44 @@ Proof.
     iSplitR.
   - iIntros "[%Habs _]" ; done.
   - iSplitL "Hf". 
-    iApply (wp_tee_local with "Hf").
+    fold_const; iApply (wp_tee_local with "Hf").
     iIntros "!> Hf".
     rewrite list_extra.cons_app.
     iApply wp_val_app => //=.
     iSplitR => //=.
     iIntros "!> [%Habs _]" ; done.
-    iApply (wp_set_local with "[] [$Hf]") => //=.
+    fold_const; iApply (wp_set_local with "[] [$Hf]") => //=.
   - iIntros (w) "[-> Hf]".
     unfold of_val, fmap, list_fmap.
     rewrite - separate1.
-    rewrite separate3.
+    rewrite separate2.
     iApply wp_seq.
     iSplitR.
-    instantiate (1 := (λ x, (⌜ if (handle_eqb h dummy_handle) then
+    instantiate (1 := (λ x, (⌜ if (is_dummy h) then
                                  x = immV [value_of_int 1]
                                else x = immV [value_of_int 0] ⌝ ∗
                                           ↪[frame] {| f_locs := set_nth _
                                                                   (f_locs f0) 0 _ ;
                                                      f_inst := f_inst f0 |})%I)).
     iIntros "[%Habs _]".
-    by destruct (handle_eqb h dummy_handle). 
-  - iSplitL "Hf". 
-    iApply (wp_relop with "Hf"). done. 
-    iPureIntro.
-    destruct (handle_eqb _ _) eqn:Hv.
-    unfold app_relop => /=. rewrite Hv.
-    done.
-    unfold app_relop => /=. rewrite Hv. done.
+    by destruct (is_dummy h). 
+  - instantiate (1 := VAL_handle h). iSplitL "Hf".
+    destruct (is_dummy h) eqn:Hh.
+    + apply is_dummy_true in Hh as ->.
+      iApply (wp_isdummy_true with "Hf").
+      done.
+    + apply is_dummy_false in Hh.
+      iApply (wp_isdummy_false with "Hf") => //.
+
   (* If *)
   - iIntros (w) "[%Hw Hf]".
-    destruct w ; try by destruct (handle_eqb _ _).
-    destruct l ; first by destruct (handle_eqb _ _).
-    destruct l ; last by destruct (handle_eqb _ _ ).
+    destruct w ; try by destruct (is_dummy h).
+    destruct l ; first by destruct (is_dummy h).
+    destruct l ; last by destruct (is_dummy h).
     iSimpl.
-    destruct (handle_eqb _ _) eqn:Hv. 
+    destruct (is_dummy h) eqn:Hv. 
     + (* segalloc failed *)
-      apply handle_eqb_eq in Hv as ->. 
+      apply is_dummy_true in Hv as ->. 
       inversion Hw ; subst v.
       iApply (wp_if_true with "Hf").
       intro.
@@ -142,17 +142,30 @@ Proof.
       rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
       iApply wp_wand_r. 
       iSplitL "Hf".
-      iApply (wp_block with "Hf") => //=.
+      (*iApply (wp_block with "Hf") => //=. 
+      iIntros "!> Hf". *)
+      iApply wp_wasm_empty_ctx.
+      iApply (wp_block_ctx with "Hf"). done. done. done. done.
       iIntros "!> Hf".
-      iApply (wp_label_value with "Hf") => //=.
-      instantiate (1 := λ x, ⌜ x = immV [value_of_handle dummy_handle] ⌝%I ).
-      done.
-      iIntros (v) "[%Hv Hf]".
-      iApply "HΦ".
-      iDestruct "H" as "[%Hdum | (Hid & %Hbound & %Hoff & %Hval & Hs)]".
-      2:{ simpl in Hval. done. }
-      iSplitR "Hf". iLeft. subst. iFrame. done.
-      iExists _. iFrame. done. 
+      iApply (wp_label_push_nil _ _ _ _ 0 (LH_base [] []) with "[Hf]") ;
+        last unfold lfilled, lfill.
+      simpl.
+      rewrite (separate1 (AI_basic (BI_get_local 0))).
+      iApply wp_seq_ctx; eauto.
+      iSplitL ""; last first.
+      iSplitL. 
+      iApply (wp_get_local with "[] Hf").
+      simpl. by rewrite set_nth_read.
+      by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
+      iIntros (w) "[-> Hf]". iSimpl.
+      fold_const.
+      iApply (wp_val_return with "Hf") => //.
+      iIntros "Hf". iApply wp_value.
+      unfold IntoVal. erewrite language.of_to_val => //.
+      instantiate (1 := λ x, (⌜ x = immV _ ⌝ ∗ ↪[frame] _)%I).
+      by iFrame. by iIntros "[% _]".
+      iIntros (v) "[-> Hf]".
+      iApply "HΦ". iSplitR "Hf"; last by iExists _; iFrame. iLeft.  done. 
     + (* grow_memory succeeded *)
       inversion Hw ; subst v.
       iApply (wp_if_false with "Hf"). done.
@@ -211,12 +224,12 @@ Proof.
           - 2: { simpl. by iIntros "(%HContra & _ )". }
             iIntros (w) "[-> Hf]".
             unfold of_val, fmap, list_fmap.
-            rewrite - separate1.
-            rewrite (separate3 (AI_basic _)).
+            simpl. 
+            rewrite (separate3 (AI_handle _)).
             iApply wp_seq_ctx.
             iSplitL ""; last first.
           - iSplitL.
-            iApply (wp_segstore with "[Hf Hbs Hid]"); last first.
+            unfold i32const; fold_const; iApply (wp_segstore with "[Hf Hbs Hid]"); last first.
             unfold handle_addr. rewrite Hoff N.add_0_r.
             iFrame. 
             instantiate (1 := λ x, ( ⌜ x = immV _ ⌝ ∗ _)%I ).
@@ -367,3 +380,4 @@ End valid.
 
 End stack.    
       
+

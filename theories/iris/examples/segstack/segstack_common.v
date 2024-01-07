@@ -18,10 +18,11 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 Notation "{{{ P }}} es @ E {{{ v , Q }}}" :=
   (□ ∀ Φ, P -∗ (∀ v : iris.val, Q -∗ Φ v) -∗ (WP (es : iris.expr) @ NotStuck ; E {{ v, Φ v }}))%I (at level 50).
 
-Definition i32const (n:Z) := BI_const (VAL_int32 (Wasm_int.int_of_Z i32m n)).
+Definition i32const (n:Z) := BI_const (NVAL_int32 (Wasm_int.int_of_Z i32m n)).
 Definition value_of_int (n:Z) := VAL_int32 (Wasm_int.int_of_Z i32m n).
+Definition nvalue_of_int (n:Z) := NVAL_int32 (Wasm_int.int_of_Z i32m n).
 
-Definition u32const (n:N) := BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n))).
+Definition u32const (n:N) := BI_const (NVAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n))).
 Definition value_of_uint (n:N) := VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n)).
 Definition value_of_handle (h: handle) := VAL_handle h.
 
@@ -711,7 +712,7 @@ Qed.
 Lemma stack_load_0 v s f E:
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_handle v)); AI_basic (BI_segload T_i32)] @ E
+  WP [AI_handle v; AI_basic (BI_segload T_i32)] @ E
   {{ w, ⌜ w = immV [value_of_uint (N.of_nat (length s) * 4)] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
   iIntros "Hs Hf" => /=.
@@ -744,7 +745,7 @@ Lemma stack_load_0_alt v s f E k:
   ⌜ k = (N.of_nat (length s) * 4)%N ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_handle v)); AI_basic (BI_segload T_i32)] @ E
+  WP [AI_handle v; AI_basic (BI_segload T_i32)] @ E
   {{ w, ⌜ w = immV [value_of_uint k] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hk Hs Hf" => /=.
@@ -758,7 +759,7 @@ Lemma stack_load_j v s f E j sv h:
                           ⌜ handle_add v (length s * 4 - 4 * Z.of_N j) = Some h ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_handle h)); AI_basic (BI_segload T_i32)] @ E {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
+  WP [AI_handle h; AI_basic (BI_segload T_i32)] @ E {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hsv %Hadd Hs Hf" => /=.
   iDestruct "Hs" as "(%Hoff & %Hbound & %Hvalid & %Hlen & Ha & Hbase & Hs & Hrest)".
@@ -809,7 +810,7 @@ Lemma stack_load_j_handle_add v s f E j sv:
   ⌜ (j < N.of_nat (length s))%N ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_int (length s * 4 - 4 * Z.of_N j))); AI_basic (BI_const (value_of_handle v)) ; AI_basic BI_handleadd ; AI_basic (BI_segload T_i32)] @ E
+  WP [AI_basic (BI_const (nvalue_of_int (length s * 4 - 4 * Z.of_N j))); AI_handle v ; AI_basic BI_handleadd ; AI_basic (BI_segload T_i32)] @ E
   {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hsv %Hjbound Hs Hf" => /=.
@@ -856,7 +857,7 @@ Lemma stack_load_j_alt v s f E j k sv:
   ⌜ (j < N.of_nat (length s))%N ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_int k)); AI_basic (BI_const (VAL_handle v)); AI_basic BI_handleadd; AI_basic (BI_segload T_i32)] @ E
+  WP [AI_basic (BI_const (nvalue_of_int k)); AI_handle v; AI_basic BI_handleadd; AI_basic (BI_segload T_i32)] @ E
   {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hk %Hsv %Hjbound Hs Hf" => /=.
@@ -870,8 +871,8 @@ Lemma stack_store_j v (s: list i32) f E j sv (v0: i32) h:
   ⌜ handle_add v (length s * 4 - 4 * Z.of_N j) = Some h ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_handle h)) ;
-      AI_basic (BI_const (VAL_int32 v0));
+  WP [AI_handle h ;
+      AI_basic (BI_const (NVAL_int32 v0));
       AI_basic (BI_segstore T_i32)] @ E
   {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) ∗ ↪[frame] f }}.
 Proof.
@@ -880,7 +881,7 @@ Proof.
   unfold handle_add in Hadd. destruct (_ >=? _)%Z eqn:Hz => //.
   inversion Hadd; subst.
   iApply (wp_wand with "[Hs Hf Ha]").
-  { iApply wp_segstore => //; last first.
+  { fold_const; iApply wp_segstore => //; last first.
     - iFrame. iDestruct (big_sepL_insert_acc with "Hs") as "(Hj & Hcrest)" => //.
       unfold handle_addr, handle_add. rewrite N2Nat.id.
       iSimpl. rewrite Hoff Z.add_0_l.
@@ -912,10 +913,10 @@ Lemma stack_store_j_handle_add v (s: list i32) f E j sv (v0: i32):
   ⌜ (j < N.of_nat (length s))%N ⌝ -∗
   isStack v s -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_int (length s *  4 - 4 * Z.of_N j)));
-      AI_basic (BI_const (value_of_handle v)) ;
+  WP [AI_basic (BI_const (nvalue_of_int (length s *  4 - 4 * Z.of_N j)));
+      AI_handle v ;
       AI_basic BI_handleadd ;
-      AI_basic (BI_const (VAL_int32 v0));
+      AI_basic (BI_const (NVAL_int32 v0));
       AI_basic (BI_segstore T_i32)] @ E
   {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) ∗ ↪[frame] f }}.
 Proof.
@@ -1043,3 +1044,4 @@ Qed.
 
 End proofs.
 End Stack.
+

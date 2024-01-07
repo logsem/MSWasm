@@ -192,10 +192,12 @@ Proof.
   generalize dependent s1 ; induction s0 ; destruct s1 => //=.
   intro H ; inversion H ; subst ; clear H.
   generalize dependent l1 ; induction l ; intros l1 H ; destruct l1 => //=.
-  simpl in H ; inversion H. specialize (IHl _ H2). by inversion IHl.
+  simpl in H ; inversion H. assert (a = v); [by destruct a,v; inversion H1 | subst].
+  specialize (IHl _ H2). by inversion IHl.
   intro H ; inversion H ; subst ; clear H. rewrite (IHs0 _ H4). 
  clear IHs0. generalize dependent l2 ; induction l ; intros l2 H ; destruct l2 => //=.
-  simpl in H ; inversion H. specialize (IHl _ H2). by inversion IHl.
+ simpl in H ; inversion H. assert (a = v); [by destruct a,v; inversion H1 | subst].
+ specialize (IHl _ H2). by inversion IHl.
 Qed.
 
 
@@ -257,10 +259,10 @@ Lemma llfill_trap_singleton es lh :
 Proof.
   intros Hfill.
   destruct lh.
-  - inversion Hfill. destruct l,l0 =>//.
+  - inversion Hfill. destruct l,l0 => //; try by destruct v. 
     simpl in H0. inversion H0;auto.
-  - simpl in Hfill. destruct l =>//.
-  - simpl in Hfill. destruct l =>//.
+  - simpl in Hfill. destruct l => //; try by destruct v. 
+  - simpl in Hfill. destruct l => //; try by destruct v. 
 Qed.
 
 
@@ -417,13 +419,13 @@ Proof.
     apply to_val_const_list in Hwes.
     apply llfill_const in H2 => //.
     apply to_val_trap_is_singleton in Hwes as ->. 
-    destruct lh ; simpl in H2 ;  destruct l => //.
+    destruct lh ; simpl in H2 ;  destruct l => //; try by destruct v. 
   - destruct (iris.to_val LI) eqn:Hwes => //=.
     destruct v => //.
     apply to_val_const_list in Hwes.
     apply llfill_const in H1 => //.
     apply to_val_trap_is_singleton in Hwes as ->.
-    destruct lh ; simpl in H1 ; destruct l => //. 
+    destruct lh ; simpl in H1 ; destruct l => //; try by destruct v.
   - erewrite iris.val_head_stuck_reduce => //.
 Qed.
 
@@ -1218,7 +1220,7 @@ Proof.
       inversion Hglobtype; subst; clear Hglobtype.
       simpl in *.
       unfold module_glob_typing in H5.
-      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_immediate v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
+      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_const v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
       repeat rewrite list_lookup_fmap in Hlookup.
       rewrite Hmgi Hgii in Hlookup.
       destruct mg.
@@ -1353,7 +1355,7 @@ Proof.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
         simpl. eexists. 
-        repeat econstructor.  econstructor. econstructor. econstructor.
+        repeat econstructor.  (* econstructor. econstructor. econstructor. *)
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -1374,8 +1376,8 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        eexists. repeat constructor. econstructor. instantiate (1 := (_,_,_)). econstructor.
-        econstructor. econstructor. econstructor. 
+        eexists. repeat constructor. (* econstructor. instantiate (1 := (_,_,_)). econstructor.
+        econstructor. econstructor. econstructor.  *)
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -1396,8 +1398,8 @@ Proof.
         inversion Hmoddata; subst; clear Hmoddata.
         rewrite H0.
         simpl.
-        eexists. repeat constructor. econstructor. instantiate (1 := (_,_,_)). econstructor.
-        econstructor. econstructor. econstructor.
+        eexists. repeat constructor. (* econstructor. instantiate (1 := (_,_,_)). econstructor.
+        econstructor. econstructor. econstructor. *)
       + apply lookup_ge_None in Hmdata.
         rewrite Hdinitslen in Hmdata.
         apply lookup_ge_None in Hmdata.
@@ -1980,7 +1982,7 @@ Proof.
       inversion Hglobtype; subst; clear Hglobtype.
       simpl in *.
       unfold module_glob_typing in H5.
-      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_immediate v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
+      assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_const v]) <$> g_inits) !! i) as Hlookup; first by rewrite Hmodglob.
       repeat rewrite list_lookup_fmap in Hlookup.
       rewrite Hmgi Hgii in Hlookup.
       destruct mg.
@@ -2117,7 +2119,7 @@ Proof.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
         simpl.
-        eexists; repeat constructor. econstructor. instantiate (1 := (_,_,_)). repeat econstructor. econstructor. 
+        eexists; repeat constructor. (* econstructor. instantiate (1 := (_,_,_)). repeat econstructor. econstructor.  *)
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -2138,7 +2140,7 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        eexists; repeat econstructor. econstructor. econstructor. econstructor. 
+        eexists; repeat econstructor. (* econstructor. econstructor. econstructor.  *)
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.

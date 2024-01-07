@@ -239,7 +239,7 @@ Section fundamental.
 
     iApply (wp_wand _ _ _ (λ x, (⌜ x = immV [] ⌝ ∗ interp_frame (tc_local C) i f ∗ interp_allocator all) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
     { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
-     
+      { by destruct w. } 
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
       iModIntro.
       iDestruct "Hss" as (tbs) "(>%Htbs & >Hss & #Hhandles)".
@@ -393,7 +393,8 @@ Section fundamental.
 
     destruct (valid h) eqn:Hvalid.
     2:{ iApply (wp_wand with "[Hf]").
-        - iApply (wp_segstore_failure1 with "[$Hf]"); first done.
+        - fold (AI_const (VAL_handle hv)).
+          iApply (wp_segstore_failure1 with "[$Hf]"); first done.
           + by left.
           + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
         - iIntros (v) "[-> Hf]".
@@ -403,7 +404,8 @@ Section fundamental.
     destruct (bound h <? offset h + N.of_nat (t_length T_handle))%N eqn:Hbounds.
     { apply N.ltb_lt in Hbounds.
       iApply (wp_wand with "[Hf]").
-      - iApply (wp_segstore_failure1 with "[$Hf]"); first done.
+      - fold (AI_const (VAL_handle hv)).
+        iApply (wp_segstore_failure1 with "[$Hf]"); first done.
         + by right; left; lia.
         + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
       - iIntros (v) "[-> Hf]".
@@ -413,7 +415,8 @@ Section fundamental.
 
     destruct ((handle_addr h `mod` handle_size)%N =? N.of_nat 0)%N eqn:Hmod.
     2:{  iApply (wp_wand with "[Hf]").
-         - iApply (wp_segstore_failure1 with "[$Hf]") => //.
+         - fold (AI_const (VAL_handle hv)). 
+           iApply (wp_segstore_failure1 with "[$Hf]") => //.
            + right; right; split => //. intros Habs.
              rewrite Habs in Hmod. simpl in Hmod. done.
            + by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
@@ -429,7 +432,8 @@ Section fundamental.
       iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%x & %Hx & Halloc & Htok) Htoks]".
       destruct x as [[base bound]|]; first iDestruct "Htok" as "(-> & -> & Htok)".
       2:{ iApply (wp_wand with "[Hf Halloc]").
-          - iApply (wp_segstore_failure2 with "[$Hf $Halloc]") => //.
+          - fold (AI_const (VAL_handle hv)).
+            iApply (wp_segstore_failure2 with "[$Hf $Halloc]") => //.
             iIntros "!> Ha". instantiate (1 := λ x, (⌜ x = trapV ⌝ ∗ _)%I).
             iSplit; last iExact "Ha". done.
           - iIntros (v) "[[-> Ha] Hf]".
@@ -457,7 +461,8 @@ Section fundamental.
       iApply (wp_wand _ _ _ (λ v, ((|={⊤ ∖ ↑wsN (id h),⊤}=>
                                        (⌜v = immV []⌝ ∗ interp_frame (tc_local C) i f ∗ interp_allocator all)) ∗  ↪[frame]f))%I
                  with "[Hf Hbl Hown Halloc Htoks Hwon Hcls Hss Hreconstitute]").
-        2:{ iIntros (v) "[H Hf]". iFrame. } 
+      2:{ iIntros (v) "[H Hf]". iFrame. }
+      fold (AI_const (VAL_handle hv)). 
         iApply wp_segstore_handle => //; try by unfold t_length; rewrite nat_bin; lia.
         iSplitR "Halloc Hss Hf"; last by iFrame.
         iNext. iIntros "(Hid & Hss)".

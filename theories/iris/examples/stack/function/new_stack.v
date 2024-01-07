@@ -98,7 +98,7 @@ Proof.
     iApply (wp_tee_local with "Hf").
     iIntros "!> Hf".
     rewrite list_extra.cons_app.
-    iApply wp_val_app => //=.
+    iApply wp_val_app => //=. destruct v => //. 
     iSplitR => //=.
     iIntros "!> [%Habs _]" ; done.
     iApply (wp_set_local with "[] [$Hf]") => //=.
@@ -117,7 +117,7 @@ Proof.
     iIntros "[%Habs _]".
     by destruct (v == value_of_int (-1)).
   - iSplitL "Hf".
-    iApply (wp_relop with "Hf") => //=.
+    unfold i32const; fold_const. iApply (wp_relop with "Hf") => //=.
     iPureIntro.
     destruct (v == value_of_int (-1)) eqn:Hv.
     move/eqP in Hv.
@@ -125,7 +125,7 @@ Proof.
     destruct v => //=.
     unfold value_of_int in Hv.
     unfold value_of_int.
-    unfold wasm_bool.
+    unfold wasm_bool. destruct n0 => //. 
     destruct (Wasm_int.Int32.eq s (Wasm_int.Int32.repr (-1))) eqn:Hv' => //=.
     apply Wasm_int.Int32.same_if_eq in Hv'.
     rewrite Hv' in Hv.
@@ -226,29 +226,29 @@ Proof.
           - 2: { simpl. by iIntros "(%HContra & _ )". }
             iIntros (w) "[-> Hf]".
             unfold of_val, fmap, list_fmap.
-            rewrite - separate1.
+            rewrite - separate1. simpl. 
             rewrite (separate3 (AI_basic _)).
             iApply wp_seq_ctx.
             iSplitL ""; last first.
           - iSplitL "Hf".
-            iApply (wp_binop with "Hf").
+            unfold i32const; fold_const. iApply (wp_binop with "Hf").
             unfold app_binop, app_binop_i. done.
             instantiate (1 := λ x,  ⌜ x = immV _ ⌝%I ) => //=.
           - 2: { simpl. by iIntros "(%HContra & _ )". }
             iIntros (w) "[-> Hf]".
             unfold of_val, fmap, list_fmap.
-            rewrite - separate1.
+            simpl.
             rewrite (separate2 (AI_basic _)).
             iApply wp_seq_ctx.
             iSplitL ""; last first.
             iSplitL "Hf".
-            iApply (wp_tee_local with "Hf").
+            fold_const. iApply (wp_tee_local with "Hf").
             iIntros "!> Hf".
             rewrite separate1.
             instantiate (1 := (λ x, (⌜ x = immV _ ⌝ ∗ ↪[frame] _)%I)). 
         iApply wp_val_app => //=.
         iSplit; first by iIntros "!> (%HContra & _)" => //.
-        iApply (wp_set_local with "[] [$Hf]") => //=.
+        fold_const. iApply (wp_set_local with "[] [$Hf]") => //=.
         rewrite length_is_size size_set_nth.
         unfold ssrnat.maxn.
         rewrite length_is_size in Hflocs.
@@ -257,7 +257,7 @@ Proof.
         simpl.
         iIntros (w) "[-> Hf]".
         unfold of_val, fmap, list_fmap.
-        rewrite - separate1.
+        simpl.
         rewrite (separate2 (AI_basic _)).
         iApply wp_seq_ctx.
         iSplitL ""; last first.
@@ -272,7 +272,7 @@ Proof.
         simpl.
         rewrite (separate3 (AI_basic _)).
         iApply wp_seq_ctx; iSplitR; last iSplitL.
-        2: { iApply (wp_store with "[Hf Hbs]") => /=.
+        2: { fold_const. iApply (wp_store with "[Hf Hbs]") => /=.
              { done. }
              { by instantiate (1 := [(#00%byte); (#00%byte); (#00%byte); (#00%byte)]) => //. }
              2: { iFrame "Hf".
@@ -321,7 +321,9 @@ Proof.
           clear - Hlenmod Hpagebound.
           remember (len `div` page_size)%N as pagenum.
           repeat (rewrite wasm_int_signed; last by lias).
-          replace page_size with 65536%N in Hlenmod; by lias.
+          replace page_size with 65536%N in Hlenmod; last by lias.
+          unfold VAL_int32. rewrite - Hlenmod.
+          replace (N.to_nat pagenum * 65536)%Z with (Z.of_N (pagenum * 65536)); lias. 
         }
         
         iIntros (w) "[-> Hf]".
@@ -493,3 +495,4 @@ End valid.
 
 End stack.    
       
+

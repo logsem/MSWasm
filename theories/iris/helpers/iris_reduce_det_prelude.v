@@ -61,25 +61,34 @@ Ltac only_one_reduction Heqes0 Hred :=
   (* induction on the reduction. Most cases will be trivially solved by the following
      two attemps : *)
   (try by inversion Heqes0) ;
-  (try by found_intruse (AI_invoke a) Heqes0 Hxl1) ;
+      (try by found_intruse (AI_invoke a) Heqes0 Hxl1;
+       lazymatch goal with H:AI_const ?y = _ |- _ => by destruct y end) ;
   (* reduce_simple case : *)
-  first (destruct H as [ | | | | | | | | | | | | | | | 
+  first (destruct H as [ | | | | | | | | | | | | | | 
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
                          vs es n' m t1s t2s Hconst Hvs Ht1s Ht2s |
-                       | | | | | | | | | | | | | | | | | | 
+                       | | | | | | | | | | | | | | | | | | | | 
                          es' lh Htrap' H0 ]  ;
          (* by case_analysis on the reduce_simple. most cases solved by just the 
             following inversion ; some cases need a little extra help *)
          inversion Heqes0 ; 
-         (try by subst ; found_intruse (AI_basic (BI_block (Tf t1s t2s) es)) Heqes0 Hxl1) ;
-         (try by subst ; found_intruse (AI_basic (BI_loop (Tf t1s t2s) es)) Heqes0 Hxl1) ;
-         (try by subst ; filled_trap H0 Hxl1) )) ;
+         (try by subst ; found_intruse (AI_basic (BI_block (Tf t1s t2s) es)) Heqes0 Hxl1;
+                           lazymatch goal with H:AI_const ?y = _ |- _ => by destruct y end
+         ) ;
+         (try by subst ; found_intruse (AI_basic (BI_loop (Tf t1s t2s) es)) Heqes0 Hxl1;
+                           lazymatch goal with H:AI_const ?y = _ |- _ => by destruct y end
+         ) ;
+         (try by subst ; filled_trap H0 Hxl1;
+                  lazymatch goal with H:AI_const ?y = _ |- _ => by destruct y end
+         );
+         (try by repeat lazymatch goal with H:AI_const ?y = AI_const ?z |- _ => destruct y,z; inversion H; subst; clear H end)
+    )) ;
   (* lfilled case *)
   last (rewrite <- Heqes0 in H0 ;
         (* the simple_filled tactic unfolds lfilled, solves the case where k>0,
            and in the case k=0 leaves user with hypothesis H0 modified to now be
            les = bef ++ es ++ aft *)
-        simple_filled2 H0 k lh bef aft n0 l l' ;
+        simple_filled2 H0 k lh bef aft n0 l l' ; 
         first 
           ( apply Logic.eq_sym in H0 ;
             remember ([] : seq.seq administrative_instruction) as g eqn:Heqg in s;

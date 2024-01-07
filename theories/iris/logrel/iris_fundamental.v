@@ -40,6 +40,7 @@ Require Import iris_fundamental_const
         iris_fundamental_slice
         iris_fundamental_handleadd
         iris_fundamental_getoffset
+        iris_fundamental_isdummy
         iris_fundamental_current_memory
         iris_fundamental_grow_memory
         iris_fundamental_nil
@@ -97,7 +98,8 @@ Section fundamental.
     - by apply typing_slice. 
     - by apply typing_segalloc.
     - by apply typing_handleadd. 
-    - by apply typing_getoffset. 
+    - by apply typing_getoffset.
+    - by apply typing_isdummy.
     - by apply typing_segfree.
     - by apply typing_current_memory. 
     - by apply typing_grow_memory. 

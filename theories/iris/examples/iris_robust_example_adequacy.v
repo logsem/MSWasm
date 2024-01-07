@@ -38,7 +38,7 @@ Section adequacy.
   Context {has_preg: gen_heapGpreS N host_action Σ}.
 
 
-  Definition S := Build_store_record [] [] [] dummy_segment dummy_all [ {| g_mut := MUT_mut; g_val := xx 0 |} ].
+  Definition S := Build_store_record [] [] [] dummy_segment dummy_all [ {| g_mut := MUT_mut; g_val := xxv 0 |} ].
   Definition V (vs : module_export) : vi_store :=
     <[0%N:=vs]> (<[1%N:={| modexp_name := [Byte.x00]; modexp_desc := MED_global (Mk_globalidx (N.to_nat 0)) |} ]> ∅).
   Definition M adv_module := [adv_module; lse_module].
@@ -51,12 +51,12 @@ Section adequacy.
                       (S,(V vs),(M adv_module),[],empty_frame)) : cfg wasm_host_lang)
         ([he'], (S',V', M', HA', F)) →
     (∀ v, to_val he' = Some v ->
-          v = trapHV ∨ v = immHV [xx 42] ).
+          v = trapHV ∨ v = immHV [xxv 42] ).
   Proof.
     intros Hmodtyping Hstep.
     pose proof (wp_adequacy Σ wasm_host_lang NotStuck (adv_lse_instantiate 0,[])
                             (S,(V vs),(M adv_module),[],empty_frame)
-    (λ v, v = trapHV ∨ v = immHV [xx 42])).
+    (λ v, v = trapHV ∨ v = immHV [xxv 42])).
     simpl in H.
     
     eassert _.
@@ -97,8 +97,8 @@ Section adequacy.
       pose msgg := HMsG Σ ms_heapg γms.
       pose hasgg := HAsG Σ has_heapg γhas.
       pose logrel_na_invs := Build_logrel_na_invs _ na_invg logrel_nais.
-      assert (typeof (xx 0) = T_i32) as Hwret;[auto|].
-  Admitted. 
+      assert (typeof (xxv 0) = T_i32) as Hwret;[auto|].
+   Admitted.  
 (*      pose proof (instantiate_lse 0 Hmodtyping no_start restrictions elem_bounds data_bounds Hwret).
 
       iMod (ghost_map_insert tt empty_frame with "Hframe_ctx") as "[Hframe_ctx Hf]";[auto|].
@@ -131,7 +131,7 @@ Theorem lse_adequacy `{adv_module_record, HHB: HandleBytes}
   rtc erased_step (([(adv_lse_instantiate 0,[])],
                      (S,(V vs),(M adv_module),[],empty_frame)) : cfg wasm_host_lang)
       ([he'], (S',V', M', HA', F)) →
-  (∀ v, to_val he' = Some v -> v = trapHV ∨ v = immHV [xx 42] ).
+  (∀ v, to_val he' = Some v -> v = trapHV ∨ v = immHV [xxv 42] ).
 Proof.
   set (Σ := #[invΣ;
               na_invΣ;

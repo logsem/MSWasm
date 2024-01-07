@@ -191,7 +191,7 @@ Section Client_main.
          ∗ newStackAddrIs 0
       }}}
       to_e_list main
-      {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝ ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xx 2 |}
+      {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝ ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |}
                                                                ∗ na_own logrel_nais ⊤))
                ∗ ∃ f', ↪[frame] f' ∗ interp_allocator all ∗ ∃ r, ⌜f' = Build_frame (set_nth r (f_locs f) 0 r) (f_inst f)⌝ }}}.
   Proof.
@@ -217,10 +217,10 @@ Section Client_main.
     (* tee_local + set_local *)
     take_drop_app_rewrite 2.
     iApply wp_seq. iSplitR;[|iSplitL "Hf"];cycle 1.
-    { iApply (wp_tee_local with "[$]").
+    { fold_const; iApply (wp_tee_local with "[$]").
       iIntros "!> Hf".
       take_drop_app_rewrite 1.
-      iApply wp_val.
+      fold_const. iApply wp_val.
       iSplitR;cycle 1.
       { iApply (wp_wand _ _ _ (λ v, ⌜v = immV []⌝ ∗ _)%I with "[Hf]").
         iApply (wp_set_local with "[] [$Hf]");[rewrite Hflocs;simpl;lia|done|..].
@@ -233,7 +233,7 @@ Section Client_main.
     (* relop *)
     take_drop_app_rewrite 3.
     iApply wp_seq. iSplitR;[|iSplitL "Hf"];cycle 1.
-    { iApply (wp_relop with "[$]");eauto.
+    { unfold i32const; fold_const; iApply (wp_relop with "[$]");eauto.
       iNext. instantiate (1:=(λ v, ⌜v = immV _⌝)%I);eauto. }
     2: iIntros "[%Hcontr _]";done.
     iIntros (w) "[-> Hf]". iSimpl.
@@ -270,8 +270,8 @@ Section Client_main.
 
     { (* success *)
       iDestruct "Hres" as (r) "[%Heq [%Hle [HisStack HnewStackAddrIs]]]". inversion Heq;subst k'.
-      assert (VAL_int32 (wasm_bool (Wasm_int.Int32.eq (Wasm_int.Int32.repr (Z.of_N r)) (Wasm_int.Int32.repr (-1))))
-              = VAL_int32 Wasm_int.Int32.zero) as ->.
+      assert (NVAL_int32 (wasm_bool (Wasm_int.Int32.eq (Wasm_int.Int32.repr (Z.of_N r)) (Wasm_int.Int32.repr (-1))))
+              = NVAL_int32 Wasm_int.Int32.zero) as ->.
       { unfold wasm_bool.
         rewrite Wasm_int.Int32.eq_false => //. intros Hcontr.
         rewrite (Wasm_int.Int32.repr_add_modulus (-1)%Z) in Hcontr.
@@ -470,12 +470,12 @@ Section Client_main.
           iSimpl. 2: by iIntros "[%Hcontr _]".
           instantiate (1:=(λ v, ⌜v = trapV⌝
                                 ∨ ⌜v = immV []⌝ ∗
-                                         N.of_nat k↦[wg] {| g_mut := MUT_mut; g_val := xx 2 |} ∗
+                                         N.of_nat k↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |} ∗
                                          na_own logrel_nais ⊤)%I).
           iSimpl.
           iDestruct "Hg" as (gv) "Hg".
           iApply (wp_wand with "[Hf Hg]").
-          { iApply (wp_set_global with "[] Hf Hg");[simpl;auto|].
+          { fold_const; iApply (wp_set_global with "[] Hf Hg");[simpl;auto|].
             instantiate (1:=(λ v, ⌜ v = immV [] ⌝)%I). iNext. auto. }
           iIntros (v) "[-> [Hg Hf]]". iFrame. iRight. iFrame. auto.
         }
@@ -530,7 +530,7 @@ Section Client_instantiation.
           ↪[frame] empty_frame
       }}}
         ((stack_adv_client_instantiate exp_addrs stack_mod_addr adv_mod_addr client_mod_addr ,[]) : host_expr) 
-      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ g_ret ↦[wg] {| g_mut := MUT_mut; g_val := xx 2 |} }}} .
+      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ g_ret ↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |} }}} .
   Proof.
     iIntros (Hexpaddrlen Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
     do 11 (destruct exp_addrs => //); clear Hexpaddrlen.

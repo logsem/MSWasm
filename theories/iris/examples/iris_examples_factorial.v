@@ -14,6 +14,9 @@ Unset Printing Implicit Defensive.
 
 Close Scope byte_scope.
 
+(* Uncomment when ready to deal with AI_const *)
+(*
+
 (* Example Programs *)
 Section Factorial.
   Context `{!wasmG Σ, HHB: HandleBytes}.
@@ -1049,3 +1052,4 @@ Section FactorialHost.
     
     
 End FactorialHost.
+ *)

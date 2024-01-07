@@ -1133,8 +1133,8 @@ Proof.
     pattern_match. destruct e => //. subst; split => //. exists ME_empty. apply: rm_silent. apply: r_simple.
     apply rs_trap with (lh := LH_base (v_to_e_list lconst) les').
     - move/orP in if_expr0. inversion if_expr0 => //=.
-      + move/eqP in H0. destruct lconst => //=. by destruct les'.
-      + move/eqP in H0. by destruct lconst.
+      + move/eqP in H0. destruct lconst => //=. by destruct les'. destruct v => //. 
+      + move/eqP in H0. destruct lconst => //. destruct v => //. 
     - rewrite/operations.lfilled/operations.lfill. rewrite v_to_e_is_const_list. show_list_equality.
   }
   destruct fuel as [|fuel] => //. destruct e as [b| | |cl|n es1 es2|n f0 ess|].
@@ -1438,7 +1438,7 @@ Proof.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ; _]) => //=.
         subst.
-        by repeat econstructor.
+        econstructor. econstructor. econstructor. by apply const_const.
 
       - (** [AI_basic (Get_global i0)] **)
         simpl. explode_and_simplify. pattern_match. auto_frame. stack_frame.
@@ -2397,8 +2397,34 @@ Proof.
         rewrite v_to_e_is_const_list => //=.
         instantiate (1 := [:: _ ;_]) => //=.
         specialize (rs_getoffset h) as Hget.
-        eapply rm_silent, r_simple => //. 
-          
+        eapply rm_silent, r_simple => //.
+
+      - (** [AI_basic BI_isdummy] **)
+        simpl; explode_and_simplify; pattern_match; auto_frame.
+        + apply is_dummy_true in if_expr0 as ->.
+          split; last by subst.
+          exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate (2 := [::_]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => //=.
+          instantiate (1 := [:: _ ;_]) => //=.
+          specialize (rs_isdummy_true) as Hget.
+          eapply rm_silent, r_simple => //.
+        + apply is_dummy_false in if_expr0.
+          split; last by subst.
+          exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list.
+          instantiate (2 := [::_]) => //=.
+          unfold lfilled, lfill.
+          rewrite v_to_e_is_const_list => //=.
+          instantiate (1 := [:: _ ;_]) => //=.
+          apply (rs_isdummy_false) in if_expr0.
+          eapply rm_silent, r_simple => //.
+
+        
       - (** [AI_basic Current_memory] **)
         simpl. explode_and_simplify. pattern_match. auto_frame.
         split; last by subst. exists ME_empty.
@@ -2430,16 +2456,7 @@ Proof.
 
 
       - (** [AI_basic (Econst _)] **)
-        simpl. explode_and_simplify; pattern_match; auto_frame.
-        split; last by subst. exists ME_empty.
-        eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
-        unfold lfilled, lfill.
-        rewrite v_to_e_is_const_list.
-        instantiate ( 2 := [:: _]) => //=.
-        unfold lfilled, lfill.
-        rewrite v_to_e_is_const_list => /=.
-        instantiate (1 :=[:: _]) => //=. 
-        repeat econstructor.
+        by pattern_match. 
 
       - (** [AI_basic Unop v u] **)
         simpl. explode_and_simplify;  pattern_match; auto_frame.

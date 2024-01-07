@@ -168,6 +168,11 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
       if ves is VAL_handle h :: ves' then
         ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h))) :: ves' )))
       else ret (s, f, crash_error)
+
+  | AI_basic BI_isdummy =>
+      if ves is VAL_handle h :: ves' then
+        if is_dummy h then ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 1) :: ves'))) else ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 0) :: ves')))
+      else ret (s, f, crash_error)
           
   (** testops **)
   | AI_basic (BI_testop T_i32 testop) =>
@@ -488,8 +493,8 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
       else ret (s, f, crash_error)
                                       
                       
-  | AI_basic (BI_immediate v) => ret (s, f, RS_normal ((vs_to_es ves) ++ AI_const (VAL_numeric v) :: [::]))
-    | AI_const _ => ret (s, f, crash_error)
+  | AI_basic (BI_const v) => ret (s, f, crash_error) (* ret (s, f, RS_normal ((vs_to_es ves) ++ AI_const (VAL_numeric v) :: [::])) *)
+    | AI_handle _ => ret (s, f, crash_error)
 
     | AI_invoke i =>
       match List.nth_error s.(s_funcs) i with

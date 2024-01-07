@@ -14,13 +14,13 @@ Section Iris_instantiation.
 Set Bullet Behavior "Strict Subproofs".
 Definition assert_const1 (es: expr) : option numerical_value :=
   match es with
-  | [:: BI_immediate v] => Some v
+  | [:: BI_const v] => Some v
   | _ => None
   end.
 
 Definition assert_const1_i32 (es: expr) : option i32 :=
   match es with
-  | [:: BI_immediate (NVAL_int32 v)] => Some v
+  | [:: BI_const (NVAL_int32 v)] => Some v
   | _ => None
   end.
 
@@ -1709,9 +1709,9 @@ Definition module_restrictions (m: module) : Prop :=
      This is not that much a restriction as it seems, since they can only 
      be constants anyway, and their contents can always be modified by other 
      instructions later. *)
-  (exists (vs: list numerical_value), fmap modglob_init m.(mod_globals) = fmap (fun v => [BI_immediate v]) vs) /\
-  (exists (vi32s: list i32), fmap modelem_offset m.(mod_elem) = fmap (fun v => [BI_immediate (NVAL_int32 v)]) vi32s) /\
-  (exists (vi32s: list i32), fmap moddata_offset m.(mod_data) = fmap (fun v => [BI_immediate (NVAL_int32 v)]) vi32s).
+  (exists (vs: list numerical_value), fmap modglob_init m.(mod_globals) = fmap (fun v => [BI_const v]) vs) /\
+  (exists (vi32s: list i32), fmap modelem_offset m.(mod_elem) = fmap (fun v => [BI_const (NVAL_int32 v)]) vi32s) /\
+  (exists (vi32s: list i32), fmap moddata_offset m.(mod_data) = fmap (fun v => [BI_const (NVAL_int32 v)]) vi32s).
 
 Definition instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wgs (idfstart: option nat) (inst: instance) : iProp Σ :=
   ∃ (g_inits: list numerical_value) tab_allocs mem_allocs glob_allocs wts' wms',  
@@ -1737,7 +1737,7 @@ Definition instantiation_resources_post_wasm m v_imps t_imps wfs wts wms wgs (id
     module_inst_resources_wasm m inst tab_allocs mem_allocs glob_allocs. (* allocated wasm resources *)
 
 Lemma BI_const_assert_const1_i32 (es: list expr) (vs: list i32):
-  es = fmap (fun v => [BI_immediate (NVAL_int32 v)]) vs ->
+  es = fmap (fun v => [BI_const (NVAL_int32 v)]) vs ->
   those (fmap assert_const1_i32 es) = Some vs.
 Proof.
   move: es.
@@ -3754,7 +3754,7 @@ Proof.
     move => i.
     rewrite -> Forall2_lookup in Hinstglob.
     specialize (Hinstglob i).
-    assert (modglob_init <$> (mod_globals m !! i) = (fun v => [BI_immediate v]) <$> g_inits' !! i) as Hmgeq; first by repeat rewrite - list_lookup_fmap; rewrite Hmodglob.
+    assert (modglob_init <$> (mod_globals m !! i) = (fun v => [BI_const v]) <$> g_inits' !! i) as Hmgeq; first by repeat rewrite - list_lookup_fmap; rewrite Hmodglob.
     destruct (mod_globals m !! i) eqn:Hmgi => /=.
     - inversion Hinstglob; subst.
       simpl in Hmgeq.
@@ -3764,7 +3764,9 @@ Proof.
       rewrite H2 in H1.
       simpl in H1.
       destruct H1 as [? H1].
-      apply reduce_trans_imm_to_const in H1.
+      fold (AI_const (VAL_numeric n)) in H1.
+      fold (AI_const (VAL_numeric y)) in H1.
+      apply reduce_trans_const in H1.
       inversion H1.
       by subst.
     - inversion Hinstglob; subst.
@@ -3797,7 +3799,7 @@ Proof.
       + inversion Hglobtype; subst; clear Hglobtype.
         simpl in *.
         unfold module_glob_typing in H5.
-        assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_immediate v]) <$> g_inits) !! i) as Hlookup.
+        assert ((modglob_init <$> mod_globals) !! i = ((fun v => [BI_const v]) <$> g_inits) !! i) as Hlookup.
         * by rewrite Hmodglob.
         * repeat rewrite list_lookup_fmap in Hlookup.
           rewrite Hmgi Hgii in Hlookup.
@@ -4062,7 +4064,7 @@ Proof.
     inversion Helemcb; subst; clear Helemcb.
     inversion Hlo; subst; clear Hlo.
     rewrite Hle in Hinstelem.
-    assert ((fun (v: Wasm_int.Int32.T) => [BI_immediate (NVAL_int32 v)])<$> e_inits' !! i = modelem_offset <$> Some elem).
+    assert ((fun (v: Wasm_int.Int32.T) => [BI_const (NVAL_int32 v)])<$> e_inits' !! i = modelem_offset <$> Some elem).
     { rewrite <- list_lookup_fmap. rewrite <- Hmodelem.
       by rewrite list_lookup_fmap Hle.
     }
@@ -4074,7 +4076,10 @@ Proof.
     inversion H4; subst; clear H4.
     inversion Hinstelem; subst; clear Hinstelem.
     simpl in H7.
-    destruct H7 as [? H7]. apply reduce_trans_imm_to_const in H7.
+    destruct H7 as [? H7].
+    fold (AI_const (VAL_numeric (NVAL_int32 t))) in H7.
+    fold (AI_const (VAL_numeric (NVAL_int32 t0))) in H7.
+    apply reduce_trans_const in H7.
     inversion H7; subst; clear H7.
 
     
@@ -4122,7 +4127,7 @@ Proof.
         destruct (mod_tables m !! _) eqn:Hmtlookup => //.
         apply N.leb_le in H6.
         erewrite elem_of_list_to_map_1.
-        * instantiate (1 := t).
+        * instantiate (1 := t0).
           apply Nat.leb_le.
           unfold N_of_int in H6.
           by lias.
@@ -4492,22 +4497,26 @@ Proof.
                     destruct n0 => //=.
                     destruct modelem_offset => //=.
                     inversion Hmeoff; subst; clear Hmeoff.
-                    destruct H3 as [? H3]. apply reduce_trans_imm_to_const in H3.
+                    destruct H3 as [? H3].
+                    simpl in H3.
+                    fold (AI_const (VAL_numeric (NVAL_int32 s))) in H3.
+                    fold (AI_const (VAL_numeric (NVAL_int32 t))) in H3.
+                    apply reduce_trans_const in H3.
                     inversion H3; subst; clear H3.
-                    replace (Z.to_nat (Wasm_int.Int32.intval s)) with (nat_of_int s) => //.
-                    remember ((take (nat_of_int s) (table_data t2) ++
+                    replace (Z.to_nat (Wasm_int.Int32.intval t)) with (nat_of_int t) => //.
+                    remember ((take (nat_of_int t) (table_data t2) ++
                                  ((λ '(Mk_funcidx fidx), inst_funcs !! fidx) <$> modelem_init) ++
-                                 drop (nat_of_int s + length modelem_init) (table_data t2))) as l.
+                                 drop (nat_of_int t + length modelem_init) (table_data t2))) as l.
                     replace (length (table_data t2)) with (length l); first by rewrite firstn_all.
                     subst.
                     repeat rewrite app_length.
                     rewrite fmap_length take_length drop_length.
                     apply PeanoNat.Nat.leb_le in Hle.
-                    assert (nat_of_int s <= length (table_data t2)) as Hlt.
+                    assert (nat_of_int t <= length (table_data t2)) as Hlt.
                     { unfold nat_of_int; by lias. }
-                    replace (nat_of_int s `min` length (table_data t2)) with (nat_of_int s); last by lias.
+                    replace (nat_of_int t `min` length (table_data t2)) with (nat_of_int t); last by lias.
                     rewrite map_length in Hle.
-                    fold (nat_of_int s) in Hle.
+                    fold (nat_of_int t) in Hle.
                     by lias.
               -- (* When wts !! t0 is none. In this case the table is not one of the imports and wts should not get updated. *)
                 apply IHmod_elem in Hwtsimpupdate => //.
@@ -4645,7 +4654,11 @@ Proof.
                                inversion Hmodelem; subst; clear Hmodelem.
                                f_equal; last by apply IHmod_elem.
                                destruct a; simpl in *; subst.
-                               destruct H2 as [? H2]. apply reduce_trans_imm_to_const in H2.
+                               destruct H2 as [? H2].
+                               simpl in H2.
+                               fold (AI_const (VAL_numeric (NVAL_int32 t))) in H2.
+                               fold (AI_const (VAL_numeric (NVAL_int32 t0))) in H2.
+                               apply reduce_trans_const in H2.
                                by inversion H2.
                            }
                            rewrite <- Heeq in *.
@@ -4898,7 +4911,7 @@ Proof.
           rewrite Hmoddata.
           by rewrite fmap_length.
         - move => i x y Hlt Hl1 Hl2.
-          assert ((moddata_offset <$> (mod_data m)) !! i = Some [BI_immediate (NVAL_int32 y)]).
+          assert ((moddata_offset <$> (mod_data m)) !! i = Some [BI_const (NVAL_int32 y)]).
           { by rewrite Hmoddata list_lookup_fmap Hl2 => /=. }
           rewrite -> Forall2_lookup in Hinstdata.
           specialize (Hinstdata i).
@@ -4910,7 +4923,10 @@ Proof.
           inversion H4; clear H4.
           rewrite H8 in H7.
           simpl in H7.
-          destruct H7 as [? H7]. apply reduce_trans_imm_to_const in H7.
+          destruct H7 as [? H7].
+          fold (AI_const (VAL_numeric (NVAL_int32 y))) in H7.
+          fold (AI_const (VAL_numeric (NVAL_int32 x))) in H7.
+          apply reduce_trans_const in H7.
           by inversion H7.
       }
       rewrite <- Hdeq in *; clear Hdeq.
@@ -5033,7 +5049,7 @@ Proof.
 
       clear H0.
       
-      assert (forall i, moddata_offset <$> (mod_data m !! i) = (fun v => [BI_immediate (NVAL_int32 v)]) <$> (d_offs !! i)) as Hdlookup.
+      assert (forall i, moddata_offset <$> (mod_data m !! i) = (fun v => [BI_const (NVAL_int32 v)]) <$> (d_offs !! i)) as Hdlookup.
       { move => i.
         rewrite <- list_lookup_fmap.
         rewrite Hmoddata.
@@ -5397,7 +5413,7 @@ Proof.
                 unfold assert_const1_i32 in H1.
                 simpl in *.
                 replace (list_fmap _ _ _ mod_data) with (moddata_offset <$> mod_data) in H3 => //.
-                replace (list_fmap _ _ _ d_offs) with ((fun v => [BI_immediate (NVAL_int32 v)]) <$> d_offs) in H3 => //.
+                replace (list_fmap _ _ _ d_offs) with ((fun v => [BI_const (NVAL_int32 v)]) <$> d_offs) in H3 => //.
                 inversion Hdlen; subst; clear Hdlen.
                 destruct (wms !! N.of_nat m) eqn: Hwmslookup => //=.
                 -- destruct (update_mem _ _ _) eqn: Hupdmem => //=.
@@ -5411,7 +5427,7 @@ Proof.
                      rewrite -> Forall_lookup in H2.
                      move => i x Hdatalookup.
                      specialize (H2 i x Hdatalookup).
-                     assert ((moddata_offset <$> (mod_data !! i)) = (fun v => [BI_immediate (NVAL_int32 v)]) <$> (d_offs !! i)) as Hdlookup.
+                     assert ((moddata_offset <$> (mod_data !! i)) = (fun v => [BI_const (NVAL_int32 v)]) <$> (d_offs !! i)) as Hdlookup.
                      {
                        repeat rewrite <- list_lookup_fmap.
                        by rewrite H3.

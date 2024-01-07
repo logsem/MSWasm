@@ -5,6 +5,9 @@ Require Export stdpp_aux datatypes operations properties opsem.
 Require Export lfill_prelude.
 
 Ltac false_assumption := exfalso ; apply ssrbool.not_false_is_true ; assumption.
+Ltac destruct_const :=
+  lazymatch goal with H:AI_const ?y = _ |- _ => by destruct y end.
+
 
 Lemma found_intruse l1 l2 (x : administrative_instruction) :
   l1 = l2 -> (In x l1 -> False) -> In x l2 -> False.
@@ -31,7 +34,7 @@ Ltac filled_trap H Hxl1 :=
   unfold lfilled, lfill in H ;
   destruct (_:lholed) in H ; [|false_assumption] ;
   destruct (const_list _) in H ; [|false_assumption] ;
-  move/eqP in H ; found_intruse AI_trap H Hxl1.
+  move/eqP in H ; found_intruse AI_trap H Hxl1; try destruct_const.
 
 (* Given hypothesis H, which states that an lholed lh is filled at level k, 
    unfolds the definition of lfilled. Attempts to prove a contradiction when k > 0.
@@ -46,12 +49,12 @@ Ltac simple_filled H k lh vs l0 n l1 l3 :=
   unfold lfilled, lfill in H ;
   destruct k ;
   [ destruct lh as [vs l0|] ; [| false_assumption] ;
-    destruct (const_list vs) eqn:Hvs ; [| false_assumption] ; move/eqP in H |
-    fold lfill in H ; destruct lh as [|vs n l1 lh' l2] ; [false_assumption |] ;
+    destruct (const_list vs) eqn:Hvs ; [| false_assumption] ; move/eqP in H 
+  | fold lfill in H ; destruct lh as [|vs n l1 lh' l2] ; [false_assumption |] ;
     destruct (const_list vs) eqn:Hvs ; [| false_assumption ] ;
     remember (lfill k lh' _) as les ;
     destruct les as [l3|] ; [| false_assumption ] ;
-    move/eqP in H ; found_intruse (AI_label n l1 l3) H Hxl1].
+    move/eqP in H ; found_intruse (AI_label n l1 l3) H Hxl1; try destruct_const].
 
 (* Like simple_filled, but does not attempt to solve case k > 0 *)
 Ltac simple_filled2 H k lh vs l0 n l1 l3 :=
@@ -63,12 +66,12 @@ Ltac simple_filled2 H k lh vs l0 n l1 l3 :=
   unfold lfilled, lfill in H ;
   destruct k ;
   [ destruct lh as [vs l0|] ; [| false_assumption] ;
-    destruct (const_list vs) eqn:Hvs ; [| false_assumption] ; move/eqP in H |
-    fold lfill in H ; destruct lh as [|vs n l1 lh' l2] ; [false_assumption |] ;
+    destruct (const_list vs) eqn:Hvs ; [| false_assumption] ; move/eqP in H 
+  | fold lfill in H ; destruct lh as [|vs n l1 lh' l2] ; [false_assumption |] ;
     destruct (const_list vs) eqn:Hvs ; [| false_assumption ] ;
     remember (lfill k lh' _) as les ;
     destruct les as [l3|] ; [| false_assumption ] ;
-    move/eqP in H ; try by found_intruse (AI_label n l1 l3) H Hxl1].
+    move/eqP in H ; try by found_intruse (AI_label n l1 l3) H Hxl1; try destruct_const].
 
 Global Instance ai_eq_dec: EqDecision (administrative_instruction).
 Proof.
@@ -577,8 +580,8 @@ Section lfilled_properties.
     lfilled i lh es LI -> lfilled i (lh_prepend lh v) es (AI_const v :: LI).
   Proof.
     destruct i, lh ; unfold lfilled, lfill ; destruct (const_list l) eqn:Hl => //=.
-    - intros H ; apply b2p in H ; subst ; rewrite Hl => //=.
-    - fold lfill. destruct (lfill _ _ _) eqn:Hfill => //=.
+    - rewrite const_const => //=. intros H ; apply b2p in H ; subst ; rewrite Hl => //=.
+    - fold lfill. destruct (lfill _ _ _) eqn:Hfill => //=. rewrite const_const => //=.
       intros H ; apply b2p in H ; subst ; rewrite Hl => //=.
   Qed.
   
@@ -598,17 +601,17 @@ Section lfilled_properties.
         left. exists (LH_base l l0).
         split => //=.
         unfold lfilled, lfill => //=.
-        unfold const_list in Hl. simpl in Hl. 
+        unfold const_list in Hl. simpl in Hl. rewrite const_const in Hl. simpl in Hl.
         unfold const_list ; rewrite Hl. done.
     - fold lfill in Hfilled.
       destruct (lfill i lh (e :: es)) eqn:Hfill => //.
       apply b2p in Hfilled.
-      destruct l ; inversion Hfilled.
+      destruct l ; inversion Hfilled; try by destruct v.
       subst.
       left. exists (LH_rec l n l0 lh l1).
       split => //.
       unfold lfilled, lfill ; fold lfill.
-      unfold const_list in Hl ; simpl in Hl ; unfold const_list ; rewrite Hl.
+      unfold const_list in Hl ; simpl in Hl ; unfold const_list ; simpl in Hl; rewrite const_const in Hl; simpl in Hl; rewrite Hl.
       rewrite Hfill.
       done.
   Qed.

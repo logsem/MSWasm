@@ -135,7 +135,7 @@ Proof.
   rewrite separate2.
   iApply wp_seq.
   iSplitR; last iSplitL "Hf".
-  2: { iApply wp_set_local => //.
+  2: { fold_const; iApply wp_set_local => //.
        by instantiate (1 := λ w, ⌜ w = immV _ ⌝%I).
   }
   { by iIntros "(%Habs & _)". }
@@ -154,7 +154,7 @@ Proof.
 
   iIntros (w) "(-> & Hf)" => /=.
   iApply (wp_wand with "[Hf]").
-  - iApply wp_set_local; last by iApply "Hf".
+  - fold_const; iApply wp_set_local; last by iApply "Hf".
     + simpl.
       rewrite - fmap_insert_set_nth; last lia.
       rewrite insert_length.
@@ -221,7 +221,7 @@ Proof.
     rewrite separate3.
     iApply wp_seq.
     iSplitR; last iSplitL "Hf".
-    2: { iApply (wp_relop with "Hf") => //=.
+    2: { fold_const; iApply (wp_relop with "Hf") => //=.
          rewrite Wasm_int.Int32.eq_true => /=.
          by instantiate (1 := λ w, ⌜ w = immV _ ⌝%I).
     }
@@ -280,7 +280,7 @@ Lemma spec_map_loop_body_continue f (s: list i32) v hj E j fn (sv: i32) j0 a cl
                        (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
                            ∗ ↪[frame] fc
@@ -365,7 +365,7 @@ Proof.
       rewrite separate3.
       iApply wp_seq.
       iSplitR; last iSplitL "Hf".
-      2: { iApply (wp_relop with "Hf") => //=.
+      2: { fold_const; iApply (wp_relop with "Hf") => //=.
            rewrite Wasm_int.Int32.eq_false => /=; first by instantiate (1 := λ w, ⌜ w = immV _ ⌝%I).
            remember (length s) as x.
            rewrite - Heqx.
@@ -448,9 +448,9 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf".
-  2: { iApply (wp_tee_local with "Hf").
+  2: { fold_const; iApply (wp_tee_local with "Hf").
        iIntros "!> Hf".
-       rewrite (separate1 (AI_basic _)).
+       rewrite (separate1 (AI_const _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_set_local with "[] [$Hf]"); first lia.
@@ -463,7 +463,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf".
-  2: { rewrite (separate1 (AI_basic _)).
+  2: { rewrite (separate1 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_get_local with "[] [$Hf]").
@@ -478,7 +478,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ isStack v s ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf Hs".
-  2: { rewrite (separate1 (AI_basic _)).
+  2: { rewrite (separate1 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_wand with "[Hf Hs]").
@@ -494,7 +494,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf".
-  2: { rewrite (separate2 (AI_basic _)).
+  2: { rewrite (separate2 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_get_local with "[] [$Hf]").
@@ -509,12 +509,12 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (∃ v0, ⌜ w = immV _ ⌝ ∗ Ψ sv v0 ∗ _)%I).
   iSplitR; last iSplitL "Hf HΦ Htab Hcl".
-  2: { rewrite (separate1 (AI_basic _)).
+  2: { rewrite (separate1 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> H" => /=; iDestruct "H" as (v0) "(%Habs & _)".
        iApply (wp_call_indirect_success_ctx with "[$Htab] [$Hcl] [$Hf] [HΦ]"); last first => /=.
        - iPureIntro.
-         instantiate (2 := (LH_base [AI_basic (BI_const (VAL_int32 sv))] [])).
+         instantiate (2 := (LH_base [AI_basic (BI_const (NVAL_int32 sv))] [])).
          instantiate (2 := 0).
          unfold lfilled, lfill.
          simpl.
@@ -583,7 +583,7 @@ Lemma spec_map_loop_j f (s: list i32) v hj E j fn j0 a cl
                        (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
                            ∗ ↪[frame] fc
@@ -780,7 +780,7 @@ Lemma spec_stack_map (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) E
                        (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
                            ∗ ↪[frame] fc
@@ -887,3 +887,4 @@ Qed.
 End specs.
 
 End stack.
+ 

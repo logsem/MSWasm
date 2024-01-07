@@ -114,7 +114,7 @@ Proof.
   - iIntros (w) "(-> & Hstack & Hf)" => /=.
     iApply wp_wand_r.
     iSplitL "Hf".
-    iApply (wp_relop with "Hf") => //=.
+    fold_const. iApply (wp_relop with "Hf") => //=.
     by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
   - iIntros (w) "[-> Hf]".
     iApply "HΦ".
@@ -278,7 +278,7 @@ Section valid.
         iExists _. iFrame.
         iIntros "Hf".
         iApply (wp_frame_value with "Hf");eauto.
-        iNext. iLeft. iRight. iExists [_]. iSplit;eauto. iSplit; simpl;auto. eauto.
+        iNext. iLeft. iRight. iExists [_]. iSplit;eauto. iSplit; simpl;auto. 
       + iApply (wp_wand with "[Hlen Hf]").
         iApply (fail_stack_bound_valid with "[$Hlen $Hf]").
         eauto.
@@ -301,3 +301,4 @@ End valid.
 
 End stack.    
       
+

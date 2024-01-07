@@ -698,13 +698,18 @@ Definition supdate_glob (s : store_record) (i : instance) (j : nat) (v : value) 
     (sglob_ind s i j).
 
 Definition is_const (e : administrative_instruction) : bool :=
-  if e is AI_const _ then true else false.
+  match e with
+  | AI_basic (BI_const _) => true
+  | AI_handle _ => true
+  | _ => false
+  end. 
+
 
 Definition const_list (es : seq administrative_instruction) : bool :=
   List.forallb is_const es.
 
 Definition those_const_list (es : list administrative_instruction) : option (list value) :=
-  those (List.map (fun e => match e with | AI_const v => Some v | _ => None end) es).
+  those (List.map (fun e => match e with | AI_handle v => Some (VAL_handle v) | AI_basic (BI_const v) => Some (VAL_numeric v) | _ => None end) es).
 
 Definition glob_extension (g1 g2: global) : bool.
 Proof.
@@ -714,14 +719,22 @@ Proof.
   - (* Mut *)
     destruct (g_mut g2).
     + exact false.
-    + destruct (g_val g1) eqn:T1;
+    + destruct (g_val g1) as [n | ?] eqn:T1 ;
+        try destruct n;
       lazymatch goal with
-      | H1: g_val g1 = ?T1 _ |- _ =>
-        destruct (g_val g2) eqn:T2;
+      | H1: g_val g1 = VAL_numeric (?T3 _) |- _ =>
+          destruct (g_val g2) as [ n | ?] eqn:T2;
+          try destruct n; 
           lazymatch goal with
-          | H2: g_val g2 = T1 _ |- _ => exact true
+          | H2: g_val g2 = VAL_numeric (T3 _) |- _ => exact true
           | _ => exact false
           end
+      | H1: g_val g1 = VAL_handle _ |- _ =>
+          destruct (g_val g2) eqn:T2;
+          lazymatch goal with
+          | H2: g_val g2 = VAL_handle _ |- _ => exact true
+          | _ => exact false
+          end 
       | _ => exact false
       end.
 Defined.
@@ -759,8 +772,7 @@ Definition to_e_list (bes : seq basic_instruction) : seq administrative_instruct
 Definition to_b_single (e: administrative_instruction) : basic_instruction :=
   match e with
   | AI_basic x => x
-  | AI_const (VAL_numeric v) => BI_immediate v
-  | _ => BI_immediate (NVAL_int32 (Wasm_int.Int32.zero))
+  | _ => BI_const (NVAL_int32 (Wasm_int.Int32.zero))
   end.
 
 Definition to_b_list (es: seq administrative_instruction) : seq basic_instruction :=
@@ -785,9 +797,12 @@ Definition v_to_e_list (ves : seq value) : seq administrative_instruction :=
 
 Fixpoint split_vals (es : seq administrative_instruction) : seq value * seq administrative_instruction :=
   match es with
-  | (AI_const v) :: es' =>
+  | (AI_handle v) :: es' =>
     let: (vs', es'') := split_vals es' in
-    (v :: vs', es'')
+    (VAL_handle v :: vs', es'')
+  | (AI_basic (BI_const v)) :: es' =>
+      let: (vs', es'') := split_vals es' in
+      (VAL_numeric v :: vs', es'')
   | _ => ([::], es)
   end.
 
@@ -799,9 +814,12 @@ Fixpoint split_vals (es : seq administrative_instruction) : seq value * seq admi
     segment and [es] is the remainder of the original [es]. **)
 Fixpoint split_vals_e (es : seq administrative_instruction) : seq value * seq administrative_instruction :=
   match es with
-  | (AI_const v) :: es' =>
+  | (AI_handle v) :: es' =>
     let: (vs', es'') := split_vals_e es' in
-    (v :: vs', es'')
+    (VAL_handle v :: vs', es'')
+  | (AI_basic (BI_const v)) :: es' =>
+      let: (vs', es'') := split_vals_e es' in
+      (VAL_numeric v :: vs', es'')
   | _ => ([::], es)
   end.
 
@@ -815,10 +833,10 @@ Proof.
   generalize dependent vs ; generalize dependent e ; generalize dependent es'. 
   induction es => //= ; intros.
   destruct a => //= ; try by inversion H ; subst. 
-(*  destruct b => //= ; try by inversion H ; subst. *)
-  destruct (split_vals_e es) as [??] eqn:Hes.
-  destruct l0 => //=.
-  inversion H ; subst. by eapply IHes.
+  destruct b => //= ; try by inversion H ; subst. 
+  all: destruct (split_vals_e es) as [??] eqn:Hes.
+  all: destruct l0 => //=.
+  all: inversion H ; subst. all: by eapply IHes.
 Qed.
 
 

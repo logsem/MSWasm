@@ -108,7 +108,7 @@ Proof.
   rewrite separate3.
   iApply wp_seq.
   iSplitR; last iSplitL "Hf".
-  2: { iApply (wp_binop with "Hf") => //=.
+  2: { fold_const; iApply (wp_binop with "Hf") => //=.
        unfold Wasm_int.Int32.isub, Wasm_int.Int32.sub => /=.
        repeat rewrite Wasm_int.Int32.Z_mod_modulus_id.
        2: { unfold ffff0000 in Hvb; rewrite u32_modulus; lia. }
@@ -125,7 +125,7 @@ Proof.
 
   iIntros (w) "(-> & Hf)".
   iApply (wp_wand with "[Hf]").
-  { iApply (wp_binop with "Hf") => //=.
+  { unfold i32const; fold_const; iApply (wp_binop with "Hf") => //=.
     unfold Wasm_int.Int32.divu => /=.
     rewrite Wasm_int.Int32.Z_mod_modulus_id.
     2: { unfold ffff0000 in Hvb; unfold two14 in Hlens; rewrite u32_modulus; lia. }
@@ -174,3 +174,4 @@ End specs.
 
 End stack.    
       
+

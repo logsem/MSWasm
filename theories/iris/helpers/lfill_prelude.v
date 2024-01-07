@@ -555,6 +555,7 @@ Proof.
     unfold lfilled, lfill.
     induction l => //=.
     destruct (const_list _) => //.
+    rewrite const_const => //=.
   - destruct IHvh as (Hk & Hfill).
     split ; first lia.
     unfold lfilled, lfill => /=.
@@ -564,6 +565,7 @@ Proof.
     move/eqP in Hfill; subst.
     induction l => //=.
     destruct (const_list _) => //.
+    rewrite const_const => //=.
 Qed.
 
 Lemma sfill_to_lfilled sh es :
@@ -573,12 +575,14 @@ Proof.
   - unfold lfilled, lfill.
     induction l => //=.
     destruct (const_list _) => //.
+    rewrite const_const => //=.
   - unfold lfilled, lfill => /= ; fold lfill.
     unfold lfilled in IHsh.
     destruct (lfill _ _ _) => //.
     move/eqP in IHsh; subst.
     induction l => //=.
     destruct (const_list _) => //.
+    rewrite const_const => //=.
 Qed.
   
 Lemma lfilled_to_vfill k lh es LI i :
@@ -594,26 +598,37 @@ Proof.
     induction l => /=.
     + exists (VH_base i [] l0) => //=.
     + destruct a => //=.
-      rewrite list_extra.cons_app.
-      rewrite - cat_app.
-      apply IHl in Hl as (vh & ? & ?).
-      destruct (those _) eqn:Hthose => //.
-      erewrite those_app => //=.
-      eexists ; split => //=.
-      replace (v_to_e_list l1) with l ; first done.
-      clear - Hthose.
-      generalize dependent l1.
-      induction l => //= ; intros.
+      destruct b => //=.
+      1-2:rewrite list_extra.cons_app.
+      1-2:rewrite - cat_app.
+      1-2:apply IHl in Hl as (vh & ? & ?).
+      1-2:destruct (those _) eqn:Hthose => //.
+      1-2:erewrite those_app => //=.
+      1-2:eexists ; split => //=.
+      1-2:replace (v_to_e_list l1) with l ; first done.
+      1-2:clear - Hthose.
+      1-2:generalize dependent l1.
+      1-2:induction l => //= ; intros.
       * unfold those in Hthose.
         simpl in Hthose.
         inversion Hthose => //.
-      * destruct a => //=.
-        rewrite list_extra.cons_app in Hthose.
-        rewrite - cat_app in Hthose.
-        apply those_app_inv in Hthose as (tl1 & tl2 & Hv0 & Hthose & Htl) => //.
-        unfold those in Hv0.
-        inversion Hv0 ; subst.
-        erewrite IHl => //=.
+      * destruct a => //=. destruct b => //=.
+        1-2: rewrite list_extra.cons_app in Hthose.
+        1-2: rewrite - cat_app in Hthose.
+        1-2: apply those_app_inv in Hthose as (tl1 & tl2 & Hv0 & Hthose & Htl) => //.
+        1-2: unfold those in Hv0.
+        1-2: inversion Hv0 ; subst.
+        1-2: erewrite IHl => //=.
+         * unfold those in Hthose.
+        simpl in Hthose.
+        inversion Hthose => //.
+      * destruct a => //=. destruct b => //=.
+        1-2: rewrite list_extra.cons_app in Hthose.
+        1-2: rewrite - cat_app in Hthose.
+        1-2: apply those_app_inv in Hthose as (tl1 & tl2 & Hv0 & Hthose & Htl) => //.
+        1-2: unfold those in Hv0.
+        1-2: inversion Hv0 ; subst.
+        1-2: erewrite IHl => //=.
   - unfold lfilled, lfill ; fold lfill.
     destruct lh => //.
     destruct (const_list l) eqn:Hl => //.
@@ -629,15 +644,16 @@ Proof.
     + eexists ; split => //=.
       by rewrite Hvfill.
     + destruct a => //=.
-      rewrite list_extra.cons_app.
-      rewrite - cat_app.
-      specialize (IHl Hl) as (vh0 & Hvh0 & Hvfill0).
-      destruct (those (map _ l)) eqn:Hthose => //.
-      erewrite those_app => //.
-      eexists ; split => //=.
-      inversion Hvh0 ; subst.
-      simpl in Hvfill0.
-      by rewrite Hvfill0.
+      destruct b => //=.
+      1-2:rewrite list_extra.cons_app.
+      1-2:rewrite - cat_app.
+      1-2:specialize (IHl Hl) as (vh0 & Hvh0 & Hvfill0).
+      all:destruct (those (map _ l)) eqn:Hthose => //.
+      all:erewrite those_app => //.
+      all:eexists ; split => //=.
+      all:inversion Hvh0 ; subst.
+      all:simpl in Hvfill0.
+      all:by rewrite Hvfill0.
 Qed.      
 
 Lemma lfilled_implies_llfill k lh es LI :
@@ -652,12 +668,13 @@ Proof.
   move/eqP in Hfill; subst LI.
   induction l.
   exists (LL_base [] l0) => //=.
-  destruct a => //. 
-  simpl in Hl.
-  destruct (IHl Hl) as [llh Hfill].
-  exists (llh_push_const llh [v]) => /=.
-  rewrite - Hfill.
-  by destruct llh => //=.
+  destruct a => //. destruct b => //.
+  1-2:simpl in Hl.
+  1-2:destruct (IHl Hl) as [llh Hfill].
+  exists (llh_push_const llh [VAL_numeric n]) => /=.
+  2: exists (llh_push_const llh [VAL_handle h]) => /=.
+       1-2:rewrite - Hfill.
+       1-2:by destruct llh => //=.
   fold lfill in Hfill.
   destruct (const_list l) eqn:Hl => //.
   destruct (lfill _ _ _) eqn:Hfill' => //.
@@ -668,12 +685,13 @@ Proof.
   destruct IHk as [llh <-] => //.
   induction l.
   exists (LL_label [] n l0 llh l1) => //=.
-  destruct a => //. 
-  simpl in Hl.
-  destruct (IHl Hl) as [llh0 Hfill].
-  exists (llh_push_const llh0 [v]) => /=.
-  rewrite - Hfill.
-  by destruct llh0 => //=. 
+  destruct a => //. destruct b => //. 
+  all:simpl in Hl.
+  all:destruct (IHl Hl) as [llh0 Hfill].
+  exists (llh_push_const llh0 [VAL_numeric n0]) => /=.
+  2: exists (llh_push_const llh0 [VAL_handle h]) => /=.
+       all:rewrite - Hfill.
+       all:by destruct llh0 => //=. 
 Qed.
 
 Lemma llfill_all_values' lh vs e lh' n0 es vs' LI :
@@ -739,7 +757,7 @@ Proof.
       destruct lh. { simpl in Hvs'.
                      destruct Hvs' as [Hvs' | Hvs'].
                      { apply const_list_split in Hvs' as [? [[? ?]%const_list_split ?]%const_list_split].
-                       destruct e;try done. }
+                       destruct e;try done. destruct b => //. }
                      { erewrite !app_assoc in Hvs'. rewrite -app_assoc in Hvs'.
                        rewrite -(app_nil_l [AI_trap]) in Hvs'.
                        apply first_values in Hvs' as [? [? ?]];auto;try by intros [? ?].
@@ -856,7 +874,7 @@ Proof.
                   destruct (const_list l) eqn:Hconst; inversion Heqles. rewrite H0 in Hvs'.
                   simplify_eq. destruct Hvs' as [Hvs' | Hvs'].
                   { apply const_list_split in Hvs' as [? [[? ?]%const_list_split ?]%const_list_split].
-                    destruct e;try done.  }
+                    destruct e;try done. destruct b => //.  }
                   { erewrite !app_assoc in Hvs'. rewrite -app_assoc in Hvs'.
                     rewrite -(app_nil_l [AI_trap]) in Hvs'.
                     apply first_values in Hvs' as [? [? ?]];auto;try by intros [? ?].
@@ -971,7 +989,7 @@ Proof.
       destruct lh. { simpl in Hvs'.
                      destruct Hvs' as [Hvs' | Hvs'].
                      { apply const_list_split in Hvs' as [? [[? ?]%const_list_split ?]%const_list_split].
-                       destruct e;try done.  }
+                       destruct e;try done. destruct b => //.  }
                      { erewrite !app_assoc in Hvs'. rewrite -app_assoc in Hvs'.
                        rewrite -(app_nil_l [AI_trap]) in Hvs'.
                        apply first_values in Hvs' as [? [? ?]];auto;try by intros [? ?].
@@ -1022,14 +1040,15 @@ Proof.
   generalize dependent es. generalize dependent es'.  generalize dependent k.
   generalize dependent lh'.
   induction n0 ; intros lh1 k es' es1 Hred2 Hfill Hlab ; first by lia.
-  induction Hred2 ; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  induction Hred2 ; try by (rewrite_cats1_list; try destruct v; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
   (* reduce_silent *)
-  { destruct H; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  { destruct H ; try by (rewrite_cats1_list; try destruct v; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
   (* reduce_simple *)
-  { destruct H; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+    { destruct H; try by (rewrite_cats1_list; try destruct v; try destruct v1; try destruct v2; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+      
     (* const *)
     - apply (lfilled_all_values' H1 Hfill) => //=.
-      by left. 
+      by left.  
     - apply (lfilled_all_values' H1 Hfill) => //=. by right.
     (* br itself *)
     - assert (lfilled (S i0) (LH_rec [] n es lh0 []) (vs0 ++ [AI_basic (BI_br i0)])
@@ -1109,10 +1128,10 @@ Proof.
   generalize dependent es. generalize dependent es'. generalize dependent k.
   generalize dependent lh'.
   induction n0 ; intros lh1 k es' es1 Hred2 Hfill Hlab ; first by lia.
-  induction Hred2; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
-  destruct H; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  induction Hred2; try by (rewrite_cats1_list; try destruct v; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  destruct H; try by (rewrite_cats1_list; try destruct v; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
   (* r_simple *)
-  { destruct H; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  { destruct H; try by (rewrite_cats1_list; try destruct v; try destruct v1; try destruct v2; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
 
     - apply (lfilled_all_values' H1 Hfill) => //=;try by intros [? ?].
       by left.
@@ -1434,13 +1453,13 @@ Proof.
   generalize dependent lh'. generalize dependent f.
   generalize dependent f'.
   induction n0 ; intros f' f lh1 es' es1 Hred2 Hfill Hlab ; first by lia.
-  induction Hred2 ; try by (rewrite_cats1_list; specialize (llfill_first_values Hfill H1) as [Hcontra _] => //; inversion Hcontra).
+  induction Hred2 ; try by (rewrite_cats1_list; try destruct v; specialize (llfill_first_values Hfill H1) as [Hcontra _] => //; inversion Hcontra).
   destruct H;
-      try by (rewrite_cats1_list;
+      try by (rewrite_cats1_list; try destruct v;
               specialize (llfill_first_values Hfill H1) as [Hcontra _] ; (try done) ; inversion Hcontra).
     (* r_simple *)
   { destruct H;
-      try by (rewrite_cats1_list;
+      try by (rewrite_cats1_list; try destruct v; try destruct v1; try destruct v2;
               specialize (llfill_first_values Hfill H1) as [Hcontra _] ; (try done) ; inversion Hcontra).
     - apply (llfill_all_values' H1 Hfill) => //=. 
       by left.
@@ -1529,10 +1548,10 @@ Proof.
   generalize dependent es. generalize dependent es'. generalize dependent k.
   generalize dependent lh'.
   induction n0 ; intros lh1 k es' es1 Hred2 Hfill Hlab ; first by lia.
-  induction Hred2; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
-  destruct H; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  induction Hred2; try by (rewrite_cats1_list; try destruct v; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  destruct H; try by (rewrite_cats1_list; try destruct v; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
   (* r_simple *)
-  { destruct H; try by (rewrite_cats1_list; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
+  { destruct H; try by (rewrite_cats1_list; try destruct v; try destruct v1; try destruct v2; specialize (lfilled_first_values H1 Hfill) as [Hcontra _] => //; inversion Hcontra).
 
     - apply (lfilled_all_values' H1 Hfill) => //=;try by intros [? ?].
       by left.

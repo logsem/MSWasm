@@ -25,7 +25,14 @@ Context `{!wasmG Σ}.
       - rewrite merge_prepend in Hval.
         unfold to_val, iris.to_val in IHes.
         destruct (merge_values_list _) => //.
-        destruct v0 => //.
+        destruct v => //.
+        specialize (IHes l Logic.eq_refl).
+        simpl in Hval.
+        inversion Hval ; subst => //=.
+         - rewrite merge_prepend in Hval.
+        unfold to_val, iris.to_val in IHes.
+        destruct (merge_values_list _) => //.
+        destruct v => //.
         specialize (IHes l Logic.eq_refl).
         simpl in Hval.
         inversion Hval ; subst => //=.

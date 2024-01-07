@@ -7,6 +7,7 @@ Require Export iris iris_locations iris_properties iris_atomicity stdpp_aux.
 Require Export iris_host iris_rules iris_fundamental iris_wp iris_interp_instance_alloc.
 Require Export iris_example_helper.
 Require Export datatypes operations properties opsem.
+Require Export proofmode.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -66,7 +67,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 
     na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
     na_own logrel_nais ⊤ -∗
-    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗ interp_allocator all -∗
+    ↪[frame] {| f_locs := [xxv 42]; f_inst := inst |} -∗ interp_allocator all -∗
 
     WP iris.of_val w
     CTX
@@ -86,7 +87,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSimpl.
     
     take_drop_app_rewrite 1.
-    iApply (wp_seq _ _ _ (λ vs, ⌜vs = immV [xx 42]⌝ ∗ ↪[frame] _)%I).
+    iApply (wp_seq _ _ _ (λ vs, ⌜vs = immV [xxv 42]⌝ ∗ ↪[frame] _)%I).
     iSplitR;[by iIntros "[%Hcontr _]"|].
     iSplitL "Hf".
     { iApply (wp_get_local with "[] [$Hf]");[|done]. simpl. auto. }
@@ -103,12 +104,12 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iApply fupd_wp.
     iMod (na_inv_acc with "Hl Hown") as "(>Hlog & Hown & Hcls)";[solve_ndisj..|].
     iApply (wp_invoke_host with "Hlog Hf");[| |eauto|..].
-    { instantiate (1:=[_]). cbn. constructor. }
+    { instantiate (1:=[VAL_numeric _]). cbn. constructor. }
     { simpl;auto. }
     iIntros "!>!> Hlog Hf".
     iApply fupd_wp. iMod ("Hcls" with "[$]") as "Hown". iModIntro.    
-    assert ([AI_call_host (Tf [T_i32] []) (Mk_hostfuncidx h) [xx 42]]
-            = iris.of_val (callHostV (Tf [T_i32] []) (Mk_hostfuncidx h) [xx 42] (LL_base [][]))) as ->.
+    assert ([AI_call_host (Tf [T_i32] []) (Mk_hostfuncidx h) [xxv 42]]
+            = iris.of_val (callHostV (Tf [T_i32] []) (Mk_hostfuncidx h) [xxv 42] (LL_base [][]))) as Hass; last (unfold xxv in Hass; rewrite Hass).
     { simpl. auto. }
     iApply iris_wp.wp_value;[done|].
 
@@ -176,7 +177,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 
     na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
     na_own logrel_nais ⊤ -∗
-    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗ interp_allocator all -∗
+    ↪[frame] {| f_locs := [xxv 42]; f_inst := inst |} -∗ interp_allocator all -∗
 
     WP iris.of_val w
     CTX
@@ -269,7 +270,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSimpl. rewrite -(app_nil_r (llfill vh [])).
 
     iApply (wp_seq_can_trap_ctx).
-    instantiate (1:=λ f', (⌜f' = {| f_locs := [xx 42]; f_inst := inst |}⌝ ∗ ∃ all, interp_allocator all)%I).
+    instantiate (1:=λ f', (⌜f' = {| f_locs := [xxv 42]; f_inst := inst |}⌝ ∗ ∃ all, interp_allocator all)%I).
     instantiate (2:=λ vs,((interp_values [] vs
                            ∨ ▷ interp_call_host_cls
                                [(Mk_hostfuncidx h, Tf [T_i32] [])] [] vs) ∗ na_own logrel_nais ⊤)%I).
@@ -299,8 +300,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iIntros (v) "(#H & Hall & Hf & Hown)".
       iSplitR "Hf Hall";[|iExists _;iFrame;auto].
       iDestruct "H" as "[[H|H]|H]";auto.
-      - admit.
-      - admit.
     }
 
     iIntros (w f0) "[[[Hv|Hv] Hown] (Hf & -> & %all0 & Hall)]".
@@ -329,7 +328,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       iApply (wp_wand with "H").
       iIntros (?) "H". done.
     }
-  Admitted. 
+  Qed. 
 
     
   Lemma lse_log_spec C i f all g g_func es locs log log_func h idnstart inst (Φ : language.val wasm_host_lang -> iProp Σ):
@@ -374,7 +373,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iApply (wp_seq _ _ _ (λ vs, ⌜vs = immV []⌝ ∗ _)%I).
     iSplitR;[by iIntros "[%Hcontr _]"|].
     iSplitL "Hf".
-    { iApply (wp_set_local with "[] [$Hf]");[|done]. simpl. lia. }
+    { fold_const. iApply (wp_set_local with "[] [$Hf]");[|done]. simpl. lia. }
     iIntros (w) "[-> Hf]". iSimpl. iSimpl in "Hf".
 
     iApply fupd_wp.
@@ -387,7 +386,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     take_drop_app_rewrite 1.
     iApply (wp_seq_can_trap_ctx).
     instantiate (1:=λ f', (⌜f' = {|
-                    f_locs := [xx 42];
+                    f_locs := [xxv 42];
                     f_inst := inst
                                |}⌝ ∗ ∃ all, interp_allocator all)%I).
     instantiate (2:=λ vs, ((interp_values [] vs ∨ interp_call_host_cls
@@ -886,6 +885,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
         { simplify_eq. simpl. auto. }
         { rewrite Hinstfuncseq;eauto. }
         { rewrite Hinstfuncseq;eauto. }
+        
         admit.
         iIntros (?) "(H & Hf & Hall)".
         iFrame. 

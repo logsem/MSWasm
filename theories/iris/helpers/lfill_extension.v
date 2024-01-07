@@ -210,7 +210,8 @@ Fixpoint vh_increase_repeat m (vh : valid_holed m) n : valid_holed (n + m) :=
 
 Fixpoint vh_of_lh lh i :=
   match lh with
-  | LH_base bef aft => match those (map (λ x, match x with AI_const v => Some v
+  | LH_base bef aft => match those (map (λ x, match x with AI_handle v => Some (VAL_handle v)
+                                                     | AI_basic (BI_const v) => Some (VAL_numeric v)
                                                      |  _ => None end) bef) with
                       | Some bef => Some (VH_base i bef aft)
                       |  _ => None end
@@ -218,7 +219,8 @@ Fixpoint vh_of_lh lh i :=
       match i with
       | 0 => None
       | S i => 
-          match those (map (λ x, match x with AI_const v => Some v
+          match those (map (λ x, match x with AI_handle v => Some (VAL_handle v)
+                                         | AI_basic (BI_const v) => Some (VAL_numeric v)
                                          |  _ => None end) bef) with
           |  Some bef => match vh_of_lh lh i with
                         | Some vh => Some (VH_rec bef n es vh aft)
@@ -243,13 +245,15 @@ Fixpoint llh_of_lh lh :=
   match lh with
   | LH_base bef aft =>
       match those (map (λ x, match x with
-                             | AI_const v => Some v
+                             | AI_handle v => Some (VAL_handle v)
+                             | AI_basic (BI_const v) => Some (VAL_numeric v)
                              | _ => None end) bef) with
       | Some bef => Some (LL_base bef aft)
       | None => None end 
   | LH_rec bef n es lh aft =>
       match those (map (λ x, match x with
-                             | AI_const v => Some v
+                             | AI_handle v => Some (VAL_handle v)
+                             | AI_basic (BI_const v) => Some (VAL_numeric v)
                              | _ => None end) bef) with
       | Some bef =>
           match llh_of_lh lh with

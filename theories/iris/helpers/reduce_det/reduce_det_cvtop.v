@@ -13,9 +13,12 @@ Lemma cvtop_convert_det v v' t1 t2 sx s f me s' f' es:
   reduce_det_goal ME_empty s f [AI_const v'] me s' f' es [AI_const v; AI_basic (BI_cvtop t2 CVO_convert t1 sx)].
 Proof.
   move => H H0 Hred.
-  by only_one [AI_const v ; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] Hred ;
-     inversion Heqes ; subst ; rewrite H0 in H2 ;
-     inversion H2 ; subst.
+  only_one [AI_const v ; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] Hred.
+  destruct v,v0; inversion Heqes ; subst => //; rewrite H0 in H2 ;
+                                           inversion H2 ; subst => //.
+  destruct v,v0; inversion Heqes ; subst => //; rewrite H0 in H2 ;
+                                           inversion H2 ; subst => //.
+  
 Qed.
 
 Lemma cvtop_convert_none_det v t1 t2 sx s f me s' f' es:
@@ -25,9 +28,9 @@ Lemma cvtop_convert_none_det v t1 t2 sx s f me s' f' es:
   reduce_det_goal ME_empty s f [AI_trap] me s' f' es [AI_const v; AI_basic (BI_cvtop t2 CVO_convert t1 sx)].
 Proof.
   move => H H0 Hred.
-  by only_one [AI_const v ; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] Hred ;
-     inversion Heqes ; subst ; rewrite H0 in H2 ;
-     inversion H2 ; subst.
+  only_one [AI_const v ; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] Hred.
+  destruct v,v0; inversion Heqes ; subst => //; rewrite H0 in H2 ;
+     inversion H2 ; subst => //.
 Qed.
 
 Lemma cvtop_reinterpret_det v t1 t2 s f me s' f' es:

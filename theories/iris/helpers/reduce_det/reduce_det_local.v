@@ -33,8 +33,8 @@ Proof.
       exfalso ; by apply (test_no_reduce_trap _ _ _ _ _ _ Hred1).
     - { inversion Heqes0 ; subst.
         induction Hred1 ;
-          (try by simple_filled H1 i lh bef aft nn ll ll' ;
-           found_intruse (AI_basic BI_return) H1 Hxl1 ;
+          (try by simple_filled H1 i lh bef aft nn ll ll' ; try destruct_const;
+           found_intruse (AI_basic BI_return) H1 Hxl1 ; try destruct_const;
            apply in_or_app ; right ; apply in_or_app ; left ;
            apply in_or_app ; right ; left) ;
           try by simple_filled H1 i lh bef aft nn ll ll' ;
@@ -52,8 +52,8 @@ Proof.
               | intruse_among_values ves Habs Hconst ]
             | destruct Habs as [Habs | Habs] => //=]].
          destruct H0 ;
-          (try by simple_filled H1 i lh bef aft nn ll ll' ;
-           found_intruse (AI_basic BI_return) H1 Hxl1 ;
+          (try by simple_filled H1 i lh bef aft nn ll ll' ; try destruct_const;
+           found_intruse (AI_basic BI_return) H1 Hxl1 ; try destruct_const;
            apply in_or_app ; right ; apply in_or_app ; left ;
            apply in_or_app ; right ; left) ;
           try by simple_filled H1 i lh bef aft nn ll ll' ;
@@ -71,12 +71,12 @@ Proof.
               | intruse_among_values ves Habs Hconst ]
             | destruct Habs as [Habs | Habs] => //=]].
         { destruct H0 ;
-            (try by simple_filled H1 i lh bef aft nn ll ll' ;
-             found_intruse (AI_basic BI_return) H1 Hxl1 ;
+            (try by simple_filled H1 i lh bef aft nn ll ll' ; try destruct_const;
+             found_intruse (AI_basic BI_return) H1 Hxl1 ; try destruct_const;
              apply in_or_app ; right ; apply in_or_app ; left ;
              apply in_or_app ; right ; left) ;
-            try by simple_filled H1 i lh bef aft nn ll ll' ;
-            [ found_intruse (AI_basic BI_return) H1 Hxl2 ;
+            try by simple_filled H1 i lh bef aft nn ll ll' ; try destruct_const;
+            [ found_intruse (AI_basic BI_return) H1 Hxl2 ; try destruct_const;
               [ apply in_app_or in Hxl2 as [Habs | Habs] ; 
                 [ intruse_among_values vs0 Habs H0
                 | destruct Habs as [Habs | Habs] => //=]

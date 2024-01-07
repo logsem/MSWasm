@@ -17,6 +17,16 @@ Section type_progress.
   Set Bullet Behavior "Strict Subproofs".
   Context `{HHB: HandleBytes}.
 
+
+  Ltac fold_const0 :=
+  match goal with
+  | |- context [ AI_basic (BI_const ?v) ] => fold (AI_const (VAL_numeric v))
+  | |- context [ AI_handle ?h ] => fold (AI_const (VAL_handle h))
+  | _ => idtac
+  end.
+
+Ltac fold_const := repeat fold_const0.
+
 Definition terminal_form (es: seq administrative_instruction) :=
   const_list es \/ es = [::AI_trap].
 
@@ -555,12 +565,9 @@ Proof.
   move => C bes ts1 ts2 vcs lab ret s f HST HIT HType HConstType HNBI_br HNRet.
   generalize dependent vcs.
   gen_ind HType; try by left.
-  - (* Immediate *)
-    right. invert_typeof_vcs.
-    by destruct v => //=; solve_progress. 
   - (* Unop *)
     right. invert_typeof_vcs.
-    by destruct v => //=; solve_progress.
+    by solve_progress.
   - (* Binop *)
     right. invert_typeof_vcs.
     by destruct (app_binop op v v0) eqn:HBinary; solve_progress.
@@ -570,16 +577,17 @@ Proof.
     destruct n => //. solve_progress. solve_progress.
   - (* relop_i *)
     right. invert_typeof_vcs.
-    by destruct v => //=; destruct v0 => //=; solve_progress.
+    by solve_progress.
   - (* cvtop *)
     right. invert_typeof_vcs.
-    destruct (cvt t1 sx v) eqn:HConvert; destruct v => //=; try solve_progress.
-    destruct n; solve_progress.
-    destruct n; solve_progress.
+    destruct (cvt t1 sx v) eqn:HConvert.
+    destruct v; try destruct n; solve_progress.
+    destruct v; try destruct n; solve_progress.
   - (* reinterpret *)
     right. invert_typeof_vcs.
     destruct v => //=; try solve_progress_cont ltac:(apply rs_reinterpret).
-    destruct n; solve_progress_cont ltac:(apply rs_reinterpret).
+    repeat eexists. do 2 econstructor. fold (AI_const (VAL_numeric n)).
+    econstructor => //. destruct n => //. 
   - (* Unreachable *)
     right.
     exists ME_empty, s, f, (v_to_e_list vcs ++ [::AI_trap]).
@@ -735,7 +743,7 @@ Proof.
   - (* Tee_local *)
     right. invert_typeof_vcs.
     exists ME_empty, s, f, [::AI_const v; AI_const v; AI_basic (BI_set_local i)].
-    by apply rm_silent, r_simple; eauto.
+    apply rm_silent, r_simple, rs_tee_local. by rewrite const_const. 
 
   - (* Get_global *)
     right. invert_typeof_vcs.
@@ -871,15 +879,15 @@ Proof.
     destruct v0 => //=. destruct n => //. 
     destruct (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) =? 0)%N eqn:Hallign.
     move/eqP in Hallign.
-    repeat eexists.
+    repeat eexists. fold (AI_const (VAL_handle h)). fold (AI_const (VAL_handle h0)).
     eapply rm_segstore_handle_success; eauto; try lias.
     unfold isAlloc; by rewrite Halloc.
     all:try by repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
-     repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
+    repeat eexists _; fold (AI_const (VAL_handle h)); fold (AI_const (VAL_handle h0)); eapply rm_segstore_failure; eauto; try lias.
      repeat right. split => //. intro Hii; rewrite Hii in Hallign; done.
      
      destruct v0 => //=; (try destruct n => //); repeat eexists; 
-    eapply rm_segstore_success; eauto; try lias.
+                   fold_const; eapply rm_segstore_success; eauto; try lias.
      all: try by unfold isAlloc; rewrite Halloc.
 (*    repeat eexists _; eapply rm_segstore_failure; eauto; try lias.
     rewrite HStoreResult. repeat ((try by left); right). *)
@@ -926,6 +934,16 @@ Proof.
    repeat eexists.
    eapply rm_silent, r_simple, rs_getoffset; eauto.
 
+ - (* Isdummy *)
+   right; subst.
+   invert_typeof_vcs. destruct v => //. destruct n => //.
+   destruct (is_dummy h) eqn:Hdum.
+   apply is_dummy_true in Hdum as ->. 
+   repeat eexists. eapply rm_silent, r_simple, rs_isdummy_true .
+   apply is_dummy_false in Hdum.
+   repeat eexists. eapply rm_silent, r_simple, rs_isdummy_false => //. 
+   
+   
 
  - (* Segfree *)
    right. subst.
@@ -942,7 +960,7 @@ Proof.
    move/eqP in Hadd. subst.
    destruct (h.(valid)) eqn:Hvalid.
    destruct (h.(offset) == 0)%N eqn:Hoff.
-   repeat eexists. eapply rm_segfree_success; eauto.
+   repeat eexists. fold_const; eapply rm_segfree_success; eauto.
    eapply Free => //. exact Halloc. by apply b2p in Hoff.
    repeat eexists. eapply rm_segfree_failure; eauto.
    right; left; intros Habs. rewrite Habs in Hoff. done.
@@ -982,6 +1000,30 @@ Proof.
     { by eapply nlfbr_right; eauto. }
     { by eapply nlfret_right; eauto. }
     + (* Const *)
+        apply const_es_exists in H. destruct H as [cs HConst].
+        apply b_e_elim in HConst. destruct HConst. subst.
+        rewrite e_b_inverse in HNRet; last done. 
+        rewrite e_b_inverse in HNBI_br; last done.
+        apply (ety_a s) in HType1. rewrite e_b_inverse in HType1; last done.
+        apply Const_list_typing in HType1. subst.
+      edestruct IHHType2; eauto.
+      { by eapply nlfbr_left; try apply v_to_e_is_const_list; eauto. }
+      { by eapply nlfret_left; try apply v_to_e_is_const_list; eauto. }
+      { by rewrite -map_cat. }
+      * left. rewrite to_e_list_cat. apply const_list_concat => //.
+        by rewrite e_b_inverse => //; apply v_to_e_is_const_list.
+      * destruct H as [es' HReduce].
+        right.
+        rewrite to_e_list_cat.
+        rewrite e_b_inverse; last done. 
+        exists es'.
+        rewrite catA.
+        by rewrite v_to_e_cat.
+
+(*
+
+
+      
       destruct es => //.  
 (*      apply const_es_exists in H. destruct H as [cs HConst].
       apply b_e_elim in HConst. destruct HConst. subst.
@@ -1005,7 +1047,7 @@ Proof.
         rewrite e_b_inverse; last by apply const_list_is_basic; apply v_to_e_is_const_list.
         exists es'.
         rewrite catA.
-        by rewrite v_to_e_cat. *)
+        by rewrite v_to_e_cat. *) *)
     + (* reduce *)
       destruct H as [me [s' [vs' [es' HReduce]]]].
       right.
@@ -1027,7 +1069,7 @@ Proof.
     exists me, s', f', (v_to_e_list (take (size ts) vcs) ++ es').
     apply reduce_composition_left => //.
     by apply v_to_e_is_const_list.
-Qed. 
+Qed.
 
 Definition br_reduce (es: seq administrative_instruction) :=
   exists n lh, lfilled n lh [::AI_basic (BI_br n)] es.
@@ -1038,7 +1080,7 @@ Definition return_reduce (es: seq administrative_instruction) :=
 (** [br_reduce] is decidable. **)
 Lemma br_reduce_decidable : forall es, decidable (br_reduce es).
 Proof.
-  move=> es. apply: pickable_decidable. apply: pickable2_weaken.
+  move => es. apply: pickable_decidable. apply: pickable2_weaken.
   apply lfilled_pickable_rec_gen => // es' lh lh' n.
   by apply: lfilled_decidable_base.
 Defined.
@@ -1084,7 +1126,7 @@ Proof.
     { eapply IHHLF; eauto.
       repeat (f_equal; try by lias). }
     simpl in Inf. by lias.
-Qed.
+Qed. 
 
 Lemma return_reduce_return_some: forall n lh es s C ts2,
     lfilled n lh [::AI_basic BI_return] es ->
@@ -1105,7 +1147,7 @@ Proof.
     assert (R : tc_return (upd_label C ([::ts1] ++ tc_label C)) <> None).
     { by eapply IHHLF; eauto. }
     by simpl in R.
-Qed.
+Qed. 
 
 Lemma br_reduce_extract_vs: forall n k lh es s C ts ts2,
     lfilled n lh [::AI_basic (BI_br (n + k))] es ->
@@ -1160,7 +1202,7 @@ Proof.
     instantiate (1 := (LH_rec vs (length ts2) es' lh2 es'')).
     apply LfilledRec => //.
     by apply HLength.
-Qed.
+Qed. 
 
 Lemma return_reduce_extract_vs: forall n lh es s C ts ts2,
     lfilled n lh [::AI_basic BI_return] es ->
@@ -1248,7 +1290,7 @@ Proof.
   simpl in H1.
   assert (E : tc_label C1 = [::]); first by eapply inst_t_context_label_empty; eauto.
   by rewrite E in H1.
-Qed.
+Qed. 
 
 Lemma s_typing_lf_return: forall s f es ts,
     s_typing s None f es ts ->
@@ -1269,7 +1311,8 @@ Fixpoint find_first_some {A : Type} (l : seq.seq (option A)) :=
 
 Fixpoint first_instr_instr e :=
   match e with
-  | AI_const _ => None
+  | AI_basic (BI_const _) => None
+  | AI_handle _ => None
   | AI_label n es LI =>
       match find_first_some (List.map first_instr_instr LI)
       with Some (e',i) => Some (e',S i) | None => Some (e,0) end
@@ -1287,8 +1330,9 @@ Proof.
   intro Hvs.
   induction vs => //=.
   destruct a ; try by inversion Hvs.
-  simpl in Hvs. rewrite <- (IHvs Hvs).
-  by unfold first_instr.
+  destruct b; try by inversion Hvs.
+  all:simpl in Hvs. all:rewrite <- (IHvs Hvs).
+  all:by unfold first_instr.
 Qed.
 
 Lemma starts_with_lfilled e i es k lh les :
@@ -1303,12 +1347,12 @@ Proof.
     move/eqP in Hfill. rewrite Hfill ; clear Hfill.
     rewrite (first_instr_const (es ++ l0) (Logic.eq_sym Hl)).
     induction es ; first by inversion Hstart. unfold addn, addn_rec. rewrite Nat.add_0_r.
-    destruct a ; unfold first_instr ; simpl ; unfold first_instr in Hstart ;
+    destruct a ; (try destruct b); unfold first_instr ; simpl ; unfold first_instr in Hstart ;
       simpl in Hstart ; try done.
 (*    destruct b ; unfold first_instr ; simpl ;
       unfold first_instr in Hstart ; simpl in Hstart ; eauto; try done. *)
     all: unfold addn, addn_rec in IHes ; rewrite PeanoNat.Nat.add_0_r in IHes.
-    unfold first_instr in IHes. eauto. eauto.
+    1-2:unfold first_instr in IHes. 1-2:eauto. eauto.
     destruct (find_first_some _) => //=. destruct p; try done. eauto. eauto.
     destruct (find_first_some _) => //=;eauto. destruct p => //. }
   fold lfill in Hfill. destruct lh => //. 
@@ -1334,9 +1378,9 @@ Proof.
     destruct lh ; (try done) ; remember (const_list l) as b eqn:Hl ;
     destruct b ; try done.
   { move/eqP in Hfill.
-    destruct e ; subst ;
+    destruct e ; (try destruct b); subst ;
       rewrite (first_instr_const _ (Logic.eq_sym Hl)) ; try by unfold first_instr.
-(*    destruct b ; try by unfold first_instr. *) exfalso ; by apply Hconst. 
+(*    destruct b ; try by unfold first_instr. *) 1-2:exfalso ; by apply Hconst. 
     by exfalso ; eapply Hlabel. by exfalso ; eapply Hlocal. }
   fold lfill in Hfill.
   remember (lfill _ _ _) as fill ; destruct fill => //. 
@@ -1470,7 +1514,7 @@ Proof.
           right.
           by eapply H.
       * (* AI_trap *)
-        destruct vcs => //=; destruct es => //=; destruct es => //=.
+        destruct vcs => //=. 2:{  destruct v => //. } destruct es => //=; destruct es => //=.
         simpl in H. inversion H. subst.
         right.
         exists ME_empty, s, f, [::AI_trap].
@@ -1781,7 +1825,7 @@ Proof.
     rewrite -E'.
     by destruct C1.
 
-Qed.
+Qed. 
 
 
 

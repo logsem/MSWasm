@@ -122,7 +122,7 @@ Proof.
                                            ∗ ↪[frame] _)%I)).
     iSplitR ; first by iIntros "[%Habs _]".
     iSplitL "Hf".
-  - iApply (wp_tee_local with "Hf").
+  - fold_const; iApply (wp_tee_local with "Hf").
     iIntros "!> Hf".
     rewrite separate1.
     iApply wp_val_app => //.
@@ -206,7 +206,7 @@ Proof.
     rewrite (separate2 (AI_basic _)).
     iApply wp_val_app => //.
     iSplitR ; first by iIntros "!> [%Habs _]".
-    iApply (wp_binop with "Hf") => //.
+    unfold i32const; fold_const; iApply (wp_binop with "Hf") => //.
     simpl.
   - iIntros (w) "[-> Hf]".
     iSimpl.
@@ -217,7 +217,7 @@ Proof.
     iApply wp_val_app => //.
     iSplit ; last first.
     iApply wp_wand_r. iSplitL.
-    iApply wp_segstore => //; last first.
+    fold_const; iApply wp_segstore => //; last first.
     iFrame. instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I). 
     iSplitR "Hbase". iIntros "!> H". iSplit; first done. iExact "H".
     iApply i32_wss. unfold handle_addr; rewrite Hoff N.add_0_r. done.

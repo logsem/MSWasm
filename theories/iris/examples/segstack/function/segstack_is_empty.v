@@ -112,7 +112,7 @@ Proof.
   iSimpl. 
   iApply wp_wand_r.
   iSplitL "Hf". 
-  iApply (wp_relop with "Hf") => //=.
+  fold_const; iApply (wp_relop with "Hf") => //=.
   by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
   { iIntros (w) "[-> Hf]".
     iApply "HΦ".
@@ -296,3 +296,4 @@ End valid.
 
 End stack.    
       
+

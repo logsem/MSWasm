@@ -15,7 +15,6 @@ Section Opsem.
    Context `{HandleBytes}. 
 
    Inductive reduce_simple : seq administrative_instruction -> seq administrative_instruction -> Prop :=
-     | rs_immediate : forall v, reduce_simple [::AI_basic (BI_immediate v)] [::AI_const (VAL_numeric v)]
 
 (** unop **)
   | rs_unop : forall v op t,
@@ -171,7 +170,15 @@ Section Opsem.
 
 | rs_getoffset :
   forall h,
-  reduce_simple [:: AI_const (VAL_handle h) ; AI_basic BI_getoffset ] [:: AI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h))))]
+    reduce_simple [:: AI_const (VAL_handle h) ; AI_basic BI_getoffset ] [:: AI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h))))]
+
+   | rs_isdummy_true:
+     reduce_simple [:: AI_const (VAL_handle dummy_handle) ; AI_basic BI_isdummy ] [:: AI_const (VAL_int32 (Wasm_int.Int32.repr 1))]
+
+   | rs_isdummy_false:
+     forall h,
+       h <> dummy_handle ->
+     reduce_simple [:: AI_const (VAL_handle h) ; AI_basic BI_isdummy ] [:: AI_const (VAL_int32 (Wasm_int.Int32.repr 0))]
 
 
                   

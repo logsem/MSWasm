@@ -53,10 +53,10 @@ Proof.
   destruct (iris.to_val es) as [vs|] eqn:Hes.
   { destruct vs.
     { apply of_to_val in Hes as <-. rewrite to_val_cons_immV. auto. }
-    apply to_val_trap_is_singleton in Hes as ->. simpl.
-    iIntros (?????) "?".
-    iMod "H".
-    by iSpecialize ("Hntrap" with "H").
+    apply to_val_trap_is_singleton in Hes as ->. destruct v0; simpl.
+    1-2:iIntros (?????) "?".
+    1-2:iMod "H".
+    all: try by iSpecialize ("Hntrap" with "H").
     erewrite to_val_cons_brV;eauto.
     erewrite to_val_cons_retV;eauto.
     erewrite to_val_cons_callHostV;eauto.
@@ -71,7 +71,7 @@ Proof.
     - iPureIntro.
       destruct s => //=.
       rewrite - cat1s.
-      by eapply prepend_reducible; eauto.
+      eapply prepend_reducible; eauto. left; by destruct v0.
     - iIntros (es2 σ2 efs HStep).
       rewrite -cat1s in HStep.
       eapply reduce_ves in H1; last by apply HStep.

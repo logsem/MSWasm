@@ -396,7 +396,7 @@ Definition spec1_is_empty idf1 i1 l1 f1 (isStack : handle -> seq.seq i32 -> iPro
   (∀ (v: handle) s f, {{{ ↪[frame] f  ∗
                  N.of_nat idf1 ↦[wf] FC_func_native i1 (Tf [T_handle] [T_i32]) l1 f1 ∗
                  isStack v s }}}
-              [AI_basic (BI_const (value_of_handle v)) ; AI_invoke idf1] @ E
+              [AI_handle v ; AI_invoke idf1] @ E
               {{{ w, (∃ k, ⌜ w = immV [value_of_int k] ⌝ ∗ isStack v s ∗
                                       ⌜ (k = 1 /\ s = []) \/
                              (k = 0 /\ s <> []) ⌝) ∗
@@ -408,7 +408,7 @@ Definition spec2_is_full idf2 i2 l2 f2 (isStack : handle -> seq.seq i32 -> iProp
   (∀ (v: handle) s f, {{{ ↪[frame] f ∗
                  N.of_nat idf2 ↦[wf] FC_func_native i2 (Tf [T_handle] [T_i32]) l2 f2 ∗
                  isStack v s }}} 
-              [AI_basic (BI_const (value_of_handle v)) ; AI_invoke idf2] @ E
+              [AI_handle v ; AI_invoke idf2] @ E
               {{{ w, (∃ k, ⌜ w = immV [value_of_int k] ⌝ ∗
                                       isStack v s ∗
                                       ⌜ (k = 1 /\ (N.of_nat (length s) = two14 - 1)%N) \/ (k = 0 /\ (N.of_nat (length s) < two14 - 1)%N) ⌝) ∗
@@ -420,7 +420,7 @@ Definition spec3_pop idf3 i3 l3 f3 (isStack : handle -> seq.seq i32 -> iPropI Σ
   (∀ a (v: handle) s f, {{{ ↪[frame] f ∗
                    N.of_nat idf3 ↦[wf] FC_func_native i3 (Tf [T_handle] [T_i32]) l3 f3
                    ∗ isStack v (a :: s) }}}
-                [AI_basic (BI_const (value_of_handle v)) ; AI_invoke idf3] @ E
+                [AI_handle v ; AI_invoke idf3] @ E
                 {{{ w, ⌜ w = immV [VAL_int32 a] ⌝ ∗
                                   isStack v s ∗
                                   N.of_nat idf3 ↦[wf] FC_func_native i3 (Tf [T_handle] [T_i32]) l3 f3 ∗
@@ -432,7 +432,7 @@ Definition spec4_push idf4 i4 l4 f4 (isStack: handle -> list i32 -> iPropI Σ) E
                    N.of_nat idf4 ↦[wf] FC_func_native i4 (Tf [T_handle ; T_i32] []) l4 f4 
                    ∗ ⌜ (N.of_nat (length s) < two14 - 1)%N ⌝
                    ∗ isStack v s }}}
-                [ AI_basic (BI_const (value_of_handle v)); AI_basic (BI_const (VAL_int32 a)); 
+                [ AI_handle v; AI_basic (BI_const (NVAL_int32 a)); 
                   AI_invoke idf4 ] @ E
                 {{{ w, ⌜ w = immV [] ⌝ ∗
                                   isStack v (a :: s) ∗
@@ -457,14 +457,14 @@ Definition spec5_stack_map idf5 i5 l5 f5 (isStack : handle -> seq.seq i32 -> iPr
                        N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
                            ∗ ↪[frame] fc
                            ∗ N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) 
                            ∗ (N.of_nat a) ↦[wf] cl }}}
                   )  }}}
-    [ AI_basic (BI_const (value_of_handle v)); AI_basic (BI_const (VAL_int32 f)) ; AI_invoke idf5 ] @ E
+    [ AI_handle v; AI_basic (BI_const (NVAL_int32 f)) ; AI_invoke idf5 ] @ E
     {{{ w, ⌜ w = immV [] ⌝ ∗
            (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
            N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_handle; T_i32] []) l5 f5 ∗
@@ -492,14 +492,14 @@ Definition spec5_stack_map_trap `{!logrel_na_invs Σ} idf5 i5 l5 f5 (isStack : h
                      ↪[frame] fc ∗
                      na_own logrel_nais ⊤
                }}}
-                 [ AI_basic (BI_const (VAL_int32 u)) ;
+                 [ AI_basic (BI_const (NVAL_int32 u)) ;
                    AI_invoke a ] @ E
                  {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
         | None => True
            end ∗
                  na_own logrel_nais ⊤ ∗ ↪[frame] f0 }}}
-        [ AI_basic (BI_const (value_of_handle v)); AI_basic (BI_const (VAL_int32 f)) ; AI_invoke idf5 ] @ E
+        [ AI_handle v; AI_basic (BI_const (NVAL_int32 f)) ; AI_invoke idf5 ] @ E
       {{{ w, (⌜ w = trapV ⌝ ∨ (⌜ w = immV [] ⌝ ∗
                               (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
                               N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_handle; T_i32] []) l5 f5)) ∗
@@ -513,7 +513,7 @@ Definition spec6_stack_length idf i l fn (isStack : handle -> seq.seq i32 -> iPr
                       N.of_nat idf ↦[wf] FC_func_native i (Tf [T_handle] [T_i32]) l fn ∗
                       ⌜ (N.of_nat (length s) = len)%N ⌝ ∗
                  isStack v s }}}
-              [AI_basic (BI_const (value_of_handle v)) ; AI_invoke idf] @ E
+              [AI_handle v ; AI_invoke idf] @ E
               {{{ w, ⌜ w = immV [value_of_uint len] ⌝ ∗ isStack v s ∗
                      N.of_nat idf ↦[wf] FC_func_native i (Tf [T_handle] [T_i32]) l fn ∗ 
                      ↪[frame] f}}})%I.
@@ -827,6 +827,7 @@ Proof.
               }
               destruct Hv as [kv ->].
               iApply (wp_frame_value with "Hf") => //.
+              destruct kv => //. 
               iNext.
               instantiate (1 := (λ w, ((⌜w = immV [value_of_handle dummy_handle]⌝
                                         ∨ (∃ h : handle, ⌜w = immV [value_of_handle h]⌝ ∗ ⌜ h <> dummy_handle ⌝ ∗ isStack h [])) ∗
@@ -848,8 +849,8 @@ Proof.
         -- iIntros "!>" (v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Hlen & %Hdiv & Hlen) HΦ".
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ++ rewrite (separate1 (AI_basic (_)) _).
-              rewrite - (app_nil_r [AI_basic _]).
+           ++ rewrite (separate1 (AI_handle (_)) _).
+              rewrite - (app_nil_r [AI_handle _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
               iSimpl.
@@ -909,8 +910,8 @@ Proof.
         -- iIntros "!>" (v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Hlen & %Hdiv & Hlen) HΦ".
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ++ rewrite (separate1 (AI_basic ( _)) _).
-              rewrite - (app_nil_r [AI_basic _]).
+           ++ rewrite (separate1 (AI_handle ( _)) _).
+              rewrite - (app_nil_r [AI_handle _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
               iSimpl.
@@ -968,8 +969,8 @@ Proof.
         -- iIntros "!>" (a v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Ha & Hs) HΦ". 
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ++ rewrite (separate1 (AI_basic ( _)) _).
-              rewrite - (app_nil_r [AI_basic _]).
+           ++ rewrite (separate1 (AI_handle ( _)) _).
+              rewrite - (app_nil_r [AI_handle _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
               iSimpl.
@@ -1025,7 +1026,7 @@ Proof.
         -- iIntros "!>" (a v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Ha & %Hlen & Hs) HΦ".
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ++ rewrite (separate2 (AI_basic ( _)) _ _).
+           ++ rewrite (separate2 (AI_handle ( _)) _ _).
               rewrite - (app_nil_r [AI_basic _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -1083,7 +1084,7 @@ Proof.
              "!> (Hf & Hf0 & Hs & HΦ & Htab & Hcl & %Hclt & #Hspec) HΞ".
            iApply wp_wand_r.
            iSplitR "HΞ".
-           ++ rewrite (separate2 (AI_basic (_)) _ _).
+           ++ rewrite (separate2 (AI_handle (_)) _ _).
               rewrite - (app_nil_r [AI_basic _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -1144,7 +1145,7 @@ Proof.
              "!> (Hf & Hs & HΦ & #Htab & #Hcl & Hown & Hf0) HΞ".
            iApply wp_wand_r.
            iSplitR "HΞ".
-           ++ rewrite (separate2 (AI_basic ( _)) _ _).
+           ++ rewrite (separate2 (AI_handle ( _)) _ _).
               rewrite - (app_nil_r [AI_basic _]).
               iApply (wp_invoke_native with "Hf0 Hf") => //.
               iIntros "!> [Hf Hf0]".
@@ -1209,8 +1210,8 @@ Proof.
           iIntros "!>" (v0 s0 f6 len Φ) "!> (Hf & Hf0 & %Hret & Hs) HΦ".
           iApply wp_wand_r.
           iSplitR "HΦ".
-          ++ rewrite (separate1 (AI_basic (_)) _).
-             rewrite - (app_nil_r [AI_basic _]).
+          ++ rewrite (separate1 (AI_handle (_)) _).
+             rewrite - (app_nil_r [AI_handle _]).
              iApply (wp_invoke_native with "Hf Hf0") => //.
              iIntros "!> [Hf Hf0]".
              iSimpl.

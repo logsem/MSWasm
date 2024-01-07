@@ -19,8 +19,9 @@ Proof.
          possibilities : Hred2 holds either using rs_binop_success or rs_binop_failure.
          It is up to us to exfalso away the second case using the rest of the
          hypotheses *)
-  by only_one [AI_const v1 ; AI_const v2 ; AI_basic (BI_binop t op)] Hred ;
-     inversion Heqes ; subst ; rewrite H in H0 ; inversion H0 ; subst.
+
+  by only_one [AI_const v1 ; AI_const v2 ; AI_basic (BI_binop t op)] Hred ; 
+  destruct v1, v2, v3, v0; inversion Heqes ; subst => // ; rewrite H in H0 ; inversion H0 ; subst.
 Qed.
 
 Lemma binop_none_det v1 v2 op t s f me s' f' es:
@@ -30,7 +31,7 @@ Lemma binop_none_det v1 v2 op t s f me s' f' es:
 Proof.
   move => H Hred.
   by only_one [AI_const v1 ; AI_const v2 ; AI_basic (BI_binop t op)] Hred ;
-     inversion Heqes ; subst ; rewrite H in H0 ; inversion H0 ; subst.
+  destruct v1, v2, v3, v0; inversion Heqes ; subst => //; rewrite H in H0 ; inversion H0 ; subst.
 Qed.
 
 

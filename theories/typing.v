@@ -67,7 +67,7 @@ Inductive relop_type_agree: value_type -> relop -> Prop :=
   .
   
 Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Prop :=
-| bet_const : forall C v, be_typing C [::BI_immediate v] (Tf [::] [::typeof_numerical v])
+| bet_const : forall C v, be_typing C [::BI_const v] (Tf [::] [::typeof_numerical v])
 | bet_unop : forall C t op,
     unop_type_agree t op -> be_typing C [::BI_unop t op] (Tf [::t] [::t])
 | bet_binop : forall C t op,
@@ -160,6 +160,8 @@ Inductive be_typing : t_context -> seq basic_instruction -> function_type -> Pro
     be_typing C [::BI_handleadd] (Tf [::T_i32 ; T_handle] [::T_handle])
 | bet_getoffset : forall C,
     be_typing C [::BI_getoffset] (Tf [::T_handle] [::T_i32])
+| bet_isdummy : forall C,
+    be_typing C [::BI_isdummy] (Tf [::T_handle] [::T_i32])
 | bet_segfree : forall C,
     be_typing C [::BI_segfree] (Tf [::T_handle] [::])
 | bet_current_memory : forall C,
@@ -333,7 +335,7 @@ Inductive cl_typing : store_record -> function_closure -> function_type -> Prop 
   .
 
   Inductive e_typing : store_record -> t_context -> seq administrative_instruction -> function_type -> Prop :=
-  | ety_const: forall s C v, e_typing s C [::AI_const v] (Tf [::] [::typeof v])
+  | ety_handle: forall s C v, e_typing s C [::AI_handle v] (Tf [::] [::T_handle])
 | ety_a : forall s C bes tf,
   be_typing C bes tf -> e_typing s C (to_e_list bes) tf
 | ety_composition : forall s C es e t1s t2s t3s,
@@ -369,7 +371,15 @@ with s_typing : store_record -> option (seq value_type) -> frame -> seq administ
   e_typing s C es (Tf [::] ts) ->
   (rs = Some ts \/ rs = None) ->
   s_typing s rs f es ts
-.
+  .
+
+  Lemma ety_const : forall s C v, e_typing s C [::AI_const v] (Tf [::] [::typeof v]).
+  Proof.
+    destruct v => /=.
+    - replace [:: AI_basic (BI_const n)] with  (to_e_list [:: BI_const n]); last done.
+      apply ety_a. econstructor.
+    - econstructor.
+  Qed. 
 
 Scheme e_typing_ind' := Induction for e_typing Sort Prop
   with s_typing_ind' := Induction for s_typing Sort Prop.

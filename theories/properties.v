@@ -15,6 +15,8 @@ Unset Printing Implicit Defensive.
 
 (** * Basic Lemmas **)
 
+Lemma const_const a: is_const (AI_const a).
+Proof. destruct a => //. Qed.
 
 Lemma app_app (es1 es2 es3 es4: list administrative_instruction) :
   es1 ++ es2 = es3 ++ es4 ->
@@ -95,7 +97,8 @@ Qed.
 Lemma v_to_e_is_const_list: forall vs,
     const_list (v_to_e_list vs).
 Proof.
-  move => vs. by elim: vs.
+  move => vs. elim: vs => //.
+  intros a; destruct a => //. 
 Qed.
 
 Lemma v_to_e_cat: forall vs1 vs2,
@@ -112,8 +115,8 @@ Proof.
   move => vs1.
   induction vs1; move => vs2; destruct vs2 => //=.
   move => Heq. inversion Heq; subst.
-  f_equal.
-  by apply IHvs1.
+  destruct a, v => //; f_equal; inversion H0; subst => //.
+  all: by apply IHvs1.
 Qed.
 
 Lemma split_vals_e_v_to_e_duality: forall es vs es',
@@ -124,13 +127,14 @@ Proof.
   - move=> es es'. destruct es => //=.
     + by inversion 1.
     + case a; try by inversion 1; [idtac].
-      move => b. (* case b; try by inversion 1. *)
-      move => H.  by destruct (split_vals_e es).
+      move => b. case b; try by inversion 1. 
+      1-2:move => H.  1-2:by destruct (split_vals_e es).
+      
   - move => a l H es es' HSplit. unfold split_vals_e in HSplit.
-    destruct es => //. destruct a0 => //. 
-    fold split_vals_e in HSplit.
-    destruct (split_vals_e es) eqn:Heqn. inversion HSplit; subst.
-    simpl. f_equal. by apply: H.
+    destruct es => //. destruct a0 => //. destruct b => //.
+    all: fold split_vals_e in HSplit.
+    all: destruct (split_vals_e es) eqn:Heqn. all: inversion HSplit; subst.
+    all: simpl. all: f_equal. all: by apply: H.
 Qed.
 
 Lemma const_list_cons : forall a l,
@@ -327,9 +331,9 @@ Proof.
   - by exists [::].
   - move => HConst.
     move/andP in HConst. destruct HConst.
-    destruct a => //=. 
-    edestruct IHes => //=.
-    exists (v :: x). simpl. by rewrite H1.
+    destruct a => //=. destruct b => //=. 
+    all: edestruct IHes => //=.
+    exists (VAL_numeric n :: x). 2: exists (VAL_handle h :: x). all: simpl. all: by rewrite H1.
 Qed.
 
 Lemma b_e_elim: forall bes es,
@@ -1023,6 +1027,12 @@ Proof.
   - by apply ety_a.
   - symmetry. by apply e_b_elim.
 Qed.
+
+Lemma ety_const' v t s C :
+  typeof v = t -> e_typing s C [::AI_const v] (Tf [::] [::t]).
+Proof.
+  intros <-. by apply ety_const.
+Qed. 
 
 (* Some quality of life lemmas *)
 Lemma bet_weakening_empty_1: forall C es ts t2s,

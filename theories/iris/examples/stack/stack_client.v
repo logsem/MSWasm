@@ -160,7 +160,7 @@ Section Client.
   Proof.
     unfold module_restrictions.
     repeat split => //=.
-    { by exists [VAL_int32 (Wasm_int.int_of_Z i32m 0)]. }
+    { by exists [NVAL_int32 (Wasm_int.int_of_Z i32m 0)]. }
     { by exists [Wasm_int.int_of_Z i32m 0]. }
     { by exists []. }
   Qed.
@@ -416,7 +416,7 @@ Proof.
         { iSimpl.
           rewrite (separate2 (AI_basic _)).
           iApply wp_seq; iSplitR; last iSplitL "Hf".
-          2: { iApply (wp_tee_local with "Hf").
+          2: { fold_const; iApply (wp_tee_local with "Hf").
                iIntros "!> Hf".
                instantiate (1 := λ w, (⌜ w = immV [value_of_int (-1)] ⌝ ∗ ↪[frame] _)%I).
                rewrite (separate1 (AI_basic (i32const _))).
@@ -439,7 +439,7 @@ Proof.
           iApply wp_seq.
           iSplitR; last iSplitL "Hf".
           2: {
-            iApply (wp_relop with "Hf") => //=.
+            unfold i32const; fold_const; iApply (wp_relop with "Hf") => //=.
             instantiate (1 := λ v, ⌜ v = immV _⌝%I).
             iIntros "!>".
             iPureIntro.
@@ -472,7 +472,7 @@ Proof.
             iApply wp_seq.
             iSplitR ; last first.
             iSplitL.
-            iApply (wp_set_global with "[] Hf Hwg").
+            unfold i32const; fold_const; iApply (wp_set_global with "[] Hf Hwg").
             done.
             instantiate (1 := λ v, ⌜ v = immV [] ⌝%I ).
             done.
@@ -543,7 +543,7 @@ Proof.
           iSimpl.
           rewrite (separate2 (AI_basic _)).
           iApply wp_seq; iSplitR; last iSplitL "Hf".
-          2: { iApply (wp_tee_local with "Hf").
+          2: { fold_const; iApply (wp_tee_local with "Hf").
                iIntros "!> Hf".
                instantiate (1 := λ w, (⌜ w = immV [value_of_uint k] ⌝ ∗ ↪[frame] _)%I).
                rewrite (separate1 (AI_basic (BI_const _))).
@@ -566,7 +566,7 @@ Proof.
           iApply wp_seq.
           iSplitR; last iSplitL "Hf".
           2: {
-            iApply (wp_relop with "Hf") => //=.
+            unfold i32const; fold_const; iApply (wp_relop with "Hf") => //=.
             instantiate (1 := λ v, ⌜ v = immV _⌝%I).
             iIntros "!>".
             iPureIntro.
@@ -770,7 +770,7 @@ Proof.
           iSimpl.
           iApply wp_wand_r.
           iSplitL "Hf".
-          iApply (wp_binop with "Hf").
+          fold_const; iApply (wp_binop with "Hf").
           done.
           by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
           iIntros (v0) "[-> Hf]".
@@ -911,7 +911,7 @@ Proof.
           iApply wp_seq.
           iSplitR ; last first.
           iSplitL "Hf".
-          iApply (wp_binop with "Hf").
+          unfold i32const; fold_const; iApply (wp_binop with "Hf").
           done.
           iSimpl.
           unfold Wasm_int.Int32.isub, Wasm_int.Int32.sub.
@@ -926,7 +926,7 @@ Proof.
           iSimpl.
           iApply wp_wand_r.
           iSplitL "Hf Hwg".
-          iApply (wp_set_global with "[] Hf Hwg").
+          fold_const; iApply (wp_set_global with "[] Hf Hwg").
           done.
           instantiate (1 := λ v, ⌜ v = immV [] ⌝%I).
           by iNext.

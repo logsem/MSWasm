@@ -134,7 +134,7 @@ Section stack.
                                             ∗ ↪[frame] _)%I)).
         iSplitR ; first by iIntros "[%Habs _]".
         iSplitL "Hf".
-        iApply (wp_binop with "Hf") => //.
+        unfold i32const; fold_const; iApply (wp_binop with "Hf") => //.
         iIntros "!>".
         iPureIntro.
         unfold value_of_int, value_of_uint => /=.
@@ -153,7 +153,7 @@ Section stack.
         iApply wp_seq; iSplitR; last iSplitL "Hf".
         instantiate (1 := λ w, (⌜ w = immV [value_of_uint (4 + N.of_nat (length s) * 4)] ⌝ ∗ ↪[frame] _) %I).
         2: {
-             iApply (wp_tee_local with "Hf").
+          fold_const; iApply (wp_tee_local with "Hf").
              iIntros "!> Hf".
              rewrite separate1.
              iApply wp_val_app => //.
@@ -246,7 +246,7 @@ Section stack.
         rewrite big_sepL_app.
         iDestruct "Hrest" as "[Ha Hrest]".
         iSplitR "HΦ".
-      - iApply wp_wand_r. iSplitL. iApply wp_segstore ; last first.
+      - iApply wp_wand_r. iSplitL. fold_const; iApply wp_segstore ; last first.
         iFrame.
         iSplitR "Ha".
         iNext.
@@ -316,7 +316,7 @@ Section stack.
         iSimpl.
         iApply wp_wand_r.
         iSplitL "Hf Hbase Hid".
-      - iApply wp_segstore; last first => //. 
+      - fold_const; iApply wp_segstore; last first => //. 
         iFrame. instantiate (2 := λ x, (⌜ x = immV _ ⌝ ∗ _)%I).
         iSplitR. iIntros "!> H". iSplit => //. iExact "H".
         iApply i32_wss. unfold handle_addr; rewrite Hoff N.add_0_r. done.
@@ -566,4 +566,5 @@ Section stack.
   End valid.
 
 End stack.    
+
 

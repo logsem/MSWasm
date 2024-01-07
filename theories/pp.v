@@ -313,7 +313,7 @@ Fixpoint pp_basic_instruction (i : indentation) (be : basic_instruction) : strin
       indent i (with_fg be_style "segalloc" ++ newline)
   | BI_segfree =>
       indent i (with_fg be_style "segfree" ++ newline)
-  | BI_immediate v =>
+  | BI_const v =>
     indent i (pp_numerical_value v)
   | BI_unop vt (Unop_i uoi) =>
     indent i (pp_value_type vt ++ "." ++ pp_unary_op_i uoi ++ newline)
@@ -329,6 +329,8 @@ Fixpoint pp_basic_instruction (i : indentation) (be : basic_instruction) : strin
       indent i ("handle.add" ++ newline)
   | BI_getoffset =>
       indent i ("handle.getoffset" ++ newline)
+  | BI_isdummy =>
+      indent i ("handle.isdummy" ++ newline)
   | BI_testop vt Eqz =>
     indent i (pp_value_type vt ++ ".eqz" ++ newline)
   | BI_relop vt (Relop_i roi) =>
@@ -372,7 +374,7 @@ Fixpoint pp_administrative_instruction (n : indentation) (e : administrative_ins
     String.concat "" (List.map (pp_administrative_instruction n) es) in
   match e with
   | AI_basic be => pp_basic_instruction n be
-  | AI_const v => indent n (pp_value v)
+  | AI_handle v => indent n (pp_handle v)
   | AI_trap => indent n (with_fg ae_style "trap" ++ newline)
   | AI_invoke a =>
     indent n (with_fg ae_style "invoke" ++ string_of_nat a ++ newline)

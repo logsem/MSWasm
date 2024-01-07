@@ -85,7 +85,7 @@ Proof.
 
   iIntros (w) "(-> & Hstack & Hf)" => /=.
   iApply (wp_wand with "[Hf]").
-  { iApply (wp_binop with "Hf") => //=. 
+  { unfold i32const; fold_const; iApply (wp_binop with "Hf") => //=. 
     unfold Wasm_int.Int32.divu => /=.
     rewrite Wasm_int.Int32.Z_mod_modulus_id.
     2: { unfold two14 in Hlens; rewrite u32_modulus. remember (length s) as x. rewrite - Heqx. lia. }
@@ -135,3 +135,4 @@ End specs.
 
 End stack.    
       
+

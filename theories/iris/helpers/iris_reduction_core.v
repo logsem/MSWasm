@@ -81,7 +81,7 @@ Section reduction_core.
            rewrite - app_comm_cons in Heq ;
            apply first_values in Heq as (<- & -> & <-) ;try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
            try (destruct He0 as [-> | ->]; by intros [? ?]) ;
-           try (by const_list_app) ;
+           try (by const_list_app; repeat rewrite const_const) ;
            rewrite separate1 in Heq0 ;
            eexists _, vs0, afte0, [], [], _ ;
            repeat split ; try done ; try (by rewrite app_nil_r) ;
@@ -92,7 +92,7 @@ Section reduction_core.
            rewrite - app_comm_cons in Heq ;
            apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
            try (destruct He0 as [-> | ->]; by intros [? ?]);
-           try (by const_list_app) ;
+           try (by const_list_app; repeat rewrite const_const) ;
            destruct vs0 ;
            [ simpl in Heq0 ;
              exfalso ;
@@ -100,16 +100,31 @@ Section reduction_core.
              clear Hafts ;
              generalize dependent afte0 ;
              induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
              try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                   assert (const_list (a0 :: ves)) as Hconst ;
                   first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                   first_not_const Hconst) ;
              [  destruct H ; try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                      assert (const_list (a0 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                 destruct H ; try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct vs ; inversion Heq0 ;
                      first_not_const H) ; 
                 try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -152,7 +167,7 @@ Section reduction_core.
               rewrite - app_comm_cons in Heq ;
               apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
               try (destruct He0 as [-> | ->]; by intros [? ?]);
-              try (by const_list_app) ;
+              try (by const_list_app; repeat rewrite const_const) ;
               destruct vs0 ;
               [ simpl in Heq0 ;
                 exfalso ;
@@ -160,16 +175,31 @@ Section reduction_core.
                 clear Hafts ;
                 generalize dependent afte0 ;
                 induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                      assert (const_list (a0 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                 [  destruct H; try (by inversion Heq0) ;
+                    try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                      assert (const_list (a0 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                    destruct H ; try (by inversion Heq0) ;
+                    try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                   try (by destruct vs ; inversion Heq0 ;
                        first_not_const H) ; 
                   try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -197,20 +227,35 @@ Section reduction_core.
                 generalize dependent afte0 ;
                 induction Hred0 ; intros afte0 Heq0 ; 
                 try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                      destruct ves as [| b1 ves] ; inversion Heq0 ;
                      assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                 [  destruct H;
-                try (by inversion Heq0) ;
+                   try (by inversion Heq0) ;
+                    try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                      destruct ves as [| b1 ves] ; inversion Heq0 ;
                      assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                    destruct H ;
-                  try (by inversion Heq0) ;
+                   try (by inversion Heq0) ;
+                    try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                   try (by destruct vs ; first (by inversion Heq0) ;
                        destruct vs ; inversion Heq0 ;
                        first_not_const H) ;
@@ -239,16 +284,31 @@ Section reduction_core.
                         clear Heq0 afte0 H H4 aft H0 IHHred0 ;
                         generalize dependent es ;
                         induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                         try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                         try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                              assert (const_list (b0 :: ves)) as Hconst ;
                              first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                              first_not_const Hconst) ;
                         [   destruct H; try (by inversion Heq0) ;
+                             try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                         try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                              assert (const_list (b0 :: ves)) as Hconst ;
                              first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                              first_not_const Hconst) ;
                             destruct H ; try (by inversion Heq0) ;
+                             try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                           try (by destruct vs ; inversion Heq0 ;
                                first_not_const H) ; 
                           try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -316,7 +376,7 @@ Section reduction_core.
            rewrite - app_comm_cons in Heq ;
            apply first_values in Heq as (<- & -> & <-) ;try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
            try (destruct He0 as [-> | ->]; by intros [? ?]) ;
-           try (by const_list_app) ;
+           try (by const_list_app; repeat rewrite const_const) ;
            rewrite separate1 in Heq0 ; 
            eexists _, vs0, afte0, [], [], _;
            repeat split ; try done ; try (by rewrite app_nil_r) ;
@@ -327,7 +387,7 @@ Section reduction_core.
            rewrite - app_comm_cons in Heq ;
            apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
            try (destruct He0 as [-> | ->]; by intros [? ?]);
-           try (by const_list_app) ;
+           try (by const_list_app; repeat rewrite const_const) ;
            destruct vs0 ;
            [ simpl in Heq0 ;
              exfalso ;
@@ -335,16 +395,31 @@ Section reduction_core.
              clear Hafts ;
              generalize dependent afte0 ;
              induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
              try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                   assert (const_list (a0 :: ves)) as Hconst ;
                   first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                   first_not_const Hconst) ;
              [   destruct H ; try (by inversion Heq0) ;
+                  try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                  try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                       assert (const_list (a0 :: ves)) as Hconst ;
                       first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                       first_not_const Hconst) ;
-               destruct H ; try (by inversion Heq0) ;
+                 destruct H ; try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                try (by destruct vs ; inversion Heq0 ;
                     first_not_const H) ; 
                try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -387,7 +462,7 @@ Section reduction_core.
               rewrite - app_comm_cons in Heq ;
               apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
               try (destruct He0 as [-> | ->]; by intros [? ?]);
-              try (by const_list_app) ;
+              try (by const_list_app; repeat rewrite const_const) ;
               destruct vs0 ;
               [ simpl in Heq0 ;
                 exfalso ;
@@ -395,16 +470,31 @@ Section reduction_core.
                 clear Hafts ;
                 generalize dependent afte0 ;
                 induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                      assert (const_list (a0 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                 [    destruct H; try (by inversion Heq0) ;
+                      try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                      try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                           assert (const_list (a0 :: ves)) as Hconst ;
                           first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                           first_not_const Hconst) ;
                      induction H; try (by inversion Heq0) ;
+                      try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                      try (by destruct vs as [|a0 ves]; inversion Heq0 ;
                           (* assert (const_list (a0 :: ves)) as Hconst ;
                           first (by rewrite H1 ; apply v_to_e_is_const_list) ;
@@ -412,6 +502,11 @@ Section reduction_core.
                           first_not_const H1) ;
                      try (by inversion Heq0; subst; inversion H);
                      destruct H ; try (by inversion Heq0) ;
+                      try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                      try (by destruct vs ; inversion Heq0 ;
                           first_not_const H) ; 
                   try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -439,13 +534,23 @@ Section reduction_core.
                 generalize dependent afte0 ;
                 induction Hred0 ; intros afte0 Heq0 ; 
                 try (by inversion Heq0) ;
+                 try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                      destruct ves as [| b1 ves] ; inversion Heq0 ;
                      assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                      first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                      first_not_const Hconst) ;
                 [   destruct H;
-                try (by inversion Heq0) ;
+                    try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                 try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                      destruct ves as [| b1 ves] ; inversion Heq0 ;
                      assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -453,7 +558,12 @@ Section reduction_core.
                      first_not_const Hconst) ;
 
                     destruct H ;
-                  try (by inversion Heq0) ;
+                    try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                   try (by destruct vs ; first (by inversion Heq0) ;
                        destruct vs ; inversion Heq0 ;
                        first_not_const H) ;
@@ -482,16 +592,31 @@ Section reduction_core.
                         clear Heq0 afte0 H H4 aft H0 IHHred0 ;
                         generalize dependent es ;
                         induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                         try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                         try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                              assert (const_list (b0 :: ves)) as Hconst ;
                              first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                              first_not_const Hconst) ;
                         [ destruct H; try (by inversion Heq0) ;
+                           try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                         try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                              assert (const_list (b0 :: ves)) as Hconst ;
                              first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                              first_not_const Hconst) ;
-                           destruct H ; try (by inversion Heq0) ;
+                          destruct H ; try (by inversion Heq0) ;
+                           try (by destruct v; inversion Heq0);
+                 try (by destruct v0; inversion Heq0);
+                 try (by destruct v1; inversion Heq0);
+                 try (by destruct v2; inversion Heq0);
+                 try (by destruct v3; inversion Heq0);
                           try (by destruct vs ; inversion Heq0 ;
                                first_not_const H) ; 
                           try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -538,32 +663,41 @@ Section reduction_core.
                   repeat apply andb_true_iff in Hvs0 as [Hvs0 _] ;
                   done
                 | by econstructor; econstructor]]) .
-    { destruct H as [ | | ? ? ? ? ? Hr | ? ? ? ? Hr | | | | ? ? ? ? ? Hr1 Hr2 |
+
+
+
+      
+    { destruct H as [ | ? ? ? ? ? Hr | ? ? ? ? Hr | | | | ? ? ? ? ? Hr1 Hr2 |
                       ? ? ? ? Hr1 Hr2 | ? ? ? Hr1 Hr2 Hr3 | | | | ? ? ? Hr | ? ? ? Hr |
                       ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4 | ? ? ? ? ? ? Hr1 Hr2 Hr3 Hr4 |
                       ? ? ? ? Hr | ? ? ? ? Hr | ? ? ? Hr | | ? ? ? ? ? ? Hr1 Hr2 Hr3 |
                       ? ? Hr | ? ? Hr | ? ? ? ? Hr1 Hr2 | ? ? ? Hr | ? ? ? Hr1 Hr2 |
                     | ? ? ? ? ? ? Hr1 Hr2 Hr3 | ? ? Hr | ? ? ? ? Hr1 Hr2 | ? ? ? Hr1 Hr2 |
                       ? ? ? ? ? ? Hr1 Hr2 Hr3 | ? ? ? ? ? Hr1 Hr2 Hr3 |
-                      ? | ? ? Hr1 Hr2 ].
+                      ? | | ? Hr | ? ? Hr1 Hr2 ].
       all: try (by left ; do 2 rewrite app_assoc in Heq ;
                 rewrite - (app_assoc ( _ ++ _)) in Heq ;
                 rewrite - app_comm_cons in Heq;
                 apply first_values in Heq as (<- & -> & <-); try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                 try (destruct He0 as [-> | ->]; by intros [? ?]);
-                try (by const_list_app);
+                try (by const_list_app; try rewrite const_const);
                 rewrite separate1 in Heq0;
                 eexists _, vs0, afte0, [], [], _;
                 repeat split ; try done ; try (by rewrite app_nil_r) ;
                   by repeat econstructor).
-      21: try (destruct v ; (try destruct b) ; try by inversion Hr).   
+      21: try (destruct v ; (try destruct b) ; try by inversion Hr).    
+
+
+      21: fold (AI_const (VAL_numeric n)) in Heq.
+      22: fold (AI_const (VAL_handle h)) in Heq.
+      
       all: try (by  left ; rewrite (separate1 (AI_const _)) in Heq ; 
                 repeat rewrite app_assoc in Heq  ;
                 repeat rewrite - (app_assoc (_ ++ _)) in Heq ;
                 rewrite - app_comm_cons in Heq ;
                 apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                 try (destruct He0 as [-> | ->]; by intros [? ?]);
-                try (by const_list_app) ; 
+                try (by const_list_app; try rewrite const_const) ; 
                 destruct vs0 ;
                 [ simpl in Heq0 ;
                   exfalso ;
@@ -571,16 +705,33 @@ Section reduction_core.
                   clear Hafts ;
                   generalize dependent afte0 ;
                   induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                  try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                  try (by destruct v2; inversion Heq0);
+(*                    try (by destruct v3; inversion Heq0); *)
                   try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                        assert (const_list (a0 :: ves)) as Hconst ;
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                   [  destruct H; try (by inversion Heq0) ;
+                       try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                     try (by destruct v2; inversion Heq0);
+(*                       try (by destruct v3; inversion Heq0); *)
+                    
                   try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                        assert (const_list (a0 :: ves)) as Hconst ;
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                       try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                     try (by destruct v2; inversion Heq0);
+(*                       try (by destruct v3; inversion Heq0); *)
+                   
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
                     try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -623,7 +774,7 @@ Section reduction_core.
                    rewrite - app_comm_cons in Heq ;
                    apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                    try (destruct He0 as [-> | ->]; by intros [? ?]);
-                   try (by const_list_app) ;
+                   try (by const_list_app; repeat rewrite const_const) ;
                    destruct vs0 ;
                    [ simpl in Heq0 ;
                      exfalso ;
@@ -631,16 +782,34 @@ Section reduction_core.
                      clear Hafts ;
                      generalize dependent afte0 ;
                      induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                       try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                     try (by destruct v2; inversion Heq0);
+                                       try (by destruct v3; inversion Heq0);
+                     
                      try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                           assert (const_list (a0 :: ves)) as Hconst ;
                           first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                           first_not_const Hconst) ;
                      [  destruct H; try (by inversion Heq0) ;
+                          try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                        try (by destruct v2; inversion Heq0);
+                          try (by destruct v3; inversion Heq0);
+                        
                      try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                           assert (const_list (a0 :: ves)) as Hconst ;
                           first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                           first_not_const Hconst) ;
-                        destruct H ; try (by inversion Heq0) ;
+                        destruct H ; try (by inversion Heq0);
+                          try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                        try (by destruct v2; inversion Heq0);
+                          try (by destruct v3; inversion Heq0);
+                       
                        try (by destruct vs ; inversion Heq0 ;
                             first_not_const H) ; 
                        try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -668,20 +837,38 @@ Section reduction_core.
                      generalize dependent afte0 ;
                      induction Hred0 ; intros afte0 Heq0 ; 
                      try (by inversion Heq0) ;
+                       try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                     try (by destruct v2; inversion Heq0);
+                       try (by destruct v3; inversion Heq0);
+                     
                      try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                           destruct ves as [| b1 ves] ; inversion Heq0 ;
                           assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                           first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                           first_not_const Hconst) ;
                      [  destruct H;
-                     try (by inversion Heq0) ;
+                        try (by inversion Heq0) ;
+                          try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                        try (by destruct v2; inversion Heq0);
+                          try (by destruct v3; inversion Heq0);
+             
                      try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                           destruct ves as [| b1 ves] ; inversion Heq0 ;
                           assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                           first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                           first_not_const Hconst) ;
                         destruct H ;
-                       try (by inversion Heq0) ;
+                        try (by inversion Heq0) ;
+                          try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                        try (by destruct v2; inversion Heq0);
+                          try (by destruct v3; inversion Heq0);
+                       
                        try (by destruct vs ; first (by inversion Heq0) ;
                             destruct vs ; inversion Heq0 ;
                             first_not_const H) ;
@@ -710,16 +897,34 @@ Section reduction_core.
                              clear Heq0 afte0 H H4 aft H0 IHHred0 ;
                              generalize dependent es ;
                              induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+                               try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                             try (by destruct v2; inversion Heq0);
+                               try (by destruct v3; inversion Heq0);
+                             
                              try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                                   assert (const_list (b0 :: ves)) as Hconst ;
                                   first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                                   first_not_const Hconst) ;
                              [  destruct H; try (by inversion Heq0) ;
+                                  try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                                try (by destruct v2; inversion Heq0);
+                                  try (by destruct v3; inversion Heq0);
+                                
                              try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                                   assert (const_list (b0 :: ves)) as Hconst ;
                                   first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                                   first_not_const Hconst) ;
                                 destruct H ; try (by inversion Heq0) ;
+                                  try (by destruct v; inversion Heq0);
+                  try (by destruct v0; inversion Heq0);
+                  try (by destruct v1; inversion Heq0);
+                                try (by destruct v2; inversion Heq0);
+                                  try (by destruct v3; inversion Heq0);
+                                
                                try (by destruct vs ; inversion Heq0 ;
                                     first_not_const H) ; 
                                try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -772,9 +977,9 @@ Section reduction_core.
           rewrite - app_comm_cons in Heq ;
           apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
           try (destruct He0 as [-> | ->]; by intros [? ?]);
-          try (by const_list_app) ;
+          try (by const_list_app; repeat rewrite const_const) ;
           destruct vs0.
-        exfalso ;
+         exfalso ;
           apply Logic.eq_sym in Heq0 ;
           clear Hafts ;
           generalize dependent afte0 ;
@@ -783,12 +988,15 @@ Section reduction_core.
                assert (const_list (a0 :: ves)) as Hconst ;
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
-          [ destruct H ; try (by inversion Heq0) ;
+          [  destruct H ; try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
           try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                assert (const_list (a0 :: ves)) as Hconst ;
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
-            destruct H ; try (by inversion Heq0) ;
+             destruct H ; try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v0; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
             try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -815,13 +1023,15 @@ Section reduction_core.
           generalize dependent afte0 ;
           induction Hred0 ; intros afte0 Heq0 ; 
           try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
           [ destruct H;
-          try (by inversion Heq0) ;
+            try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -829,9 +1039,11 @@ Section reduction_core.
                first_not_const Hconst) ;
             destruct H ;
             try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+            try (by destruct v3; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
-                 first_not_const H) ;
+                 first_not_const H)  ;
             unfold lfilled, lfill in H0 ;
             destruct lh as [bef aft |] ; last (by false_assumption) ;
             destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -862,14 +1074,17 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                   [  destruct H; try (by inversion Heq0) ;
+
                   try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                        assert (const_list (b0 :: ves)) as Hconst ;
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v0; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
-                    try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
+                    try (by inversion Heq0 ; subst ; simpl in H ; false_assumption)  ;
                     unfold lfilled, lfill in H0 ;
                     destruct lh as [bef aft |] ; last (by false_assumption) ;
                     destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -949,6 +1164,7 @@ Section reduction_core.
         unfold const_list, forallb in Hvs0.
         apply andb_true_iff in Hvs0 as [_ Hvs0].
         induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -961,10 +1177,12 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ;
-            try (by inversion Heq0) ;
+             try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v3; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
-                 first_not_const H) ;
+                 first_not_const H);
             unfold lfilled, lfill in H0 ;
             destruct lh as [bef aft |] ; last (by false_assumption) ;
             destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -1000,9 +1218,11 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v0; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
-                    try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
+                    try (by inversion Heq0 ; subst ; simpl in H ; false_assumption);
                     unfold lfilled, lfill in H0 ;
                     destruct lh as [bef aft |] ; last (by false_assumption) ;
                     destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -1044,9 +1264,11 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ; try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v0; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
-            try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
+            try (by inversion Heq0 ; subst ; simpl in H ; false_assumption)  ;
             unfold lfilled, lfill in H0 ;
             destruct lh as [bef aft |] ; last (by false_assumption) ;
             destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -1094,7 +1316,7 @@ Section reduction_core.
           rewrite - app_comm_cons in Heq ;
           apply first_values in Heq as (Hbefs & -> & Hafts) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
           try (destruct He0 as [-> | ->]; by intros [? ?]);
-          try (by const_list_app) ;
+          try (by const_list_app; repeat rewrite const_const) ;
           destruct vs0.
         exfalso ;
           apply Logic.eq_sym in Heq0 ;
@@ -1111,9 +1333,11 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
             destruct H ; try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+            try (by destruct v0; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
-            try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
+            try (by inversion Heq0 ; subst ; simpl in H ; false_assumption)  ;
             unfold lfilled, lfill in H0 ;
             destruct lh as [bef aft |] ; last (by false_assumption) ;
             destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -1137,6 +1361,7 @@ Section reduction_core.
           generalize dependent afte0 ;
           induction Hred0 ; intros afte0 Heq0 ; 
           try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -1151,6 +1376,8 @@ Section reduction_core.
                first_not_const Hconst) ;
             destruct H ;
             try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+            try (by destruct v3; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
                  first_not_const H) ;
@@ -1189,9 +1416,11 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v0; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
-                    try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
+                    try (by inversion Heq0 ; subst ; simpl in H ; false_assumption)  ;
                     unfold lfilled, lfill in H0 ;
                     destruct lh as [bef aft |] ; last (by false_assumption) ;
                     destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -1271,6 +1500,7 @@ Section reduction_core.
         unfold const_list, forallb in Hvs0.
         apply andb_true_iff in Hvs0 as [_ Hvs0].
         induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -1283,7 +1513,9 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ;
-            try (by inversion Heq0) ;
+             try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v3; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
                  first_not_const H) ;
@@ -1322,6 +1554,8 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v0; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
                     try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -1366,6 +1600,8 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ; try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v0; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
             try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -1449,31 +1685,31 @@ Section reduction_core.
           try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
                apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by  rewrite - (app_nil_r [_]) in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
                rewrite H1 ; apply v_to_e_is_const_list).
         { destruct H;
           try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
                apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by  rewrite - (app_nil_r [_]) in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
                rewrite H1 ; apply v_to_e_is_const_list).
           destruct H ;
             try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
             try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
             try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
             try (by rewrite - (app_nil_r [_;_;_;_]) separate3 - app_assoc in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])).
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])).
           - rewrite - (app_nil_r [_]) in Heq.
             apply first_values in Heq as (-> & Hblock & <-) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]).
             apply (block_not_enough_arguments_no_reduce s f vs0 t1s0 t2s0 es0 ME_empty
@@ -1549,13 +1785,13 @@ Section reduction_core.
                try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (destruct v ; try (destruct b) ; try done) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by  rewrite - (app_nil_r [_]) in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                try (destruct He0 as [-> | ->]; by intros [? ?]) ;
                rewrite H1 ; apply v_to_e_is_const_list).
         {  destruct H;
@@ -1564,13 +1800,13 @@ Section reduction_core.
                try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (destruct v ; try (destruct b) ; try done) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by  rewrite - (app_nil_r [_]) in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                try (destruct He0 as [-> | ->]; by intros [? ?]) ;
                rewrite H1 ; apply v_to_e_is_const_list).
            destruct H ;
@@ -1578,13 +1814,13 @@ Section reduction_core.
                  apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                  try (destruct He0 as [-> | ->]; by intros [? ?])) ;
             try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                  try (destruct He0 as [-> | ->]; by intros [? ?])) ;
             try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                  try (destruct He0 as [-> | ->]; by intros [? ?])) ;
             try (by rewrite - (app_nil_r [_;_;_;_]) separate3 - app_assoc in Heq ;
-                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
+                 apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
                  try (destruct He0 as [-> | ->]; by intros [? ?])).
           - rewrite - (app_nil_r [_]) in Heq.
             apply first_values in Heq as (-> & Hblock & <-) ; try done ; try (by destruct He0 ; destruct e0 => // ; destruct b => //) ;
@@ -1641,11 +1877,14 @@ Section reduction_core.
                  first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                  first_not_const Hconst) .
           {  destruct H; try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
               try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                    assert (const_list (a0 :: ves)) as Hconst ;
                    first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-                   first_not_const Hconst) .
+                   first_not_const Hconst) . 
              destruct H ; try (by inversion Heq0) ;
+               try (by destruct v; inversion Heq0);
+               try (by destruct v1; inversion Heq0);
                try (by destruct vs ; inversion Heq0 ;
                     first_not_const H) ; 
                try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) .
@@ -1671,21 +1910,24 @@ Section reduction_core.
           clear Hafts ;
           generalize dependent afte0 ;
           induction Hred0 ; intros afte0 Heq0 ; 
-          try (by inversion Heq0) ;
+            try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-               first_not_const Hconst) .
+               first_not_const Hconst) . 
           {  destruct H;
               try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
               try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                    destruct ves as [| b1 ves] ; inversion Heq0 ;
                    assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                    first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-                   first_not_const Hconst) .
+                   first_not_const Hconst) . 
              destruct H ;
                try (by inversion Heq0) ;
+               try (by destruct v2; inversion Heq0);
                try (by destruct vs ; first (by inversion Heq0) ;
                     destruct vs ; inversion Heq0 ;
                     first_not_const H) .
@@ -1717,13 +1959,16 @@ Section reduction_core.
             try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                  assert (const_list (b0 :: ves)) as Hconst ;
                  first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-                 first_not_const Hconst) .
+                 first_not_const Hconst) . 
           {  destruct H; try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
                try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                     assert (const_list (b0 :: ves)) as Hconst ;
                     first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                     first_not_const Hconst) .
-               destruct H ; try (by inversion Heq0) ;
+             destruct H ; try (by inversion Heq0) ;
+               try (by destruct v; inversion Heq0);
+               try (by destruct v1; inversion Heq0);
                try (by destruct vs ; inversion Heq0 ;
                     first_not_const H) ; 
                try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) .
@@ -1789,11 +2034,14 @@ Section reduction_core.
                  first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                  first_not_const Hconst) .
           {  destruct H; try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
               try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                    assert (const_list (a0 :: ves)) as Hconst ;
                    first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-                   first_not_const Hconst) .
+                   first_not_const Hconst) . 
              destruct H ; try (by inversion Heq0) ;
+               try (by destruct v; inversion Heq0);
+               try (by destruct v1; inversion Heq0);
                try (by destruct vs ; inversion Heq0 ;
                     first_not_const H) ; 
                try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) .
@@ -1819,21 +2067,24 @@ Section reduction_core.
           clear Hafts ;
           generalize dependent afte0 ;
           induction Hred0 ; intros afte0 Heq0 ; 
-          try (by inversion Heq0) ;
+            try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-               first_not_const Hconst) .
+               first_not_const Hconst) . 
           {  destruct H;
               try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
               try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                    destruct ves as [| b1 ves] ; inversion Heq0 ;
                    assert (const_list (b0 :: b1 :: ves)) as Hconst ;
                    first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-                   first_not_const Hconst) .
+                   first_not_const Hconst) . 
              destruct H ;
                try (by inversion Heq0) ;
+               try (by destruct v2; inversion Heq0);
                try (by destruct vs ; first (by inversion Heq0) ;
                     destruct vs ; inversion Heq0 ;
                     first_not_const H) .
@@ -1862,16 +2113,20 @@ Section reduction_core.
             clear Heq0 afte0 H H4 aft H0 IHHred0 ;
             generalize dependent es .
           induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+            
             try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                  assert (const_list (b0 :: ves)) as Hconst ;
                  first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                  first_not_const Hconst) .
           {  destruct H; try (by inversion Heq0) ;
+              try (by destruct v; inversion Heq0);
                try (by destruct ves as [|b0 ves]; inversion Heq0 ;
                     assert (const_list (b0 :: ves)) as Hconst ;
                     first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                     first_not_const Hconst) .
-               destruct H ; try (by inversion Heq0) ;
+             destruct H ; try (by inversion Heq0) ;
+               try (by destruct v1; inversion Heq0);
+               try (by destruct v; inversion Heq0);
                try (by destruct vs ; inversion Heq0 ;
                     first_not_const H) ; 
                try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) .
@@ -1941,6 +2196,8 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
             destruct H ; try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+            try (by destruct v1; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
             try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -1967,6 +2224,7 @@ Section reduction_core.
           generalize dependent afte0 ;
           induction Hred0 ; intros afte0 Heq0 ; 
           try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -1981,9 +2239,11 @@ Section reduction_core.
                first_not_const Hconst) ;
             destruct H ;
             try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+            try (by destruct v2; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
-                 first_not_const H) ;
+                 first_not_const H)  ;
             unfold lfilled, lfill in H0 ;
             destruct lh as [bef aft |] ; last (by false_assumption) ;
             destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -2019,6 +2279,8 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v1; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
                     try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2056,7 +2318,7 @@ Section reduction_core.
                destruct ves as [| b2 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: b2 :: ves)) as Hconst ;
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-               first_not_const Hconst).
+               first_not_const Hconst). 
           destruct H; try (by inversion Heq0) ;
           try (by destruct ves as [|b0 ves]; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; first (by inversion Heq0) ;
@@ -2101,6 +2363,7 @@ Section reduction_core.
         unfold const_list, forallb in Hvs0.
         apply andb_true_iff in Hvs0 as [_ Hvs0].
         induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -2113,10 +2376,12 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ;
-            try (by inversion Heq0) ;
+             try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v2; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
-                 first_not_const H) ;
+                 first_not_const H)  ;
             unfold lfilled, lfill in H0 ;
             destruct lh as [bef aft |] ; last (by false_assumption) ;
             destruct (const_list bef) eqn:Hbef ; last (by false_assumption) ;
@@ -2152,6 +2417,8 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v1; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
                     try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2196,6 +2463,8 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ; try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v1; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
             try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2264,6 +2533,8 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
             destruct H ; try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+                           try (by destruct v1; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
             try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2290,6 +2561,7 @@ Section reduction_core.
           generalize dependent afte0 ;
           induction Hred0 ; intros afte0 Heq0 ; 
           try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -2304,6 +2576,8 @@ Section reduction_core.
                first_not_const Hconst) ;
             destruct H ;
             try (by inversion Heq0) ;
+            try (by destruct v; inversion Heq0);
+            try (by destruct v2; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
                  first_not_const H) ;
@@ -2342,6 +2616,8 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v1; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
                     try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2424,6 +2700,7 @@ Section reduction_core.
         unfold const_list, forallb in Hvs0.
         apply andb_true_iff in Hvs0 as [_ Hvs0].
         induction Hred0 ; intros afte0 Heq0 ; try (by inversion Heq0) ;
+          try (by destruct v; inversion Heq0);
           try (by destruct ves as [| b0 ves] ; first (by inversion Heq0) ;
                destruct ves as [| b1 ves] ; inversion Heq0 ;
                assert (const_list (b0 :: b1 :: ves)) as Hconst ;
@@ -2436,7 +2713,9 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ;
-            try (by inversion Heq0) ;
+             try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v2; inversion Heq0);
             try (by destruct vs ; first (by inversion Heq0) ;
                  destruct vs ; inversion Heq0 ;
                  first_not_const H) ;
@@ -2475,6 +2754,8 @@ Section reduction_core.
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                        first_not_const Hconst) ;
                      destruct H ; try (by inversion Heq0) ;
+                     try (by destruct v; inversion Heq0);
+                     try (by destruct v1; inversion Heq0);
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 
                     try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2519,6 +2800,8 @@ Section reduction_core.
                first (by rewrite H1 ; apply v_to_e_is_const_list) ;
                first_not_const Hconst) ;
              destruct H ; try (by inversion Heq0) ;
+             try (by destruct v; inversion Heq0);
+             try (by destruct v1; inversion Heq0);
             try (by destruct vs ; inversion Heq0 ;
                  first_not_const H) ; 
             try (by inversion Heq0 ; subst ; simpl in H ; false_assumption) ;
@@ -2564,7 +2847,7 @@ Section reduction_core.
         done.
         by eapply rm_silent, r_simple, rs_slice_failure.
 
-        
+
       - right.
         unfold lfilled, lfill in Hr2.
         destruct lh as [bef aft|] ; last by false_assumption.
@@ -2620,31 +2903,31 @@ Section reduction_core.
         try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
              apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by  rewrite - (app_nil_r [_]) in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
              rewrite H1 ; apply v_to_e_is_const_list).
        destruct H;
         try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
              apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
-        try (by  rewrite - (app_nil_r [_]) in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
-             rewrite H1 ; apply v_to_e_is_const_list).
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+        try (by  rewrite - (app_nil_r [_]) in Heq ; 
+             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ; 
+             rewrite H1 ; apply v_to_e_is_const_list) . 
        { destruct H ;
           try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
                apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_;_;_;_]) separate3 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])).
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])).
         - rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq.
           apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]).
           unfold const_list, forallb ; by rewrite H.
@@ -2733,31 +3016,31 @@ Section reduction_core.
         try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
              apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by  rewrite - (app_nil_r [_]) in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
              rewrite H1 ; apply v_to_e_is_const_list).
       destruct H;
         try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
              apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+             apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
         try (by  rewrite - (app_nil_r [_]) in Heq ;
-             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
+             apply first_values in Heq as (_ & Habs & _) ;try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]) ;
              rewrite H1 ; apply v_to_e_is_const_list).
       { destruct H ;
           try (by rewrite - (app_nil_l [_]) - (app_nil_r [_]) in Heq ;
                apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_ ; _ ; _]) separate2 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])) ;
           try (by rewrite - (app_nil_r [_;_;_;_]) separate3 - app_assoc in Heq ;
-               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])).
+               apply first_values in Heq as (_ & Habs & _) ; try done ; try (by simpl; repeat rewrite const_const); try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?])).
         - rewrite - (app_nil_r [_ ; _]) separate1 - app_assoc in Heq.
           apply first_values in Heq as (_ & Habs & _) ; try done ; try (by intros [? ?]); try (destruct He0 as [-> | ->]; by intros [? ?]).
           unfold const_list, forallb ; by rewrite H.

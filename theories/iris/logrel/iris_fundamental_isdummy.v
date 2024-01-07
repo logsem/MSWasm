@@ -16,18 +16,20 @@ Section fundamental.
 
 
   Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
+  Set Bullet Behavior "Strict Subproofs".
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
   (* --------------------------------------------------------------------------------------- *)
 
-  (* ----------------------------------------- TEE_LOCAL ----------------------------------- *)
+  (* --------------------------------------- ISDUMMY -------------------------------------- *)
 
-  Lemma typing_tee_local C i t : nth_error (tc_local C) i = Some t ->
-                                 ⊢ semantic_typing C (to_e_list [BI_tee_local i]) (Tf [t] [t]).
+
+
+  Lemma typing_isdummy C : ⊢ semantic_typing C (to_e_list [BI_isdummy]) (Tf [T_handle] [T_i32]).
   Proof.
     unfold semantic_typing, interp_expression.
-    iIntros (Hnth j lh hl).
+    iIntros (i lh hl).
     iIntros "#Hi [%Hlh_base [%Hlh_len [%Hlh_valid #Hcont]]]" (f all vs) "[Hf Hfv] Hall #Hv".
     iDestruct "Hv" as "[-> | Hv]".
     { take_drop_app_rewrite_twice 0 1.
@@ -35,40 +37,25 @@ Section fundamental.
       { iApply (wp_trap with "[] [$]");auto. }
       iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     iDestruct "Hv" as (ws ->) "Hv".
-
     iDestruct (big_sepL2_length with "Hv") as %Hlen.
-    destruct ws as [|w ws];[done|destruct ws;[|done]].
-    iSimpl in "Hv". iDestruct "Hv" as "[Hv _]".
-
-    iDestruct "Hfv" as (locs Heq) "[#Hlocs Hown]".
-    iDestruct "Hlocs" as "[%Hcontr | Hlocs]";[done|].
-    iDestruct "Hlocs" as (wlocs Heqw) "Hlocs". inversion Heqw.
-    rewrite nth_error_lookup in Hnth.
-    apply lookup_lt_Some in Hnth as Hlt.
-    iDestruct (big_sepL2_length with "Hlocs") as %Hlen'.
-    rewrite -Hlen' in Hlt.
-
-    iApply (wp_wand _ _ _ (λ vs, ⌜vs = immV ([w])⌝ ∗ ↪[frame] _)%I with "[Hf]").
-    { iSimpl. iApply (wp_tee_local with "Hf").
-      iModIntro.
-      iIntros "Hf".
-      take_drop_app_rewrite 1.
-      iApply wp_val_app;[eauto|].
-      { destruct w => //. } 
-      iSplitR;[iModIntro;iIntros "[%Hcontr _]";done|].
-      iApply (wp_set_local with "[] [$Hf]"); [subst;eauto|].
-      simpl. done. }
-
-    iIntros (v) "[-> Hf]".
-    iSplitR;[|iExists _,_;iFrame].
-    { iLeft. iRight. iExists _. iSplit;eauto. iSimpl. iSplit => //. }
-    iExists _. rewrite Heq //. iSplit => //. 
-    iRight. subst locs. rewrite -fmap_insert_set_nth;[|auto].
-    iSimpl. iExists _. iSplit => //.
-    rewrite -(list_insert_id (tc_local C) i t);[|auto].
-    iApply big_sepL2_insert;iFrame "#".
-    rewrite list_insert_id;auto.
-  Qed.
-    
+    destruct ws as [|w1 ws];[done|destruct ws;[|done]].
+    iSimpl in "Hv".
+    iDestruct "Hv" as "[Hv _]".
+    rewrite fixpoint_interp_value_handle_eq.
+    iDestruct "Hv" as (h) "(-> & Hv)".
+    iSimpl.
+    iApply (wp_wand _ _ _ (λne vs, interp_val [T_i32] vs ∗ ↪[frame] f )%I with "[Hf]").
+    + destruct (is_dummy h) eqn:Hh.
+      * apply is_dummy_true in Hh as ->.
+        iApply (wp_isdummy_true with "Hf") => //.
+        iNext. iSimpl. iRight. iExists _; iSplit; first done. iSimpl. iSplit; last done.
+        iExists _. done.
+      * apply is_dummy_false in Hh.
+        iApply (wp_isdummy_false with "Hf") => //.
+        iNext. iSimpl. iRight. iExists _; iSplit; first done. iSimpl. iSplit; last done.
+        iExists _. done.
+    + iIntros (v) "[$ Hf]".
+      iExists _, _ ;iFrame.
+  Qed. 
     
 End fundamental.

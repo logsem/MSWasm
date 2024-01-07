@@ -18,11 +18,13 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
 Notation "{{{ P }}} es @ E {{{ v , Q }}}" :=
   (□ ∀ Φ, P -∗ (∀ v : iris.val, Q -∗ Φ v) -∗ (WP (es : iris.expr) @ NotStuck ; E {{ v, Φ v }}))%I (at level 50).
 
-Definition i32const (n:Z) := BI_const (VAL_int32 (Wasm_int.int_of_Z i32m n)).
+Definition i32const (n:Z) := BI_const (NVAL_int32 (Wasm_int.int_of_Z i32m n)).
 Definition value_of_int (n:Z) := VAL_int32 (Wasm_int.int_of_Z i32m n).
+Definition nvalue_of_int (n:Z) := NVAL_int32 (Wasm_int.int_of_Z i32m n).
 
-Definition u32const (n:N) := BI_const (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n))).
+Definition u32const (n:N) := BI_const (NVAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n))).
 Definition value_of_uint (n:N) := VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n)).
+Definition nvalue_of_uint (n:N) := NVAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N n)).
 
 (* Some useful constants *)
 Definition two14 := 16384%N.
@@ -436,7 +438,8 @@ Proof.
   instantiate (1 := λ x, (⌜ x = immV [value_of_int 0] ⌝ ∗ isStack v s n ∗ ↪[frame] f)%I).
   iSplitR; first by iIntros "(%H & _)".
   iDestruct (is_stack_divide with "Hstack") as "%Hdiv".
-  iFrame "Hstack".
+  iFrame "Hstack". unfold i32const. 
+  fold_const.
   iSplitL; first iApply (wp_binop with "Hf") => //.
   { iIntros "!>".
     iPureIntro => /=.
@@ -485,7 +488,7 @@ Proof.
   - iApply wp_seq.
     instantiate (1 := λ x, (⌜ x = immV [value_of_int 0] ⌝ ∗ ↪[frame] f)%I).
     iSplitR; first by iIntros "(%H & _)".
-    iSplitL. iApply (wp_binop with "Hf") => //.
+    iSplitL. unfold i32const; fold_const. iApply (wp_binop with "Hf") => //.
     { iIntros "!>".
       iPureIntro => /=.
       unfold value_of_int.
@@ -515,7 +518,7 @@ Proof.
   - iApply wp_seq.
     instantiate (1 := λ x, (⌜ x = immV [value_of_int _] ⌝ ∗ ↪[frame] f)%I).
     iSplitR; first by (iIntros "[%H _]").
-    iSplitL. iApply (wp_binop with "Hf") => //.
+    iSplitL. unfold i32const; fold_const. iApply (wp_binop with "Hf") => //.
     
     iIntros (w) "[-> Hf]".
     iApply (wp_if_true with "Hf") => //.
@@ -597,7 +600,7 @@ Proof.
   rewrite Wasm_int.Int32.Z_mod_modulus_eq Z.mod_small; last first.
   { unfold ffff0000 in Hvub; rewrite u32_modulus; by lias. }
   rewrite N2Z.id.
-  iFrame "Hs Hrest Hv".
+  iFrame "Hs Hrest Hv". fold_const.
   iApply (wp_wand with "[Hf]"); first by iApply (wp_drop with "Hf"); instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
   
   iIntros (w) "(-> & Hf)".
@@ -629,7 +632,7 @@ Proof.
     build_ctx e.
     iApply wp_seq_can_trap_ctx.
     instantiate (1:=(λ f', ⌜f = f'⌝ ∗ N.of_nat n ↦[wmlength] len)%I).
-    instantiate (1:=(λ v0, ⌜v0 = immV [xx 0]⌝ ∗ ⌜(_ < len)%N⌝)%I).
+    instantiate (1:=(λ v0, ⌜v0 = immV [VAL_numeric (xx 0)]⌝ ∗ ⌜(_ < len)%N⌝)%I).
     iSplitR;[by iIntros "[% _]"|].
     instantiate (3:=f).
     iSplitR. { iIntros (f') "[Hf [-> Hlen]]". iFrame. auto. }
@@ -637,13 +640,13 @@ Proof.
     iSplitL "Hlen".
     { iIntros "Hf".
       iApply (wp_wand _ _ _ (λ v, (⌜v = trapV⌝ ∗ _) ∗ _)%I with "[-]").
-      iApply (wp_load_failure with "[$Hf $Hlen]");eauto. lias.
+      iApply (wp_load_failure with "[$Hf $Hlen]");eauto. right. simpl. simpl in l. lias.
       iIntros (v0) "[[-> ?] ?]". iFrame. auto. }
     iIntros (w f0) "[[-> %Hlen] [Hf [-> Hlen]]] /=".
     iDestruct ("Hstack" $! Hlen) as "Hstack".
     deconstruct_ctx.
     iApply (wp_wand _ _ _ (λ v, ⌜v = immV []⌝ ∗ _)%I with "[Hf]").
-    iApply (wp_drop with "[$]");auto.
+    fold_const. iApply (wp_drop with "[$]");auto.
     iIntros (v0) "[-> Hf]".
     iFrame. iRight. iFrame. auto.
   - simpl in *. iDestruct ("Hstack" with "[]") as "Hstack".
@@ -676,7 +679,7 @@ Proof.
   build_ctx e. take_drop_app_rewrite 2.
   iApply wp_seq_can_trap_ctx.
   instantiate (1:=(λ f', ⌜f = f'⌝ ∗ N.of_nat n ↦[wmlength] len)%I).
-  instantiate (1:=(λ v0, ⌜v0 = immV [xx 0]⌝ ∗ ⌜(Wasm_int.N_of_uint i32m (Wasm_int.int_of_Z i32m (Z.of_N v)) < len)%N⌝)%I).
+  instantiate (1:=(λ v0, ⌜v0 = immV [VAL_numeric (xx 0)]⌝ ∗ ⌜(Wasm_int.N_of_uint i32m (Wasm_int.int_of_Z i32m (Z.of_N v)) < len)%N⌝)%I).
   iSplitR;[by iIntros "[% _]"|].
   instantiate (1:=f).
   iSplitR. { iIntros (f') "[Hf [-> Hlen]]". iFrame. auto. }
@@ -684,7 +687,8 @@ Proof.
   iSplitL "Hlen".
   { iIntros "Hf".
     iApply (wp_wand _ _ _ (λ v, (⌜v = trapV⌝ ∗ _) ∗ _)%I with "[-]").
-    iApply (wp_load_failure with "[$Hf $Hlen]");eauto. simpl t_length. lias.
+    iApply (wp_load_failure with "[$Hf $Hlen]");eauto. simpl t_length.
+    simpl. simpl in Hlen. right. lias.
     iIntros (v0) "[[-> ?] ?]". iFrame. auto. }
   iIntros (w f0) "[[-> %Hlen'] [Hf [-> Hlen]]] /=". lia.
 Qed.
@@ -693,7 +697,7 @@ Lemma stack_load_0 v s n f E:
   ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ -∗
   isStack v s n -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint v)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
+  WP [AI_basic (BI_const (nvalue_of_uint v)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
   {{ w, ⌜ w = immV [value_of_uint (v + (N.of_nat (length s) * 4))] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hinstmem Hs Hf" => /=.
@@ -736,7 +740,7 @@ Lemma stack_load_0_alt v s n f E k:
   ⌜ k = (v + N.of_nat (length s) * 4)%N ⌝ -∗
   isStack v s n -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint v)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
+  WP [AI_basic (BI_const (nvalue_of_uint v)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
   {{ w, ⌜ w = immV [value_of_uint k] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hinstmem %Hk Hs Hf" => /=.
@@ -750,7 +754,7 @@ Lemma stack_load_j v s n f E j sv:
   ⌜ (0 <= j < N.of_nat (length s))%N ⌝ -∗
   isStack v s n -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint (v + N.of_nat (length s) * 4 - 4 * j))); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
+  WP [AI_basic (BI_const (nvalue_of_uint (v + N.of_nat (length s) * 4 - 4 * j))); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
   {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hinstmem %Hsv %Hjbound Hs Hf" => /=.
@@ -810,7 +814,7 @@ Lemma stack_load_j_alt v s n f E j k sv:
   ⌜ (0 <= j < N.of_nat (length s))%N ⌝ -∗
   isStack v s n -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint k)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
+  WP [AI_basic (BI_const (nvalue_of_uint k)); AI_basic (BI_load T_i32 None N.zero N.zero)] @ E
   {{ w, ⌜ w = immV [VAL_int32 sv] ⌝ ∗ isStack v s n ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hinstmem %Hk %Hsv %Hjbound Hs Hf" => /=.
@@ -824,7 +828,7 @@ Lemma stack_store_j v (s: list i32) n f E j sv (v0: i32):
   ⌜ (0 <= j < N.of_nat (length s))%N ⌝ -∗
   isStack v s n -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint (v + N.of_nat (length s) * 4 - 4 * j))); AI_basic (BI_const (VAL_int32 v0)); AI_basic (BI_store T_i32 None N.zero N.zero)] @ E
+  WP [AI_basic (BI_const (nvalue_of_uint (v + N.of_nat (length s) * 4 - 4 * j))); AI_basic (BI_const (NVAL_int32 v0)); AI_basic (BI_store T_i32 None N.zero N.zero)] @ E
   {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) n ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hinstmem %Hsv %Hjbound Hs Hf" => /=.
@@ -834,7 +838,7 @@ Proof.
   assert (0 <= j < 16383)%N as Hjb; first by unfold two14 in Hlens; lia.
   
   iApply (wp_wand with "[Hs Hf]").
-  iApply wp_store => //; last first.
+  fold_const. iApply wp_store => //; last first.
   { unfold isStack.
     iDestruct "Hs" as "(_ & _ & _ & Hn & Hcontent & Hrest)".
     iDestruct (big_sepL_insert_acc with "Hcontent") as "(Hj & Hcrest)" => //=.
@@ -885,7 +889,7 @@ Lemma stack_store_j_alt v (s: list i32) n f E j k sv (v0: i32):
   ⌜ (0 <= j < N.of_nat (length s))%N ⌝ -∗
   isStack v s n -∗
   ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint k)); AI_basic (BI_const (VAL_int32 v0)); AI_basic (BI_store T_i32 None N.zero N.zero)] @ E
+  WP [AI_basic (BI_const (nvalue_of_uint k)); AI_basic (BI_const (NVAL_int32 v0)); AI_basic (BI_store T_i32 None N.zero N.zero)] @ E
   {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) n ∗ ↪[frame] f }}.
 Proof.
   iIntros "%Hinstmem %Hsv %Hjbound Hs Hf" => /=.
@@ -965,3 +969,4 @@ Qed.
 
 End proofs.
 End Stack.
+

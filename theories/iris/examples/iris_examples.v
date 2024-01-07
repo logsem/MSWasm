@@ -16,7 +16,9 @@ Close Scope byte_scope.
 
 (* Example Programs *)
 Section Examples.
-  
+
+  (* Uncomment when ready to deal with AI_const *)
+  (*
 
 
 Context `{!wasmG Σ, HHB: HandleBytes}.
@@ -401,6 +403,6 @@ Proof.
   iApply wp_wasm_empty_ctx_frame.
   iApply (wp_frame_value with "[$]");eauto.
 Qed.
-
+*)
 End Examples.
 

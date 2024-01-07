@@ -33,8 +33,7 @@ Section Client2.
   Definition main :=
     [ BI_call 0 ;
       BI_tee_local 0 ;
-      BI_const (VAL_handle dummy_handle) ;
-      BI_relop T_handle (Relop_h ROH_eq) ;
+      BI_isdummy;
       (* If new_stack failed, set global v0 to -1 and return *)
       BI_if (Tf [] []) [i32const (-1) ; BI_set_global 0 ; BI_return] [] ;
       BI_get_local 0 ;
@@ -160,7 +159,7 @@ Section Client2.
     repeat split => //.
     repeat (apply Forall2_cons ; repeat split => //) => /=.
     { unfold main.
-      rewrite (separate9 (BI_call _)).
+      rewrite (separate8 (BI_call _)).
       eapply bet_composition'.
       { apply/b_e_type_checker_reflects_typing => /=; by apply/eqP. }
       {
@@ -190,7 +189,7 @@ Section Client2.
   Proof.
     unfold module_restrictions.
     repeat split => //=.
-    { by exists [VAL_int32 (Wasm_int.int_of_Z i32m 0)]. }
+    { by exists [NVAL_int32 (Wasm_int.int_of_Z i32m 0)]. }
     { by exists [Wasm_int.int_of_Z i32m 0]. }
     { by exists []. }
   Qed.
@@ -537,12 +536,12 @@ Proof.
         iDestruct "H" as "[-> | (%k & -> & %dummy & Hstack)]".
         (* new_stack failed *)
         { iSimpl.
-          rewrite (separate2 (AI_basic _)).
+          rewrite (separate2 (AI_handle _)).
           iApply wp_seq; iSplitR; last iSplitL "Hf".
-          2: { iApply (wp_tee_local with "Hf").
+          2: { fold_const; iApply (wp_tee_local with "Hf").
                iIntros "!> Hf".
                instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
-               rewrite (separate1 (AI_basic ( _))).
+               rewrite (separate1 (AI_const ( _))).
                iApply wp_val_app => //.
                iSplitR.
                2: { 
@@ -558,11 +557,11 @@ Proof.
           
           iIntros (w) "(-> & Hf)".
           iSimpl.
-          rewrite (separate3 (AI_basic (BI_const _))).
+          rewrite (separate2 (AI_handle _)).
           iApply wp_seq.
           iSplitR; last iSplitL "Hf".
           2: {
-            iApply (wp_relop with "Hf") => //=.
+            fold_const; iApply (wp_isdummy_true with "Hf").
             instantiate (1 := λ v, ⌜ v = immV _⌝%I).
             iIntros "!>".
             iPureIntro.
@@ -595,7 +594,7 @@ Proof.
             iApply wp_seq.
             iSplitR ; last first.
             iSplitL.
-            iApply (wp_set_global with "[] Hf Hwg").
+            unfold i32const; fold_const; iApply (wp_set_global with "[] Hf Hwg").
             done.
             instantiate (1 := λ v, ⌜ v = immV [] ⌝%I ).
             done.
@@ -667,12 +666,12 @@ Proof.
         (* new_stack succeeded *)
         {
           iSimpl.
-          rewrite (separate2 (AI_basic _)).
+          rewrite (separate2 (AI_handle _)).
           iApply wp_seq; iSplitR; last iSplitL "Hf".
-          2: { iApply (wp_tee_local with "Hf").
+          2: { fold_const; iApply (wp_tee_local with "Hf").
                iIntros "!> Hf".
                instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
-               rewrite (separate1 (AI_basic (BI_const _))).
+               rewrite (separate1 (AI_handle _)).
                iApply wp_val_app => //.
                iSplitR.
                2: { 
@@ -688,11 +687,11 @@ Proof.
           
           iIntros (w) "(-> & Hf)".
           iSimpl.
-          rewrite (separate3 (AI_basic (BI_const _))).
+          rewrite (separate2 (AI_handle _)).
           iApply wp_seq.
           iSplitR; last iSplitL "Hf".
           2: {
-            iApply (wp_relop with "Hf") => //=.
+            fold_const; iApply (wp_isdummy with "Hf") => //=.
             instantiate (1 := λ v, ⌜ v = immV _⌝%I).
             iIntros "!>".
             iPureIntro.
@@ -708,9 +707,8 @@ Proof.
           iSplitR; last iSplitL "Hf Hwg".
           2: {
             iApply (wp_if_false with "Hf").
-            destruct (handle_eqb _ _) eqn:Habs => //.
-            apply handle_eqb_eq in Habs => //.
-            
+            destruct (is_dummy k) eqn:Habs => //.
+            apply is_dummy_true in Habs as -> => //.
             iIntros "!> Hf".
             instantiate (1:= λ v1, ((⌜ v1 = immV [] ⌝ ∗ N.of_nat g↦[wg] {| g_mut := MUT_mut ; g_val := vg |}) ∗ ↪[frame] _)%I ).         
             rewrite - (app_nil_l [AI_basic _]).
@@ -751,11 +749,11 @@ Proof.
           
           iIntros (w0) "[-> Hf]".
           iSimpl.
-          rewrite (separate3 (AI_basic _)).
+          rewrite (separate3 (AI_handle _)).
           iApply wp_seq.
           iSplitR; last iSplitL "Himpfcl4 Hf Hstack".
           2: {
-            rewrite (separate2 (AI_basic _)).
+            rewrite (separate2 (AI_handle _)).
             rewrite - (app_nil_r [AI_basic (BI_call 4)]).
             iApply wp_wasm_empty_ctx.
             iApply wp_base_push => //.
@@ -789,11 +787,11 @@ Proof.
           
           iIntros (w0) "[-> Hf]".
           iSimpl.
-          rewrite (separate3 (AI_basic _)).
+          rewrite (separate3 (AI_handle _)).
           iApply wp_seq.
           iSplitR; last iSplitL "Himpfcl4 Hf Hs".
           2: {
-            rewrite (separate2 (AI_basic _)).
+            rewrite (separate2 (AI_handle _)).
             rewrite - (app_nil_r [AI_basic (BI_call 4)]).
             iApply wp_wasm_empty_ctx.
             iApply wp_base_push => //.
@@ -829,11 +827,11 @@ Proof.
           
           iIntros (w0) "[-> Hf]".
           iSimpl.
-          rewrite (separate3 (AI_basic _)).
+          rewrite (separate3 (AI_handle _)).
           iApply wp_seq.
           iSplitR; last iSplitL "Himpfcl5 Hf Hs Ht0 Hwfsq".
           2: {
-            rewrite (separate2 (AI_basic _)).
+            rewrite (separate2 (AI_handle _)).
             rewrite - (app_nil_r [AI_basic (BI_call 5)]).
             iApply wp_wasm_empty_ctx.
             iApply wp_base_push => //.
@@ -894,7 +892,7 @@ Proof.
           iSimpl.
           iApply wp_wand_r.
           iSplitL "Hf".
-          iApply (wp_binop with "Hf").
+          fold_const; iApply (wp_binop with "Hf").
           done.
           by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
           iIntros (v0) "[-> Hf]".
@@ -953,7 +951,7 @@ Proof.
           rewrite app_nil_r.
           iApply wp_wasm_empty_ctx.
           iApply (wp_invoke_host with "Himpfcl7 Hf").
-          instantiate (1 := [_;_]) => //.
+          instantiate (1 := [VAL_numeric _;VAL_numeric _]) => //.
           done.
           done.
           iIntros "!> Himpfcl6 Hf".
@@ -1024,12 +1022,12 @@ Proof.
       iIntros (w) "(-> & Hf)".
       iSimpl.
       
-      rewrite (separate3 (AI_basic _)).
+      rewrite (separate3 (AI_handle _)).
       iApply wp_seq.
       iSplitR ; last first.
-      rewrite (separate2 (AI_basic _)).
+      rewrite (separate2 (AI_handle _)).
       iSplitR "Hvis8 Himpfcl3 Hwg".
-      rewrite (separate2 (AI_basic _)).
+      rewrite (separate2 (AI_handle _)).
       rewrite - (app_nil_r [AI_basic (BI_call _)]).
       iApply wp_wasm_empty_ctx.
       iApply wp_base_push => //.
@@ -1066,7 +1064,7 @@ Proof.
       iApply (wp_get_local with "[] [$Hf]").
       done. by instantiate (1 := λ x, ⌜x = immV _⌝%I).
       iIntros (w0) "[-> Hf]".
-      iApply wp_wand_r. iSplitL "Hf". iApply (wp_binop with "Hf").
+      iApply wp_wand_r. iSplitL "Hf". unfold i32const; fold_const; iApply (wp_binop with "Hf").
       done. by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
       iIntros (v) "[-> Hf]".
       simpl.
@@ -1120,10 +1118,10 @@ Proof.
       done.
       by instantiate (1 := λ x, ⌜x = immV _⌝%I).
       iIntros (w0) "[-> Hf]". simpl.
-      rewrite (separate2 (AI_basic _)).
+      rewrite (separate2 (AI_handle _)).
       iApply wp_seq. iSplitR ; last first.
       iSplitL "Hf Himpfcl3 Hs".
-      rewrite (separate1 (AI_basic _)).
+      rewrite (separate1 (AI_handle _)).
       rewrite - (app_nil_r [AI_basic (BI_call _)]).
       iApply wp_wasm_empty_ctx.
       iApply wp_base_push. done.
@@ -1170,7 +1168,7 @@ Proof.
       iApply wp_val_app.
       done.
       iSplitR ; last first.
-      rewrite (separate1 (AI_basic (_))).
+      rewrite (separate1 (AI_handle (_))).
       rewrite - (app_nil_r [AI_basic (BI_call 3)]).
       iApply wp_wasm_empty_ctx.
       iApply wp_base_push => //.
@@ -1197,7 +1195,7 @@ Proof.
       iApply wp_seq.
       iSplitR ; last first.
       iSplitL "Hf".
-      iApply (wp_binop with "Hf").
+      fold_const; iApply (wp_binop with "Hf").
       done.
       iSimpl.
       unfold Wasm_int.Int32.isub, Wasm_int.Int32.sub.
@@ -1209,7 +1207,7 @@ Proof.
       iSimpl.
       iApply wp_wand_r.
       iSplitL "Hf Hwg".
-      iApply (wp_set_global with "[] Hf Hwg").
+      fold_const; iApply (wp_set_global with "[] Hf Hwg").
       done.
       instantiate (1 := λ v, ⌜ v = immV [] ⌝%I).
       by iNext.

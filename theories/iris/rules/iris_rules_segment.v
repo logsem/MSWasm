@@ -398,9 +398,9 @@ Proof.
     eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) |  [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
                                                                   Hfirst3 & Hσ & Hme)]]];
       last (eapply rm_segload_success => //=);
-      try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+      try by     unfold first_instr in Hfirst ; simpl in Hfirst ; try rewrite first_instr_instr_const; inversion Hfirst.
     inversion H;subst. iFrame. simpl. iSplit; last done.
-    iApply "HΦ". iFrame.
+    destruct (wasm_deserialise _ _); iApply "HΦ"; iFrame.
     repeat rewrite nat_bin. lias.
 Qed.
 
@@ -1288,7 +1288,7 @@ Lemma wp_segstore (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: valu
   (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
   iIntros (Ht Hvt Htbs Hval Hhi) "(HΦ & Hf0 & Hid & Hwss)".
-  iApply wp_lift_atomic_step => //=.
+  iApply wp_lift_atomic_step => //=. destruct v => //. 
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
   iDestruct "Hσ" as "(? & ? & ? & Hs & Hall & ? & Hframe & ? & ? & ? & ? & %HWF)".
@@ -1324,7 +1324,7 @@ Proof.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & Hme) ]]] ;
       last (eapply rm_segstore_success => //=) ;
-      try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+      try by     unfold first_instr in Hfirst ; simpl in Hfirst ; try rewrite first_instr_instr_const in Hfirst; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
     iSplit.
@@ -1333,6 +1333,7 @@ Proof.
     exact HWF. eapply rm_segstore_success => //=.
     repeat rewrite nat_bin. lias.
     iApply "HΦ". iFrame.
+
     repeat rewrite nat_bin. lias.
 Qed.
 
@@ -1350,7 +1351,7 @@ Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (
   (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
   iIntros (Ht Hvt Htbs Hval Hhi Hallign) "(HΦ & Hf0 & Hid & Hwss)".
-  iApply wp_lift_atomic_step => //=.
+  iApply wp_lift_atomic_step => //=. destruct v => //. 
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
   iDestruct "Hσ" as "(? & ? & ? & Hs & Hall & ? & Hframe & ? & ? & ? & ? & %HWF)".
@@ -1386,7 +1387,7 @@ Proof.
     eapply reduce_det in HStep as [H | [( ? & Hfirst & ?) | [[? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                        Hfirst3 & Hσ & Hme) ]]] ;
       last (eapply rm_segstore_handle_success => //) ;
-      try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+      try by     unfold first_instr in Hfirst ; simpl in Hfirst ; rewrite first_instr_instr_const in Hfirst; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame. iSplit.
     iPureIntro.
@@ -1405,7 +1406,7 @@ Lemma wp_segstore_failure1 (Φ: iris.val -> iProp Σ) (s:stuckness) (E:coPset) v
      (WP [AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }}))%I.
 Proof.
   iIntros (Htv Hfail) "[HΦ Hf0]".
-  iApply wp_lift_atomic_step => //=.
+  iApply wp_lift_atomic_step => //=. destruct v => //. 
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ ws locs] winst].
   iDestruct "Hσ" as "(? & ? & ? & Hs & ? & ? & Hframe & ?)".
@@ -1436,7 +1437,7 @@ Proof.
     eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                                 Hfirst3 & Hσ & Hme)]]] ;
         last (eapply rm_segstore_failure => //=) ;
-        try by unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+        try by unfold first_instr in Hfirst ; simpl in Hfirst ; try rewrite first_instr_instr_const in Hfirst; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame.
      destruct Hfail as [Hfail | [Hfail | [-> Hfail]]].
@@ -1459,7 +1460,7 @@ Lemma wp_segstore_failure2 (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset)
   (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
    iIntros "(HΦ & Hf0 & Halloc)".
-  iApply wp_lift_atomic_step => //=.
+  iApply wp_lift_atomic_step => //=. destruct v => //. 
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ ws locs] winst].
   iDestruct "Hσ" as "(? & ? & ? & Hs & Ha & ? & Hframe & ?)".
@@ -1482,7 +1483,7 @@ Proof.
     eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
                                                                                 Hfirst3 & Hσ & Hme)]]] ;
         last (eapply rm_segstore_failure => //=) ;
-        try by unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
+        try by unfold first_instr in Hfirst ; simpl in Hfirst ; rewrite first_instr_instr_const in Hfirst; inversion Hfirst.
     inversion H ; subst; clear H => /=.
     iFrame. iApply "HΦ" => //.
     right; right; left => //.
@@ -2138,11 +2139,10 @@ Proof.
   - iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws' locs'] inst'] => //=.
     prim_split κ HStep H.
-    remember [AI_const (VAL_int32 c) ; AI_basic BI_segalloc] as es0.
+    remember [AI_basic (BI_const (NVAL_int32 c)) ; AI_basic BI_segalloc] as es0.
     remember {| f_locs := locs ; f_inst := winst |} as f.
     remember {| f_locs := locs' ; f_inst := inst' |} as f'.
-    replace [AI_const (VAL_int32 c) ; AI_basic BI_segalloc] with
-      ([AI_const (VAL_int32 c)] ++ [AI_basic BI_segalloc]) in Heqes0 => //=.
+    rewrite (separate1 (AI_basic _)) in Heqes0. 
     induction H ; try by inversion Heqes0 ;
       try by apply app_inj_tail in Heqes0 as [_ Habs] ; inversion Habs.
     destruct H ; try by inversion Heqes0 ;
@@ -2187,7 +2187,7 @@ Proof.
       iFrame.
       simpl.
       iModIntro.
-      iSplit; first done.
+      iSplit; first done. iSplit; last done.
       iApply "HΦ". iExists _.
       iSplitL; first done.
       iLeft.

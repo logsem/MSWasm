@@ -5,7 +5,7 @@ From iris.base_logic Require Export gen_heap ghost_map proph_map.
 From iris.base_logic.lib Require Export fancy_updates.
 Require Export iris iris_locations iris_properties iris_atomicity stdpp_aux.
 Require Export iris_host iris_rules iris_fundamental iris_wp iris_interp_instance_alloc.
-Require Export iris_example_helper.
+Require Export iris_example_helper proofmode.
 Require Export datatypes operations properties opsem.
 
 Set Implicit Arguments.
@@ -54,8 +54,8 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
          ∗ ∃ c, (N.of_nat n) ↦[wms][ 0%N ] (bits (VAL_int32 c)) }}}
       lse j g
       {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝
-                                      ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xx 42 |}
-                                      ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xx 42))
+                                      ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := VAL_numeric (xx 42) |}
+                                      ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xxv 42))
                                       ∗ na_own logrel_nais ⊤ ∗ ∃ all, interp_allocator all))
                ∗ ↪[frame] f  }}}.
   Proof.
@@ -68,10 +68,10 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     unfold lse.
 
     take_drop_app_rewrite 3.
-    iApply (wp_seq _ _ _ (λ w, (⌜w = immV []⌝ ∗ N.of_nat n↦[wms][0] bits (xx 42)) ∗ ↪[frame] f)%I).
+    iApply (wp_seq _ _ _ (λ w, (⌜w = immV []⌝ ∗ N.of_nat n↦[wms][0] bits (xxv 42)) ∗ ↪[frame] f)%I).
     iSplitR;[by iIntros "[[%Hcontr _] _]"|].
     iSplitR "Hown Hg Hall".
-    { unfold serialise_i32. simpl. iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
+    { unfold serialise_i32. simpl. fold_const. iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
       by rewrite Memdata.encode_int_length. }
     iIntros (w) "[[-> Hn] Hf]". iSimpl.
 
@@ -135,7 +135,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iIntros (v) "[[-> Hn] Hf]". iSimpl.
     
     iApply (wp_wand _ _ _ (λ v, ⌜v = immV _⌝ ∗ _ ∗ _)%I with "[Hf Hg]").
-    { iApply (wp_set_global with "[] Hf Hg"); eauto. }
+    { fold_const. iApply (wp_set_global with "[] Hf Hg"); eauto. }
 
     iIntros (v) "[-> [Hg Hf]]". iFrame.
     instantiate (1 := λ x, (⌜ x = trapV ⌝ ∨ ⌜ x = immV [] ⌝ ∗ _)%I).
@@ -171,7 +171,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
          ∗ interp_instance C [] i
          ∗ ∃ c, (N.of_nat n) ↦[wms][ 0%N ] (bits (VAL_int32 c)) }}}
       lse_return j
-      {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV [xx 42]⌝ ∗ ∃ all, interp_allocator all))
+      {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV [xxv 42]⌝ ∗ ∃ all, interp_allocator all))
                ∗ ↪[frame] f  }}}.
   Proof.
     iIntros (Hc Hn Ha Hes Φ). iModIntro.
@@ -182,10 +182,11 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     unfold lse.
 
     take_drop_app_rewrite 3.
-    iApply (wp_seq _ _ _ (λ w, (⌜w = immV []⌝ ∗ N.of_nat n↦[wms][0] bits (xx 42)) ∗ ↪[frame] f)%I).
+    iApply (wp_seq _ _ _ (λ w, (⌜w = immV []⌝ ∗ N.of_nat n↦[wms][0] bits (xxv 42)) ∗ ↪[frame] f)%I).
     iSplitR;[by iIntros "[[%Hcontr _] _]"|].
     iSplitR "Hown Hall".
-    { unfold serialise_i32. simpl. iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
+    { unfold serialise_i32. simpl. fold_const.
+      iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
       by rewrite Memdata.encode_int_length. }
     iIntros (w) "[[-> Hn] Hf]". iSimpl.
 
@@ -340,7 +341,7 @@ Section Examples_host.
       repeat type_next.
       rewrite <- (take_drop 1 [BI_const _;_]);simpl take;simpl drop.
       eapply bet_composition;[econstructor|].
-      rewrite <- (app_nil_r [typeof _]);simpl typeof.
+      rewrite <- (app_nil_r [typeof_numerical _]);simpl typeof.
       rewrite <- (take_drop 1 [T_i32;_]);simpl take;simpl drop.
       eapply bet_weakening. apply bet_const. }
     { apply Forall2_cons. split;auto.
@@ -377,7 +378,7 @@ Section Examples_host.
           (∃ name, 1%N ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx g_ret) |}) ∗
           (∃ vs, 0%N ↪[vis] vs) }}}
         ((adv_lse_instantiate g_ret,[]) : host_expr)
-      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xx 42]⌝ }}} .
+      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xxv 42]⌝ }}} .
   Proof.
     iIntros (Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
     iModIntro. iIntros (Φ) "(Hemptyframe & Hgret & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
@@ -680,7 +681,7 @@ Section Examples_host.
           iApply (wp_frame_trap with "Hf").
           iNext. instantiate
                  ( 1 := λ v, ((⌜v = trapV⌝ ∨ ⌜v = immV []⌝
-                                  ∗ N.of_nat  g_ret↦[wg] {| g_mut := MUT_mut; g_val := xx 42 |}) )%I) => //=. by iLeft. }
+                                  ∗ N.of_nat  g_ret↦[wg] {| g_mut := MUT_mut; g_val := xxv 42 |}) )%I) => //=. by iLeft. }
 
         simpl of_val.
 

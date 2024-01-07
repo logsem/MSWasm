@@ -429,7 +429,7 @@ Definition spec4_push idf4 i4 l4 f4 (isStack: N -> list i32 -> iPropI Σ) E :=
                    N.of_nat idf4 ↦[wf] FC_func_native i4 (Tf [T_i32 ; T_i32] []) l4 f4 
                    ∗ ⌜ (N.of_nat (length s) < two14 - 1)%N ⌝
                    ∗ isStack v s }}}
-                [ AI_basic (u32const v); AI_basic (BI_const (VAL_int32 a)); 
+                [ AI_basic (u32const v); AI_basic (BI_const (NVAL_int32 a)); 
                   AI_invoke idf4 ] @ E
                 {{{ w, ⌜ w = immV [] ⌝ ∗
                                   isStack v (a :: s) ∗
@@ -454,14 +454,14 @@ Definition spec5_stack_map idf5 i5 l5 f5 (isStack : N -> seq.seq i32 -> iPropI �
                        N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
                            ∗ ↪[frame] fc
                            ∗ N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) 
                            ∗ (N.of_nat a) ↦[wf] cl }}}
                   )  }}}
-    [ AI_basic (u32const v); AI_basic (BI_const (VAL_int32 f)) ; AI_invoke idf5 ] @ E
+    [ AI_basic (u32const v); AI_basic (BI_const (NVAL_int32 f)) ; AI_invoke idf5 ] @ E
     {{{ w, ⌜ w = immV [] ⌝ ∗
            (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
            N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5 ∗
@@ -489,14 +489,14 @@ Definition spec5_stack_map_trap `{!logrel_na_invs Σ} idf5 i5 l5 f5 (isStack : N
                      ↪[frame] fc ∗
                      na_own logrel_nais ⊤
                }}}
-                 [ AI_basic (BI_const (VAL_int32 u)) ;
+                 [ AI_basic (BI_const (NVAL_int32 u)) ;
                    AI_invoke a ] @ E
                  {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
         | None => True
            end ∗
                  na_own logrel_nais ⊤ ∗ ↪[frame] f0 }}}
-        [ AI_basic (u32const v); AI_basic (BI_const (VAL_int32 f)) ; AI_invoke idf5 ] @ E
+        [ AI_basic (u32const v); AI_basic (BI_const (NVAL_int32 f)) ; AI_invoke idf5 ] @ E
       {{{ w, (⌜ w = trapV ⌝ ∨ (⌜ w = immV [] ⌝ ∗
                               (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
                               N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5)) ∗
@@ -839,6 +839,7 @@ Proof.
         }
         destruct Hv as [kv ->].
         iApply (wp_frame_value with "Hf") => //.
+        destruct kv => //. 
         iNext.
         instantiate (1 := (λ v, ((⌜ v = immV [value_of_int (-1)%Z] ⌝ ∗ N.of_nat m↦[wmlength]N.of_nat addr)%I ∨ ((∃ k, ⌜ v = immV [value_of_uint k]⌝ ∗ ⌜ (0 <= k <= ffff0000)%N⌝ ∗ isStack k [] m ∗
                                                                                              N.of_nat m↦[wmlength](N.of_nat addr + page_size)%N))) ∗

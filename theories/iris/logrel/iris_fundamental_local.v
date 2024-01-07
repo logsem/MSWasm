@@ -47,20 +47,20 @@ Section fundamental.
       revert l Heq. induction es;intros l Heq.
       { destruct l;try done. }
       destruct l;try done.
-(*      simpl in Heq. inversion Heq;subst.
-      apply IHes in H1. done.  *) }
+      simpl in Heq. inversion Heq;subst.
+      apply IHes in H1. done.  }
     { intros Heq. cbn in Heq.
       revert l Heq. induction es;intros l Heq.
       { destruct l;try done. }
       destruct l;try done.
-(*      simpl in Heq. inversion Heq;subst.
-      apply IHes in H1. done. *) }
+      simpl in Heq. inversion Heq;subst.
+      apply IHes in H1. done. }
     { intros Heq. cbn in Heq.
       revert l Heq. induction es;intros l Heq.
       { destruct l;try done. }
       destruct l;try done.
-(*      simpl in Heq. inversion Heq;subst.
-      apply IHes in H1. done.  *) }
+      simpl in Heq. inversion Heq;subst.
+      apply IHes in H1. done.  }
   Qed.
     
   (* ----------------------------------------- LOCAL --------------------------------------- *)

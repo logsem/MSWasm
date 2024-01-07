@@ -453,6 +453,11 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         if ves is VAL_handle h :: ves' then
           (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h))) :: ves')))
         else (s, f, crash_error)
+
+    | AI_basic BI_isdummy =>
+      if ves is VAL_handle h :: ves' then
+        if is_dummy h then (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 1) :: ves'))) else (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 0) :: ves')))
+      else (s, f, crash_error)
                
     | AI_basic (BI_load t (Some (tp, sx)) a off) =>
 (*        if t is T_handle then
@@ -552,8 +557,8 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
 
 
-    | AI_basic (BI_immediate v) => (s, f, RS_normal ((vs_to_es ves) ++ [:: AI_const (VAL_numeric v)]))
-    | AI_const _ => (s, f, crash_error)
+    | AI_basic (BI_const v) => (s, f, crash_error) (* RS_normal ((vs_to_es ves) ++ [:: AI_const (VAL_numeric v)])) *)
+    | AI_handle _ => (s, f, crash_error)
     | AI_invoke a =>
       match List.nth_error s.(s_funcs) a with
       | Some cl => 

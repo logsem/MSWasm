@@ -68,11 +68,15 @@ Proof.
   + { inversion Heqes0 ; subst.
       induction Hred ;
         (try by simple_filled H1 i lh bef aft nn ll ll' ;
+         try (by destruct v);
          found_intruse (AI_basic BI_return) H1 Hxl1 ;
+         try (by destruct v);
          apply in_or_app ; right ; apply in_or_app ; left ;
          apply in_or_app ; right ; left) ;
         try by simple_filled H1 i lh bef aft nn ll ll' ;
+        try (by destruct v);
         [ found_intruse (AI_basic BI_return) H1 Hxl2 ;
+          try (by destruct v);
           [ apply in_app_or in Hxl2 as [Habs | Habs] ;
             [ assert (const_list ves) as Hconst ;
               [ rewrite H3 ; apply v_to_e_is_const_list => //=
@@ -87,11 +91,15 @@ Proof.
           | destruct Habs as [Habs | Habs] => //=]].
       destruct H0;
         (try by simple_filled H1 i lh bef aft nn ll ll' ;
+         try (by destruct v);
          found_intruse (AI_basic BI_return) H1 Hxl1 ;
+         try (by destruct v);
          apply in_or_app ; right ; apply in_or_app ; left ;
          apply in_or_app ; right ; left) ;
         try by simple_filled H1 i lh bef aft nn ll ll' ;
+        try (by destruct v);
         [ found_intruse (AI_basic BI_return) H1 Hxl2 ;
+          try (by destruct v);
           [ apply in_app_or in Hxl2 as [Habs | Habs] ;
             [ assert (const_list ves) as Hconst ;
               [ rewrite H3 ; apply v_to_e_is_const_list => //=
@@ -105,8 +113,10 @@ Proof.
             | intruse_among_values ves Habs Hconst ]
           | destruct Habs as [Habs | Habs] => //=]].
       { destruct H0 ;
-          (try by simple_filled H1 i lh bef aft nn ll ll' ;
+          (try by simple_filled H1 i lh bef aft nn ll ll' ; try (by destruct v);
+           try (by destruct v1); try (by destruct v2);
            found_intruse (AI_basic BI_return) H1 Hxl1 ;
+           try (by destruct v); try (by destruct v1); try (by destruct v2);
            apply in_or_app ; right ; apply in_or_app ; left ;
            apply in_or_app ; right ; left) ;
           try by simple_filled H1 i lh bef aft nn ll ll' ;
@@ -120,10 +130,10 @@ Proof.
             [ intruse_among_values vs0 Habs H0
             | destruct Habs as [Habs | Habs] => //=]].
         - simple_filled2 H1 i lh bef aft nn ll ll'.
-          found_intruse (AI_basic BI_return) H1 Hxl1 ;
+          found_intruse (AI_basic BI_return) H1 Hxl1 ; (* try (by destruct v); *)
             apply in_or_app ; right ; apply in_or_app ; left ;
-              apply in_or_app ; right ; by left.
-          destruct bef ; last by inversion H1 as [[ Hhd Htl ]];
+            apply in_or_app ; right ; by left.
+          destruct bef ; last by inversion H1 as [[ Hhd Htl ]]; 
             apply Logic.eq_sym, app_eq_nil in Htl as [_ Habs] ;
             inversion Habs.
           inversion H1 ; subst ; clear H1.

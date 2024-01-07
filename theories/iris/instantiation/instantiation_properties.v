@@ -733,15 +733,15 @@ Lemma const_no_reduce s f v me s' f' e':
   False.
 Proof.
   move => Hred.
-  dependent induction Hred; subst; try by repeat destruct vcs => //.
-  { inversion H; subst; clear H; try by repeat destruct vs => //.
-    inversion H0; subst; clear H0; try by repeat destruct vs => //.
-    by apply lfilled_implies_starts in H1 => //.
-    destruct vcs; inversion H0. destruct vcs; inversion H3.
-    destruct vcs; inversion H0. destruct vcs; inversion H3.    
+  dependent induction Hred; subst; try by try destruct v; repeat destruct vcs => //.
+  { inversion H; subst; clear H; try by try destruct v; try destruct v1; try destruct v2; repeat destruct vs => //.
+    inversion H0; subst; clear H0; try by try destruct v; try destruct v1; try destruct v2; try done; repeat destruct vs => //.
+    by destruct v; apply lfilled_implies_starts in H1 => //.
+    destruct vcs,v; inversion H0. destruct vcs; inversion H3.
+    destruct vcs; inversion H0. destruct vcs,v; inversion H0; destruct vcs => //. 
   }
   { move/lfilledP in H.
-    inversion H; subst; clear H; last by repeat destruct vs => //.
+    inversion H; subst; clear H; last by try destruct v; repeat destruct vs => //.
     destruct vs => //=; last first.
     { destruct vs, es, es'0 => //=.
       by apply reduce_not_nil in Hred.
@@ -760,12 +760,13 @@ Lemma reduce_trans_const s1 f1 v1 mes s2 f2 v2:
 Proof.
   move => Hred.
   inversion Hred => //.
+  by destruct v1, v2; inversion H4.
   destruct status' as [[??]?].  
   by apply const_no_reduce in H.
 Qed.
-
+(*
 Lemma reduce_trans_imm_to_const s1 f1 v1 mes s2 f2 v2:
-  reduce_trans (s1, f1, [AI_basic (BI_immediate v1)]) mes (s2, f2, [AI_const v2]) ->
+  reduce_trans (s1, f1, [AI_basic (BI_const v1)]) mes (s2, f2, [AI_const v2]) ->
   v2 = VAL_numeric v1.
 Proof.
   move => Hred.
@@ -803,7 +804,7 @@ Proof.
       destruct (lfill _ _ _) => //.
       apply b2p in H4. destruct l => //.
       inversion H4; subst. simpl in Hconst. done.
-Qed. 
+Qed.  *)
 
            
 
@@ -843,7 +844,7 @@ Lemma reduce_trans_get_global s f mes s' f' i v:
   sglob_val s (f_inst f) i = Some v.
 Proof.
   move => Hred.
-  inversion Hred.
+  inversion Hred. destruct v => //. 
   destruct status' as [[??]?].
   apply reduce_get_global in H as (v' & Hsgv & -> & ->).
   apply reduce_trans_const in H0 as ->. done.
@@ -888,8 +889,8 @@ Proof.
     destruct Hbet as [e [-> Hconste]]. 
     unfold const_exprs, const_expr in Hconste. 
     destruct e => //; simpl in *.
-    { destruct H1 as [mes H1]. apply reduce_trans_get_global in H1.
-      destruct H3 as [mes' H3]. apply reduce_trans_get_global in H3.
+    { destruct H1 as [mes H1]. fold (AI_const (VAL_numeric v1)) in H1. apply reduce_trans_get_global in H1.
+      destruct H3 as [mes' H3]. fold (AI_const (VAL_numeric v2)) in H3. apply reduce_trans_get_global in H3.
       specialize (Hsgveq i0).
       simpl in H1, H3.
       move/andP in Hconst.
@@ -900,9 +901,11 @@ Proof.
       rewrite <- Hsgveq in H3 => //.
       by rewrite H3 in H1; inversion H1.
     }
-    { destruct H1 as [mes H1]. apply reduce_trans_imm_to_const in H1.
-      destruct H3 as [mes' H3]. apply reduce_trans_imm_to_const in H3.
-      rewrite - H3 in H1; inversion H1. done.
+    { destruct H1 as [mes H1]. fold (AI_const (VAL_numeric v1)) in H1.
+      fold (AI_const (VAL_numeric n)) in H1; apply reduce_trans_const in H1.
+      destruct H3 as [mes' H3]. fold (AI_const (VAL_numeric v2)) in H3.
+      fold (AI_const (VAL_numeric n)) in H3. apply reduce_trans_const in H3.
+      rewrite H3 in H1; inversion H1. done.
     }
   }
 Qed.
@@ -944,13 +947,16 @@ Proof.
     destruct Hbet as [e [-> Hconste]].
     unfold const_exprs, const_expr in Hconste.
     destruct e => //; simpl in *.
-    { destruct H1 as [? H1]. apply reduce_trans_get_global in H1.
-      destruct H3 as [? H3]. apply reduce_trans_get_global in H3.
+    { destruct H1 as [? H1]. fold (AI_const (VAL_numeric (NVAL_int32 v1))) in H1. apply reduce_trans_get_global in H1.
+      destruct H3 as [? H3]. fold (AI_const (VAL_numeric (NVAL_int32 v2))) in H3; apply reduce_trans_get_global in H3.
       rewrite H1 in H3.
       by inversion H3.
     }
-    { destruct H1 as [? H1]. apply reduce_trans_imm_to_const in H1.
-      destruct H3 as [? H3]. apply reduce_trans_imm_to_const in H3.
+    { destruct H1 as [? H1].
+      fold (AI_const (VAL_numeric n0)) in H1.
+      fold (AI_const (VAL_numeric (NVAL_int32 v1))) in H1; apply reduce_trans_const in H1.
+      destruct H3 as [? H3]. fold (AI_const (VAL_numeric n0)) in H3.
+      fold (AI_const (VAL_numeric (NVAL_int32 v2))) in H3; apply reduce_trans_const in H3.
       inversion H1; inversion H3; subst => //. inversion H4; subst => //. 
     }
   }
@@ -993,13 +999,15 @@ Proof.
     destruct Hbet as [e [-> Hconste]].
     unfold const_exprs, const_expr in Hconste.
     destruct e => //; simpl in *.
-    { destruct H1 as [? H1]. apply reduce_trans_get_global in H1.
-      destruct H3 as [? H3]. apply reduce_trans_get_global in H3.
+    { destruct H1 as [? H1]. fold (AI_const (VAL_numeric (NVAL_int32 v1))) in H1; apply reduce_trans_get_global in H1.
+      destruct H3 as [? H3]. fold (AI_const (VAL_numeric (NVAL_int32 v2))) in H3; apply reduce_trans_get_global in H3.
       rewrite H1 in H3.
       by inversion H3.
     }
-    { destruct H1 as [? H1]. apply reduce_trans_imm_to_const in H1.
-      destruct H3 as [? H3]. apply reduce_trans_imm_to_const in H3.
+    { destruct H1 as [? H1]. fold (AI_const (VAL_numeric (NVAL_int32 v1))) in H1.
+      fold (AI_const (VAL_numeric n0)) in H1. apply reduce_trans_const in H1.
+      destruct H3 as [? H3]. fold (AI_const (VAL_numeric (NVAL_int32 v2))) in H3.
+      fold (AI_const (VAL_numeric n0)) in H3. apply reduce_trans_const in H3.
       inversion H1; inversion H3; subst. inversion H4; subst => //. 
     }
   }

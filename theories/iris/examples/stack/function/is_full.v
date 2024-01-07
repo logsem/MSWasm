@@ -110,7 +110,7 @@ Proof.
     rewrite separate2.
     iApply wp_val_app => //.
     iSplitR ; first by iIntros "!> [%Habs _]".
-    iApply (wp_binop with "Hf") => //.
+    unfold i32const; fold_const. iApply (wp_binop with "Hf") => //.
     iPureIntro => //=.
     unfold value_of_int, value_of_uint.
     repeat f_equal.
@@ -133,7 +133,7 @@ Proof.
     rewrite separate2.
     iApply wp_val_app => //.
     iSplitR ; first by iIntros "!> [%Habs _]".
-    iApply (wp_relop with "Hf") => //.
+    unfold i32const; fold_const. iApply (wp_relop with "Hf") => //.
   - iIntros (w) "[-> Hf]".
     iSimpl.
     remember ((v+N.of_nat (length s) * 4) `mod` 65536)%N as modres.
@@ -143,7 +143,7 @@ Proof.
       simpl.
       iApply wp_wand_r.
       iSplitL "Hf".
-      iApply (wp_select_true with "Hf") => //; first by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
+      fold_const. iApply (wp_select_true with "Hf") => //; first by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
       iIntros (w) "(-> & Hf)".
       iApply "HΦ".
       iExists _.
@@ -176,7 +176,7 @@ Proof.
       }
       iApply wp_wand_r.
       iSplitL "Hf".
-      iApply (wp_select_false with "Hf") => //; first by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
+      fold_const. iApply (wp_select_false with "Hf") => //; first by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
       iIntros (w) "(-> & Hf)".
       iApply "HΦ".
       iExists _.
@@ -325,7 +325,7 @@ Section valid.
         iIntros "Hf". iApply (wp_wand with "[Hf]"). 
         { iApply (wp_frame_value with "Hf");eauto. by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I). }
         iIntros (?) "[-> $]". iSplitR; last by iExists _.
-        iLeft. iRight. iExists [_]. iSplit;eauto. iSplit; simpl;auto. eauto.
+        iLeft. iRight. iExists [_]. iSplit;eauto. iSplit; simpl;auto. 
       + iApply (wp_wand with "[Hlen Hf]").
         iApply (fail_stack_bound_valid with "[$Hlen $Hf]").
         eauto.
@@ -350,3 +350,4 @@ End valid.
 
 End stack.    
       
+

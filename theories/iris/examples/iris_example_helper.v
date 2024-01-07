@@ -15,8 +15,9 @@ Unset Printing Implicit Defensive.
 Close Scope byte_scope.
 
 (* Shorthands for common constructors *)
-Definition xx i := (VAL_int32 (Wasm_int.int_of_Z i32m i)).
-Definition xb b := (VAL_int32 (wasm_bool b)).
+Definition xx i := (NVAL_int32 (Wasm_int.int_of_Z i32m i)).
+Definition xxv i := (VAL_int32 (Wasm_int.int_of_Z i32m i)).
+Definition xb b := (NVAL_int32 (wasm_bool b)).
 Definition yy i := (Wasm_int.nat_of_uint i32m (Wasm_int.int_of_Z i32m i)).
 
 Section Examples.

@@ -24,7 +24,7 @@ Section fundamental.
 
   (* ----------------------------------------- CONST --------------------------------------- *)
   
-  Lemma typing_const C v : ⊢ semantic_typing C (to_e_list [BI_immediate v]) (Tf [] [typeof_numerical v]).
+  Lemma typing_const C v : ⊢ semantic_typing C (to_e_list [BI_const v]) (Tf [] [typeof_numerical v]).
   Proof.
     unfold semantic_typing, interp_expression.
     iIntros (i lh hl).
@@ -37,15 +37,16 @@ Section fundamental.
       iIntros (v0) "[? ?]". iFrame. iExists _,_. iFrame "∗ #". }
     { iDestruct "Hv" as (ws ->) "Hv".
       iDestruct (big_sepL2_nil_inv_r with "Hv") as %->.
-      rewrite app_nil_l.
-      iApply (wp_wand with "[Hf]").
-      - iApply (wp_immediate with "Hf").
-        by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
-      - iIntros (?) "[-> Hf]".
-        iSplitR; last by iExists _,_; iFrame.
-        iLeft. iRight. iExists _. iSplit => //.
-        iSplit => //. destruct v; by iExists _. } 
-  Qed. 
+      rewrite app_nil_l. iSimpl.
+      assert ([AI_basic (BI_const v)] = of_val (immV [VAL_numeric v])) as ->;auto.
+      iApply wp_value;[done|].
+      iSplitR;cycle 1.
+      { iExists _,_. iFrame. }
+      iLeft. iRight.
+      iExists _. iSplit;eauto.
+      iSimpl. iSplit => //. destruct v; by iExists _. } 
+  Qed.     
+
 
 
 End fundamental.

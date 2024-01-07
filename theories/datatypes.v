@@ -363,9 +363,10 @@ Inductive basic_instruction : Type := (* be *)
 | BI_handleadd : basic_instruction
 | BI_segfree : basic_instruction
 | BI_getoffset : basic_instruction
+| BI_isdummy
   | BI_current_memory
   | BI_grow_memory
-  | BI_immediate : numerical_value -> basic_instruction
+  | BI_const : numerical_value -> basic_instruction
   | BI_unop : value_type -> unop -> basic_instruction
   | BI_binop : value_type -> binop -> basic_instruction
   | BI_testop : value_type -> testop -> basic_instruction
@@ -493,13 +494,19 @@ instructions:
 *)
 Inductive administrative_instruction : Type := (* e *)
 | AI_basic : basic_instruction -> administrative_instruction
-| AI_const : value -> administrative_instruction
+| AI_handle : handle -> administrative_instruction
 | AI_trap
 | AI_invoke : funcaddr -> administrative_instruction
 | AI_label : nat -> seq administrative_instruction -> seq administrative_instruction -> administrative_instruction
 | AI_local : nat -> frame -> seq administrative_instruction -> administrative_instruction
 | AI_call_host : function_type -> hostfuncidx -> seq value -> administrative_instruction
 .
+
+Definition AI_const v :=
+  match v with
+  | VAL_handle h => AI_handle h
+  | VAL_numeric n => AI_basic (BI_const n)
+  end. 
 
 Inductive lholed : Type :=
 | LH_base : list administrative_instruction -> list administrative_instruction -> lholed

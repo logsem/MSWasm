@@ -282,3 +282,14 @@ Ltac take_drop_app_rewrite_twice n m :=
   | |- context [ WP _ ++ ?e @ _; _ {{ _ }} %I ] =>
       rewrite -(list.take_drop (length e - m) e);simpl take; simpl drop
   end.
+
+
+Ltac fold_const0 :=
+  match goal with
+  | |- context [ AI_basic (BI_const ?v) ] => fold (AI_const (VAL_numeric v))
+  | |- context [ AI_handle ?h ] => fold (AI_const (VAL_handle h))
+  | _ => idtac
+  end.
+
+Ltac fold_const := repeat fold_const0.
+

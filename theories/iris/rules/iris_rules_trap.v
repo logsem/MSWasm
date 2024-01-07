@@ -18,7 +18,7 @@ Section trap_rules.
     iLöb as "IH" forall (s E vs1 es2 f). 
     iIntros (Hconst) "HΦ Hf".
     destruct (iris.to_val (vs1 ++ [AI_trap] ++ es2)) eqn:Hsome.
-    { destruct vs1,es2 =>//;[|by erewrite to_val_not_trap_interweave in Hsome;auto..].
+    { destruct vs1,es2 => //;[|by erewrite to_val_not_trap_interweave in Hsome;auto..].
       rewrite app_nil_l app_nil_r.
       iApply wp_value;[|iFrame]. done. }
     iApply wp_unfold.
@@ -28,7 +28,7 @@ Section trap_rules.
     iApply fupd_frame_l.
     iSplit.
     { iPureIntro.
-      destruct s =>//.
+      destruct s => //.
       unfold iris_wp_def.reducible, reducible.
       eexists [_],[AI_trap],σ,_.
       destruct σ as [[ ??]?]. simpl.
@@ -48,7 +48,7 @@ Section trap_rules.
       simpl in *. prim_split κ Hstep Hstep. 
       eapply trap_reduce in Hstep as Hred;[|apply Hfill].
       destruct Hred as [lh' [Hfill' Heq]]. simplify_eq.
-      iApply bi.sep_exist_l. iExists _. iFrame. iSplit =>//.
+      iApply bi.sep_exist_l. iExists _. iFrame. iSplit => //.
       iIntros "Hf".
       apply lfilled_Ind_Equivalent in Hfill';inversion Hfill';subst.
       iApply ("IH" with "[] HΦ Hf"). auto.
@@ -73,7 +73,7 @@ Section trap_rules.
       apply to_val_trap_is_singleton in Hvs' as ->.
       apply to_val_AI_trap_Some_nil in Hetov as Heq. subst es2.
       rewrite app_nil_r in Hetov.
-      destruct vs =>//.
+      destruct vs => //.
     }
     (* Ind *)
     iIntros (σ ns κ κs nt) "Hσ".
@@ -83,7 +83,7 @@ Section trap_rules.
     iApply fupd_frame_l.
     iSplit.
     { iPureIntro.
-      destruct s =>//.
+      destruct s => //.
       unfold iris_wp_def.reducible, reducible.
       eexists [_],[AI_trap],σ,_.
       destruct σ as [[ ??]?]. simpl.
@@ -135,7 +135,7 @@ Section trap_rules.
         iDestruct "H2" as "[Hσ H]".
         iDestruct "H" as (f1) "(Hf1 & Hes'' & Hefs)".
         iApply bi.sep_exist_l. iExists f1.
-        iFrame. (* iSplit =>//. *)
+        iFrame. (* iSplit => //. *)
         iIntros "?".
         iSpecialize ("IH" with "[$]").
         iApply "IH". eauto.
@@ -165,7 +165,7 @@ Section trap_rules.
         iDestruct (ghost_map_lookup with "Hfr Hf1") as %Heq'.
         simplify_map_eq.
         (* iModIntro. *)
-        iFrame. (* iApply fupd_frame_r. iSplit =>//. *)
+        iFrame. (* iApply fupd_frame_r. iSplit => //. *)
         iModIntro. iIntros "Hf".
         erewrite cons_middle.
         erewrite app_assoc.
@@ -186,7 +186,7 @@ Section trap_rules.
     iMod ("H"  with "Hntrap") as "[%Hcontr Hf]". subst.
     apply to_val_trap_is_singleton in Hes as ->.
     rewrite -(app_nil_r [AI_trap]). rewrite separate1.
-    iApply (wp_trap with "[] [Hf]");auto. }
+    iApply (wp_trap with "[] [Hf]");auto. destruct v0 => //. }
   { repeat rewrite wp_unfold /wp_pre /= Hes.
     iApply wp_unfold. rewrite /wp_pre /=.
     rewrite to_val_cons_None//.
@@ -198,7 +198,7 @@ Section trap_rules.
     iSplit.
     { iPureIntro.
       destruct s => //. rewrite separate1.
-      eapply prepend_reducible;intros;eauto. all: done. }
+      eapply prepend_reducible;intros;eauto. destruct v0; left => //. }
     iIntros (es2 σ2 efs HStep).
     rewrite separate1 in HStep.
     apply prim_step_obs_efs_empty in HStep as Heq. destruct Heq as [me Heq]. simplify_eq.
@@ -390,7 +390,8 @@ Section trap_rules.
     remember [AI_local n f0 [AI_trap]] as es.
     inversion H; simplify_eq.
     all: try destruct vcs => //.
-    3 : by apply val_head_stuck_reduce in H.
+    all: try destruct vcs => //. 
+    3: by apply val_head_stuck_reduce in H.
     { remember [AI_local n f0 [AI_trap]] as es.
       revert H0;induction 1;simplify_eq.
       all: try do 2 destruct vs => //.
@@ -740,7 +741,7 @@ Section trap_rules.
       iApply (wp_wand  _ _ _ (λ v, ⌜v = trapV⌝ ∗ ↪[frame] f0)%I with "[Hf0]").
       { rewrite -(take_drop 1 [AI_const v0; AI_trap]);simpl take;simpl drop.
         rewrite -(app_nil_r [AI_trap]).
-        iApply (wp_trap with "[] Hf0");auto. }
+        iApply (wp_trap with "[] Hf0");auto. destruct v0 => //. }
       iIntros (v) "[-> H]". iSplitR;[|iExists _;iFrame]. by iLeft. }
     { iApply wp_unfold.
       repeat rewrite wp_unfold /wp_pre /=.      
@@ -772,7 +773,7 @@ Section trap_rules.
     - iPureIntro.
       destruct s => //=.
       rewrite - cat1s.
-      by eapply prepend_reducible; eauto.
+      destruct v0; by eapply prepend_reducible; eauto.
     - iIntros (es2 σ2 efs HStep).
       rewrite -cat1s in HStep.
       eapply reduce_ves in H1; last by apply HStep.

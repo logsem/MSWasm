@@ -19,6 +19,25 @@ Definition dummy_handle :=
     valid := false ;
     id := N.zero |}.
 
+
+
+Definition is_dummy h :=
+  N.eqb (base h) N.zero && N.eqb (offset h) N.zero && N.eqb (bound h) N.zero && negb (valid h) && N.eqb (id h) N.zero.
+
+Lemma is_dummy_true h : is_dummy h -> h = dummy_handle.
+Proof.
+  destruct h; unfold is_dummy; simpl.
+  intros H. repeat apply Bool.andb_true_iff in H as [H ?].
+  apply N.eqb_eq in H as ->. apply N.eqb_eq in H3 as ->.
+  apply N.eqb_eq in H2 as ->. apply N.eqb_eq in H0 as ->.
+  destruct valid0. simpl in H1. inversion H1. reflexivity.
+Qed.
+
+Lemma is_dummy_false h : is_dummy h = false -> h <> dummy_handle.
+Proof.
+  intros H ->. unfold is_dummy, dummy_handle in H. simpl in H. inversion H.
+Qed. 
+
 Definition upd_handle_validity h b :=
   {| base := h.(base) ;
     offset := h.(offset) ;

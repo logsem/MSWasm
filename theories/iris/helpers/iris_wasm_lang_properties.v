@@ -272,10 +272,10 @@ Section wasm_lang_properties.
   Proof.
     induction vs ; unfold iris.to_val => //=.
     rewrite merge_br flatten_simplify => //.
-    rewrite merge_prepend.
-    unfold iris.to_val in IHvs.
-    destruct (merge_values_list _ ) => //.
-    inversion IHvs => //=.
+    destruct a => //=. 1-2:rewrite merge_prepend.
+    all:unfold iris.to_val in IHvs.
+    all:destruct (merge_values_list _ ) => //.
+    all:inversion IHvs => //=.
   Qed.
 
   Lemma to_val_ret_eq vs es0 :
@@ -283,10 +283,11 @@ Section wasm_lang_properties.
   Proof.
     induction vs; unfold iris.to_val => /=.
     rewrite merge_return flatten_simplify => //.
-    rewrite merge_prepend.
-    unfold iris.to_val in IHvs.
-    destruct (merge_values_list _) => //=.
-    inversion IHvs => //.
+    destruct a => //=.
+    all:rewrite merge_prepend.
+    all:unfold iris.to_val in IHvs.
+    all:destruct (merge_values_list _) => //=.
+    all:inversion IHvs => //.
   Qed.
 
 
@@ -295,10 +296,10 @@ Section wasm_lang_properties.
   Proof.
     induction vs; unfold iris.to_val => /=.
     rewrite merge_call_host flatten_simplify => //.
-    rewrite merge_prepend.
-    unfold iris.to_val in IHvs.
-    destruct (merge_values_list _) => //=.
-    inversion IHvs => //.
+    destruct a => //=. all:rewrite merge_prepend.
+    all:unfold iris.to_val in IHvs.
+    all:destruct (merge_values_list _) => //=.
+    all:inversion IHvs => //.
   Qed.
 
   Lemma first_non_value es :
@@ -312,35 +313,35 @@ Section wasm_lang_properties.
     { subst ; remember b as b'.
       destruct b ;
         try by exists [], (AI_basic b'), es ; repeat split => //= ; left ; rewrite Heqb'; simplify_eq.
-      unfold iris.to_val in Hes ; simpl in Hes.
-      subst. rewrite merge_br flatten_simplify in Hes => //.
+      all:unfold iris.to_val in Hes ; simpl in Hes.
+      all:subst. rewrite merge_br flatten_simplify in Hes => //.
       unfold iris.to_val in Hes ; simpl in Hes ; subst.
-      by rewrite merge_return flatten_simplify in Hes. } 
-(*      subst. unfold iris.to_val in Hes ; simpl in Hes.
+      by rewrite merge_return flatten_simplify in Hes.
       rewrite merge_prepend in Hes.
       unfold iris.to_val in IHes.
       destruct (merge_values_list _) eqn:Hmerge => //.
-      destruct v0 => //.
+      destruct v => //.
       assert (to_val es = Some trapV) ;
         first by unfold to_val, iris.to_val ; rewrite Hmerge.
       apply to_val_trap_is_singleton in H as ->.
-      exists [AI_const v], AI_trap, [] ; repeat split => //.
+      exists [AI_basic (BI_const n)], AI_trap, [] ; repeat split => //.
       by right.
       destruct IHes as (vs & e0 & es' & Hvs & He & Hes0) => //.
-      exists (AI_const v :: vs), e0, es' ;
+      exists (AI_basic (BI_const n) :: vs), e0, es' ;
         repeat split => //.
-      by rewrite Hes0. } *)
+      by rewrite Hes0.
+    } 
     { subst. unfold iris.to_val in Hes; simpl in Hes.
       rewrite merge_prepend in Hes.
       unfold iris.to_val in IHes.
       destruct (merge_values_list _) eqn:Hmerge => //.
-      - simpl in Hes. destruct v0 => //.
+      - simpl in Hes. destruct v => //.
         assert (to_val es = Some trapV); first by unfold to_val, iris.to_val; rewrite Hmerge.
         apply to_val_trap_is_singleton in H as ->.
-        exists [AI_const v], AI_trap, []; repeat split => //.
+        exists [AI_handle h], AI_trap, []; repeat split => //.
         by right.
       - destruct IHes as (vs & e0 & es' & Hvs & He & Hes0) => //.
-        exists (AI_const v :: vs), e0, es'; repeat split => //. by rewrite Hes0.  } 
+        exists (AI_handle h :: vs), e0, es'; repeat split => //. by rewrite Hes0.  } 
     subst. exists [], AI_trap, es. repeat split => //=. by right.
     subst. exists [], (AI_label n l l0), es. repeat split => //=.
     left.
@@ -585,7 +586,7 @@ Section wasm_lang_properties.
     { rewrite !app_assoc. repeat erewrite app_assoc. auto. }
     rewrite Heq2 in Heqcopy. clear Heq2. unfold to_val in He. unfold to_val in HH.
     apply first_values in Heqcopy as [Heq1 [Heq2 Heq3]];auto.
-    2:{ (destruct HH as [He' | [[-> _] | [[?  ->] | [-> | [ (?&?&?& ->) | [ (? & ? & ? & -> & [ (? & ? & HLI) | [[? HLI] | (?&?&?&?&HLI) ] ]) | (? & ? & ? & ? & ? & ? & ? & -> & HLI) ] ]]]]]) => //. destruct e' => //. }
+    2:{ (destruct HH as [He' | [[-> _] | [[?  ->] | [-> | [ (?&?&?& ->) | [ (? & ? & ? & -> & [ (? & ? & HLI) | [[? HLI] | (?&?&?&?&HLI) ] ]) | (? & ? & ? & ? & ? & ? & ? & -> & HLI) ] ]]]]]) => //. destruct e' => //. destruct b => //. }
     2: by apply const_list_app. 
     subst e'.
     rewrite -Heq1 in Heq.
@@ -924,7 +925,10 @@ Section wasm_lang_properties.
     - rewrite merge_br flatten_simplify in Hval ; inversion Hval.
     - rewrite merge_return flatten_simplify in Hval ; inversion Hval.
     - rewrite merge_prepend in Hval. unfold to_val, iris.to_val in IHv1.
-      destruct (merge_values_list _) => //. destruct v2 => //.
+      destruct (merge_values_list _) => //. destruct v0 => //.
+      inversion Hval ; subst. by erewrite IHv1.
+       - rewrite merge_prepend in Hval. unfold to_val, iris.to_val in IHv1.
+      destruct (merge_values_list _) => //. destruct v0 => //.
       inversion Hval ; subst. by erewrite IHv1.
     - rewrite merge_trap flatten_simplify in Hval.
       destruct v1 => //.
@@ -1382,13 +1386,14 @@ Section wasm_lang_properties.
       - rewrite merge_return flatten_simplify in Hetov => //.
       - rewrite merge_prepend in Hetov.
         destruct (merge_values_list _) eqn:Hmerge => //.
-        destruct v0 => //.
+        destruct v => //.
         simpl in Hetov.
         rewrite - app_comm_cons in Hfilled.
+        fold (AI_const (VAL_numeric n)) in Hfilled.
         apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
         + rewrite app_comm_cons in Hfilled.
           assert (length_rec LI < m) ;
-            first by specialize (cons_length_rec (AI_const v) LI) ; lia.
+            first by specialize (cons_length_rec (AI_basic (BI_const n)) LI) ; lia.
           specialize (IHm _ H _ _ _ Hfilled i1 lh1).
           unfold to_val in IHm at 1.
           unfold iris.to_val in IHm.
@@ -1399,7 +1404,7 @@ Section wasm_lang_properties.
         + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
           unfold lfilled, lfill => //=.
           assert (length_rec ((es1 ++ es2) ++ aft) < m).
-          { specialize (cons_length_rec (AI_const v)
+          { specialize (cons_length_rec (AI_basic (BI_const n))
                                         ((es1 ++ es2) ++ aft)) as H1.
             rewrite app_comm_cons in Hsize.
             repeat rewrite - cat_app in Hsize.
@@ -1411,7 +1416,7 @@ Section wasm_lang_properties.
           unfold iris.to_val in IHm.
           rewrite Hmerge in IHm.
           destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).        
-          exists (val_combine (immV [v]) vs') ; split => //=.
+          exists (val_combine (immV [VAL_numeric n]) vs') ; split => //=.
           * unfold to_val, iris.to_val => /=.
             rewrite merge_prepend.
             unfold to_val, iris.to_val in Htv.
@@ -1434,7 +1439,61 @@ Section wasm_lang_properties.
             unfold iris.of_val. destruct lh => //.
             unfold iris.of_val. destruct s => //.
             unfold iris.of_val. destruct l0 => //. 
-            
+         - rewrite merge_prepend in Hetov.
+        destruct (merge_values_list _) eqn:Hmerge => //.
+        destruct v => //.
+        simpl in Hetov.
+        rewrite - app_comm_cons in Hfilled.
+        fold (AI_const (VAL_handle h)) in Hfilled.
+        apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
+        + rewrite app_comm_cons in Hfilled.
+          assert (length_rec LI < m) ;
+            first by specialize (cons_length_rec (AI_handle h) LI) ; lia.
+          specialize (IHm _ H _ _ _ Hfilled i1 lh1).
+          unfold to_val in IHm at 1.
+          unfold iris.to_val in IHm.
+          rewrite Hmerge in IHm.
+          destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).
+          exists vs' ; split => //.
+          subst ; by apply lfilled_prepend.
+        + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
+          unfold lfilled, lfill => //=.
+          assert (length_rec ((es1 ++ es2) ++ aft) < m).
+          { specialize (cons_length_rec (AI_handle h)
+                                        ((es1 ++ es2) ++ aft)) as H1.
+            rewrite app_comm_cons in Hsize.
+            repeat rewrite - cat_app in Hsize.
+            rewrite app_comm_cons in H1.
+            repeat rewrite - cat_app in H1.
+            lia. }
+          specialize (IHm _ H0 _ _ _ H i1 lh1).
+          unfold to_val in IHm at 1.
+          unfold iris.to_val in IHm.
+          rewrite Hmerge in IHm.
+          destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).        
+          exists (val_combine (immV [VAL_handle h]) vs') ; split => //=.
+          * unfold to_val, iris.to_val => /=.
+            rewrite merge_prepend.
+            unfold to_val, iris.to_val in Htv.
+            destruct (merge_values_list (map _ es1)) eqn:Hmerge1 => //=.
+            inversion Htv.
+            destruct vs' => //.
+            assert (to_val es1 = Some trapV) ;
+              first by unfold to_val, iris.to_val ; rewrite Hmerge1 H2.
+            apply to_val_trap_is_singleton in H1 as ->.
+            simpl in Hmerge.
+            rewrite merge_trap flatten_simplify in Hmerge.
+            by destruct (es2 ++ aft).
+          * unfold lfilled, lfill => //=.
+            unfold lfilled, lfill in Hfill ; simpl in Hfill.
+            apply b2p in Hfill ; rewrite cat_app in Hfill. rewrite Hfill.
+            destruct vs' => //.
+            apply to_val_trap_is_singleton in Htv as ->.
+            simpl in Hmerge.
+            rewrite merge_trap flatten_simplify in Hmerge ; by destruct (es2 ++ aft).
+            unfold iris.of_val. destruct lh => //.
+            unfold iris.of_val. destruct s => //.
+            unfold iris.of_val. destruct l0 => //.     
            
       - rewrite merge_trap flatten_simplify in Hetov.
         by destruct LI.
@@ -1520,13 +1579,14 @@ Section wasm_lang_properties.
         rewrite merge_return flatten_simplify => //=.
       - rewrite merge_prepend in Hetov.
         destruct (merge_values_list _) eqn:Hmerge => //.
-        destruct v0 => //.
+        destruct v => //.
         simpl in Hetov.
         rewrite - app_comm_cons in Hfilled.
+        fold (AI_const (VAL_numeric n)) in Hfilled.
         apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
         + rewrite app_comm_cons in Hfilled.
           assert (length_rec LI < m) ;
-            first by specialize (cons_length_rec (AI_const v) LI) ; lia.
+            first by specialize (cons_length_rec (AI_basic (BI_const n)) LI) ; lia.
           specialize (IHm _ H _ _ _ Hfilled s0).
           unfold to_val in IHm at 1.
           unfold iris.to_val in IHm.
@@ -1537,7 +1597,7 @@ Section wasm_lang_properties.
         + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
           unfold lfilled, lfill => //=.
           assert (length_rec ((es1 ++ es2) ++ aft) < m).
-          { specialize (cons_length_rec (AI_const v)
+          { specialize (cons_length_rec (AI_basic (BI_const n))
                                         ((es1 ++ es2) ++ aft)) as H1.
             rewrite app_comm_cons in Hsize.
             repeat rewrite - cat_app in Hsize.
@@ -1549,7 +1609,62 @@ Section wasm_lang_properties.
           unfold iris.to_val in IHm.
           rewrite Hmerge in IHm.
           destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).        
-          exists (val_combine (immV [v]) vs') ; split => //=.
+          exists (val_combine (immV [VAL_numeric n]) vs') ; split => //=.
+          * unfold to_val, iris.to_val => /=.
+            rewrite merge_prepend.
+            unfold to_val, iris.to_val in Htv.
+            destruct (merge_values_list (map _ es1)) eqn:Hmerge1 => //=.
+            inversion Htv.
+            destruct vs' => //.
+            assert (to_val es1 = Some trapV) ;
+              first by unfold to_val, iris.to_val ; rewrite Hmerge1 H2.
+            apply to_val_trap_is_singleton in H1 as ->.
+            simpl in Hmerge.
+            rewrite merge_trap flatten_simplify in Hmerge.
+            by destruct (es2 ++ aft).
+          * unfold lfilled, lfill => //=.
+            unfold lfilled, lfill in Hfill ; simpl in Hfill.
+            apply b2p in Hfill ; rewrite cat_app in Hfill. rewrite Hfill.
+            destruct vs' => //.
+            apply to_val_trap_is_singleton in Htv as ->.
+            simpl in Hmerge.
+            rewrite merge_trap flatten_simplify in Hmerge ; by destruct (es2 ++ aft).
+            unfold iris.of_val. destruct lh => //.
+            unfold iris.of_val. destruct s1 => //.
+            unfold iris.of_val. destruct l0 => //.
+             - rewrite merge_prepend in Hetov.
+        destruct (merge_values_list _) eqn:Hmerge => //.
+        destruct v => //.
+        simpl in Hetov.
+        rewrite - app_comm_cons in Hfilled.
+        fold (AI_const (VAL_handle h)) in Hfilled.
+        apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
+        + rewrite app_comm_cons in Hfilled.
+          assert (length_rec LI < m) ;
+            first by specialize (cons_length_rec (AI_handle h) LI) ; lia.
+          specialize (IHm _ H _ _ _ Hfilled s0).
+          unfold to_val in IHm at 1.
+          unfold iris.to_val in IHm.
+          rewrite Hmerge in IHm.
+          destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).
+          exists vs' ; split => //.
+          subst ; by apply lfilled_prepend.
+        + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
+          unfold lfilled, lfill => //=.
+          assert (length_rec ((es1 ++ es2) ++ aft) < m).
+          { specialize (cons_length_rec (AI_handle h)
+                                        ((es1 ++ es2) ++ aft)) as H1.
+            rewrite app_comm_cons in Hsize.
+            repeat rewrite - cat_app in Hsize.
+            rewrite app_comm_cons in H1.
+            repeat rewrite - cat_app in H1.
+            lia. }
+          specialize (IHm _ H0 _ _ _ H s0).
+          unfold to_val in IHm at 1.
+          unfold iris.to_val in IHm.
+          rewrite Hmerge in IHm.
+          destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).        
+          exists (val_combine (immV [VAL_handle h]) vs') ; split => //=.
           * unfold to_val, iris.to_val => /=.
             rewrite merge_prepend.
             unfold to_val, iris.to_val in Htv.
@@ -1637,14 +1752,15 @@ Section wasm_lang_properties.
        
       - rewrite merge_prepend in Hetov.
         destruct (merge_values_list _) eqn:Hmerge => //.
-        destruct v0 => //.
+        destruct v => //.
         simpl in Hetov.
         inversion Hetov ; subst.
         rewrite - app_comm_cons in Hfilled.
+        fold (AI_const (VAL_numeric n)) in Hfilled.
         apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
         + rewrite app_comm_cons in Hfilled.
           assert (length_rec LI < m) ;
-            first by specialize (cons_length_rec (AI_const v) LI) ; lia.
+            first by specialize (cons_length_rec (AI_basic (BI_const n)) LI) ; lia.
           specialize (IHm _ H _ _ _ Hfilled l2).
           unfold to_val in IHm at 1.
           unfold iris.to_val in IHm.
@@ -1656,7 +1772,7 @@ Section wasm_lang_properties.
         + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
           unfold lfilled, lfill => //=.
           assert (length_rec ((es1 ++ es2) ++ aft) < m).
-          { specialize (cons_length_rec (AI_const v)
+          { specialize (cons_length_rec (AI_basic (BI_const n))
                                         ((es1 ++ es2) ++ aft)) as H1.
             rewrite app_comm_cons in Hsize.
             repeat rewrite - cat_app in Hsize.
@@ -1668,7 +1784,64 @@ Section wasm_lang_properties.
           unfold iris.to_val in IHm.
           rewrite Hmerge in IHm.
           destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).        
-          exists (val_combine (immV [v]) vs') ; split => //=.
+          exists (val_combine (immV [VAL_numeric n]) vs') ; split => //=.
+          * unfold to_val, iris.to_val => /=.
+            rewrite merge_prepend.
+            unfold to_val, iris.to_val in Htv.
+            destruct (merge_values_list (map _ es1)) eqn:Hmerge1 => //=.
+            inversion Htv.
+            destruct vs' => //.
+            assert (to_val es1 = Some trapV) ;
+              first by unfold to_val, iris.to_val ; rewrite Hmerge1 H2.
+            apply to_val_trap_is_singleton in H1 as ->.
+            simpl in Hmerge.
+            rewrite merge_trap flatten_simplify in Hmerge.
+            by destruct (es2 ++ aft).
+          * unfold lfilled, lfill => //=.
+            unfold lfilled, lfill in Hfill ; simpl in Hfill.
+            apply b2p in Hfill ; rewrite cat_app in Hfill. rewrite Hfill.
+            destruct vs' => //.
+            apply to_val_trap_is_singleton in Htv as ->.
+            simpl in Hmerge.
+            rewrite merge_trap flatten_simplify in Hmerge ; by destruct (es2 ++ aft).
+            unfold iris.of_val. destruct lh => //.
+            unfold iris.of_val. destruct s => //.
+            unfold iris.of_val. destruct l1 => //.
+             - rewrite merge_prepend in Hetov.
+        destruct (merge_values_list _) eqn:Hmerge => //.
+        destruct v => //.
+        simpl in Hetov.
+        inversion Hetov ; subst.
+        rewrite - app_comm_cons in Hfilled.
+        fold (AI_const (VAL_handle h0)) in Hfilled.
+        apply lfilled_vLI in Hfilled as [(lh' & Hlh & Hfilled) | (-> & -> & aft & -> & <-)].
+        + rewrite app_comm_cons in Hfilled.
+          assert (length_rec LI < m) ;
+            first by specialize (cons_length_rec (AI_handle h0) LI) ; lia.
+          specialize (IHm _ H _ _ _ Hfilled l2).
+          unfold to_val in IHm at 1.
+          unfold iris.to_val in IHm.
+          rewrite Hmerge in IHm.
+          
+          destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).
+          exists vs' ; split => //.
+          subst ; by apply lfilled_prepend.
+        + assert (lfilled 0 (LH_base [] aft) (es1 ++ es2) ((es1 ++ es2) ++ aft)).
+          unfold lfilled, lfill => //=.
+          assert (length_rec ((es1 ++ es2) ++ aft) < m).
+          { specialize (cons_length_rec (AI_handle h0)
+                                        ((es1 ++ es2) ++ aft)) as H1.
+            rewrite app_comm_cons in Hsize.
+            repeat rewrite - cat_app in Hsize.
+            rewrite app_comm_cons in H1.
+            repeat rewrite - cat_app in H1.
+            lia. }
+          specialize (IHm _ H0 _ _ _ H l2).
+          unfold to_val in IHm at 1.
+          unfold iris.to_val in IHm.
+          rewrite Hmerge in IHm.
+          destruct (IHm Logic.eq_refl) as (vs' & Htv & Hfill).        
+          exists (val_combine (immV [VAL_handle h0]) vs') ; split => //=.
           * unfold to_val, iris.to_val => /=.
             rewrite merge_prepend.
             unfold to_val, iris.to_val in Htv.
@@ -1828,14 +2001,17 @@ Section wasm_lang_properties.
   Qed.
 
 End to_val_None.
+
+
   
   Lemma to_val_cons_immV v l :
     iris.to_val (AI_const v :: iris.of_val (immV l)) = Some (immV (v :: l)).
   Proof.
     rewrite separate1.
     erewrite to_val_cat_inv;eauto.
-    2: apply to_of_val.
-    auto.
+    3: apply to_of_val.
+    instantiate (1 := [v]). done.
+    destruct v => //.
   Qed.
   Lemma to_val_cons_brV i (lh : valid_holed i) v es :
     iris.to_val es = Some (brV lh) ->
@@ -1843,13 +2019,16 @@ End to_val_None.
   Proof.
     intros Hes.
     unfold to_val,iris.to_val. cbn.
-    unfold to_val,iris.to_val in Hes.
-    destruct (merge_values_list (map to_val_instr es)) eqn:Hsome;[|done].
-    simplify_eq.
-    unfold merge_values_list in Hsome.
-    destruct (map to_val_instr es) eqn:Hmap;try done.
-    destruct v0;try done.
-    rewrite merge_prepend. by rewrite /= Hsome.
+    destruct v => //=.
+    1-2:unfold to_val,iris.to_val in Hes.
+    1-2:destruct (merge_values_list (map to_val_instr es)) eqn:Hsome;[|done].
+    1-2:simplify_eq.
+    1-2:unfold merge_values_list in Hsome.
+    1-2:destruct (map to_val_instr es) eqn:Hmap;try done.
+    1-2:destruct v;try done. 
+    all: rewrite merge_prepend.
+    all:by rewrite /= Hsome.
+    
   Qed.
   Lemma to_val_cons_retV s v es :
     iris.to_val es = Some (retV s) ->
@@ -1857,27 +2036,28 @@ End to_val_None.
   Proof.
     intros Hes.
     unfold to_val,iris.to_val. cbn.
-    unfold to_val,iris.to_val in Hes.
-    destruct (merge_values_list (map to_val_instr es)) eqn:Hsome;[|done].
-    simplify_eq.
-    unfold merge_values_list in Hsome.
-    destruct (map to_val_instr es) eqn:Hmap;try done.
-    destruct v0;try done.
-    rewrite merge_prepend. by rewrite /= Hsome.
+    destruct v => //=.
+    all:unfold to_val,iris.to_val in Hes.
+    all:destruct (merge_values_list (map to_val_instr es)) eqn:Hsome;[|done].
+    all:simplify_eq.
+    all:unfold merge_values_list in Hsome.
+    all:destruct (map to_val_instr es) eqn:Hmap;try done.
+    all:destruct v;try done.
+    all:rewrite merge_prepend. all:by rewrite /= Hsome.
   Qed.
   Lemma to_val_cons_callHostV tf h cvs s v es :
     iris.to_val es = Some (callHostV tf h cvs s) ->
     iris.to_val (AI_const v :: es) = Some (callHostV tf h cvs (llh_push_const s [v])).
   Proof.
     intros Hes.
-    unfold to_val,iris.to_val. cbn.
-    unfold to_val,iris.to_val in Hes.
-    destruct (merge_values_list (map to_val_instr es)) eqn:Hsome;[|done].
-    simplify_eq.
-    unfold merge_values_list in Hsome.
-    destruct (map to_val_instr es) eqn:Hmap;try done.
-    destruct v0;try done.
-    rewrite merge_prepend. by rewrite /= Hsome.
+    unfold to_val,iris.to_val. cbn. destruct v => //=.
+    all:unfold to_val,iris.to_val in Hes.
+    all:destruct (merge_values_list (map to_val_instr es)) eqn:Hsome;[|done].
+    all:simplify_eq.
+    all:unfold merge_values_list in Hsome.
+    all:destruct (map to_val_instr es) eqn:Hmap;try done.
+    all:destruct v;try done.
+    all:rewrite merge_prepend. all:by rewrite /= Hsome.
   Qed.
   Lemma to_val_cons_None es v :
     iris.to_val es = None ->
@@ -1885,7 +2065,7 @@ End to_val_None.
   Proof.
     intros Hes.
     rewrite separate1.
-    apply to_val_cat_None2;auto.
+    apply to_val_cat_None2;auto. by destruct v.
   Qed.
   
   Lemma to_val_AI_trap_Some_nil es vs :
@@ -2001,7 +2181,8 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//.
+        simplify_eq. destruct x => //.
+        destruct v => //.
       }
       { cbn in *.
         rewrite separate1 in Hs.
@@ -2009,10 +2190,10 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//. destruct es2 =>//.
+        simplify_eq. destruct x => //. destruct es2 => //.
         rewrite app_nil_l app_nil_r in Heq2. simplify_eq.
         apply IHvh in H5 as [vh' Hvh'].
-        subst es1. eauto.
+        subst es1. eauto. destruct v => //.
       }
     }
   Qed.
@@ -2063,7 +2244,7 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//.
+        simplify_eq. destruct x => //. destruct v => //.
       }
       { cbn in *.
         rewrite separate1 in Hs.
@@ -2071,7 +2252,7 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//. destruct es2 =>//.
+        simplify_eq. destruct x => //; last by destruct v. destruct es2 => //.
         rewrite app_nil_l app_nil_r in Heq2. simplify_eq.
         apply IHvh in H5 as [vh' Hvh'].
         subst es1. eauto.
@@ -2082,7 +2263,7 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//.
+        simplify_eq. destruct x => //. destruct v => //. 
       }
     }
     { destruct wh.
@@ -2092,7 +2273,7 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//.
+        simplify_eq. destruct x => //. destruct v => //. 
       }
       { cbn in *.
         rewrite separate1 in Hs.
@@ -2100,7 +2281,7 @@ End to_val_None.
         apply const_list_snoc_eq3 in Hs;auto;[|apply v_to_e_is_const_list..].
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
-        simplify_eq. destruct x =>//.
+        simplify_eq. destruct x => //. destruct v => //. 
       }
       { cbn in *.
         rewrite separate1 in Hs.
@@ -2109,7 +2290,7 @@ End to_val_None.
         destruct Hs as [vs2 [es2 [Heq1 [Heq2 [Heq3 Hconst]]]]].
         apply const_es_exists in Hconst as [? ?].
         simplify_eq.
-        destruct x =>//. destruct es2 =>//.
+        destruct x => //; last by destruct v. destruct es2 => //.
         rewrite app_nil_l app_nil_r in Heq2. simplify_eq.
         apply IHvh in H5 as [vh' Hvh'].
         subst es1. eauto.

@@ -45,7 +45,7 @@ Lemma spec_map_loop_body_continue_trap f (s: list i32) v E hj j fn (sv: i32) j0 
                                                                     ↪[frame] fc ∗
                                                                     na_own logrel_nais ⊤
                                                }}}
-                                                 [ AI_basic (BI_const (VAL_int32 u)) ;
+                                                 [ AI_basic (BI_const (NVAL_int32 u)) ;
                                                    AI_invoke a ] @ E
                                                  {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
                                                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
@@ -131,7 +131,7 @@ Proof.
       rewrite separate3.
       iApply wp_seq.
       iSplitR; last iSplitL "Hf".
-      2: { iApply (wp_relop with "Hf") => //=.
+      2: { fold_const; iApply (wp_relop with "Hf") => //=.
            rewrite Wasm_int.Int32.eq_false => /=; first by instantiate (1 := λ w, ⌜ w = immV _ ⌝%I).
            remember (length s) as x.
            rewrite - Heqx.
@@ -206,9 +206,9 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf".
-  2: { iApply (wp_tee_local with "Hf").
+  2: { fold_const; iApply (wp_tee_local with "Hf").
        iIntros "!> Hf".
-       rewrite (separate1 (AI_basic _)).
+       rewrite (separate1 (AI_const _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_set_local with "[] [$Hf]"); first lia.
@@ -221,7 +221,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf".
-  2: { rewrite (separate1 (AI_basic _)).
+  2: { rewrite (separate1 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_get_local with "[] [$Hf]").
@@ -236,7 +236,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ isStack v s ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf Hs".
-  2: { rewrite (separate1 (AI_basic _)).
+  2: { rewrite (separate1 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_wand with "[Hf Hs]").
@@ -252,7 +252,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ w, (⌜ w = immV _ ⌝ ∗ ↪[frame] _)%I).
   iSplitR; last iSplitL "Hf".
-  2: { rewrite (separate2 (AI_basic _)).
+  2: { rewrite (separate2 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> (%Habs & _)" => /=.
        iApply (wp_get_local with "[] [$Hf]").
@@ -285,7 +285,7 @@ Proof.
     iExists _ ; iSplit; first done. done.
   }
   iFrame "Hf". iSplitL.
-  { rewrite (separate1 (AI_basic _)).
+  { rewrite (separate1 (AI_handle _)).
     iIntros "Hf".
     iApply wp_val_can_trap_app => //. iFrame "Hf".
     iSplit; first by iIntros "!> H" => /=; iDestruct "H" as (v0) "(%Habs & _)".
@@ -300,7 +300,7 @@ Proof.
       { by rewrite Hclt. }
       { done. }
       2: { iPureIntro.
-           instantiate (1 := (LH_base [AI_basic (BI_const (VAL_int32 sv))] [])).
+           instantiate (1 := (LH_base [AI_basic (BI_const (NVAL_int32 sv))] [])).
            instantiate (1 := 0).
            unfold lfilled, lfill.
            simpl.
@@ -391,7 +391,7 @@ Lemma spec_map_loop_j_trap f (s: list i32) v E j hj fn j0 a cl
                                                                     ↪[frame] fc ∗
                                                                     na_own logrel_nais ⊤
                                                }}}
-                                                 [ AI_basic (BI_const (VAL_int32 u)) ;
+                                                 [ AI_basic (BI_const (NVAL_int32 u)) ;
                                                    AI_invoke a ] @ E
                                                  {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
                                                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
@@ -598,7 +598,7 @@ Lemma spec_stack_map_op_trap (f0 : frame) (f : i32) (v: handle) (s : seq.seq i32
                        ↪[frame] fc ∗
                        na_own logrel_nais ⊤
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
                            ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
@@ -710,7 +710,7 @@ Lemma spec_stack_map_trap (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) 
                        ↪[frame] fc ∗
                        na_own logrel_nais ⊤
                   }}}
-                  [ AI_basic (BI_const (VAL_int32 u)) ;
+                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
                            ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
@@ -919,3 +919,4 @@ End valid.
 
 End stack.    
       
+

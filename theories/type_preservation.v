@@ -5,6 +5,8 @@ From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From Coq Require Import Program.Equality NArith ZArith_base ssreflect.
 From Wasm Require Export operations datatypes_properties typing opsem properties.
 Require Import Lia.
+Require Import inj_div. 
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -3200,45 +3202,6 @@ Proof.
   done.
 Qed.
 
-(* Lemma salloc_same_size_segl: forall seg all a b c seg' all',
-    salloc seg all a b c seg' all' ->
-    length seg.(segl_data) = length seg'.(segl_data).
-Proof.
-  intros seg a b c seg' H.
-  apply nth_error_same_length.
-  intros i.
-  inversion H.
-  destruct seg, seg' => /=.
-  simpl in *.
-  unfold differ_at in H3.
-  destruct (N.of_nat i <? a)%N eqn:Hi.
-  specialize (H3 (N.of_nat i)).
-  rewrite Nat2N.id in H3.
-  rewrite H3 => //.
-  left.
-  apply N.ltb_lt in Hi.
-  exact Hi.
-  destruct (N.of_nat i <? a + b)%N eqn:Hi'.
-  apply N.ltb_ge in Hi.
-  apply N.ltb_lt in Hi'.
-  specialize (H0 (N.of_nat i - a)%N). 
-  specialize (H1 (N.of_nat i - a)%N).
-  assert (0 <= N.of_nat i - a < b)%N.
-  { lia. }
-  specialize (H0 H9).
-  specialize (H1 H9).
-  assert (N.to_nat (a + (N.of_nat i - a)) = i).
-  { lia. }
-  rewrite H10 in H0 H1.
-  rewrite H0 H1. done.
-  apply N.ltb_ge in Hi'.
-  specialize (H2 (N.of_nat i)).
-  rewrite Nat2N.id in H2.
-  rewrite H2 => //.
-  right.
-  lia.
-Qed.   *)
-  
 
 
 Lemma salloc_same_size: forall seg A a b c seg' A',
@@ -3265,51 +3228,14 @@ Proof.
   done. 
 Qed.  
 
-(*
-Lemma add_0_r: forall a, a + 0 = a.
-Proof. lias. Qed.
 
-Lemma div_0_n: forall a, 0 / a = 0.
-Proof. destruct a => //. Qed.
 
-(* Lemma plus_div : forall b a c, (a + b) / c <= a / c + b / c.
-  induction b; intros => //=.
-  rewrite add_0_r. rewrite div_0_n add_0_r. done.
-  Search (_ + _.+1).
-  rewrite addnS. *)
-
-Lemma leq_div : forall a b c, a <= b -> a / c <= b / c.
+Lemma N_of_nat_leq a b : (a <= b)%coq_nat -> (N.of_nat a <= N.of_nat b)%N.
 Proof.
-  intros. rewrite - (leq_pmul2r (m:=c)). 
-  induction a; intros => //=. unfold Nat.div. destruct c => //.  
-  intros. unfold Nat.div. destruct c => //.
-  induction a => //=. destruct c => //.
-  
+  intros H.
+  lias.
+Qed.
 
-  
-Lemma leq_div: forall a b c: N, (a <= b)%N -> (a / c <= b / c)%N.
-Proof.
-  intros. unfold N.div. unfold N.div_eucl.
-  induction a => //=. lia. 
-  induction c => //=. lia.
-  induction b => //=.
- *)
-
-(*
-Lemma div_equiv: forall a b q r, b > 0 -> b * q + r = a -> 0 <= r < b -> a / b = q.
-Proof. intros. unfold Nat.div. destruct b => //.
-       unfold Nat.divmod. induction a => //.
-
-
-Lemma leq_div: forall a b c, (a <= b)%coq_nat -> (a / c <= b / c)%coq_nat.
-Proof. intros. destruct c => //. 
-
-
-Lemma div_plus_c a c : c > 0 -> (a + c) / c = a / c + 1.
-Proof. induction a => //=. replace (0 + c) with c; last lias.
-       replace (0 / c) with 0; last by destruct c.
-       replace (0 + 1) with 1; last lias.
-       destruct c => //. unfold Nat.div. *)
 
 Lemma seg_extension_alloc: forall m A a b c seg' A',
     salloc m A a b c seg' A' ->
@@ -3328,9 +3254,10 @@ Proof.
   lias.
   assert (length segl_data / N.to_nat page_size <= length (segment_list.segl_data (seg_data seg')) / N.to_nat page_size)%coq_nat.
   { apply div_leq. exact H0. }
-  (* This is absolutely insane. H1 is exactly what I want in Nat, I want it N. Why is this so painfully hard? *)
-Admitted. 
-
+  apply N_of_nat_leq in H1.
+  do 2 (rewrite Nat2N_inj_div in H1; try by unfold page_size). 
+Qed.
+ 
   
   
 Lemma seg_extension_free: forall m A a c seg' A',

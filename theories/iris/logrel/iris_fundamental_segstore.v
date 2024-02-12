@@ -9,7 +9,7 @@ From iris.prelude Require Import options.
 Require Export iris iris_locations iris_properties iris_atomicity stdpp_aux.
 Require Export iris_rules.
 Require Export datatypes operations properties opsem typing.
-Require Export iris_logrel iris_fundamental_helpers.
+Require Export iris_logrel iris_fundamental_helpers inj_div.
 Import uPred.
   
 Section fundamental.
@@ -482,11 +482,17 @@ Section fundamental.
                a handle, or stores a valid one *)
             (* destruct (handle_addr h + handle_size <=? base + addr)%N eqn:Hlo. *)
             (* destruct (handle_addr h <=? base + addr - handle_size)%N eqn:Hlo. *)
-            destruct (handle_addr h - base + N.of_nat (t_length T_handle) <=? addr)%N eqn:Hlo.  
+            destruct (handle_addr h + N.of_nat (t_length T_handle) <=? addr + base)%N eqn:Hlo0.
+(*            destruct (handle_addr h - base + N.of_nat (t_length T_handle) <=? addr)%N eqn:Hlo.   *)
               
             -- (* Case 1: the place where we wrote to memory is before addr *)
               (* I.e. the previous invariant still holds *)
-              apply N.leb_le in Hlo.
+              apply N.leb_le in Hlo0. 
+              assert (handle_addr h - base + N.of_nat (t_length T_handle) <= addr)%N as Hlo.
+              { apply (sub_le _ _ base) in Hlo0.
+                rewrite N.add_sub_swap in Hlo0.
+                - lia.
+                - unfold handle_addr. lia. } 
               iDestruct ("Hhandles" $! addr Haddr) as "[%Hnum | Hvalid]";
                  destruct Haddr as [Hmod' Haddr].
                ++ iLeft. 
@@ -517,7 +523,8 @@ Section fundamental.
                   erewrite length_bits => //.
                   rewrite - le_plus_minus; last lia.
                   done.
-            -- apply N.leb_gt in Hlo.
+            -- apply N.leb_gt in Hlo0.
+               apply lo''_to_lo in Hlo0 as Hlo. 
                destruct (addr + handle_size <=? handle_addr h - base)%N eqn:Hhi.
                ++ (* Case 2: the place where we wrote is far after addr *)
                (* i.e. the previous invariant still holds *)
@@ -548,9 +555,39 @@ Section fundamental.
                  destruct Haddr as [Hmod' Haddr].
                  unfold t_length in Hlo. rewrite nat_bin N2Nat.id in Hlo.
                  assert (handle_addr h < base + addr + handle_size)%N as Hhi'; first lia.
+                 destruct (N.eqb (handle_addr h + (base + addr)) 0)%N eqn:Hbaseaddr.
+                 { apply N.eqb_eq in Hbaseaddr.
+                   destruct (handle_addr h) ; try lia.
+                   destruct base; try lia.
+                   destruct addr; try lia.
+                   iSimpl.
+                   rewrite drop_0.
+                   assert (N.to_nat handle_size = length (map (λ b, (b, Handle)) (serialise_handle hv))) as Hlenmap.
+                   { rewrite map_length. destruct HHB.
+                     rewrite length_serialise. rewrite nat_bin. done. } 
+                   rewrite Hlenmap take_app.
+                   rewrite map_map. rewrite map_id.
+                   assert (handle_of_bytes (serialise_handle hv) = hv) as ->.
+                   { destruct HHB. unfold handle.handle_of_bytes, handle.handle_size.
+                     rewrite handle_of_serialise. done. } 
+                   
+                   rewrite fixpoint_interp_value_handle_eq.
+                   iExists hv. iSplit; first done.
+                   rewrite map_length.
+                   assert (length (serialise_handle hv) = N.to_nat handle_size) as ->.
+                   { destruct HHB. rewrite length_serialise nat_bin. done. }
+                   iExact "Hv".  } 
+
+                 apply N.eqb_neq in Hbaseaddr. 
                  assert (handle_addr h > base + addr - handle_size)%N as Hlo'.
-                 { admit. }
-                 
+                 { destruct (base + addr)%N eqn:Hbaseaddr'; first lia.
+                   apply lo''_to_lo' in Hlo0.
+                   - unfold lo' in Hlo0. unfold t_length in Hlo0.
+                     rewrite nat_bin in Hlo0. lia. 
+                   - apply modulo_leq in Hmod' as [?|Hres]; first lia.
+                     rewrite - Hbaseaddr' in Hres. unfold t_length. rewrite nat_bin.
+                     lia. 
+                 } 
                  specialize (modulo_trapped _ _ _ Hmod Hmod' Hlo' Hhi') as Heqaddr.
                  assert (N.to_nat addr = length (take (N.to_nat (handle_addr h) - N.to_nat base) tbs)) as Hlentake.
                  { rewrite take_length_le; last lia. lia. } 
@@ -584,6 +621,6 @@ Section fundamental.
     iSplitR.
       + iLeft. iRight. iExists _. iSplit; first done. done. 
       + iExists _,_. iFrame.
-Admitted.
+Qed. 
 
 End fundamental.

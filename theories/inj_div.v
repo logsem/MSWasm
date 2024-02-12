@@ -28,3 +28,24 @@ Proof.
   apply Nat.mod_upper_bound. done.
 Qed. 
 
+
+Definition lo a b c d := (a < b - c + d)%N.
+Definition lo' a b c d := (b > c + a - d)%N.
+Definition lo'' a b c d := (a + c < b + d)%N.
+
+Lemma sub_le a b c : (a <= b)%N -> (a - c <= b - c)%N.
+Proof. lia. Qed.
+
+Lemma sub_lt a b c : (c <= a)%N -> (a < b)%N -> (a - c < b - c)%N.
+Proof. lia. Qed. 
+
+Lemma lo''_to_lo' a b c d : (d <= c + a)%N -> lo'' a b c d -> lo' a b c d.
+Proof. 
+  unfold lo'', lo'. intros Hd H. rewrite N.add_comm in H.
+  apply (sub_lt _ _ _ Hd) in H. lia.
+Qed.
+
+Lemma lo''_to_lo a b c d : lo'' a b c d -> lo a b c d.
+Proof.
+  unfold lo, lo''. intros H. lia.
+Qed. 

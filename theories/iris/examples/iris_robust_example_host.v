@@ -541,7 +541,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       ID_instantiate [] 1 [1%N;0%N] ].
 
   
-  Lemma instantiate_lse adv_module log_func h (Φ : language.val wasm_host_lang -> iProp Σ):
+  Lemma instantiate_lse adv_module log_func h (Φ : language.val wasm_host_lang -> iProp Σ) all:
     (Φ = λ v, ((⌜v = trapHV⌝ ∨ (⌜v = immHV []⌝ ∗ na_own logrel_nais ⊤)))%I) ->
     module_typing adv_module [ET_func (Tf [T_i32] [])] [ET_func (Tf [] [])] ->
     (* we assume the adversary module has an export of the () → () *)
@@ -553,7 +553,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     module_data_bound_check_gmap ∅ [] adv_module ->
     (* if the adversary module declares a memory, there cannot be more initializers that its size *)
 
-    ⊢ {{{ ↪[frame] empty_frame ∗
+    ⊢ {{{ ↪[frame] empty_frame ∗ interp_allocator all ∗
           N.of_nat log_func ↦[wf] (FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) ∗
           N.of_nat h ↦[ha] HA_print ∗
           0%N ↪[mods] adv_module ∗
@@ -565,7 +565,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       {{{ v, Φ v }}}. 
   Proof.
     iIntros (-> Htyp Hnostart Hrestrict Hboundst Hboundsm).
-    iModIntro. iIntros (Φ) "(Hemptyframe & Hlogfunc & Hh & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
+    iModIntro. iIntros (Φ) "(Hemptyframe & Hall & Hlogfunc & Hh & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
     iDestruct "Hvis1" as (log) "Hvis1".
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_adv] [Hvis Hvis1 Hlogfunc] ") => //.
     2: { iIntros "Hmod_adv".
@@ -699,7 +699,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     
     iApply (weakestpre.wp_wand _ _ _ (λ v, _ ∗ ↪[frame]empty_frame)%I with "[-HΦ] [HΦ]");cycle 1.
     { iIntros (v) "[Hv ?]". iApply "HΦ". iExact "Hv". }
-    { iApply (instantiation_spec_operational_start with "[$Hemptyframe] [$Hmod_lse Hadvf Hn Hm Hlogfunc]");[eauto|..].
+    { iApply (instantiation_spec_operational_start with "[$Hemptyframe] Hall [$Hmod_lse Hadvf Hn Hm Hlogfunc]");[eauto|..].
       { by apply lse_module_typing. }
       { by apply module_restrictions_lse. }
       { unfold import_resources_host.
@@ -753,7 +753,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
             iPureIntro. by apply Forall_nil. }
         }
       }
-      { iIntros (idnstart) "Hf [Hmod_lse Hr]".
+      { iIntros (idnstart) "Hf Hall [Hmod_lse Hr]".
         iDestruct "Hr" as "([Himph Hexp] & Hr)".
         iDestruct "Hr" as (?) "[Hr _]".
         iDestruct "Hr" as (? ? ? ? ? ?) "(Hirwt & %Htypr & %Htab_inits & %Hwts'0 & %Hbounds_elemr & 
@@ -881,16 +881,14 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
         inversion Heq2;subst f f0 l. inversion Hstart.
         iMod (na_inv_alloc logrel_nais _ logN with "Hh") as "#Hh".
         iModIntro.
-        iApply (lse_log_spec with "[$Hr $Hown $Hi $Ha $Hh $Hf]");auto.
+        iApply (lse_log_spec with "[$Hr $Hown $Hi $Ha $Hh $Hf $Hall]");auto.
         { simplify_eq. simpl. auto. }
         { rewrite Hinstfuncseq;eauto. }
         { rewrite Hinstfuncseq;eauto. }
-        
-        admit.
         iIntros (?) "(H & Hf & Hall)".
         iFrame. 
       }
     }
-  Admitted. 
+  Qed. 
 
 End Host_robust_example.

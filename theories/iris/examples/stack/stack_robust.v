@@ -193,7 +193,7 @@ Section Client_main.
       to_e_list main
       {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝ ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |}
                                                                ∗ na_own logrel_nais ⊤))
-               ∗ ∃ f', ↪[frame] f' ∗ interp_allocator all ∗ ∃ r, ⌜f' = Build_frame (set_nth r (f_locs f) 0 r) (f_inst f)⌝ }}}.
+               ∗ ∃ f' all, ↪[frame] f' ∗ interp_allocator all ∗ ∃ r, ⌜f' = Build_frame (set_nth r (f_locs f) 0 r) (f_inst f)⌝ }}}.
   Proof.
     iIntros (HC Hglob Htab Hidf0 Hidf4 Hidf5 Hidf6 Hflocs Htablen Htyp Φ)
             "!> (Hf & Hall & Hown & #Hadv & #Hi & Hg & Hidf0 & #Hnewstack & 
@@ -360,9 +360,14 @@ Section Client_main.
       rewrite firstn_cons. iDestruct "Ht" as "[Ht _]".
       
       take_drop_app_rewrite 3.
-      iApply (wp_wand with "[-HΦ]").
+      iApply (wp_wand with "[-HΦ]"). (* Removed Hall *) 
       { iApply wp_wasm_empty_ctx.
-        iApply wp_seq_can_trap_same_ctx. iFrame "Hf".
+        iApply wp_seq_can_trap_ctx. iFrame "Hf".
+        instantiate (2 := λ f', (⌜ f' = {|
+                    f_locs :=
+                      [VAL_numeric (NVAL_int32 (Wasm_int.Int32.repr (Z.of_N r)))];
+                    f_inst := f_inst f
+                  |}⌝ ∗ ∃ all, interp_allocator all)%I).
         iSplitR;[|iSplitR];cycle 2.
         iSplitL "HisStack Hidf5 Ht Hown Hall".
         { iIntros "Hf". iApply (wp_wand with "[-]").
@@ -377,14 +382,16 @@ Section Client_main.
             unfold interp_expression_closure.
 
             iApply fupd_wp.
-            iMod (na_inv_alloc logrel_nais _ (wtN (N.of_nat idt) (N.of_nat 0)) with "Ht") as "#Ht".
-            iApply ("Hmap" with "[] [$HisStack $Hf $Hidf5 Ht $Hown Hadv Hall]");[iPureIntro;solve_ndisj|..].
+            iMod (na_inv_alloc logrel_nais _ (wtN (N.of_nat idt) (N.of_nat 0)) with "Ht") as "#Ht". 
+            iApply ("Hmap" with "[] [$HisStack $Hf $Hidf5 Ht $Hown Hadv Hall]");[iPureIntro;solve_ndisj|..]. 
             iSimpl. iFrame "Ht".
+            instantiate (1 := (∃ all, interp_allocator all)%I).
+            
             instantiate (2:=(λ _, True)%I).
             instantiate (1:=(λ _ _, True)%I).
-            
             repeat iSplit;[auto| |auto..|].
             { iPureIntro. auto. }
+            2:{ iExists _. done. } 
             { (* This is the most interesting part of the proof: since we do not assume a spec for the 
              imported function, we apply the ftlr to get a specifiction for the function *)
               iExists (wfN (N.of_nat a)). iFrame "Hadv".
@@ -395,8 +402,10 @@ Section Client_main.
                 apply ndot_preserve_disjoint_r.
                 unfold iris_logrel.wf,wt. solve_ndisj. }
               iSplitR;[auto|].
-              iIntros (u fc). iModIntro.
-              iIntros (Ψ) "(_ & %Histack & Hf & Hown) HΨ".
+              iIntros (u fc).
+              iModIntro. 
+              iIntros (Ψ) "(_ & %Histack & Hall & Hf & Hown) HΨ".
+              iDestruct "Hall" as (all0) "Hall".
               iApply fupd_wp.
               iMod (na_inv_acc with "Hadv Hown") as "(>Ha & Hown & Hcls)";[solve_ndisj..|].
               take_drop_app_rewrite 1.
@@ -414,31 +423,33 @@ Section Client_main.
               iNext. iIntros "Hf".
               iApply wp_wasm_empty_ctx_frame.
               rewrite wp_frame_rewrite.
-              iDestruct ("Hl" $! _ _ ([VAL_int32 u] ++ n_zeros locs) with "Hf Hown [] []") as "Hcont".
-              { admit. }
+              iDestruct ("Hl" $! _ _ ([VAL_int32 u] ++ n_zeros locs) with "Hf Hown Hall []") as "Hcont".
               { iSimpl. iRight. iExists _. iSplit;[eauto|].
                 iSplit. iExists _. eauto.
-                iApply n_zeros_interp_values. }
+                iApply n_zeros_interp_values. } 
               iApply (wp_wand with "Hcont").
               iIntros (v) "[[Hv ?] [? ?]]". iFrame.
               iDestruct "Hv" as "[? | Hv]";[by iLeft|iRight].
               iDestruct "Hv" as (ws ->) "Hw".
               iDestruct (big_sepL2_length with "Hw") as %Hwlen.
               destruct ws as [|w ws];[done|destruct ws;[|done]].
+              iFrame. 
               iDestruct "Hw" as "[Hw _]". iDestruct "Hw" as (z) "->". unfold interp_value. eauto.
             }
-            { iModIntro. iIntros (w) "[H [Hown Hf]]".
-              iCombine "H Hown" as "H". instantiate (1:=(λ vs, _ ∗ ↪[frame] _)%I). iFrame "Hf". iExact "H". }
+            { iModIntro. iIntros (w) "(H & Hown & Hall & Hf)".
+              iCombine "H Hown Hall" as "H". instantiate (1:=(λ vs, _ ∗ ↪[frame] _)%I).
+              iFrame "Hf". iExact "H".
+            } 
           }
-          iIntros (v) "[[Hv Hown] Hf]".
-          iSplitR "Hf".
+          iIntros (v) "[(Hv & Hall & Hown) Hf]".  
+          iSplitR "Hf Hall".
           iDestruct "Hv" as "[Htrap | [-> [Hs Hidf]]]";[by iLeft|].
           iRight. iCombine "Hs Hidf Hown" as "H".
           instantiate (1:=(λ v, ⌜v = immV []⌝ ∗ _ )%I). iSplit;auto. iExact "H".
-          iFrame.
+          iFrame. iExists _. iFrame. done. 
         }
-        2: by iIntros "[%Hcontr _]".
-        { iIntros (w) "[[-> [Hs [Hidf5 Hown]]] Hf]".
+        2: iIntros "[%Hcontr _]"; by inversion Hcontr. 
+        { iIntros (w f1) "((-> & Hs & Hidf5 & Hown) & Hf & -> & Hall)". 
           iSimpl. iApply wp_wasm_empty_ctx.
           (* get_local *)
           take_drop_app_rewrite 1.
@@ -449,7 +460,7 @@ Section Client_main.
           iSimpl.
           (* get_length *)
           (* we can infer the size of the new stack state *)
-          iDestruct "Hs" as (s') "[HisStack Hstackall]".
+          iDestruct "Hs" as (s') "(HisStack & Hstackall)".
           do 2 (destruct s';try done). { iDestruct "Hstackall" as "[? ?]";done. }
           destruct s';try done. 2: { iDestruct "Hstackall" as "[? [? ?]]";done. }
           take_drop_app_rewrite 2.
@@ -468,10 +479,10 @@ Section Client_main.
             iSplit;[auto|]. iExact "HH". }
           iIntros (w) "(-> & [HisStack Hidf3] & Hf)".
           iSimpl. 2: by iIntros "[%Hcontr _]".
-          instantiate (1:=(λ v, ⌜v = trapV⌝
+          instantiate (1:=(λ v, (⌜v = trapV⌝
                                 ∨ ⌜v = immV []⌝ ∗
                                          N.of_nat k↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |} ∗
-                                         na_own logrel_nais ⊤)%I).
+                                         na_own logrel_nais ⊤) ∗ (∃ all0, interp_allocator all0) ∗ ↪[frame] _ )%I).
           iSimpl.
           iDestruct "Hg" as (gv) "Hg".
           iApply (wp_wand with "[Hf Hg]").
@@ -479,12 +490,11 @@ Section Client_main.
             instantiate (1:=(λ v, ⌜ v = immV [] ⌝)%I). iNext. auto. }
           iIntros (v) "[-> [Hg Hf]]". iFrame. iRight. iFrame. auto.
         }
-        { by iLeft. }
+        { iIntros (f1) "(Hf & -> & Hall)". iFrame. by iLeft. }
       }
-      iIntros (v) "[Hv Hf]".
-      iApply "HΦ". iFrame. iExists _. iFrame. eauto. iSplit.
-    admit. iExists _; done. }
-Admitted.     
+      iIntros (v) "(Hv & [%all0 Hall] & Hf)".
+      iApply "HΦ". iFrame. iExists _,_. iFrame. eauto. } 
+Qed. 
       
     
 End Client_main.
@@ -493,7 +503,7 @@ End Client_main.
 Section Client_instantiation.
 
   Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
-      !logrel_na_invs Σ, !hasG Σ}.
+      !logrel_na_invs Σ, !hasG Σ, !cancelG Σ, !cinvG Σ}.
 
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
@@ -510,7 +520,7 @@ Section Client_instantiation.
     WP e @ s; E {{ Φ }} -∗ (∀ v, Φ v -∗ Ψ v) -∗ WP e @ s; E {{ Ψ }}.
   Proof. iApply (weakestpre.wp_wand). Qed.
 
-  Lemma instantiate_client adv_module g_ret wret (exp_addrs: list N) (stack_mod_addr adv_mod_addr client_mod_addr : N)  :
+  Lemma instantiate_client adv_module g_ret wret (exp_addrs: list N) (stack_mod_addr adv_mod_addr client_mod_addr : N)  all :
     length exp_addrs = 10 ->
     module_typing adv_module [] [ET_func (Tf [T_i32] [T_i32])] -> (* we assume the adversary module has an export of the () → () *)
     mod_start adv_module = None -> (* that it does not have a start function *)
@@ -527,7 +537,7 @@ Section Client_instantiation.
           (∃ name, (exp_addrs !!! 9) ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx (N.to_nat g_ret)) |}) ∗
           (own_vis_pointers (take 8 exp_addrs)) ∗
           (∃ vs, (exp_addrs !!! 8) ↪[vis] vs) ∗
-          ↪[frame] empty_frame
+          ↪[frame] empty_frame ∗ interp_allocator all
       }}}
         ((stack_adv_client_instantiate exp_addrs stack_mod_addr adv_mod_addr client_mod_addr ,[]) : host_expr) 
       {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ g_ret ↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |} }}} .
@@ -539,7 +549,7 @@ Section Client_instantiation.
     Opaque zip_with.
     
     iModIntro. iIntros (Φ) "(Hgret & Hmod_stack & Hmod_adv & Hmod_lse & Hown & Hvisglob & 
-                        Hvisvst & Hvisadv & Hemptyframe) HΦ".
+                        Hvisvst & Hvisadv & Hemptyframe & Hall) HΦ".
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_stack] [Hvisvst] ") => //.
     2: { iIntros "Hmod_stack".
       iApply weakestpre.wp_mono;cycle 1.
@@ -717,7 +727,7 @@ Section Client_instantiation.
                                 FC_func_native istack (Tf [T_i32] [T_i32]) l6 f6 ;
                                 (FC_func_native inst_adv (Tf [T_i32] [T_i32]) modfunc_locals modfunc_body)]): gmap N function_closure) as mtmp.
     
-    iApply (instantiation_spec_operational_start with "[$Hemptyframe] [Hmod_lse HimpsH Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hadvf Htab Hn Hgret Hvisglob]")
+    iApply (instantiation_spec_operational_start with "[$Hemptyframe] Hall [Hmod_lse HimpsH Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hadvf Htab Hn Hgret Hvisglob]")
     ; try exact client_module_typing;[eauto|..].
     { unfold module_restrictions.
       simpl.
@@ -764,7 +774,7 @@ Section Client_instantiation.
       split;[|apply Forall_nil].
       simpl. rewrite lookup_insert;auto. done. done. cbn. done. }
 
-    iIntros (idnstart) "Hf [Hmod_lse Hr]".
+    iIntros (idnstart) "Hf Hall [Hmod_lse Hr]".
     iDestruct "Hr" as "((Himpf0 & Himpf1 & Himpf2 & Himpf3 & Himpf4 & Himpf5 & Himpf6 & Htab & Hadvf & Hg) & Hr)".
     iDestruct "Hr" as (?) "[Hr' _]".
     unfold instantiation_resources_post_wasm.
@@ -849,8 +859,8 @@ Section Client_instantiation.
     iApply wp_label_push_nil.
     iApply wp_ctx_bind;[simpl;auto|]. repeat erewrite app_nil_l.
 
-    iApply (wp_wand with "[Hf Hgret Himpfcl0 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hown Htabr HnewStackAddrIs]").
-    { iApply (main_spec with "[$Hi $Hf $Hown Himpfcl0 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hgret HnewStackAddrIs]").
+    iApply (wp_wand with "[Hf Hgret Hall Himpfcl0 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hown Htabr HnewStackAddrIs]").
+    { iApply (main_spec with "[$Hi $Hf $Hown $Hall Himpfcl0 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hgret HnewStackAddrIs]").
       { simpl. auto. }
       { simpl. rewrite Heq6. simpl. eauto. }
       { simpl. rewrite Heq3. simpl. eauto. }
@@ -859,7 +869,7 @@ Section Client_instantiation.
       { apply Htablen. }
       { unfold upd_local_label_return. simpl.
         apply Htypf. }
-      { iFrame. iSplitR. admit. iSplit.
+      { iFrame. iSplit.
         { iDestruct (big_sepL2_lookup with "Hires") as "Ha".
           { eauto. }
           { rewrite /get_import_func_count /= drop_0 /= -nth_error_lookup. eauto. }
@@ -873,7 +883,7 @@ Section Client_instantiation.
       iIntros (v) "HH". iExact "HH".
     }
     iIntros (v) "[HH Hf]".
-    iDestruct "Hf" as (f) "(Hf & Hall & %Hfeq)".
+    iDestruct "Hf" as (f all') "(Hf & Hall & %Hfeq)".
     iDestruct "HH" as "[-> | Hres]".
     { take_drop_app_rewrite_twice 0 0.
       iApply (wp_wand_ctx with "[Hf]").
@@ -899,6 +909,6 @@ Section Client_instantiation.
       iApply weakestpre.wp_value. apply language.of_to_val. eauto.
       iRight. rewrite N2Nat.id. iDestruct "Hgret" as "[$ Hown]".
     }
-  Admitted. 
+  Qed. 
   
 End Client_instantiation.

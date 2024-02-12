@@ -258,7 +258,7 @@ Section Examples_host.
 
 
   Context `{!wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ,
-        !logrel_na_invs Σ, HHB: HandleBytes}.
+        !logrel_na_invs Σ, HHB: HandleBytes, !cancelG Σ, !cinvG Σ}.
 
   Notation "{{{ P }}} es {{{ v , Q }}}" :=
     (□ ∀ Φ, P -∗ (∀ v, Q -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
@@ -362,7 +362,7 @@ Section Examples_host.
 
   Locate "{{{".
   
-  Lemma instantiate_lse adv_module g_ret wret :
+  Lemma instantiate_lse adv_module g_ret wret all:
     module_typing adv_module [] lse_func_impts -> (* we assume the adversary module has an export of the () → () *)
     mod_start adv_module = None -> (* that it does not have a start function *)
     module_restrictions adv_module -> (* that it adheres to the module restrictions (i.e. only constant initializers for globals) *)
@@ -370,7 +370,7 @@ Section Examples_host.
     module_data_bound_check_gmap ∅ [] adv_module -> (* if the adversary module declares a memory, there cannot be more initializers that its size *)
     typeof wret = T_i32 -> (* the imported return global has type i32 *)
 
-    ⊢ {{{ ↪[frame] empty_frame ∗
+    ⊢ {{{ ↪[frame] empty_frame ∗ interp_allocator all ∗
           (N.of_nat g_ret) ↦[wg] {| g_mut := MUT_mut; g_val := wret |} ∗
           0%N ↪[mods] adv_module ∗
           1%N ↪[mods] lse_module ∗
@@ -381,7 +381,7 @@ Section Examples_host.
       {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ ⌜v = immHV [xxv 42]⌝ }}} .
   Proof.
     iIntros (Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
-    iModIntro. iIntros (Φ) "(Hemptyframe & Hgret & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
+    iModIntro. iIntros (Φ) "(Hemptyframe & Hall & Hgret & Hmod_adv & Hmod_lse & Hown & Hvis1 & Hvis) HΦ".
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_adv] [Hvis] ") => //.
     2: { iIntros "Hmod_adv".
       iApply weakestpre.wp_mono.
@@ -464,7 +464,7 @@ Section Examples_host.
 
     iApply (wp_wand_host _ _ _ (λ v, _ ∗ ↪[frame]empty_frame)%I with "[-HΦ] [HΦ]");cycle 1.
     { iIntros (v) "[Hv ?]". iApply "HΦ". iExact "Hv". }
-    { iApply (instantiation_spec_operational_start_seq with "[$Hemptyframe] [$Hmod_lse Hgret Hadvf Hn Hvis1]");[eauto|..].
+    { iApply (instantiation_spec_operational_start_seq with "[$Hemptyframe] Hall [$Hmod_lse Hgret Hadvf Hn Hvis1]");[eauto|..].
       { by apply lse_module_typing. }
       { by apply module_restrictions_lse. }
       { unfold import_resources_host.
@@ -525,7 +525,7 @@ Section Examples_host.
             iPureIntro. by apply Forall_nil. }
         }
       }
-      { iIntros (idnstart) "Hf [Hmod_lse Hr]".
+      { iIntros (idnstart) "Hf Hall [Hmod_lse Hr]".
         iDestruct "Hr" as "([Himph Hexp] & Hr)".
         iDestruct "Hr" as (?) "[Hr _]".
         iDestruct "Hr" as (? ? ? ? ? ?) "(Hirwt & %Htypr & %Htab_inits & %Hwts'0 & %Hbounds_elemr & 
@@ -649,14 +649,14 @@ Section Examples_host.
         iApply wp_label_push_nil.
         iApply wp_ctx_bind;[simpl;auto|]. repeat erewrite app_nil_l.
 
-        iApply (wp_wand with "[Hf Hgret Hmem Hown]").
-        { iApply (lse_spec with "[$Hi $Hf $Hown $Ha Hgret Hmem]");[by cbn|cbn..|] => //.
+        iApply (wp_wand with "[Hf Hgret Hmem Hown Hall]").
+        { iApply (lse_spec with "[$Hi $Hf $Hown $Ha $Hall Hgret Hmem]");[by cbn|cbn..|] => //.
           { rewrite Heq4. eauto. }
           { rewrite Hinstfuncseq;eauto. }
           { rewrite Heq6;eauto. }
           { unfold upd_local_label_return;simpl.
             rewrite Heqadvm /=. eauto. }
-          { iSplitR. admit. iSplitR "Hmem".  eauto.
+          { iSplitR "Hmem".  eauto.
             iDestruct "Hmem" as "[Hm _]".
             cbn.
             replace (repeat #00%byte (Pos.to_nat (64*1024*1))) with (repeat #00%byte 4%nat ++ repeat #00%byte (Pos.to_nat 65532)).
@@ -705,7 +705,7 @@ Section Examples_host.
         }
       }
     }
-  Admitted. 
+  Qed. 
   
 
 End Examples_host.

@@ -690,7 +690,7 @@ Section logrel.
     ⌜(tc_label τctx) = [] ∧ (tc_return τctx) = None⌝ ∧
     match tf with
     | Tf τ1 τ2 => ∀ i, interp_instance τctx [] i -∗
-                      ∀ f all vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗ interp_allocator all -∗
+                      ∀ f all vs, ↪[frame] f -∗ na_own logrel_nais ⊤ -∗ interp_allocator all -∗ 
                                interp_val (τ1 ++ ts) (immV vs) -∗
                                interp_expression_closure_no_host τ2 f all [::AI_local (length τ2)
                                                                 (Build_frame vs i)

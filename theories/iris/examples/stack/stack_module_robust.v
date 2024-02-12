@@ -122,7 +122,7 @@ Section RobustStack.
     revert HH. move =>/eqP. auto.
   Qed.
     
-  Lemma instantiate_stack_adv_spec adv_module start (exp_addrs: list N) (stack_mod_addr adv_mod_addr: N) :
+  Lemma instantiate_stack_adv_spec adv_module start (exp_addrs: list N) (stack_mod_addr adv_mod_addr: N) all :
     length exp_addrs = 8 ->
     module_typing adv_module stack_module_imports [] -> (* we assume the adversary module imports the stack module) *)
     mod_start adv_module = Some {| modstart_func := Mk_funcidx start |} -> (* that it does have a start function *)
@@ -134,18 +134,18 @@ Section RobustStack.
           adv_mod_addr ↪[mods] adv_module ∗
           na_own logrel_nais ⊤ ∗
           own_vis_pointers exp_addrs ∗
-          ↪[frame] empty_frame
+          ↪[frame] empty_frame ∗ interp_allocator all
       }}}
         ((stack_adv_instantiate exp_addrs stack_mod_addr adv_mod_addr,[]) : host_expr) 
         {{{ λ v: language.val wasm_host_lang, ((⌜v = trapHV ∨ v = immHV []⌝) ∗ na_own logrel_nais ⊤
                   ∗ ∃ newStackAddrIs isStack, na_inv logrel_nais stkN (stackModuleInv (λ n0, isStack n0) newStackAddrIs))
-                 ∗ ↪[frame] empty_frame }}} .
+                 ∗ ↪[frame] empty_frame ∗ ∃ all, interp_allocator all}}} .
   Proof.
     iIntros (Hexpaddrlen Htyp Hnostart Hrestrict Hboundst Hboundsm).
     do 9 (destruct exp_addrs => //); clear Hexpaddrlen.
     
     iModIntro. iIntros (Φ) "(Hmod_stack & Hmod_adv & Hown & 
-                        Hvis & Hemptyframe) HΦ".
+                        Hvis & Hemptyframe & Hall) HΦ".
 
     (* instantiate stack module *)
     iApply (wp_seq_host_nostart NotStuck with "[] [$Hmod_stack] [Hvis] ") => //.
@@ -198,7 +198,7 @@ Section RobustStack.
     (* instantiate adversary module *)
     iApply (weakestpre.wp_wand _ _ _ (λ v, _)%I with "[-HΦ] [HΦ]");cycle 1.
     { iIntros (v) "Hv". iApply "HΦ". iExact "Hv". }
-    { iApply (instantiation_spec_operational_start_seq with "[$Hemptyframe] [$Hmod_adv Hvis0 Hvis1 Hvis2 Hvis3 Hvis4 Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4]");[eauto|apply Htyp|auto|..].
+    { iApply (instantiation_spec_operational_start_seq with "[$Hemptyframe] Hall [$Hmod_adv Hvis0 Hvis1 Hvis2 Hvis3 Hvis4 Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4]");[eauto|apply Htyp|auto|..].
       - instantiate (5:=[_;_;_;_;_]).
         unfold import_resources_host. iSimpl. iFrame "Hvis0 Hvis1 Hvis2 Hvis3 Hvis4".
         instantiate (1:=∅).
@@ -241,7 +241,7 @@ Section RobustStack.
           rewrite /import_glob_resources big_sepM_empty //.
         + unfold export_ownership_host. auto.
         + iPureIntro. erewrite module_typing_exports_length;eauto. auto.
-      - iIntros (idnstart) "Hf Hres".
+      - iIntros (idnstart) "Hf Hall Hres".
         Transparent list_to_map.
         Transparent zip_with.
         iDestruct "Hres" as "[Hadv [Himp Hinst]]".
@@ -293,10 +293,9 @@ Section RobustStack.
         rewrite wp_frame_rewrite.
         iDestruct (be_fundamental_local with "Hi") as "Hcont";[auto|apply Hestyp|..].
         unfold interp_expression_closure_no_host.
-        iApply (wp_wand with "[Hf Hown]").
-        iApply ("Hcont" with "Hf Hown []").
+        iApply (wp_wand with "[Hf Hown Hall]").
+        iApply ("Hcont" with "Hf Hown Hall").
         repeat erewrite app_nil_l.
-        admit.
         iRight. iExists _. iSplitR;[eauto|]. iApply n_zeros_interp_values.
         iIntros (v) "[[Hv Hown] [Hf Hall]]".
         iDestruct "Hv" as "[-> | Hv]".
@@ -306,6 +305,6 @@ Section RobustStack.
           iDestruct (big_sepL2_length with "Hv") as %Hnil. destruct ws;[|done].
           iApply weakestpre.wp_value; first by unfold IntoVal; apply language.of_to_val;eauto.
           iFrame. auto. }
-  Admitted. 
+  Qed. 
 
 End RobustStack.

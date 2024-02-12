@@ -25,7 +25,7 @@ Set Bullet Behavior "Strict Subproofs".
 
 Section StackModule.
 
-Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}. 
+Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !cinvG Σ, !cancelG Σ}. 
 
 
 Definition stack_module :=
@@ -439,8 +439,8 @@ Definition spec4_push idf4 i4 l4 f4 (isStack: N -> list i32 -> iPropI Σ) E :=
 
 Definition spec5_stack_map idf5 i5 l5 f5 (isStack : N -> seq.seq i32 -> iPropI Σ) j0 E :=
   (∀ (f0 : frame) (f : i32) (v : N) (s : seq.seq i32) a cl
-      (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) ,
-      {{{  ↪[frame] f0 ∗
+      (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) Ξ,
+      {{{  ↪[frame] f0 ∗ Ξ ∗
             N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5 ∗
             isStack v s ∗
             stackAll s Φ ∗
@@ -450,14 +450,14 @@ Definition spec5_stack_map idf5 i5 l5 f5 (isStack : N -> seq.seq i32 -> iPropI �
               (∀ (u : i32) (fc : frame),
                    {{{ Φ u ∗
                       ⌜ i5 = f_inst fc ⌝ ∗
-                       ↪[frame] fc ∗
+                               Ξ ∗ ↪[frame] fc ∗ 
                        N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
                   [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
-                           ∗ ↪[frame] fc
+                           ∗ Ξ ∗ ↪[frame] fc 
                            ∗ N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) 
                            ∗ (N.of_nat a) ↦[wf] cl }}}
                   )  }}}
@@ -465,6 +465,7 @@ Definition spec5_stack_map idf5 i5 l5 f5 (isStack : N -> seq.seq i32 -> iPropI �
     {{{ w, ⌜ w = immV [] ⌝ ∗
            (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
            N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5 ∗
+           Ξ ∗
            ↪[frame] f0 ∗
             N.of_nat j0 ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl
@@ -474,7 +475,7 @@ Definition spec5_stack_map idf5 i5 l5 f5 (isStack : N -> seq.seq i32 -> iPropI �
 (* A trap allowing version for code that might trap *)
 Definition spec5_stack_map_trap `{!logrel_na_invs Σ} idf5 i5 l5 f5 (isStack : N -> seq.seq i32 -> iPropI Σ) j0 E :=
   (∀ (f0 : frame) (f : i32) (v : N) (s : seq.seq i32) a cl γ1
-     (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) ,
+     (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) Ξ,
       ⌜↑γ1 ⊆ E⌝ →
       {{{  N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5 ∗
            isStack v s ∗
@@ -486,21 +487,21 @@ Definition spec5_stack_map_trap `{!logrel_na_invs Σ} idf5 i5 l5 f5 (isStack : N
            (∀ (u : i32) (fc : frame),
                {{{ Φ u ∗
                      ⌜ i5 = f_inst fc ⌝ ∗
-                     ↪[frame] fc ∗
+                              Ξ ∗ ↪[frame] fc ∗ 
                      na_own logrel_nais ⊤
                }}}
                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                    AI_invoke a ] @ E
-                 {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
+                 {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v))) ∗ Ξ
                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
         | None => True
            end ∗
-                 na_own logrel_nais ⊤ ∗ ↪[frame] f0 }}}
+                 na_own logrel_nais ⊤ ∗ Ξ ∗ ↪[frame] f0}}}
         [ AI_basic (u32const v); AI_basic (BI_const (NVAL_int32 f)) ; AI_invoke idf5 ] @ E
       {{{ w, (⌜ w = trapV ⌝ ∨ (⌜ w = immV [] ⌝ ∗
                               (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
-                              N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5)) ∗
-      na_own logrel_nais ⊤ ∗
+                              N.of_nat idf5 ↦[wf] FC_func_native i5 (Tf [T_i32 ; T_i32] []) l5 f5)) ∗ Ξ ∗
+      na_own logrel_nais ⊤ ∗ 
       ↪[frame] f0
   }}})%I.
 
@@ -1115,10 +1116,10 @@ Proof.
       by iFrame.
     }
         
-    { iIntros "!>" (f6 fi v0 s0 a cl Φ Ψ Ξ)
-              "!> (Hf & Hf0 & Hs & HΦ & Htab & Hcl & %Hclt & #Hspec) HΞ".
+    { iIntros "!>" (f6 fi v0 s0 a cl Φ Ψ Ξ Ξ1)
+              "!> (Hf & HΞ & Hf0 & Hs & HΦ & Htab & Hcl & %Hclt & #Hspec) HΞ1".
       iApply wp_wand_r.
-      iSplitR "HΞ".
+      iSplitR "HΞ1".
       { rewrite (separate2 (AI_basic (u32const _)) _ _).
         rewrite - (app_nil_r [AI_basic _]).
         iApply (wp_invoke_native with "Hf Hf0") => //.
@@ -1129,18 +1130,18 @@ Proof.
         rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
         iApply (wp_block with "Hf") => //.
         iIntros "!> Hf".
-        iApply (wp_label_bind with "[Hs Hf Hf0 HΦ Htab Hcl]") ; last first.
+        iApply (wp_label_bind with "[Hs Hf Hf0 HΦ Htab Hcl HΞ]") ; last first.
         iPureIntro.
         unfold lfilled, lfill => /=.
         instantiate (5 := []) => /=.
         rewrite app_nil_r.
         done.
-        iApply (spec_stack_map with "[Hs Hf HΦ Hcl Htab]").        
+        iApply (spec_stack_map with "[Hs Hf HΦ Hcl Htab HΞ]").        
         iFrame.
         repeat iSplit ; try iPureIntro => //=.
         lia.
-        iExact "Hspec".
-        iIntros (w) "(-> & Hs & Hf & Ht & Ha)".
+        iExact "Hspec". done.
+        iIntros (w) "(-> & Hs & HΞ & Hf & Ht & Ha)".
         iDestruct "Hf" as (f7) "[Hf %Hf4]".
         iApply (wp_wand_ctx with "[Hs Hf Hf0]").
         iApply (wp_val_return with "Hf") => //.
@@ -1161,27 +1162,26 @@ Proof.
         iFrame.
         iIntros "Hf".
         iSimpl.         
-        iApply (wp_frame_value with "Hf") => //.
+        iApply (wp_frame_value with "Hf").  done. done. 
         iNext.
          instantiate (1 := λ v, (⌜ v = immV [] ⌝ ∗
                                             ( ∃ s', isStack v0 s' m ∗ stackAll2 s0 s' Ψ) ∗
                                             N.of_nat t↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m fi)]Some a ∗
-                                            N.of_nat a↦[wf]cl ∗
+                                            N.of_nat a↦[wf]cl ∗ Ξ ∗
                                  N.of_nat f4↦[wf] _)%I).
         iSimpl.
         iFrame.
-        iFrame.
-        done. }
-      iIntros (w) "[(-> & Hs & Ht & Ha & Hf0) Hf]".
-      iApply "HΞ".
+        done. } 
+      iIntros (w) "[(-> & Hs & Ht & Ha & HΞ & Hf0) Hf]".
+      iApply "HΞ1".
       by iFrame.
     }
     
     (* Trap spec *)  
-    { iIntros "!>" (f6 fi v0 s0 a cl γ Φ Ψ Hsub Ξ)
-              "!> (Hf & Hs & HΦ & #Htab & #Hcl & Hown & Hf0) HΞ".
+    { iIntros "!>" (f6 fi v0 s0 a cl γ Φ Ψ Ξ Hsub Ξ1)
+              "!> (Hf & Hs & HΦ & #Htab & #Hcl & Hown & HΞ & Hf0) HΞ1".
       iApply wp_wand_r.
-      iSplitR "HΞ".
+      iSplitR "HΞ1".
       { rewrite (separate2 (AI_basic (u32const _)) _ _).
         rewrite - (app_nil_r [AI_basic _]).
         iApply (wp_invoke_native with "Hf0 Hf") => //.
@@ -1192,18 +1192,19 @@ Proof.
         rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
         iApply (wp_block with "Hf") => //.
         iIntros "!> Hf".
-        iApply (wp_label_bind with "[Hs Hf Hf0 HΦ Htab Hown]") ; last first.
+        iApply (wp_label_bind with "[Hs Hf Hf0 HΦ Htab Hown HΞ]") ; last first.
         iPureIntro.
         unfold lfilled, lfill => /=.
         instantiate (5 := []) => /=.
         rewrite app_nil_r.
         done.
         iApply (spec_stack_map_trap _ m _ v0 s0 _ _ _ Φ Ψ
-                 with "[Hs Hf HΦ Htab Hown]");[apply Hsub|..].
+                 with "[Hs Hf HΦ Htab Hown HΞ]");[apply Hsub|..].
+        instantiate (2 := Ξ).
         iFrame "∗ #".
         repeat iSplit ; try iPureIntro => //=.
         lia. iFrame "Hcl".
-        iIntros (w) "[[-> | Hs] Hf]";
+        iIntros (w) "([-> | Hs] & HΞ & Hf)";
         iDestruct "Hf" as (f7) "[Hf [Hown %Hf4]]".
         { iApply (wp_wand_ctx with "[Hf]").
           iSimpl. take_drop_app_rewrite_twice 0 0.
@@ -1211,7 +1212,7 @@ Proof.
           iIntros (v1) "[-> Hf]".
           iExists _. iFrame. iIntros "Hf".
           iApply (wp_frame_trap with "Hf").
-          instantiate (1:=(λ v, (⌜v = trapV⌝ ∨ ⌜ v = immV [] ⌝ ∗ _) ∗ na_own logrel_nais ⊤)%I). iNext. iFrame.  eauto.
+          instantiate (1:=(λ v, (⌜v = trapV⌝ ∨ ⌜ v = immV [] ⌝ ∗ _) ∗ Ξ ∗ na_own logrel_nais ⊤)%I). iNext. iFrame.  eauto.
         }
         iDestruct "Hs" as "[-> Hs]".
         iApply (wp_wand_ctx with "[Hs Hf Hf0]").
@@ -1223,7 +1224,7 @@ Proof.
         apply of_to_val => //.
         iFrame.
         instantiate (1 :=  (λ v, ⌜ v = immV [] ⌝ ∗
-                                           ( ∃ s', isStack v0 s' m ∗ stackAll2 s0 s' Ψ) ∗
+                                         ( ∃ s', isStack v0 s' m ∗ stackAll2 s0 s' Ψ) ∗
                                            N.of_nat f4↦[wf] _ ∗ ↪[frame] _)%I).
         iSimpl.
         iFrame.
@@ -1235,15 +1236,16 @@ Proof.
         iSimpl.         
         iApply (wp_frame_value with "Hf") => //.
         iNext. iRight.
-         instantiate (1 :=  (( ∃ s', isStack v0 s' m ∗ stackAll2 s0 s' Ψ) ∗
+         instantiate (1 :=  (( ∃ s', isStack v0 s' m ∗ stackAll2 s0 s' Ψ) ∗ 
                                  N.of_nat f4↦[wf] _)%I).
         iSimpl. iSplitR;[done|].
         iFrame. }
 
       iSimpl.
-      iIntros (w) "[[[-> | (-> & Hs & Hf0)] Hown] Hf]".
-      all: try iApply "HΞ";iFrame. by iLeft.
-      iRight. iSplit;auto. iFrame.
+      iIntros (w) "[[[-> | (-> & Hs & Hf0)] [HΞ Hown]] Hf]".
+      all: try iApply "HΞ1";iFrame. by iLeft.
+      iRight. iSplit;auto. iFrame. (* iDestruct "Hs" as (s') "(?&?&?)".
+      iFrame. iExists _. iFrame.  *)
     }
       
     (* length spec *)

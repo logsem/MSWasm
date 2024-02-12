@@ -14,7 +14,7 @@ Unset Printing Implicit Defensive.
 
 Section Client.
 
- Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !logrel_na_invs Σ}. 
+ Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, !logrel_na_invs Σ, !cancelG Σ, !cinvG Σ}. 
 
 (* Functions from the stack module are : 
      0 - new_stack
@@ -168,16 +168,16 @@ Section Client.
     [ ID_instantiate (take 8 vis_addrs) stack_mod_addr [] ;
     ID_instantiate (drop 8 vis_addrs) client_mod_addr (take 8 vis_addrs) ].
 
-  Lemma instantiate_stack_client_spec E (vis_addrs: list N) (stack_mod_addr client_mod_addr: N) :
+  Lemma instantiate_stack_client_spec E (vis_addrs: list N) (stack_mod_addr client_mod_addr: N) all:
     length vis_addrs = 9 ->
-   ↪[frame] empty_frame -∗
+   ↪[frame] empty_frame -∗ interp_allocator all -∗
     stack_mod_addr ↪[mods] stack_module -∗
     client_mod_addr ↪[mods] client_module -∗
     own_vis_pointers vis_addrs -∗
      WP ((stack_instantiate vis_addrs stack_mod_addr client_mod_addr, []) : host_expr)
      @ E
             {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗ 
-               ↪[frame] empty_frame ∗
+               ↪[frame] empty_frame ∗ interp_allocator all ∗
                 stack_mod_addr ↪[mods] stack_module ∗
                  client_mod_addr ↪[mods] client_module ∗
                  ∃ idg name,
@@ -186,7 +186,7 @@ Section Client.
                     (N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int 20%Z |} ∨
                        N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int (-1)%Z |}) }}.
 Proof.
-  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis".
+  iIntros (Hvisaddrlen) "Hemptyframe Hall Hmod0 Hmod1 Hvis".
   do 10 (destruct vis_addrs => //); clear Hvisaddrlen.
   
   rewrite separate8.
@@ -214,7 +214,7 @@ Proof.
       iDestruct "Hes1" as (tab isStack)
                             "(Himport & Himp_type & %Hnodup & %Hfnodup & %Htab & #Hspec0 & #Hspec1 & #Hspec2 & #Hspec3 & #Hspec4 & #Hspec5 & #Hspec6 & #Hspec7)".
       iFrame "Hmod0".
-      iApply (instantiation_spec_operational_start with "[$Hemptyframe] [Hmod1 Himport Himp_type Hvis8]") ; try exact module_typing_client.
+      iApply (instantiation_spec_operational_start with "[$Hemptyframe] Hall [Hmod1 Himport Himp_type Hvis8]") ; try exact module_typing_client.
     - by unfold client_module.
     - by apply module_restrictions_client.
     - unfold instantiation_resources_pre.
@@ -236,7 +236,7 @@ Proof.
       iPureIntro ; unfold module_data_bound_check_gmap ; simpl ; done.
       done.
       done.
-    - iIntros (idnstart) "Hf Hres".
+    - iIntros (idnstart) "Hf Hall Hres".
       unfold instantiation_resources_post.
       iDestruct "Hres" as "(Hmod1 & Himphost & Hres)".
       iDestruct "Hres" as (inst) "[Hres Hexphost]".
@@ -354,7 +354,7 @@ Proof.
       inversion Hstart ; subst ; clear Hstart.
       iApply weakestpre.wp_wand_l. iSplitR ; last iApply wp_lift_wasm.
       iIntros (v).
-      instantiate ( 1 := λ v, (⌜ v = immHV [] ⌝ ∗ ↪[frame] empty_frame ∗ client_mod_addr↪[mods]client_module ∗
+      instantiate ( 1 := λ v, (⌜ v = immHV [] ⌝ ∗ ↪[frame] empty_frame ∗ interp_allocator all ∗ client_mod_addr↪[mods]client_module ∗
   (∃ (idg : nat) (name8: datatypes.name),
       n7↪[vis] {| modexp_name := name8; modexp_desc := MED_global (Mk_globalidx idg) |} ∗
      (N.of_nat idg↦[wg] {| g_mut := MUT_mut; g_val := value_of_int 20 |}
@@ -362,7 +362,7 @@ Proof.
       iIntros "H" ; done. 
       
       iApply wp_wand_r.
-      iSplitR "Hmod1".
+      iSplitR "Hmod1 Hall".
       rewrite - (app_nil_l [AI_invoke idnstart]).
       iApply (wp_invoke_native with "Hf Hwfcl").
       done. done. done.

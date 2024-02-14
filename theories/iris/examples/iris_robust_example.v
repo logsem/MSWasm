@@ -592,14 +592,14 @@ Section Examples_host.
         subst g gt.
         
         iApply weakestpre.fupd_wp.
-        iMod (interp_instance_alloc [] with "[] [] [] [] [Hrest Hresm Hresg Hresf]") as "[#Hi [[#Hires _] _]]";
+        iMod (interp_instance_alloc [] with "[] [] [] [] [] [Hrest Hresm Hresg Hresf]") as "[#Hi [[#Hires _] _]]";
           [apply Htyp|repeat split;eauto|eauto|..].
-        7,8,9: by instantiate (1:=∅).
+        7,8,9,10: by instantiate (1:=∅).
         { instantiate (1 := inst_adv). rewrite Heqadvm /=. auto. }
         instantiate (1 := []).
         1,2,3,4: by [].
         { destruct Hglob_inits_vals as [? ?];eauto. }
-        { instantiate (1:=∅).
+        { 
           unfold import_resources_wasm_typecheck.
           unfold_irwt_all.
           rewrite module_import_init_tabs_dom.

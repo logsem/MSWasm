@@ -156,7 +156,7 @@ Section InterpInstance.
   Definition import_glob_nainv (wgs: gmap N global) : iProp Σ :=
     [∗ map] i ↦ v ∈ wgs, na_inv logrel_nais (wgN i)
                                       (∃ w, i ↦[wg] Build_global (g_mut v) w
-                                           ∗ interp_value (typeof (g_val v)) w).
+                                            ∗ interp_value (typeof (g_val v)) w ).
 
   Definition import_func_wasm_check_invs v_imps t_imps wfs : iProp Σ :=
     import_func_nainv wfs ∗  
@@ -268,33 +268,35 @@ Section InterpInstance.
   Qed.
   
   Lemma import_glob_wasm_check_alloc E v_imps t_imps wfs:
+    ([∗ map] g ∈ wfs, interp_value (typeof (g_val g)) (g_val g)) -∗ 
     import_glob_wasm_check v_imps t_imps wfs ={E}=∗
     import_glob_wasm_check_invs v_imps t_imps wfs.
   Proof.
-    iIntros "(Hm & %Ht & %Hdom)".
+    iIntros "Hval (Hm & %Ht & %Hdom)".
     unfold import_glob_wasm_check_invs.
     iSplitL => //.
     unfold import_glob_resources, import_glob_nainv.
     iApply big_sepM_fupd.
+    iDestruct (big_sepM_sep with "[$Hval $Hm]") as "Hm".
     iApply (big_sepM_mono with "Hm").
-    iIntros (k v Hl) "Hm".
+    iIntros (k v Hl) "[Hval Hm]".
     iApply na_inv_alloc.
     iNext.
     iExists (g_val v).
     destruct v => /=.
     iFrame.
-    destruct g_val => /=; try by destruct n; iExists _.
-  Admitted.  (* What to do with imported handles? *)
+  Qed. 
   
   Lemma import_resources_wasm_typecheck_alloc E v_imps t_imps wfs wts wms wgs :
+    ([∗ map] g ∈ wgs, interp_value (typeof (g_val g)) (g_val g)) -∗ 
     import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs ={E}=∗
     import_resources_wasm_typecheck_invs v_imps t_imps wfs wts wms wgs.
   Proof.
-    iIntros "(Hfwc & Htwc & Hmwc & Hgwc)".
+    iIntros "Hval (Hfwc & Htwc & Hmwc & Hgwc)".
     iMod (import_func_wasm_check_alloc with "Hfwc"); iFrame.
     iMod (import_tab_wasm_check_alloc with "Htwc"); iFrame.
     iMod (import_mem_wasm_check_alloc with "Hmwc"); iFrame.
-    iMod (import_glob_wasm_check_alloc with "Hgwc"); iFrame.
+    iMod (import_glob_wasm_check_alloc with "Hval Hgwc"); iFrame.
     by [].
   Qed.
 
@@ -2017,7 +2019,7 @@ Qed.
     ([∗ map] _↦cl ∈ wfs, interp_closure hl (cl_type cl) cl)%I -∗ (* we must assume that the imported closures are valid *)
     ([∗ map] n↦t ∈ wts, interp_table (tab_size t) (interp_closure_pre C wfs inst hl) n) -∗ (* that imported tables are valid, note that the table might be reinitialized by current module *)
     ([∗ map] n↦m ∈ wms, interp_mem n) -∗ (* that imported memories are valid *)
-    
+    ([∗ map] g ∈ wgs, interp_value (typeof (g_val g)) (g_val g)) -∗ (* that imported globals are valid *)
                                                                    
     import_resources_wasm_typecheck v_imps t_imps wfs wts' wms' wgs -∗
     module_inst_resources_wasm m inst tab_inits mem_inits glob_inits
@@ -2025,8 +2027,8 @@ Qed.
         module_inst_resources_wasm_invs m inst gts tab_inits mem_inits glob_inits ∗
         import_resources_wasm_typecheck_invs v_imps t_imps wfs wts' wms' wgs
   (* it is useful to remember the exact values for each allocated invariant *).
-  Proof.
-    iIntros (C tab_inits wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals) "#Himps_val #Htabs_val #Hmems_val Hir Hmr".
+  Proof. 
+    iIntros (C tab_inits wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals) "#Himps_val #Htabs_val #Hmems_val #Hglobs_val Hir Hmr".
     subst C.
     set (ifts := ext_t_funcs t_imps).
     set (its := ext_t_tabs t_imps).
@@ -2041,7 +2043,7 @@ Qed.
     
     iDestruct "Hmr" as "(Hfr & Htr & Hmr & Hgr)".
     iDestruct (import_resources_wasm_typecheck_lengths with "Hir") as %(Hlenir&Hlenir0&Hlenir1&Hlenir2).
-    iMod (import_resources_wasm_typecheck_alloc with "Hir") as "#Hir".    
+    iMod (import_resources_wasm_typecheck_alloc with "Hglobs_val Hir") as "#Hir".    
     (* iDestruct (module_inst_resources_func_NoDup with "Hfr") as %Hnodup. *)
     iMod (module_inst_resources_func_invs_alloc with "Hfr") as "#Hfr".
     iMod (module_inst_resources_tab_invs_alloc with "Htr") as "#Htr".
@@ -2083,7 +2085,7 @@ Qed.
       iIntros (k fa ft Hfa Hft).
       destruct Hprefunc as [fdecls Himpdeclapp].
       rewrite Himpdeclapp in Hfa.
-      unfold ifts in Hft.
+      unfold ifts in Hft. 
       apply lookup_app_Some in Hft as [Hft | [Hge Hft]].
       { (* the function is imported, and semantic typing has been established prior *)
         apply lookup_lt_Some in Hft as Hlt.

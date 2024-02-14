@@ -804,15 +804,15 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
         
         iApply weakestpre.fupd_wp.
         iMod (interp_instance_alloc [(Mk_hostfuncidx h, Tf [T_i32] [])]
-                with "[] [] [] [Hcl] [Hrest Hresm Hresg Hresf]") as "[#Hi [[#Hires _] #Himpres]]"; 
+                with "[] [] [] [] [Hcl] [Hrest Hresm Hresg Hresf]") as "[#Hi [[#Hires _] #Himpres]]"; 
           [apply Htyp|repeat split;eauto|eauto|..].
-        4,5: by instantiate (1:=∅).
+        4,5,6: by instantiate (1:=∅).
         { rewrite Heqadvm /=. auto. }
         { destruct Hglob_inits_vals as [? ?];eauto. }
         { instantiate (1:={[ N.of_nat log_func := FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)]}).
           iApply big_sepM_singleton. simpl.
           iPureIntro. split;auto. constructor. }
-        { instantiate (1:=∅).
+        { 
           unfold import_resources_wasm_typecheck.
           unfold_irwt_all => /=.
           

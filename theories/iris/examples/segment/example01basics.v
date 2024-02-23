@@ -358,9 +358,9 @@ Section Example01Host.
     [ ID_instantiate [] 0 [0%N] ;
       H_get_global g ].
 
-  Lemma instantiate_example g_ret wret all:
+  Lemma instantiate_example g_ret wret (*all*):
     typeof wret = T_i32 ->
-    ⊢ {{{ ↪[frame] empty_frame ∗ interp_allocator all ∗  (* WHY NEEDED???? *)
+    ⊢ {{{ ↪[frame] empty_frame ∗ (* interp_allocator all ∗ *)
             (N.of_nat g_ret) ↦[wg] {| g_mut := MUT_mut; g_val := wret |} ∗
              (∃ name, 0%N ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx g_ret) |}) ∗
             0%N ↪[mods] example_module (* ∗ 
@@ -369,9 +369,9 @@ Section Example01Host.
       ((example_instantiate g_ret,[]) : host_expr)
       {{{  λ v: language.val wasm_host_lang, ⌜v = immHV [xxv 0]⌝ ∨ ⌜v = immHV [xxv 42]⌝ }}} .
   Proof.
-    iIntros "%Hret !>" (Φ) "(Hf & Hall & Hg & Hexp & Hmod) HΦ".
+    iIntros "%Hret !>" (Φ) "(Hf & Hg & Hexp & Hmod) HΦ".
     iDestruct "Hexp" as (name) "Hexp".
-    iApply (instantiation_spec_operational_start_seq with "Hf Hall [Hmod Hexp Hg]").
+    iApply (instantiation_spec_operational_start_seq with "Hf [Hmod Hexp Hg]").
     2: exact example_module_typing.
     2: exact module_restrictions_example.
     done. iFrame. 
@@ -411,7 +411,7 @@ Section Example01Host.
     unfold module_data_bound_check_gmap => //. constructor => //.
     iSplit => //. 
     unfold export_ownership_host => //. 
-    iIntros (id) "Hf Hall (Hmod & Himp & %inst & Hpost & Hexp)".
+    iIntros (id) "Hf (Hmod & Himp & %inst & Hpost & Hexp)".
     iDestruct "Hpost" as (??????) "(Hirwt & %Htypr & %Htabinits & %Hwts'0 & %Hbounds_elem & %Hmem_init & %Hwms0' & %Hbounds_data & %Hglobsr & %Hglobinit & Hfuncs & Htabs & Hmems & Hglobs)".
 
     simpl in Htypr.
@@ -470,3 +470,4 @@ Section Example01Host.
     
     
     
+End Example01Host.

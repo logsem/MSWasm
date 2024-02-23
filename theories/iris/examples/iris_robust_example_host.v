@@ -699,7 +699,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     
     iApply (weakestpre.wp_wand _ _ _ (λ v, _ ∗ ↪[frame]empty_frame)%I with "[-HΦ] [HΦ]");cycle 1.
     { iIntros (v) "[Hv ?]". iApply "HΦ". iExact "Hv". }
-    { iApply (instantiation_spec_operational_start with "[$Hemptyframe] Hall [$Hmod_lse Hadvf Hn Hm Hlogfunc]");[eauto|..].
+    { iApply (instantiation_spec_operational_start with "Hemptyframe [$Hmod_lse Hadvf Hn Hm Hlogfunc]");[eauto|..].
       { by apply lse_module_typing. }
       { by apply module_restrictions_lse. }
       { unfold import_resources_host.
@@ -753,7 +753,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
             iPureIntro. by apply Forall_nil. }
         }
       }
-      { iIntros (idnstart) "Hf Hall [Hmod_lse Hr]".
+      { iIntros (idnstart) "Hf [Hmod_lse Hr]".
         iDestruct "Hr" as "([Himph Hexp] & Hr)".
         iDestruct "Hr" as (?) "[Hr _]".
         iDestruct "Hr" as (? ? ? ? ? ?) "(Hirwt & %Htypr & %Htab_inits & %Hwts'0 & %Hbounds_elemr & 

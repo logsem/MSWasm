@@ -4,7 +4,7 @@ From iris.program_logic Require Import language weakestpre lifting.
 From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map.
 From iris.base_logic.lib Require Export fancy_updates.
-Require Export iris_locations iris_properties iris_rules_resources iris_wp_def stdpp_aux iris_instantiation iris iris_logrel.
+Require Export iris_locations iris_properties iris_rules_resources iris_wp_def stdpp_aux iris_instantiation iris (* iris_logrel *).
 Require Export datatypes operations properties opsem instantiation.
 Require Export type_preservation.
 
@@ -1900,19 +1900,19 @@ Proof.
 Qed.
 
 (* Instantiating modules with a start function. We combine the handling of sequence here all in one. *)
-Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls all:
+Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls (* all *):
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  ↪[frame] empty_frame -∗ interp_allocator all -∗                            
+  ↪[frame] empty_frame -∗ (* interp_allocator all -∗ *)                            
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ interp_allocator all -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP ((idecls, [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗ (* interp_allocator all -∗ *) (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP ((idecls, [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (((ID_instantiate hs_exps hs_mod hs_imps) :: idecls, [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   move => Hmodstart Hmodtype Hmodrestr.
   assert (module_restrictions m) as Hmodrestr2 => //.
   
-  iIntros "Hframeown Hall (Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp) Hwpstart".
+  iIntros "Hframeown (Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp) Hwpstart". (* Removed Hall after frameown *)
   iDestruct "Himpwasmpre" as "(Himpwasm & %Hebound & %Hdbound)".
   
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
@@ -2723,7 +2723,7 @@ Proof.
 
     (* Apply the wp spec premise for start function *)
     iSpecialize ("Hwpstart" $! idfstart).
-    iApply ("Hwpstart" with "[$Hframeown] Hall") => //.
+    iApply ("Hwpstart" with "Hframeown") => //. (* removed Hall *)
 
     unfold instantiation_resources_post.
     iFrame.
@@ -2731,13 +2731,13 @@ Proof.
     by iFrame.
 Qed.
     
-Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) all:
+Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) (* all *):
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  ↪[frame] empty_frame -∗ interp_allocator all -∗                         
+  ↪[frame] empty_frame -∗ (* interp_allocator all -∗                          *)
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ interp_allocator all -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗ (* interp_allocator all -∗ *) (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   iIntros.

@@ -727,7 +727,7 @@ Section Client_instantiation.
                                 FC_func_native istack (Tf [T_i32] [T_i32]) l6 f6 ;
                                 (FC_func_native inst_adv (Tf [T_i32] [T_i32]) modfunc_locals modfunc_body)]): gmap N function_closure) as mtmp.
     
-    iApply (instantiation_spec_operational_start with "[$Hemptyframe] Hall [Hmod_lse HimpsH Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hadvf Htab Hn Hgret Hvisglob]")
+    iApply (instantiation_spec_operational_start with "Hemptyframe [Hmod_lse HimpsH Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hadvf Htab Hn Hgret Hvisglob]")
     ; try exact client_module_typing;[eauto|..].
     { unfold module_restrictions.
       simpl.
@@ -774,7 +774,7 @@ Section Client_instantiation.
       split;[|apply Forall_nil].
       simpl. rewrite lookup_insert;auto. done. done. cbn. done. }
 
-    iIntros (idnstart) "Hf Hall [Hmod_lse Hr]".
+    iIntros (idnstart) "Hf [Hmod_lse Hr]".
     iDestruct "Hr" as "((Himpf0 & Himpf1 & Himpf2 & Himpf3 & Himpf4 & Himpf5 & Himpf6 & Htab & Hadvf & Hg) & Hr)".
     iDestruct "Hr" as (?) "[Hr' _]".
     unfold instantiation_resources_post_wasm.

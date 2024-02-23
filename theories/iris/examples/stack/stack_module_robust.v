@@ -198,7 +198,7 @@ Section RobustStack.
     (* instantiate adversary module *)
     iApply (weakestpre.wp_wand _ _ _ (λ v, _)%I with "[-HΦ] [HΦ]");cycle 1.
     { iIntros (v) "Hv". iApply "HΦ". iExact "Hv". }
-    { iApply (instantiation_spec_operational_start_seq with "[$Hemptyframe] Hall [$Hmod_adv Hvis0 Hvis1 Hvis2 Hvis3 Hvis4 Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4]");[eauto|apply Htyp|auto|..].
+    { iApply (instantiation_spec_operational_start_seq with "Hemptyframe [$Hmod_adv Hvis0 Hvis1 Hvis2 Hvis3 Hvis4 Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4]");[eauto|apply Htyp|auto|..].
       - instantiate (5:=[_;_;_;_;_]).
         unfold import_resources_host. iSimpl. iFrame "Hvis0 Hvis1 Hvis2 Hvis3 Hvis4".
         instantiate (1:=∅).
@@ -241,7 +241,7 @@ Section RobustStack.
           rewrite /import_glob_resources big_sepM_empty //.
         + unfold export_ownership_host. auto.
         + iPureIntro. erewrite module_typing_exports_length;eauto. auto.
-      - iIntros (idnstart) "Hf Hall Hres".
+      - iIntros (idnstart) "Hf Hres".
         Transparent list_to_map.
         Transparent zip_with.
         iDestruct "Hres" as "[Hadv [Himp Hinst]]".

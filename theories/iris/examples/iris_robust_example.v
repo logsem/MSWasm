@@ -360,7 +360,7 @@ Section Examples_host.
       ID_instantiate [] 1 [0%N;1%N] ;
       H_get_global g ].
 
-  Locate "{{{".
+ 
   
   Lemma instantiate_lse adv_module g_ret wret all:
     module_typing adv_module [] lse_func_impts -> (* we assume the adversary module has an export of the () → () *)

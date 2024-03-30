@@ -12,9 +12,11 @@ Record segment_list : Type := {
     segl_data : list (byte * btag)
   }.
 
+Definition allocator_info : Type := option (N * N) .
+
 
 Record allocator : Type := {
-    allocated : gmap N (option (N * N));
+    allocated : gmap N allocator_info;
     next_free : N; 
   }.
 
@@ -29,12 +31,12 @@ Definition differ_at {A} (start len : N) (l1 l2 : list A) :=
   forall i, (i < start \/ i >= start + len)%N ->
        List.nth_error l1 (N.to_nat i) = List.nth_error l2 (N.to_nat i).
 
-Definition find (nid : N) (l : gmap N (option (N * N))) : option (N * N) :=
+Definition find (nid : N) (l : gmap N allocator_info) : option (N * N) :=
   match l !! nid with
   | Some (Some x) => Some x
   | _ => None
   end.
-Definition find_and_remove (nid : N) (l : gmap N (option (N * N))) : option (gmap N (option (N * N)) * N * N) :=
+Definition find_and_remove (nid : N) (l : gmap N allocator_info) : option (gmap N allocator_info * N * N) :=
   match l !! nid with
   | Some (Some (b, c)) => Some (<[ nid := None ]> l, b, c)
   | _ => None
@@ -44,7 +46,7 @@ Definition find_and_remove (nid : N) (l : gmap N (option (N * N))) : option (gma
 
 Definition find_address nid l :=
   match find_and_remove nid l.(allocated) with
-  | Some (_,a, n) => Some (a)
+  | Some (_,a, n) => Some (a, n)
   | None => None end. 
 
 
@@ -67,7 +69,7 @@ Definition canBeAlloc nid s : Prop :=
   s.(allocated) !! nid = None.
 
 
- Definition compatible addr size (s : gmap N (option (N * N))) : Prop :=
+ Definition compatible addr size (s : gmap N allocator_info) : Prop :=
   forall nid addr' size', s !! nid = Some (Some (addr', size')) ->
                      (addr + size <= addr')%N \/ (addr >= addr' + size')%N. 
 
@@ -90,7 +92,7 @@ Definition seg_grow :=
     |}.
 
 
- Definition isSound_aux T (m : gmap N (option (N * N))) : Prop :=
+ Definition isSound_aux T (m : gmap N allocator_info) : Prop :=
   forall a b c, m !! a = Some (Some (b,c)) ->
            (b + c <= seg_length T)%N /\ compatible b c (<[ a := None ]> m). 
 
@@ -163,8 +165,17 @@ Proof.
   by rewrite insert_commute.
 Qed.
 
-Definition allocated_eq_dec : forall v1 v2 : gmap N (option (N * N)), {v1 = v2} + {v1 <> v2}.
-Proof. intros. solve_decision. Qed.
+Definition allocator_info_eq_dec : forall v1 v2: allocator_info, {v1 = v2} + {v1 <> v2}.
+Proof. intros. solve_decision. Qed. 
+
+Definition allocator_info_eq_dec_2 : EqDecision allocator_info.
+Proof. intros x y. solve_decision. Qed. 
+
+Definition allocated_eq_dec : forall v1 v2 : gmap N (allocator_info), {v1 = v2} + {v1 <> v2}.
+Proof.
+  intros m1 m2. specialize (gmap_eq_eq m1 m2 (EqDecision1 := allocator_info_eq_dec)) as H.
+  destruct H. by left. by right. 
+Qed.
 
 Definition tc_handles_eq_dec : forall v1 v2 : gmap N unit, {v1 = v2} + {v1 <> v2}. 
 Proof. intros. solve_decision. Qed.

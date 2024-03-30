@@ -78,7 +78,7 @@ Section fundamental.
     destruct ws as [|w ws];[done|destruct ws;[|done]].
     iSimpl in "Hv". iDestruct "Hv" as "[Hv _]".
     rewrite fixpoint_interp_value_handle_eq.
-    iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & #Hw & %Hbase & %Hbound & #Hinv)])".
+    iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & %base_all & %bound_all & %q & %Hq & #Hw & %Hbase_all & %Hbase & %Hbound_all & %Hbound & #Hinv)])".
     { iApply (wp_wand with "[Hf]").
         - iApply (wp_segload_failure1 with "[$Hf]").
           + by left.
@@ -127,19 +127,19 @@ Section fundamental.
             iExists None. iFrame. done.
 }
             
-    iDestruct "Htok" as "(-> & -> & Htok)".
+    iDestruct "Htok" as "(-> & -> & Htok)". 
     iApply (wp_wand _ _ _ (λ x, (( ∃ v, ⌜ x = immV [v] ⌝ ∗ interp_value t v) ∗ interp_frame (tc_local C) i f ∗ interp_allocator all) ∗ ↪[frame] f )%I with "[Hf Hbl Hown Halloc Htok Htoks]").
     { iApply (wp_atomic _ _ (⊤ ∖ ↑(wsN (id h)))).
      
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
       iModIntro.
       iDestruct "Hss" as (tbs) "(>%Htbs & >Hss & #Hhandles)".
-      iDestruct (wss_select (N.to_nat base0) (N.to_nat bound0) (N.to_nat (handle_addr h)) (t_length t) tbs with "[Hss]") 
+      iDestruct (wss_select (N.to_nat base') (N.to_nat bound') (N.to_nat (handle_addr h)) (t_length t) tbs with "[Hss]") 
         as "(%Htbs' & Hss & Hreconstitute)";
         try rewrite N2Nat.id;
         try done;
         try by subst; unfold handle_addr; lia.
-      remember (take (t_length t) (drop (N.to_nat (handle_addr h) - N.to_nat base0) tbs)) as tbs'.
+      remember (take (t_length t) (drop (N.to_nat (handle_addr h) - N.to_nat base') tbs)) as tbs'.
       
       assert (length tbs' = t_length t) as Htbs''; first lia. 
 
@@ -191,7 +191,7 @@ Section fundamental.
     destruct ws as [|w ws];[done|destruct ws;[|done]].
     iSimpl in "Hv". iDestruct "Hv" as "[Hv _]".
     rewrite fixpoint_interp_value_handle_eq.
-    iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & #Hw & %Hbase & %Hbound & #Hinv)])".
+    iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & %base_all & %bound_all & %q & %Hq & #Hw & %Hbase_all & %Hbase & %Hbound_all & %Hbound & #Hinv)])".
     { iApply (wp_wand with "[Hf]").
       - iApply (wp_segload_failure1 with "[$Hf]").
         + by left.
@@ -233,7 +233,7 @@ Section fundamental.
       iDestruct "Hfv" as (locs Hlocs) "[#Hlocs Hown]".
       iDestruct (gamma_agree with "Hw Hbl") as "%Hid".
       iDestruct (big_sepM_lookup_acc _ _ _ _ Hid with "Htok") as "[(%y & %Hy & Halloc & Htok) Htoks]".
-      destruct y as [[base0 bound0]|]; first iDestruct "Htok" as "(-> & -> & Htok)".
+      destruct y as [[base0 bound0]|] ; first iDestruct "Htok" as "(-> & -> & Htok)". 
       2:{
         iApply (wp_wand with "[Hf Halloc]").
         - iApply (wp_segload_failure2 with "[$Hf $Halloc]").
@@ -254,12 +254,12 @@ Section fundamental.
       iMod (cinv_acc with "Hinv Htok") as "(Hss & Hwon & Hcls)"; first solve_ndisj.
       iModIntro.
       iDestruct "Hss" as (tbs) "(>%Htbs & >Hss & #Hhandles)".
-      iDestruct (wss_select (N.to_nat base0) (N.to_nat bound0) (N.to_nat (handle_addr h)) (t_length T_handle) tbs with "[Hss]") 
+      iDestruct (wss_select (N.to_nat (base')) (N.to_nat (bound')) (N.to_nat (handle_addr h)) (t_length T_handle) tbs with "[Hss]") 
         as "(%Htbs' & Hss & Hreconstitute)";
         try rewrite N2Nat.id;
         try done;
         try by subst; unfold handle_addr; lia.
-      remember (take (t_length T_handle) (drop (N.to_nat (handle_addr h) - N.to_nat base0) tbs)) as tbs'.
+      remember (take (t_length T_handle) (drop (N.to_nat (handle_addr h) - N.to_nat (base')) tbs)) as tbs'.
       
       assert (length tbs' = t_length T_handle) as Htbs''; first lia. 
 
@@ -278,10 +278,10 @@ Section fundamental.
       subst tbs'; rewrite cat_app reconstitute N2Nat.id.
       iMod ("Hcls" with "[Hss Hhandles]").
       * iNext. iExists tbs. iFrame "Hss Hhandles". done.
-      * remember (handle_addr h - base0)%N as addr.
-        assert ((base0 + addr) `mod` handle_size = 0 /\ (addr + handle_size <= bound0))%N as Haddr.
+      * remember (handle_addr h - base')%N as addr.
+        assert ((base' + addr) `mod` handle_size = 0 /\ (addr + handle_size <= bound'))%N as Haddr.
         { subst. unfold handle_addr.
-          replace (base0 + (base h + offset h - base0))%N with (base h + offset h)%N;
+          replace (base' + (base h + offset h - base'))%N with (base h + offset h)%N;
             last lia.
           split.
           - fold (handle_addr h). done.  

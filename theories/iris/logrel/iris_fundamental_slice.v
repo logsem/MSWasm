@@ -59,9 +59,22 @@ Section fundamental.
         apply N.ltb_lt in Hbound.
         apply N.leb_le in Hbound2.
         destruct h0; inversion Hslice; subst; simpl.
-        iDestruct "Hv" as "[-> | (%γ & %base' & %bound' & Hw & %Hbase' & %Hbound' & Hinv)]"; first by iLeft. iRight. iExists _,_,_.
+        iDestruct "Hv" as "[-> | (%γ & %base' & %bound' & %base_all & %bound_all & %q & %Hq & Hw & %Hbase_all & %Hbase' & %Hbound_all & %Hbound' & Hinv)]"; first by iLeft.
+        iRight. iExists _,_,_,_,_,_.
         iFrame "Hw". iFrame "Hinv".
         iSplit; iPureIntro; try lia.
+        { destruct (base_all =? base h + _)%N eqn:Hbase.
+          - apply N.eqb_eq in Hbase as ->.
+            destruct (bound_all =? bound h - _)%N eqn:Hbounds.
+            + apply N.eqb_eq in Hbounds as ->.
+              simpl.
+              destruct (base h + _ =? _)%N eqn:Hbase.
+              * destruct (bound h - _ =? _)%N eqn:Hbounds; first done.
+                apply N.eqb_neq in Hbounds. lia.
+              * apply N.eqb_neq in Hbase. lia.
+            + simpl. destruct (_ && _) ; [by left| done].
+          - destruct (_ && _) ; [by left | done]. 
+        }
         replace 
           (Z.to_N (Wasm_int.Int32.unsigned z1)) with (Wasm_int.N_of_uint i32m z1) ; last lias.
         replace

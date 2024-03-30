@@ -1815,8 +1815,8 @@ Qed.
 
 
 
-Lemma sfree_sound T A a nid T' A' :
-  isSound T.(seg_data) A -> sfree T A a nid T' A' -> isSound T'.(seg_data) A'.
+Lemma sfree_sound T A a n nid T' A' :
+  isSound T.(seg_data) A -> sfree T A a n nid T' A' -> isSound T'.(seg_data) A'.
 Proof.
   intros HSound Hfree.
   inversion Hfree; subst; clear Hfree.
@@ -1929,8 +1929,8 @@ Qed.
 Qed. *)
 
   
-Lemma sfree_sound_local T A a nid T' A' A0 :
-  isSound T.(seg_data) A0 -> sfree T A a nid T' A' -> isSound T'.(seg_data) A0.
+Lemma sfree_sound_local T A a n nid T' A' A0 :
+  isSound T.(seg_data) A0 -> sfree T A a n nid T' A' -> isSound T'.(seg_data) A0.
 Proof.
   intros HSound Hfree.
   inversion Hfree; subst.

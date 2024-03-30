@@ -549,7 +549,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
           expect
             (find_and_remove h.(id) s.(s_alls).(allocated))
             (fun '(l, a, n) =>
-               if (N.eqb a h.(base)) then
+               if (N.eqb a h.(base) && N.eqb n h.(bound)) then
                  (upd_s_all s {| allocated := l; next_free := next_free s.(s_alls) |}, f, RS_normal (vs_to_es ves'))
                else (s, f, crash_error))
             ((s, f, crash_error))

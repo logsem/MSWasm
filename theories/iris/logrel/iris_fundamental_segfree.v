@@ -43,7 +43,7 @@ Section fundamental.
     destruct ws as [|wh ws];[done|destruct ws; last done].  
     iSimpl in "Hv". iDestruct "Hv" as "(Hv & _)".
     rewrite fixpoint_interp_value_handle_eq.
-     iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & #Hw & %Hbase & %Hbound & #Hinv)])".
+    iDestruct "Hv" as (h) "(-> & [%Hval | (%γ & %base' & %bound' & %base_all & %bound_all & %q & %Hq & #Hw & %Hbase_all & %Hbase & %Hbound_all & %Hbound & #Hinv)])".
     { iApply (wp_wand with "[Hf]").
         - iApply (wp_segfree_failure1 with "[$Hf]"). 
           + by right.
@@ -78,12 +78,13 @@ Section fundamental.
     iDestruct "Hall" as "(%fall & Hbl & Htoks)".
     iDestruct (gamma_agree with "Hw Hbl") as "%Hγ".
 (*    iDestruct (big_sepM_lookup_acc _ _ _ _ Hγ with "Htoks") as "[(%y & %Hy & Halloc & Htok) Htoks]". *)
-    rewrite - (insert_delete _ _ _ Hγ). 
-    
+    rewrite - (insert_delete _ _ _ Hγ).
+
     iDestruct (big_sepM_insert with "Htoks") as "[(%y & %Hy & Halloc & Htok) Htoks]";
       first by rewrite lookup_delete. 
-    destruct y as [[base0 bound0]|]; first iDestruct "Htok" as "(-> & -> & Htok)".
-    2:{ iApply (wp_wand with "[Hf Halloc]").
+    destruct y as [[base0 bound0]|] ; first iDestruct "Htok" as "(-> & -> & Htok)". 
+    2:{ (* destruct (_ && _); last done. iDestruct "Htok" as "->". *)
+        iApply (wp_wand with "[Hf Halloc]").
         - iApply (wp_segfree_failure3 with "[$Hf $Halloc]").
           iIntros "!> Ha".
           instantiate (1 := λ x, (⌜ x = trapV ⌝ ∗ _)%I).
@@ -95,7 +96,6 @@ Section fundamental.
           iApply big_sepM_insert; first by rewrite lookup_delete.
           iFrame. iExists None. iFrame. done. } 
     
-    
     destruct (base0 =? base h)%N eqn:Hnbase.
     2:{ apply N.eqb_neq in Hnbase. iApply (wp_wand with "[Hf Halloc]").
         - iApply (wp_segfree_failure2 with "[$Hf $Halloc]") => //; try by left.
@@ -106,14 +106,31 @@ Section fundamental.
           iExists _, _. iFrame.
           iExists _. iFrame "Hbl". iApply big_sepM_insert; first by rewrite lookup_delete.
           iFrame. 
-          iExists _. iFrame. done.
+          iExists (Some (_,_)). iFrame. done.
     }
 
     iSimpl.
     apply N.eqb_eq in Hnbase as ->.
-    iApply fupd_wp. 
+    destruct (bound0 =? bound h)%N eqn:Hnbase.
+    2:{ apply N.eqb_neq in Hnbase. iApply (wp_wand with "[Hf Halloc]").
+        - iApply (wp_segfree_failure2 with "[$Hf $Halloc]") => //; try by right.
+          iNext. iIntros "Ha". instantiate (1 := λ x, (⌜ x = trapV ⌝ ∗ _)%I).
+          iSplit; first done. iExact "Ha".
+        - iIntros (v) "[[-> Ha] Hf]".
+          iSplitR; first by do 2 iLeft.
+          iExists _, _. iFrame.
+          iExists _. iFrame "Hbl". iApply big_sepM_insert; first by rewrite lookup_delete.
+          iFrame. 
+          iExists (Some (_,_)). iFrame. done.
+    }
+
+    iSimpl.
+    apply N.eqb_eq in Hnbase as ->.
+    iApply fupd_wp.
     iMod (cinv_cancel with "Hinv Htok") as "(%tbs & >%Htbs & >Hss & #Hhandles)"; first solve_ndisj.
-    iDestruct (wss_select (N.to_nat (base h)) (N.to_nat bound0) (N.to_nat (handle_addr h)) (N.to_nat bound0) tbs with "[Hss]") 
+
+    
+    iDestruct (wss_select (N.to_nat base') (N.to_nat bound') (N.to_nat (handle_addr h)) (N.to_nat (bound h)) tbs with "[Hss]") 
         as "(%Htbs' & Hss & Hreconstitute)";
         try rewrite N2Nat.id;
         try done;
@@ -121,7 +138,9 @@ Section fundamental.
     unfold handle_addr. rewrite Hoff N.add_0_r.
     unfold handle_addr in Htbs'. rewrite Hoff N.add_0_r in Htbs'. 
     iModIntro.
+    simpl in Hq. subst q. 
     iApply (wp_wand with "[Hf Halloc Hss]").
+    
     - iApply (wp_segfree with "[$Hf $Hss $Halloc]") => //.
       instantiate (1 := λ x, (⌜ x = immV [] ⌝ ∗ _)%I).
       iIntros "!> Ha". iSplit; last iExact "Ha". done.
@@ -132,9 +151,10 @@ Section fundamental.
         iExists _. iFrame.
         iApply big_sepM_insert; first by rewrite lookup_delete.
         iSplitL "Ha".
-        * iExists None. iFrame. by rewrite lookup_insert.
+        * iExists None. iFrame. 
+          by rewrite lookup_insert.
         * iApply (big_sepM_impl with "[Htoks]"); first done.
-          iIntros "!>" (k [[γ0 base] bound]) "%Hx (%y & %Hy' & H)".
+          iIntros "!>" (k [[[??]?]?]) "%Hx (%y & %Hy' & Hall & H)".
           iExists y. iFrame. iPureIntro.
           simpl. destruct (N.eqb k (id h)) eqn:Hkid.
           -- apply N.eqb_eq in Hkid as ->.

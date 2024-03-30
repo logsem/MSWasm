@@ -266,7 +266,7 @@ Definition eqallocatedP : Equality.axiom allocated_eqb :=
   eq_dec_Equality_axiom allocated_eq_dec.
 
 Canonical Structure allocated_eqMixin := EqMixin eqallocatedP.
-Canonical Structure allocated_eqType := Eval hnf in EqType (gmap.gmap BinNums.N (option (BinNums.N * BinNums.N))) allocated_eqMixin.
+Canonical Structure allocated_eqType := Eval hnf in EqType (gmap.gmap BinNums.N allocator_info) allocated_eqMixin.
 
 
 Definition store_record_eq_dec : forall v1 v2 : store_record, {v1 = v2} + {v1 <> v2}.

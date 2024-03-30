@@ -24,11 +24,11 @@ Definition wgN (a: N) : namespace := nroot .@ wg .@ a.
 Close Scope byte_scope.
 
 (* Definition relUR := gmapUR N (agreeR (leibnizO gname)). *)
-Definition relT := gmap N (leibnizO (gname * N * N)).
+Definition relT := gmap N (leibnizO (gname * N * N * dfrac (* bool *))).
 
 Class cancelG Σ := CancelG {
                    (*    cancelG_invG : cinvG Σ; *)
-                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N); (* inG Σ (authR relUR); *)
+                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N * dfrac (* bool *) ); (* inG Σ (authR relUR); *)
                        γtoks : gname; 
                      }.
 
@@ -98,7 +98,7 @@ Section logrel.
   Definition interp_value_f64 : WR := λne w, (∃ z, ⌜w = VAL_float64 z⌝)%I.
 
 
-  Definition gamma_id_white (γ: (gname * N * N)) (id: N): iProp Σ :=
+  Definition gamma_id_white (γ: (gname * N * N * dfrac (* bool *) )) (id: N): iProp Σ :=
     (id ↪[γtoks]□ γ)%I.
   Definition gamma_id_black (f: relT) : iProp Σ := 
     (ghost_map_auth γtoks 1%Qp f).
@@ -115,7 +115,37 @@ Section logrel.
       (∃ (h : handle),
           (* There exists a handle such that either that handle is invalid, or *)
           ⌜ w = VAL_handle h ⌝ ∗
-                  (⌜ valid h = false ⌝ ∨ ∃ γ base' bound', gamma_id_white (γ, base', bound') (id h) ∗
+                  (⌜ valid h = false ⌝ ∨
+                     ∃ γ base' bound' base_all bound_all q,
+                       ⌜ if ((base_all =? base h) && (bound_all =? bound h))%N
+                         then q = DfracOwn 1%Qp
+                         else (q = DfracOwn 1%Qp \/ q = DfracOwn (1 / 2)%Qp) ⌝ ∗
+                       gamma_id_white (γ, base_all, bound_all, q) (id h) ∗
+          (* There exists a greater range, such that *)
+                       ⌜ (base_all <= base')%N ⌝ ∗ ⌜ (base' <= base h)%N ⌝ ∗
+                       ⌜ (base_all + bound_all >= base' + bound')%N ⌝ ∗ ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
+          (* We have as an invariant, that *)
+          cinv (wsN (id h)) γ (∃ tbs,
+              (* We own some bytes in segment memory covering that greater range *)
+              ⌜ length tbs = N.to_nat bound' ⌝ ∗
+              ↦[wss][base'] tbs ∗ (*id h ↣[allocated] (base', bound') ∗ *)
+              (* And for all addresses that might store a handle, *)
+              ∀ addr, ⌜ (N.modulo (base' + addr) handle_size = 0 /\ addr + handle_size <= bound' )%N ⌝ -∗
+                  (* Either that address has at least one byte tagged as non-handle *)
+                  ⌜ exists addr' (b: byte), (addr' < handle_size)%N  /\
+                       tbs !! (N.to_nat (addr + addr')%N) = Some (b, Numeric) ⌝ ∨
+                   (* Or the handle stored is valid *)
+                   ivh (VAL_handle (handle_of_bytes (map fst (take (N.to_nat handle_size) (drop (N.to_nat addr) tbs))))) 
+          ))
+      )%I).
+
+  (* Definition interp_value_handle_0 (ivh: WR) :=
+    (λne w,
+      (∃ (h : handle),
+          (* There exists a handle such that either that handle is invalid, or *)
+          ⌜ w = VAL_handle h ⌝ ∗
+                  (⌜ valid h = false ⌝ ∨
+                     ∃ γ base' bound', gamma_id_white (γ (* , base', bound' *) , ((base' =? base h) && (bound' =? bound h))%N ) (id h) ∗
           (* There exists a greater range, such that *)
           ⌜ (base' <= base h)%N ⌝ ∗
           ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
@@ -132,7 +162,7 @@ Section logrel.
                    (* Or the handle stored is valid *)
                    ivh (VAL_handle (handle_of_bytes (map fst (take (N.to_nat handle_size) (drop (N.to_nat addr) tbs))))) 
           ))
-      )%I).
+      )%I). *)
   
 (*  Definition align a b: N := (a / b) * b.
   Definition handle_addresses_sound l z :=
@@ -164,14 +194,16 @@ Section logrel.
     interp_value_handle v ≡ interp_value_handle_0 interp_value_handle v.
   Proof. exact : (fixpoint_unfold interp_value_handle_0). Qed.
 
+
   
   Definition interp_allocator : ALLR :=
     λne (all: leibnizO allocator), (∃ (f: relT), gamma_id_black f ∗
          [∗ map] id ↦ x ∈ f,
-           let '(γ, base, bound) := x in
-           ∃ y, ⌜ allocated all !! id = Some y ⌝ ∗ id ↣[allocated] y ∗
-             match y with
-             | Some (base', bound') => ⌜ base = base' ⌝ ∗ ⌜ bound = bound' ⌝ ∗ cinv_own γ 1%Qp
+           let '(γ , base, bound, q ) := x in 
+           ∃ y, ⌜ allocated all !! id = Some y ⌝ ∗ id ↣[allocated]{ q } y ∗
+            match y with
+             | Some (base', bound') => 
+                 ⌜ base = base' ⌝ ∗ ⌜ bound = bound' ⌝ ∗ cinv_own γ 1%Qp
              | None => True
              end)%I.
 (*       ([∗ map] id ↦ x ∈ allocated all, ∃ γ, ⌜ f !! id = Some γ ⌝ ∗ cinv_own γ 1%Qp))%I.   *)

@@ -175,6 +175,10 @@ Definition seg_grow (s : segment) (len_delta : N) : option segment :=
 Section alloc.
   Import gmap.
 
+  Definition allocator_insert id a n all :=
+    {| allocated := <[ id := Some (a, n) ]> (allocated all) ;
+      next_free := N.max (next_free all) (id + 1) |}. 
+
 Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -> Prop
   :=
   Alloc : forall T A a n (nid : N) T' A',
@@ -188,8 +192,7 @@ Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -
       T' = {| seg_data :=
                {| segl_data := take (N.to_nat a) (segl_data (seg_data T)) ++ List.repeat (#00, Numeric) (N.to_nat n) ++ drop (N.to_nat (a + n)) (segl_data (seg_data T)) |};
              seg_max_opt := seg_max_opt T |} ->
-      A' = {| allocated := <[ nid := Some (a, n) ]> (allocated A) ;
-             next_free := N.max (next_free A) (nid + 1) |} ->
+      A' = allocator_insert nid a n A -> 
       salloc T A a n nid T' A'.
 End alloc.
 
@@ -209,11 +212,11 @@ End l_is_s.
 
 
 
-Inductive sfree : segment -> allocator -> N -> N -> segment -> allocator -> Prop :=
+Inductive sfree : segment -> allocator -> N -> N -> N -> segment -> allocator -> Prop :=
   Free : forall T A a n nid l A',
       find_and_remove nid A.(allocated) = Some (l, a, n) ->
       A' = {| allocated := l; next_free := next_free A |} ->
-      sfree T A a nid T A'.
+      sfree T A a n nid T A'.
 
 
   

@@ -91,7 +91,7 @@ Definition live_locations (a: allocator) : gmap N () :=
                   fold_left (fun res j =>
                                <[ N.of_nat j := () ]> res
                     ) (iota (N.to_nat addr) (N.to_nat lim)) res
-              | None => res
+              | _ => res
               end 
     ) ∅ a.(allocated).
 (*
@@ -145,7 +145,7 @@ Definition gmap_of_segment (s: segment) : gmap N (byte * btag) :=
 (* Definition allocator_to_list (a: allocator) : list (N * (N * N)) :=
   List.map (λ '(a,b,c), (a,(b,c))) a.(allocated). *)
 
-Definition gmap_of_allocator (a: allocator) : gmap N (option (N * N)) :=
+Definition gmap_of_allocator (a: allocator) : gmap N allocator_info :=
   a.(allocated). (* list_to_map (allocator_to_list a). *) 
 
 Definition table_to_list (tab: tableinst) : list funcelem :=

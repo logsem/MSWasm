@@ -54,8 +54,9 @@ Class wasmG Σ :=
       (*      alloc_gen_hsG :> gen_heapGS N (N*N) Σ; *)
       allGName : gname;
 
-      all_gen_hsG :> ghost_mapG Σ N (option (N * N));
+      all_gen_hsG :> ghost_mapG Σ N allocator_info;
 
+      
       glob_gen_hsG :> gen_heapGS N global Σ;
 
       locs_gen_hsG :> ghost_mapG Σ unit frame;
@@ -169,6 +170,12 @@ Notation "n ↣[allocated]{ q } v" := (ghost_map_elem allGName n q v)
                                       (at level 20, q at level 5, format "n ↣[allocated]{ q } v") : bi_scope.
 Notation "n ↣[allocated] v" := (ghost_map_elem allGName n (DfracOwn 1) v)
                                  (at level 20, format "n ↣[allocated] v") : bi_scope.
+
+(* Notation "n ↣[freed]{ q } v" := (ghost_map_elem allGName n q (Free v))
+                                  (at level 20, q at level 5, format "n ↣[freed]{ q } v") : bi_scope.
+
+Notation "n ↣[freed] v" := (ghost_map_elem allGName n (DfracOwn 1) (Free v))
+                             (at level 20, format "n ↣[freed] v") : bi_scope. *)
 
 Notation "n ↦[wg]{ q } v" := (mapsto (L:=N) (V:=global) n q v%V)
                            (at level 20, q at level 5, format "n ↦[wg]{ q } v").

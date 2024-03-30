@@ -957,14 +957,18 @@ Proof.
    destruct (find_and_remove h.(id) (s_alls s).(allocated)) eqn:Halloc.
    destruct p as [[l add] len].
    destruct (add =? base h)%N eqn:Hadd.
-   move/eqP in Hadd. subst.
+   destruct (len =? bound h)%N eqn:Hlen. 
+   move/eqP in Hadd. move/eqP in Hlen. subst.
    destruct (h.(valid)) eqn:Hvalid.
    destruct (h.(offset) == 0)%N eqn:Hoff.
    repeat eexists. fold_const; eapply rm_segfree_success; eauto.
-   eapply Free => //. exact Halloc. by apply b2p in Hoff.
+   econstructor. exact Halloc. done. by apply b2p in Hoff.
    repeat eexists. eapply rm_segfree_failure; eauto.
    right; left; intros Habs. rewrite Habs in Hoff. done.
    repeat eexists. eapply rm_segfree_failure; eauto.
+   repeat eexists. eapply rm_segfree_failure; eauto.
+   left; intro Habs. unfold find_address in Habs.
+   rewrite Halloc in Habs. inversion Habs; subst. by rewrite N.eqb_refl in Hlen. 
    repeat eexists. eapply rm_segfree_failure; eauto.
    left. intro Habs. unfold find_address in Habs.
    rewrite Halloc in Habs. inversion Habs; subst. by rewrite N.eqb_refl in Hadd.

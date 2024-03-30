@@ -72,20 +72,21 @@ Section fundamental.
           lia. }
       iMod (cinv_alloc with "Hinv") as (γ) "[#Hinv Htok]".
       iDestruct "Hall" as "(%fall & Hbl & Htoks)".
-      destruct (fall !! id h) as [[[γ0 base] bound]|] eqn:Hidh.
+      destruct (fall !! id h) as [[[[??]?]?] |] eqn:Hidh.
       { iDestruct (big_sepM_lookup_acc with "Htoks") as "[H ?]"; first done.
         iSimpl in "H". iDestruct "H" as "(%x & _ & Habs & _)". 
         iDestruct (ghost_map_elem_combine with "Ha Habs") as "[Habs _]".
         iDestruct (ghost_map_elem_valid with "Habs") as "%Habs".
+        apply dfrac_valid_own_l in Habs. 
         done. } 
-      iMod (ghost_map_insert_persist _ (γ, base h, bound h) with "Hbl") as "[Hbl #Hw]"; first done.
+      iMod (ghost_map_insert_persist _ (γ, _,_,_) with "Hbl") as "[Hbl #Hw]"; first done.
       iModIntro.
       iSplitR.
       + iLeft; iRight. iExists _. iSplit; first done. iSplit; last done.
         rewrite fixpoint_interp_value_handle_eq.
         iExists _. iSplit; first done. iRight.
-        iExists γ, (base h), (bound h). iFrame "Hw Hinv".
-        iSplit; iPureIntro; lia.
+        iExists γ, (base h), (bound h), (base h), (bound h), (DfracOwn 1). iFrame "Hw Hinv".
+        iSplit; iPureIntro; try lia. do 2 rewrite N.eqb_refl. done. 
       + iExists _, _. iFrame "Hf Hfv".
         iExists _. iFrame "Hbl".
         iApply big_sepM_insert; first done.
@@ -94,7 +95,7 @@ Section fundamental.
           instantiate (1 := {| allocated := <[ id h := _ ]> (allocated all); next_free := next_free all |}).
           simpl. rewrite lookup_insert. done.
         * iApply big_sepM_mono; last done.
-          iIntros (k [[γ0 base] bound] Hx) "(%y & %Hy & Ha & Htok)".
+          iIntros (k [[[??]?]?] Hx) "(%y & %Hy & Ha & Htok)".
           iExists _. iFrame. iFrame. iPureIntro.
           simpl. rewrite lookup_insert_ne => //.
           intros Habs; rewrite Habs Hx in Hidh.  done.

@@ -26,8 +26,8 @@ Proof.
   lia.
 Qed.
 
-Lemma commutes1 nid (a: gmap N (option (N * N))):
-   ∀ (j1 j2 : N) (z1 z2 : option (N * N)) (y : gmap N ()),
+Lemma commutes1 nid (a: gmap N allocator_info):
+   ∀ (j1 j2 : N) (z1 z2 : allocator_info) (y : gmap N ()),
    j1 ≠ j2
    → <[nid:=None]> a !! j1 = Some z1
      → <[nid:=None]> a !! j2 = Some z2
@@ -39,14 +39,14 @@ Lemma commutes1 nid (a: gmap N (option (N * N))):
                | Some (addr1, lim0) =>
                    fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                      (iota (N.to_nat addr1) (N.to_nat lim0)) y
-               | None => y
+               | _ => y
                end
-         | None =>
+         | _ =>
              match z2 with
              | Some (addr0, lim) =>
                  fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                    (iota (N.to_nat addr0) (N.to_nat lim)) y
-             | None => y
+             | _ => y
              end
          end =
          match z2 with
@@ -57,14 +57,14 @@ Lemma commutes1 nid (a: gmap N (option (N * N))):
                | Some (addr1, lim0) =>
                    fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                      (iota (N.to_nat addr1) (N.to_nat lim0)) y
-               | None => y
+               | _ => y
                end
-         | None =>
+         | _ =>
              match z1 with
              | Some (addr0, lim) =>
                  fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                    (iota (N.to_nat addr0) (N.to_nat lim)) y
-             | None => y
+             | _ => y
              end
          end.
   Proof.
@@ -91,8 +91,8 @@ Lemma commutes1 nid (a: gmap N (option (N * N))):
  Qed.
 
 
-Lemma commutes2 nid addr size (a: gmap N (option (N * N))):
-   ∀ (j1 j2 : N) (z1 z2 : option (N * N)) (y : gmap N ()),
+Lemma commutes2 nid addr size (a: gmap N allocator_info):
+   ∀ (j1 j2 : N) (z1 z2 : allocator_info) (y : gmap N ()),
     j1 ≠ j2
     → <[nid:=Some (addr, size)]> a !! j1 = Some z1
       → <[nid:=Some (addr, size)]> a !! j2 = Some z2
@@ -104,14 +104,14 @@ Lemma commutes2 nid addr size (a: gmap N (option (N * N))):
                 | Some (addr1, lim0) =>
                     fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                       (iota (N.to_nat addr1) (N.to_nat lim0)) y
-                | None => y
+                | _ => y
                 end
-          | None =>
+          | _ =>
               match z2 with
               | Some (addr0, lim) =>
                   fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                     (iota (N.to_nat addr0) (N.to_nat lim)) y
-              | None => y
+              | _ => y
               end
           end =
           match z2 with
@@ -122,14 +122,14 @@ Lemma commutes2 nid addr size (a: gmap N (option (N * N))):
                 | Some (addr1, lim0) =>
                     fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                       (iota (N.to_nat addr1) (N.to_nat lim0)) y
-                | None => y
+                | _ => y
                 end
-          | None =>
+          | _ =>
               match z1 with
               | Some (addr0, lim) =>
                   fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                     (iota (N.to_nat addr0) (N.to_nat lim)) y
-              | None => y
+              | _ => y
               end
           end. 
 (*  ∀ (j1 j2 : N) (z1 z2 : option (N * N)) (y : gmap N ()),
@@ -222,7 +222,7 @@ Proof.
   repeat split => //.
   - rewrite gmap_of_list_lookup in Hv => //.
   - unfold live_locations in Hi.
-    pose (P (res: gmap N ()) (a : gmap N (option (N*N))) := forall i, res !! i = Some () -> exists id addr size,
+    pose (P (res: gmap N ()) (a : gmap N allocator_info) := forall i, res !! i = Some () -> exists id addr size,
                a !! id = Some (Some (addr, size)) /\ (i >= addr )%N /\ (i < addr + size)%N).
     remember (map_fold _ _ _) as res.
     assert (P res (allocated a)) as H; last by apply H.
@@ -314,15 +314,25 @@ Qed.
 
 
 
-Lemma allocated_implies_is_in_allocator a i x:
+Lemma allocated_implies_is_in_allocator a i x q:
   ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
-    i ↣[allocated] x -∗ ⌜ a.(allocated) !! i = Some x ⌝.
+    i ↣[allocated]{ q } x -∗ ⌜ a.(allocated) !! i = Some x ⌝.
 Proof.
   iIntros "Ha Hi".
   iDestruct (ghost_map_lookup with "Ha Hi") as "%H".
   iPureIntro.
   done.
 Qed.
+
+(* Lemma freed_implies_is_in_allocator a i x q:
+  ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
+    i ↣[freed]{ q } x -∗ ⌜ a.(allocated) !! i = Some (Free x) ⌝.
+Proof.
+  iIntros "Ha Hi".
+  iDestruct (ghost_map_lookup with "Ha Hi") as "%H".
+  iPureIntro.
+  done.
+Qed. *)
 
  Lemma in_allocated_implies_isAlloc i x a:
   a.(allocated) !! i = Some (Some x) -> isAlloc i a.
@@ -338,7 +348,7 @@ Qed.
 
 
     Lemma wp_segload_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
-  (h: handle) (f0: frame) (x: N*N) :
+  (h: handle) (f0: frame) (x: N*N) q:
   t <> T_handle ->
   length tbv = t_length t ->
   List.map fst tbv = bv ->
@@ -346,8 +356,8 @@ Qed.
   ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
 
   (
-     ▷ (h.(id) ↣[allocated] Some x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [wasm_deserialise bv t])) ∗
-   ↪[frame] f0 ∗ h.(id) ↣[allocated] Some x ∗ 
+     ▷ (h.(id) ↣[allocated]{ q } Some x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [wasm_deserialise bv t])) ∗
+   ↪[frame] f0 ∗ h.(id) ↣[allocated]{ q } Some x ∗ 
       ↦[wss][ handle_addr h ] tbv ⊢
      (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ x, Φ x ∗ ↪[frame] f0 }})).
@@ -405,14 +415,14 @@ Proof.
 Qed.
 
 Lemma wp_segload (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (v:value)
-      h tbv x (f: frame):
+      h tbv x (f: frame) q:
   t <> T_handle ->
   types_agree t v ->
   List.map fst tbv = (bits v) ->
   valid h = true ->
   ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
-  (▷ (id h ↣[allocated] Some x ∗ ↦[wss][ handle_addr h] tbv -∗ Φ (immV [v])) ∗
-   ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
+  (▷ (id h ↣[allocated]{ q } Some x ∗ ↦[wss][ handle_addr h] tbv -∗ Φ (immV [v])) ∗
+   ↪[frame] f ∗ h.(id) ↣[allocated]{ q } Some x ∗
      ↦[wss][ handle_addr h ]
      tbv ⊢
      (WP [AI_const (VAL_handle h) ;
@@ -426,7 +436,7 @@ Proof.
 Qed.
 
  Lemma wp_segload_handle_deserialize (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) (bv:bytes) (tbv: list (byte * btag))
-          (h: handle) (f0: frame) (x: N*N) hmem bc ts:
+          (h: handle) (f0: frame) (x: N*N) hmem bc ts q:
            t = T_handle ->
   length tbv = t_length t ->
   List.map fst tbv = bv ->
@@ -437,8 +447,8 @@ Qed.
   wasm_deserialise bv t = VAL_handle hmem ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
   (
-    ▷ (h.(id) ↣[allocated] Some x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
-   ↪[frame] f0 ∗ h.(id) ↣[allocated] Some x ∗ 
+    ▷ (h.(id) ↣[allocated]{ q } Some x ∗ ↦[wss][ handle_addr h ]tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
+   ↪[frame] f0 ∗ h.(id) ↣[allocated]{ q } Some x ∗ 
       ↦[wss][ handle_addr h ] tbv ⊢
      (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ x, Φ x ∗ ↪[frame] f0 }})).
@@ -503,7 +513,7 @@ Proof.
 Qed.
 
 Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type) hmem
-      h tbv x (f: frame) bc ts:
+      h tbv x (f: frame) bc ts q:
   t = T_handle ->
   List.map fst tbv = (bits (VAL_handle hmem)) ->
   List.map snd tbv = ts ->
@@ -511,8 +521,8 @@ Lemma wp_segload_handle (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:va
   ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
   bc = List.forallb (fun x => match x with Handle => true | _ => false end) ts ->
-  (▷ (id h ↣[allocated] Some x ∗ ↦[wss][handle_addr h] tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
-   ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
+  (▷ (id h ↣[allocated]{ q } Some x ∗ ↦[wss][handle_addr h] tbv -∗ Φ (immV [VAL_handle (upd_handle_validity hmem bc)])) ∗
+   ↪[frame] f ∗ h.(id) ↣[allocated]{ q } Some x ∗
      ↦[wss][ handle_addr h ]
      tbv ⊢
      (WP [AI_const (VAL_handle h) ;
@@ -581,9 +591,9 @@ Proof.
 Qed.
 
 Lemma wp_segload_failure2 (Φ:iris.val -> iProp Σ) (s:stuckness) (E:coPset) (t:value_type)
-      h (f: frame):
-  (▷ (id h ↣[allocated] None -∗ Φ (trapV)) ∗
-   ↪[frame] f ∗ h.(id) ↣[allocated] None
+  h (f: frame) q:
+  (▷ (id h ↣[allocated]{ q } None -∗ Φ (trapV)) ∗
+   ↪[frame] f ∗ h.(id) ↣[allocated]{ q } None
                     ⊢
      (WP [AI_const (VAL_handle h) ;
           AI_basic (BI_segload t)] @ s; E {{ w, Φ w ∗ ↪[frame] f }})).
@@ -1276,14 +1286,14 @@ Qed.
 
 
 Lemma wp_segstore (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: value_type) (v: value)
-  tbs h (f: frame) x:
+  tbs h (f: frame) x q :
   t <> T_handle -> 
   types_agree t v ->
   length tbs = t_length t ->
   valid h = true ->
   ((offset h) + N.of_nat (t_length t) <= bound h)%N ->
-  (▷ (id h ↣[allocated] Some x ∗ ↦[wss][handle_addr h] (List.map (fun b => (b, Numeric)) (bits v)) -∗ ϕ (immV [])) ∗
-   ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
+  (▷ (id h ↣[allocated]{ q } Some x ∗ ↦[wss][handle_addr h] (List.map (fun b => (b, Numeric)) (bits v)) -∗ ϕ (immV [])) ∗
+   ↪[frame] f ∗ h.(id) ↣[allocated]{ q } Some x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
   (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
@@ -1338,15 +1348,15 @@ Proof.
 Qed.
 
 Lemma wp_segstore_handle (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: value_type) (v: value)
-  tbs h (f: frame) x:
+  tbs h (f: frame) x q :
   t = T_handle -> 
   types_agree t v ->
   length tbs = t_length t ->
   valid h = true ->
   ((offset h) + N.of_nat (t_length T_handle) <= bound h)%N ->
   (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) = N.of_nat 0)%N ->
-  (▷ (id h ↣[allocated] Some x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v)) -∗ ϕ (immV [])) ∗
-   ↪[frame] f ∗ h.(id) ↣[allocated] Some x ∗
+  (▷ (id h ↣[allocated]{ q } Some x ∗ ↦[wss][ handle_addr h ] (List.map (fun b => (b, Handle)) (bits v)) -∗ ϕ (immV [])) ∗
+   ↪[frame] f ∗ h.(id) ↣[allocated]{ q } Some x ∗
   ↦[wss][ handle_addr h ] tbs) ⊢
   (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
@@ -1454,9 +1464,9 @@ Proof.
 Qed.
 
 Lemma wp_segstore_failure2 (ϕ: iris.val -> iProp Σ) (s: stuckness) (E: coPset) (t: value_type) (v: value)
-  h (f: frame):
-  (▷ (id h ↣[allocated] None -∗ ϕ trapV) ∗
-   ↪[frame] f ∗ h.(id) ↣[allocated] None) ⊢
+  h (f: frame) q:
+  (▷ (id h ↣[allocated]{ q } None -∗ ϕ trapV) ∗
+   ↪[frame] f ∗ h.(id) ↣[allocated]{ q } None) ⊢
   (WP ([AI_const (VAL_handle h); AI_const v; AI_basic (BI_segstore t)]) @ s; E {{ w, ϕ w ∗ ↪[frame] f }}).
 Proof.
    iIntros "(HΦ & Hf0 & Halloc)".
@@ -1496,13 +1506,13 @@ Proof.
   destruct l => //=. lia. simpl in H. apply IHk in H. lia.
 Qed. 
 
-Lemma map_fold_grows (f : N -> option (N * N) -> gmap N () -> gmap N ()) (res : gmap N ()) (m : gmap N (option (N * N))) (i : N):
+Lemma map_fold_grows (f : N -> allocator_info -> gmap N () -> gmap N ()) (res : gmap N ()) (m : gmap N allocator_info) (i : N):
   res !! i = None ->
   map_fold f res m !! i = Some () ->
-  exists (j: N) (x: option (N * N)) (res' : gmap N ()), res' !! i = None /\ m !! j = Some x /\ f j x res' !! i = Some ().
+  exists (j: N) (x: allocator_info) (res' : gmap N ()), res' !! i = None /\ m !! j = Some x /\ f j x res' !! i = Some ().
 Proof.
   intros * Hres Hfold.
-  pose (P := λ (result: gmap N ()) (em: gmap N (option (N * N))), result !! i = Some () -> exists (j: N) (x: option (N * N)) (res': gmap N ()), res' !! i = None /\ em !! j = Some x /\ f j x res' !! i = Some ()). 
+  pose (P := λ (result: gmap N ()) (em: gmap N allocator_info), result !! i = Some () -> exists (j: N) (x: allocator_info) (res': gmap N ()), res' !! i = None /\ em !! j = Some x /\ f j x res' !! i = Some ()). 
   assert (P (map_fold f res m) m) as HP.
   2:{ apply HP => //. }
   apply (map_fold_ind P f).
@@ -1599,7 +1609,7 @@ Proof.
                                   match x with 
                                     | Some (addr0, lim) => fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                                             (iota (N.to_nat addr0) (N.to_nat lim)) res
-                                  | None => res
+                                  | _ => res
                                 end) ∅ (delete id (allocated a))) !! i =
                              Some ()) (gmap_of_list (segl_data (seg_data m)))) ∗
                       ↦[wss][addr + N.of_nat k](drop k bs))%I with "[Hσ Hwms]" as "H".  
@@ -1640,7 +1650,7 @@ Proof.
                         match x with 
                           Some (addr0, lim) => fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                                 (iota (N.to_nat addr0) (N.to_nat lim)) res
-                      | None => res end) ∅
+                      | _ => res end) ∅
                       (delete id (allocated a))) !! i = Some ())
             (λ '(i, _),
             fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
@@ -1650,7 +1660,7 @@ Proof.
                    match x with
                      | Some (addr0, lim) => fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                              (iota (N.to_nat addr0) (N.to_nat lim)) res
-                   | None => res end) ∅ (delete id (allocated a)))
+                   | _ => res end) ∅ (delete id (allocated a)))
             !! i = Some ()) (delete (addr + N.of_nat k)%N (gmap_of_list (segl_data (seg_data m))))) as [H0 _].
   rewrite H0; clear H0. 
   rewrite map_filter_delete_not.
@@ -1680,12 +1690,12 @@ Proof.
     2: done.
     destruct x0 as [[addr0 lim0]|] => //.
     2:{ by rewrite Hres in Habs. } 
-    apply fold_left_grows in Habs as (j' & x & () & res' & Hres' & Hin' & Habs).
+    apply fold_left_grows in Habs as (j' & x' & () & res' & Hres' & Hin' & Habs).
     2: done.
-    destruct (N.of_nat x =? addr + N.of_nat k)%N eqn:Hx.
+    destruct (N.of_nat x' =? addr + N.of_nat k)%N eqn:Hx.
     2:{ apply N.eqb_neq in Hx. rewrite lookup_insert_ne in Habs => //.
         by rewrite Hres' in Habs. }
-    apply N.eqb_eq in Hx. assert (x = N.to_nat addr + k) as ->; first lia.
+    apply N.eqb_eq in Hx. assert (x' = N.to_nat addr + k) as ->; first lia.
     clear Hx.
     apply lookup_iota in Hin' as [Hx Hj'].
     assert (<[ id := None ]> (allocated a) !! j = Some (Some (addr0, lim0))) as Hin'.
@@ -1696,7 +1706,7 @@ Proof.
     apply HWF in Hin' as [?|?]; lia.
   }
 
-  intros i x Hi.
+  intros i x' Hi.
   split.
   { unfold base.uncurry, Datatypes.uncurry.
     intros Hj.
@@ -1761,11 +1771,11 @@ Proof.
 *)
 
 
-Lemma wp_segfree h f0 b bts Φ s E:
+Lemma wp_segfree h f0 bts Φ s E:
   valid h = true ->
   offset h = 0%N ->
-  length bts = N.to_nat b ->
-  (▷ (id h ↣[allocated] None -∗ Φ (immV [])) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] Some (base h, b)
+  length bts = N.to_nat (bound h) ->
+  (▷ (id h ↣[allocated] None -∗ Φ (immV [])) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] Some (base h, bound h) 
      ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }})).
 Proof.
@@ -1843,9 +1853,9 @@ Proof.
       iFrame. done. 
 Qed.
 
-Lemma wp_segfree_failure2 h f0 Φ s E x y :
-  x <> h.(base) ->
-    ▷ (id h ↣[allocated]Some (x, y) -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]Some (x, y)
+Lemma wp_segfree_failure2 h f0 Φ s E x y q :
+  x <> h.(base) \/ y <> h.(bound) ->
+    ▷ (id h ↣[allocated]{ q } Some (x, y) -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]{ q } Some (x, y)
      ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
 Proof.
@@ -1882,8 +1892,8 @@ Proof.
       iFrame. iSplit; first done. by iApply "HΦ".
 Qed.
 
-Lemma wp_segfree_failure3 h f0 Φ s E:
-  ▷ (id h ↣[allocated]None -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]None
+Lemma wp_segfree_failure3 h f0 Φ s E q:
+  ▷ (id h ↣[allocated]{ q } None -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]{ q } None
      ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).
 Proof.

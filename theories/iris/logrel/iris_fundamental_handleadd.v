@@ -56,8 +56,8 @@ Section fundamental.
         unfold handle_add in Hhadd. destruct (_ >=? _)%Z eqn:Hoff => //.
         apply Z.geb_le in Hoff.
         destruct h0; inversion Hhadd; subst; simpl.
-        iDestruct "Hv" as "[-> | (%γ & %base' & %bound' & Hw & %Hbase & %Hbound & Hinv)]";
-          first by iLeft. iRight. iExists _,_,_. iFrame "Hw". iFrame "Hinv".
+        iDestruct "Hv" as "[-> | (%γ & %base' & %bound' & %base_all & %bound_all & %q & %Hq & Hw & %Hbase_all & %Hbase & %Hbound_all & %Hbound & Hinv)]";
+          first by iLeft. iRight. iExists _,_,_,_,_,_. iFrame "Hw". iFrame "Hinv".
         done.
       + iIntros (v) "[$ Hf]".
         iExists _,_;iFrame.

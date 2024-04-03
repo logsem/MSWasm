@@ -1774,12 +1774,12 @@ Proof.
 Lemma wp_segfree h f0 bts Φ s E:
   valid h = true ->
   offset h = 0%N ->
-  length bts = N.to_nat (bound h) ->
-  (▷ (id h ↣[allocated] None -∗ Φ (immV [])) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] Some (base h, bound h) 
+   length bts = N.to_nat (bound h ) -> 
+  (▷ (id h ↣[allocated] None -∗ Φ (immV [])) ∗ ↪[frame] f0 ∗ ↦[wss][ base h ] bts ∗ id h ↣[allocated] Some (base h, bound h ) 
      ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }})).
 Proof.
-  iIntros (Hvalid Hoff Hbts) "(HΦ & Hf0 & Hwss & Halloc)".
+  iIntros (Hvalid Hoff Hbts ) "(HΦ & Hf0 & Hwss & Halloc)".
   iApply wp_lift_atomic_step => //=.
   iIntros (σ ns κ κs nt) "Hσ !>".
   destruct σ as [[ws locs] winst].
@@ -1854,7 +1854,7 @@ Proof.
 Qed.
 
 Lemma wp_segfree_failure2 h f0 Φ s E x y q :
-  x <> h.(base) \/ y <> h.(bound) ->
+  x <> h.(base) \/ y <> h.(bound)  ->
     ▷ (id h ↣[allocated]{ q } Some (x, y) -∗ Φ trapV) ∗ ↪[frame] f0 ∗ id h ↣[allocated]{ q } Some (x, y)
      ⊢ (WP [AI_const (VAL_handle h) ;
             AI_basic BI_segfree ] @ s; E {{ w, Φ w ∗ ↪[frame] f0 }}).

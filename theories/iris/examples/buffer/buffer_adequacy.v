@@ -3,7 +3,7 @@ From iris.proofmode Require Import tactics.
 From iris.base_logic Require Import invariants.
 From iris.program_logic Require Import adequacy.
 Require Import Eqdep_dec.
-Require Import iris_robust_example iris_host.
+Require Import buffer_instantiation iris_host.
 
 Class adv_module_record :=
   { adv_module : module;
@@ -39,20 +39,20 @@ Section adequacy.
   Definition S := Build_store_record [] [] [] dummy_segment dummy_all [ {| g_mut := MUT_mut; g_val := xxv 0 |} ].
   Definition V (vs : module_export) : vi_store :=
     <[0%N:=vs]> (<[1%N:={| modexp_name := [Byte.x00]; modexp_desc := MED_global (Mk_globalidx (N.to_nat 0)) |} ]> ∅).
-  Definition M adv_module := [adv_module; lse_module].
+  Definition M adv_module := [adv_module; buffer_module].
 
   
   
   Lemma ex_adequacy `{Hadv:adv_module_record} he' S' V' M' HA' F vs :
-    module_typing adv_module [] lse_func_impts ->
-    rtc erased_step (([(adv_lse_instantiate 0,[])],
+    module_typing adv_module [] buffer_func_impts ->
+    rtc erased_step (([(buffer_instantiate 0,[])],
                       (S,(V vs),(M adv_module),[],empty_frame)) : cfg wasm_host_lang)
         ([he'], (S',V', M', HA', F)) →
     (∀ v, to_val he' = Some v ->
           v = trapHV ∨ v = immHV [xxv 42] ).
   Proof.
     intros Hmodtyping Hstep.
-    pose proof (wp_adequacy Σ wasm_host_lang NotStuck (adv_lse_instantiate 0,[])
+    pose proof (wp_adequacy Σ wasm_host_lang NotStuck (buffer_instantiate 0,[])
                             (S,(V vs),(M adv_module),[],empty_frame)
     (λ v, v = trapHV ∨ v = immHV [xxv 42])).
     simpl in H.
@@ -102,23 +102,23 @@ Section adequacy.
       pose hasgg := HAsG Σ has_heapg γhas.
       pose logrel_na_invs := Build_logrel_na_invs _ na_invg logrel_nais.
       assert (typeof (xxv 0) = T_i32) as Hwret;[auto|].
-      pose proof (instantiate_lse 0 dummy_all Hmodtyping no_start restrictions elem_bounds data_bounds Hwret).
+      pose proof (instantiate_buffer 0 dummy_all Hmodtyping no_start restrictions elem_bounds data_bounds Hwret).
 
       iMod (ghost_map_insert tt empty_frame with "Hframe_ctx") as "[Hframe_ctx Hf]";[auto|].
       iMod (ghost_map_insert 1%N {| modexp_name := [Byte.x00]; modexp_desc := MED_global (Mk_globalidx (N.to_nat 0)) |}
              with "Hvis_ctx") as "[Hvis_ctx Hv1]";[auto|].
       iMod (ghost_map_insert 0%N vs with "Hvis_ctx") as "[Hvis_ctx Hv0]";[auto|].
-      iMod (ghost_map_insert 1%N lse_module with "Hms_ctx") as "[Hms_ctx Hm1]";[auto|].
+      iMod (ghost_map_insert 1%N buffer_module with "Hms_ctx") as "[Hms_ctx Hm1]";[auto|].
       iMod (ghost_map_insert 0%N adv_module with "Hms_ctx") as "[Hms_ctx Hm0]";[auto|].
       iMod (gen_heap_alloc _ (N.of_nat 0) {| g_mut := MUT_mut; g_val := VAL_numeric (xx 0) |} with "Hglobal_ctx") as "[Hglobal_ctx [Hg _]]";[auto|].
 
-      iDestruct (instantiate_lse $! (λ v, ⌜v = trapHV ∨ v = immHV [xxv 42]⌝%I)
+      iDestruct (instantiate_buffer $! (λ v, ⌜v = trapHV ∨ v = immHV [xxv 42]⌝%I)
                   with "[$Hg $Hm1 $Hm0 $Hna $Hf Hv0 Hv1 Hblack]") as "HH";
         [eauto|apply no_start|apply restrictions|apply elem_bounds|apply data_bounds|eauto..].
       { iSplitL "Hblack".
         - instantiate (1 := dummy_all). iSimpl. iExists ∅.
-          iSplitL; last done. done. 
-        - iSplitL "Hv1";[iExists _;iFrame|]. iExists _;iFrame. }
+          iSplitL; last done. done.
+        - iSplitL "Hv0";[iExists _;iFrame|]. iExists _;iFrame. }
       iDestruct ("HH" with "[]") as "HH";[auto|].
       iModIntro.
       iExists _,_. iFrame "HH". iFrame.
@@ -131,10 +131,10 @@ Section adequacy.
           
 End adequacy.
 
-Theorem lse_adequacy `{adv_module_record, HHB: HandleBytes}
+Theorem buffer_adequacy `{adv_module_record, HHB: HandleBytes}
         he' S' V' M' HA' F vs :
-  module_typing adv_module [] lse_func_impts ->
-  rtc erased_step (([(adv_lse_instantiate 0,[])],
+  module_typing adv_module [] buffer_func_impts ->
+  rtc erased_step (([(buffer_instantiate 0,[])],
                      (S,(V vs),(M adv_module),[],empty_frame)) : cfg wasm_host_lang)
       ([he'], (S',V', M', HA', F)) →
   (∀ v, to_val he' = Some v -> v = trapHV ∨ v = immHV [xxv 42] ).

@@ -117,7 +117,7 @@ Section logrel.
           ⌜ w = VAL_handle h ⌝ ∗
                   (⌜ valid h = false ⌝ ∨
                      ∃ γ base' bound' base_all bound_all q,
-                       ⌜ if ((base_all =? base h) && (bound_all =? bound h))%N
+                       ⌜ if ((base_all =? base h) && (bound_all =? bound h) )%N
                          then q = DfracOwn 1%Qp
                          else (q = DfracOwn 1%Qp \/ q = DfracOwn (1 / 2)%Qp) ⌝ ∗
                        gamma_id_white (γ, base_all, bound_all, q) (id h) ∗

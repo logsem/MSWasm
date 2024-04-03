@@ -212,7 +212,7 @@ End l_is_s.
 
 
 
-Inductive sfree : segment -> allocator -> N -> N -> N -> segment -> allocator -> Prop :=
+Inductive sfree : segment -> allocator -> N ->  N ->  N -> segment -> allocator -> Prop :=
   Free : forall T A a n nid l A',
       find_and_remove nid A.(allocated) = Some (l, a, n) ->
       A' = {| allocated := l; next_free := next_free A |} ->

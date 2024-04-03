@@ -638,7 +638,7 @@ Proof.
     move=> d [[tt_s tt_f] tt_es] s' f' r //.
   - simpl. destruct b ; (try destruct v); explode_and_simplify; (try destruct n); (try destruct n0); explode_and_simplify; pattern_match => //. 
     destruct p. destruct p.
-    destruct (BinNat.N.eqb n0 (base h) && _);
+    destruct (BinNat.N.eqb n0 (base h) && _ );
       by inversion H1; subst. 
   - by pattern_match.
   - simpl. explode_and_simplify; try pattern_match => //.
@@ -729,7 +729,7 @@ Proof.
       exists (AI_basic (BI_br n)). exists es2'.
       (* unused ones *) exists 0. exists [::]. exists [::].
       move. apply/andP. split; first done. apply/orP. left. apply/andP. by split => //=.
-    + destruct p. destruct p. destruct (BinNat.N.eqb n1 (base h) && _).
+    + destruct p. destruct p. destruct (BinNat.N.eqb n1 (base h) && _ ).
       intro H; inversion H.
       by unfold crash_error; intro Habs; inversion Habs.
 (*    + by unfold crash_error; intro Habs; inversion Habs.
@@ -803,7 +803,7 @@ Proof.
       exists (AI_basic BI_return). exists es2'.
       exists 0. exists [::]. exists [::].
       split => //. left. split => //. by inversion H.
-    + destruct p. destruct p. destruct (BinNat.N.eqb n0 (base h) && _).
+    + destruct p. destruct p. destruct (BinNat.N.eqb n0 (base h) && _ ).
       by unfold crash_error; intro Habs; inversion Habs.
       by unfold crash_error; intro Habs; inversion Habs.
 (*    + by unfold crash_error; intro Habs; inversion Habs.
@@ -2363,13 +2363,13 @@ Proof.
       - (** [AI_basic BI_segfree] **)
         simpl; explode_and_simplify; pattern_match; auto_frame.
         destruct p as [[??]?].
-        destruct (BinNat.N.eqb n (base h) && BinNat.N.eqb _ (bound h)) eqn:Hn0; try by inversion H2.
+        destruct (BinNat.N.eqb n (base h) && BinNat.N.eqb _ (bound h) ) eqn:Hn0; try by inversion H2.
         inversion H2; subst.
         assert (sfree (s_segs s) (s_alls s) h.(base) h.(bound) h.(id) (s_segs s) {| allocated := g; next_free := next_free s.(s_alls) |}) as Hfree.
         { econstructor; last done.
-          apply Bool.andb_true_iff in Hn0 as [Hn0 Hn1]. 
+          apply Bool.andb_true_iff in Hn0 as [Hn0 Hn1].  
           apply BinNat.N.eqb_eq in Hn0 as ->.
-          apply BinNat.N.eqb_eq in Hn1 as ->. 
+          apply BinNat.N.eqb_eq in Hn1 as ->.  
           exact HExpect. }
         split.
         exists (ME_sfree h).

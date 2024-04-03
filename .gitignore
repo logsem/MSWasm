@@ -6,6 +6,7 @@
 
 /.out/
 /Presentation/
+/_build.prev/
 
 .merlin
 *.install

@@ -957,7 +957,7 @@ Proof.
    destruct (find_and_remove h.(id) (s_alls s).(allocated)) eqn:Halloc.
    destruct p as [[l add] len].
    destruct (add =? base h)%N eqn:Hadd.
-   destruct (len =? bound h)%N eqn:Hlen. 
+   destruct (len =? bound h)%N eqn:Hlen.  
    move/eqP in Hadd. move/eqP in Hlen. subst.
    destruct (h.(valid)) eqn:Hvalid.
    destruct (h.(offset) == 0)%N eqn:Hoff.

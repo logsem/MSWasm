@@ -89,13 +89,6 @@ Section fundamental.
     rewrite fixpoint_interp_value_handle_eq.
     iDestruct "H" as "(%x & -> & _)". done.
   Qed. 
-    
-  
-(*  Lemma interp_value_type_of v : (⊢ interp_value (Σ:=Σ) (typeof v) v)%I.
-  Proof.
-    unfold interp_value.
-    destruct v;simpl;eauto.
-  Qed. *)
 
   Lemma const_list_of_val vs :
     const_list (of_val (immV vs)).
@@ -996,28 +989,6 @@ Section fundamental.
 
   Global Instance lholed_inhabited : Inhabited (lholed).
   Proof. apply populate. exact (LH_base [] []). Qed.
-  (*
-    Notation WR := ((leibnizO value) -n> iPropO Σ).
-  Global Instance interp_value_handle_0_timeless (ivh: WR) v :
-    (forall v0, Timeless (ivh v0)) -> Timeless (interp_value_handle_0 ivh v).
-  Proof.
-    intros H. unfold interp_value_handle_0 => /=.
-    apply exist_timeless => h.
-    repeat (apply sep_timeless ; first apply _).
-    apply or_timeless; first apply _.
-    apply exist_timeless => γ.
-    apply exist_timeless => base'.
-    apply exist_timeless => bound'.
-    repeat (apply sep_timeless ; first apply _).
-
-
-  
-  Global Instance interp_val_timeless t v : Timeless (interp_val (Σ:=Σ) t v).
-  Proof. unfold interp_val. apply or_timeless;[apply _|].
-         apply exist_timeless =>vs.
-         apply sep_timeless;[apply _|].
-         apply big_sepL2_timeless =>n x1 x2.
-         destruct x2;apply _. Qed. *)
 
   Global Instance simple_valid_holed_inhabited : Inhabited (simple_valid_holed).
   Proof. apply populate. exact (SH_base [] []). Qed.

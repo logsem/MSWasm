@@ -1,5 +1,4 @@
 (** Wasm text format **)
-(* (C) M. Bodin - see LICENSE.txt *)
 
 %{
 

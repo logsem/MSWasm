@@ -43,9 +43,7 @@ Definition is_empty_op :=
 
 
  Definition is_empty :=
-(*  validate_stack 0 ++
-  validate_stack_bound 0 ++ *)
-  is_empty_op. 
+  is_empty_op.
 
 End code.
 

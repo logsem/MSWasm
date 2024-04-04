@@ -1,5 +1,4 @@
 (* Some extra operations on lists. *)
-(* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 
 Set Implicit Arguments.
 

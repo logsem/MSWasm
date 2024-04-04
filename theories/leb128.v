@@ -1,6 +1,5 @@
 (* LEB128 integer format *)
 (* https://en.wikipedia.org/wiki/LEB128 *)
-(* TODO: size bound *)
 Require Import Numbers.BinNums.
 Require Import NArith.BinNat.
 Require Import Coq.Init.Byte.
@@ -8,7 +7,6 @@ From parseque Require Import Parseque.
 
 (** expects 7 bits, with MSB at head *)
 Definition byte_of_7_bits (bs : list bool) : byte :=
-  (* TODO: using lists is very inefficient *)
   match bs with
   | cons b1 (cons b2 (cons b3 (cons b4 (cons b5 (cons b6 (cons b7 nil)))))) =>
     Byte.of_bits (b7, (b6, (b5, (b4, (b3, (b2, (b1, false)))))))
@@ -21,7 +19,6 @@ Definition rebalance (bytes_produced : list byte) (bits_produced : list bool) (t
   else (bytes_produced, cons the_bit bits_produced).
 
 Fixpoint binary_of_aux2 (is_neg : bool) (acc1 : list byte) (acc2 : list bool (* MSB at head *)) (n : positive) : list byte :=
-  (* TODO: using lists is very inefficient *)
   match n with
   | xH =>
     let (acc1', acc2') := rebalance acc1 acc2 true in

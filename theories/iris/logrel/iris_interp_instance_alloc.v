@@ -185,30 +185,6 @@ Section InterpInstance.
     import_tab_wasm_check_invs v_imps t_imps wts ∗
     import_mem_wasm_check_invs v_imps t_imps wms ∗
     import_glob_wasm_check_invs v_imps t_imps wgs.
-  
-  
- (* Definition import_resources_wasm_typecheck_invs (v_imps: list module_export)
-             (t_imps: list extern_t) (wfs: gmap N function_closure)
-             (wts: gmap N tableinst) (wms: gmap N memory) (wgs: gmap N global): iProp Σ :=
-    import_resources_wasm_domcheck v_imps wfs wts wms wgs ∗
-  [∗ list] i ↦ v; t ∈ v_imps; t_imps,
-  match v.(modexp_desc) with
-  | MED_func (Mk_funcidx i) => ((∃ cl, na_inv logrel_nais (wfN (N.of_nat i)) (N.of_nat i ↦[wf] cl) ∗ ⌜ wfs !! (N.of_nat i) = Some cl /\ t = ET_func (cl_type cl) ⌝)%I)
-                                
-  | MED_table (Mk_tableidx i) => (∃ tab tt, N.of_nat i ↪[wtsize]tab_size tab ∗
-                                           N.of_nat i ↪[wtlimit]table_max_opt tab ∗
-                                           ([∗ list] j↦tabelem ∈ table_data tab, na_inv logrel_nais (wtN (N.of_nat i) (N.of_nat j)) (N.of_nat i ↦[wt][N.of_nat j]tabelem))
-                                           ∗ ⌜ wts !! (N.of_nat i) = Some tab /\ t = ET_tab tt /\ tab_typing tab tt ⌝)
-                                  
-  | MED_mem (Mk_memidx i) => (∃ mem mt, (na_inv logrel_nais (wmN (N.of_nat i)) (∃ (mem : memory),
-                                ([∗ list] j ↦ b ∈ (mem.(mem_data).(ml_data)), N.of_nat i ↦[wm][N.of_nat j] b) ∗
-                                N.of_nat i ↦[wmlength] mem_length mem)) ∗
-                            N.of_nat i ↪[wmlimit] mem_max_opt mem ∗ ⌜ wms !! (N.of_nat i) = Some mem /\ t = ET_mem mt /\ mem_typing mem mt ⌝)
-                              
-  | MED_global (Mk_globalidx i) => (∃ g gt, na_inv logrel_nais (wgN (N.of_nat i)) (∃ w, N.of_nat i ↦[wg] Build_global (tg_mut gt) w ∗ interp_value (tg_t gt) w)
-                                                  ∗ ⌜ wgs !! (N.of_nat i) = Some g /\ t = ET_glob gt /\ global_agree g gt ⌝)
-  end.*)
-
 
   Global Instance imports_invs_persistent v_imps t_imps wfs wts wms wgs : Persistent (import_resources_wasm_typecheck_invs v_imps t_imps wfs wts wms wgs).
   Proof.  
@@ -458,28 +434,6 @@ Section InterpInstance.
     iApply na_inv_alloc. iNext. iFrame.
   Qed.
 
-  (*Lemma module_inst_resources_func_NoDup mfuncs inst inst_f :
-    module_inst_resources_func mfuncs inst inst_f -∗
-    ⌜NoDup inst_f⌝.
-  Proof.
-    iIntros "H". iDestruct (big_sepL2_length with "H") as %Hlen.
-    iInduction inst_f as [] "IH" forall (mfuncs Hlen).
-    { iPureIntro. destruct mfuncs;[|done]. by apply NoDup_nil. }
-    { destruct mfuncs;[done|].
-      rewrite NoDup_cons.      
-      iDestruct "H" as "[H H']".
-      simpl in Hlen. inversion Hlen.
-      iSplit.
-      { iIntros (Hcontr).
-        apply elem_of_list_lookup in Hcontr as [k Hk].
-        apply lookup_lt_Some in Hk as Hlt. rewrite -H0 in Hlt.
-        apply lookup_lt_is_Some_2 in Hlt as [cl Hk'].
-        iDestruct (big_sepL2_lookup with "H'") as "H'";eauto.
-        iDestruct (mapsto_valid_2 with "H H'") as "[% ?]". done. }
-      { iDestruct ("IH" with "[] H'") as "H'";auto. }
-    } 
-  Qed.*)
-
   Lemma ext_func_addrs_elem_of fa v_imps :
     fa ∈ ext_func_addrs (modexp_desc <$> v_imps) ->
     ∃ name, Build_module_export name (MED_func (Mk_funcidx fa)) ∈ v_imps.
@@ -584,23 +538,6 @@ Section InterpInstance.
   Qed. 
     
 
-  (* Definition module_inst_resources_tab_invs (mtabs: list module_table) (t_inits : gmap (nat * nat) funcelem) (inst_t: list tableaddr) : iProp Σ := *)
-  (*   ([∗ list] i↦tab; addr ∈ mtabs; inst_t, *)
-  (*      let tab := (match tab.(modtab_type).(tt_limits) with *)
-  (*                                | {| lim_min := min; lim_max := omax |} => *)
-  (*                                    (Build_tableinst *)
-  (*                                       (imap *)
-  (*                                          (λ (j : nat) (_ : funcelem), *)
-  (*                                            match t_inits !! (i, j) with *)
-  (*                                            | Some felem => felem *)
-  (*                                            | None => None : funcelem *)
-  (*                                            end) (repeat (None : funcelem) (ssrnat.nat_of_bin min)))) *)
-  (*                                      (omax) *)
-  (*                  end) in *)
-  (*      N.of_nat addr ↪[wtsize]tab_size tab ∗ N.of_nat addr ↪[wtlimit]table_max_opt tab ∗ *)
-  (*      ([∗ list] j↦tabelem ∈ table_data tab, na_inv logrel_nais (wtN (N.of_nat addr) (N.of_nat j)) (N.of_nat addr ↦[wt][N.of_nat j]tabelem))        *)
-  (*   )%I. *)
-
   Definition module_inst_resources_tab_invs (mtabs : list tableinst) (inst_t : list tableaddr) : iProp Σ :=
     ([∗ list] i↦tab; addr ∈ mtabs; inst_t,
        N.of_nat addr ↪[wtsize]tab_size tab ∗ N.of_nat addr ↪[wtlimit]table_max_opt tab ∗
@@ -619,20 +556,6 @@ Section InterpInstance.
     iApply (big_sepL_mono with "Hlim");intros k' x Hx;simpl. iIntros "H".
     iApply na_inv_alloc. iNext. iFrame.
   Qed.
-
-  (* Definition module_inst_resources_mem_invs (mmems: list memory_type) (inst_m: list memaddr) : iProp Σ :=  *)
-  (*   ([∗ list] mem; addr ∈ mmems; inst_m, N.of_nat addr ↪[wmlimit] lim_max mem ∗ *)
-  (*      na_inv logrel_nais (wmN (N.of_nat addr)) *)
-  (*             (∃ (mem : memory), *)
-  (*                 ([∗ list] i ↦ b ∈ (mem.(mem_data).(ml_data)), (N.of_nat addr) ↦[wm][ (N.of_nat i) ] b) ∗ *)
-  (*                                                               (N.of_nat addr) ↦[wmlength] mem_length mem) *)
-  (*      (* (N.of_nat addr ↦[wmblock] (match mem with *) *)
-  (*      (*                           | {| lim_min:= min; lim_max := omax |} => *) *)
-  (*      (*                               Build_memory *) *)
-  (*      (*                                 {| ml_init := #00%byte; ml_data := repeat #00%byte (N.to_nat min) |} *) *)
-  (*      (*                                 (omax) *) *)
-  (*      (*                           end)) *) *)
-  (*   ). *)
 
   Definition module_inst_resources_mem_invs (mmems : list memory) (inst_m : list memaddr) : iProp Σ :=
     ([∗ list] mem;addr ∈ mmems;inst_m, N.of_nat addr ↪[wmlimit] mem_max_opt mem ∗
@@ -653,13 +576,6 @@ Section InterpInstance.
     iApply na_inv_alloc. iNext. iExists _. iFrame.
   Qed.
   
-  (* Definition module_inst_resources_glob_invs (mglobs: list module_glob) (g_inits: list value) (inst_g: list globaladdr) (gts : seq.seq global_type) : iProp Σ := *)
-  (*   ([∗ list] i↦g; addr ∈ mglobs; inst_g, *)
-  (*      ∃ w τg, ⌜g_inits !! i = Some w⌝ ∗ ⌜gts !! i = Some τg⌝ ∗ *)
-  (*      na_inv logrel_nais (wgN (N.of_nat addr)) (∃ w, N.of_nat addr ↦[wg] Build_global (tg_mut τg) w *)
-  (*                                                              ∗ interp_value (tg_t τg) w) *)
-  (*   ). *)
-
   Definition module_inst_resources_glob_invs (mglobs : list global) (inst_g : list globaladdr) (gts : seq.seq global_type) : iProp Σ :=
     ([∗ list] i ↦ g;addr ∈ mglobs; inst_g,
        ∃ τg, ⌜gts !! i = Some τg⌝ ∗
@@ -1994,7 +1910,7 @@ Qed.
               tc_global := ((ext_t_globs t_imps) ++ gts)%list;
               tc_table := ((ext_t_tabs t_imps) ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
               tc_memory := ((ext_t_mems t_imps) ++ (mod_mems m))%list;
-              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct? *)
+              tc_segment := {| lim_min := 0; lim_max := None |} ;
               tc_allocator := ALL_type;
               tc_local := [];
               tc_label := [];
@@ -2011,9 +1927,8 @@ Qed.
        let v_imp_descs := map (fun mexp => mexp.(modexp_desc)) v_imps in
        prefix (ext_func_addrs v_imp_descs) inst.(inst_funcs) /\
          prefix (ext_tab_addrs v_imp_descs) inst.(inst_tab) /\
-         prefix (ext_mem_addrs v_imp_descs) inst.(inst_memory) /\ (* insert equivalent for seg? *)
+         prefix (ext_mem_addrs v_imp_descs) inst.(inst_memory) /\
          prefix (ext_glob_addrs v_imp_descs) inst.(inst_globs)) ->
-    (* module_init_values m inst tab_inits mem_inits glob_inits -> *)
     typeof_numerical <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->
     
     ([∗ map] _↦cl ∈ wfs, interp_closure hl (cl_type cl) cl)%I -∗ (* we must assume that the imported closures are valid *)
@@ -2044,7 +1959,6 @@ Qed.
     iDestruct "Hmr" as "(Hfr & Htr & Hmr & Hgr)".
     iDestruct (import_resources_wasm_typecheck_lengths with "Hir") as %(Hlenir&Hlenir0&Hlenir1&Hlenir2).
     iMod (import_resources_wasm_typecheck_alloc with "Hglobs_val Hir") as "#Hir".    
-    (* iDestruct (module_inst_resources_func_NoDup with "Hfr") as %Hnodup. *)
     iMod (module_inst_resources_func_invs_alloc with "Hfr") as "#Hfr".
     iMod (module_inst_resources_tab_invs_alloc with "Htr") as "#Htr".
     iMod (module_inst_resources_mem_invs_alloc with "Hmr") as "#Hmr".

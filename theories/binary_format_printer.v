@@ -14,7 +14,7 @@ Definition binary_of_value_type (t : value_type) : byte :=
   | T_i32 => x7f
   | T_i64 => x7e
   | T_f32 => x7d
-  | T_f64 => x7c (* MAXIME: Added a bunch of binaries to be the unused xci and xdi *)
+  | T_f64 => x7c
   | T_handle => xd1
   end.
 
@@ -105,7 +105,6 @@ Fixpoint binary_of_be (be : basic_instruction) : list byte :=
   | BI_load T_i64 (Some (Tp_i16, SX_U)) a o => x33 :: binary_of_memarg a o
   | BI_load T_i64 (Some (Tp_i32, SX_S)) a o => x34 :: binary_of_memarg a o
   | BI_load T_i64 (Some (Tp_i32, SX_U)) a o => x35 :: binary_of_memarg a o
-  (* MAXIME: added all these xc *)
   | BI_load T_handle (Some _) _ _  => dummy
   | BI_load T_handle None a o => xc0 :: binary_of_memarg a o
   | BI_segload T_i32 => xc1 :: x00 :: nil
@@ -267,8 +266,7 @@ Fixpoint binary_of_be (be : basic_instruction) : list byte :=
   | BI_binop T_f64 (Binop_f BOF_copysign) => xa6 :: nil
   | BI_binop T_i32 (Binop_f _) => dummy
   | BI_binop T_i64 (Binop_f _) => dummy
-  (* TODO: I am really not sure whether the cases below are right :-s *)
-  | BI_cvtop T_i32 CVO_convert T_i64 (Some SX_U) (* TODO: is this correct? *) => xa7 :: nil
+  | BI_cvtop T_i32 CVO_convert T_i64 (Some SX_U) => xa7 :: nil
   | BI_cvtop T_i32 CVO_convert T_i64 _ => dummy
   | BI_cvtop T_i32 CVO_convert T_f32 (Some SX_S) => xa8 :: nil
   | BI_cvtop T_i32 CVO_convert T_f32 (Some SX_U) => xa9 :: nil

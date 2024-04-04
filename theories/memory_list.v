@@ -1,5 +1,4 @@
 (** an implementation of Wasm memory based on a list *)
-(* (C) J. Pichon - see LICENSE.txt *)
 
 From mathcomp Require Import ssreflect ssrbool eqtype seq.
 Require Import BinNat Lia.

@@ -18,7 +18,7 @@ Section Opsem.
 
 (** unop **)
   | rs_unop : forall v op t,
-    reduce_simple [::AI_const v; AI_basic (BI_unop t op)] [::AI_const (@app_unop op v)] (* comment *)
+    reduce_simple [::AI_const v; AI_basic (BI_unop t op)] [::AI_const (@app_unop op v)]
 
 (** binop **)
   | rs_binop_success : forall v1 v2 v op t,
@@ -26,8 +26,6 @@ Section Opsem.
     reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_const v]
   | rs_binop_failure : forall v1 v2 op t,
     app_binop op v1 v2 = None ->
-    reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_trap] (* MAXIME: should this produce memory-event trap? I'd argue not, no usage of memory here *)
-
   (** testops **)
   | rs_testop_i32 :
     forall c testop,

@@ -1,5 +1,4 @@
 (** Parser for the binary Wasm format. **)
-(* (C) J. Pichon - see LICENSE.txt *)
 (* TODO: all the numeric stuff is in dire need of testing *)
 
 From Wasm Require Import datatypes datatypes_properties typing operations segment_list handle.

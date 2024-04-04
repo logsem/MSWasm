@@ -222,7 +222,7 @@ Section Example07Host.
     module_typing example_module (example_func_impts ++ example_glob_impts)
       []. 
   Proof. 
-    exists [Tf [] []],[ (* {| tg_mut := MUT_mut; tg_t := T_i32 |} *) ]. simpl.
+    exists [Tf [] []],[ ]. simpl.
     repeat split;eauto.
     { apply Forall2_cons. split;auto. cbn.
       repeat split;auto.
@@ -235,7 +235,6 @@ Section Example07Host.
   Proof.
     unfold module_restrictions.
     repeat split; try by exists [] => //=.
-(*                           exists [xx 99]. done.  *)
   Qed.
 
 
@@ -250,8 +249,7 @@ Section Example07Host.
             (N.of_nat g_han) ↦[wg] {| g_mut := MUT_mut; g_val := VAL_handle h |} ∗
             (∃ name, 0%N ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx g_ret) |}) ∗
             (∃ nameh, 1%N ↪[vis] {| modexp_name := nameh; modexp_desc := MED_global (Mk_globalidx g_han) |}) ∗
-            0%N ↪[mods] example_module (* ∗ 
-          na_own logrel_nais ⊤ ∗ *)
+            0%N ↪[mods] example_module
       }}}
       ((example_instantiate g_ret,[]) : host_expr)
       {{{  λ v: language.val wasm_host_lang, ⌜v = immHV [xxv 0]⌝ ∨ ⌜v = immHV [xxv 42]⌝ }}} .
@@ -337,8 +335,6 @@ Section Example07Host.
     destruct l.
     { inversion Hextglob. simpl in H. done. } 
     inversion Hextglob. simpl in H. inversion H; subst g g0. 
-
-    (* iDestruct "Hglobs" as "[Hg _]".  *)
 
 
     unfold check_start in Hstart. simpl in Hstart. rewrite Hfuncs in Hstart.

@@ -65,7 +65,7 @@ Class logrel_na_invs Σ :=
     logrel_nais : na_inv_pool_name
   }.
 
-Definition proph_id := positive. (* ??? *)
+Definition proph_id := positive.
 
 
 Instance eqdecision_frame: EqDecision frame.
@@ -141,12 +141,6 @@ Notation "n ↣[allocated]{ q } v" := (ghost_map_elem allGName n q v)
                                       (at level 20, q at level 5, format "n ↣[allocated]{ q } v") : bi_scope.
 Notation "n ↣[allocated] v" := (ghost_map_elem allGName n (DfracOwn 1) v)
                                  (at level 20, format "n ↣[allocated] v") : bi_scope.
-
-(* Notation "n ↣[freed]{ q } v" := (ghost_map_elem allGName n q (Free v))
-                                  (at level 20, q at level 5, format "n ↣[freed]{ q } v") : bi_scope.
-
-Notation "n ↣[freed] v" := (ghost_map_elem allGName n (DfracOwn 1) (Free v))
-                             (at level 20, format "n ↣[freed] v") : bi_scope. *)
 
 Notation "n ↦[wg]{ q } v" := (mapsto (L:=N) (V:=global) n q v%V)
                            (at level 20, q at level 5, format "n ↦[wg]{ q } v").

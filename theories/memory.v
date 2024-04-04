@@ -1,5 +1,4 @@
 (** a typeclass for a Wasm memory *)
-(* (C) J. Pichon - see LICENSE.txt *)
 
 Require Import BinNat.
 Require Import bytes.

@@ -1,5 +1,4 @@
 (** Properties about Wasm datatypes (mainly equality relations) **)
-(* (C) M. Bodin, J. Pichon - see LICENSE.txt *)
 
 Require Import bytes common.
 Require Export datatypes segment_list.

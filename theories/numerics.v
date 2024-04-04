@@ -1,5 +1,4 @@
 (** Common useful definitions **)
-(* (C) M. Bodin, J. Pichon - see LICENSE.txt *)
 
 Require Import common.
 From Coq Require ZArith.Int ZArith.BinInt.
@@ -875,16 +874,9 @@ Definition ixor : T -> T -> T := xor.
 
 (** Return the result of shifting left the first number by the second. **)
 Definition ishl (i1 i2 : T) : T :=
-(* TODO: We would like to better the specification here.  Something like:
-[[
-  let: k := (unsigned i1 mod wordsize)%Z in
-  shl k i2.
-]]
-*)
   shl i1 i2.
 
 (** Return the result of shifting right the first number by the second. **)
-(* TODO: Make it match better the specification. *)
 Definition ishr_u : T -> T -> T := shru.
 
 
@@ -908,7 +900,7 @@ Definition Tmixin : mixin_of T := {|
      int_xor := ixor ;
      int_shl := ishl ;
      int_shr_u := ishr_u ;
-     int_shr_s := shr (*TODO: ishr_s*) ;
+     int_shr_s := shr ;
      int_rotl := rol ;
      int_rotr := ror ;
      (** Equalities **)

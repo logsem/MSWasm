@@ -1,5 +1,4 @@
 (** Axiomatisation of the host. **)
-(* (C) M. Bodin - see LICENSE.txt *)
 
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From Wasm Require Import common datatypes operations typing handle.

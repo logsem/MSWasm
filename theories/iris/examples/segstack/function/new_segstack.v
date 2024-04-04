@@ -54,33 +54,25 @@ End code.
 
 Section specs.
 
-Lemma spec_new_stack f0 (* len *) E: 
+Lemma spec_new_stack f0 E:
   ⊢ {{{
           ⌜ length (f_locs f0) >= 1 ⌝ ∗
-  (*        ⌜ (page_size | len)%N ⌝ ∗ *)
-            ↪[frame] f0 (* ∗
-            ↦[wslength] len *)
+            ↪[frame] f0
     }}}
     to_e_list new_stack @ E
-    {{{ v , ((⌜ v = immV [value_of_handle dummy_handle] ⌝ (* ∗
-                      ↦[wslength] len *)) ∨
-               (∃ h (* len' *), ⌜ v = immV [value_of_handle h]⌝ ∗
-                             isStack h [] (* ∗
-                             ↦[wslength] len' ∗
-                             ⌜ (len' >= len)%N ⌝ *)
+    {{{ v , ((⌜ v = immV [value_of_handle dummy_handle] ⌝ ) ∨
+               (∃ h , ⌜ v = immV [value_of_handle h]⌝ ∗
+                             isStack h []
             )) ∗
               ∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f1 = f_inst f0 ⌝ }}}.
 Proof.
   iIntros "!>" (Φ) "(%Hflocs & Hframe) HΦ".
-  (*assert (page_size | len)%N as Hlenmod => //=.
-  apply divide_and_multiply in Hlenmod => //=. *)
   simpl. rewrite separate2.
   iApply wp_seq => /=.
   iDestruct (wp_segalloc with "[$Hframe]") as "HWP" => //.
   iIntros "!>" (w) "H". iExact "H".
   iSplitR; last first.
   
-  (* { iSplitL ; by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I ). } *)
   iSplitL "HWP".
   by iApply "HWP".
   2:{ iIntros "[Habs _]". iDestruct "Habs" as (?) "[% _]".  done. }
@@ -142,8 +134,6 @@ Proof.
       rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
       iApply wp_wand_r. 
       iSplitL "Hf".
-      (*iApply (wp_block with "Hf") => //=. 
-      iIntros "!> Hf". *)
       iApply wp_wasm_empty_ctx.
       iApply (wp_block_ctx with "Hf"). done. done. done. done.
       iIntros "!> Hf".
@@ -174,20 +164,6 @@ Proof.
 
       iDestruct "H" as "[ %Hdum | (Hid & %Hbound & %Hoff & %Hval & Hs)]".
       subst h. unfold handle_eqb, dummy_handle in Hv; simpl in Hv. done.
-      (* assert (len `div` page_size <= 65535)%N as Hpagebound.
-      { unfold mem_in_bound, page_limit in Hbound.
-        simpl in Hbound.
-        by lias.
-      }
-      assert (len <= ffff0000)%N as Hlenbound.
-      { rewrite <- Hlenmod.
-        remember (len `div` page_size)%N as pagenum.
-        replace page_size with 65536%N => //.
-        unfold ffff0000.
-        by lias.
-      }
-      unfold page_size at 3.
-      replace (N.to_nat (_ * (64 * 1024))) with (4 + N.to_nat (65532)) ; last done. *)
       assert (Wasm_int.N_of_uint i32m (Wasm_int.int_of_Z i32m 65536) = 65536%N); first done.
       rewrite H.
       assert (N.to_nat 65536 = 4 + N.to_nat 65532); first done.
@@ -205,9 +181,7 @@ Proof.
         replace (base h + 1 + 1)%N with (base h + N.of_nat 2)%N ; last lia.
         replace (base h + N.of_nat 2 + 1)%N with (base h + N.of_nat 3)%N ; last lia.
         iFrame. }
-(*      remember (Wasm_int.Int32.repr (ssrnat.nat_of_bin (len `div` page_size))) as c. *)
-      iApply wp_wand_r.        
-      (*      instantiate (1 := λ x, ((⌜ x = immV [value_of_uint len] ⌝ ∗ N.of_nat n↦[i32][ len ] (Wasm_int.Int32.repr (Z.of_N len))) ∗ ↪[frame] {| f_locs := set_nth (VAL_int32 c) (f_locs f0) 0 (VAL_int32 (Wasm_int.Int32.imul c (Wasm_int.Int32.repr 65536))); f_inst := f_inst f0 |} )%I). *)
+      iApply wp_wand_r.
       iSplitL "Hf Hbs Hid".
       * { iApply wp_wasm_empty_ctx.
           iApply (wp_block_ctx with "Hf"). done. done. done. done.

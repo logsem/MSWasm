@@ -1,5 +1,4 @@
 (** Wasm type checker **)
-(* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 Require Import common handle.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 
@@ -430,49 +429,3 @@ Definition b_e_type_checker (C : t_context) (es : list basic_instruction) (tf : 
   c_types_agree (List.fold_left (check_single C) es (CT_type tn)) tm  .
 
 End Check.
-(* TODO: This definition is kind of a duplication of inst_typing, to avoid more dependent definitions becoming Prop downstream *)
-
-(* UPD: This in fact makes the soundness proof extremely tedious and dependent on the type_checker reflecting typing.
-  I have edited the later functions to avoid using these. *)
-(*
-Definition inst_type_check (s : store_record) (i : instance) : t_context := {|
-  (* TODO: ported this from option to list, but not too sure it's right *)
-  tc_types_t := i_types i;
-  tc_func_t := collect_at_inds (map cl_type (s_funcs s)) (i_funcs i);
-  tc_global :=
-    collect_at_inds
-      (map (fun glob => {| tg_mut := glob.(g_mut); tg_t := typeof glob.(g_val) |}) s.(s_globals))
-      i.(i_globs);
-  tc_table :=
-    collect_at_inds
-      (map
-        (fun t =>
-          (* TODO: this is probably wrong? *)
-          {| tt_limits := {| lim_min := 0; lim_max := Some (List.length t.(table_data)) |}; tt_elem_type := ELT_funcref |})
-          s.(s_tables))
-      i.(i_tab);
-  tc_memory :=
-    collect_at_inds
-      (map
-        (fun m =>
-          (* TODO: this is probably wrong? *)
-          {| lim_min := 0; lim_max := Some (List.length m.(mem_data)) |})
-        s.(s_mems))
-      i.(i_memory);
-  tc_local := nil;
-  tc_label := nil;
-  tc_return := None;
-|}.
-
-Definition cl_type_check (s : store_record) (cl : function_closure) : bool :=
-  match cl with
-  | Func_native i tf ts es =>
-    let '(Tf t1s t2s) := tf in
-    let C := inst_type_check s i in
-    let C' := upd_local_label_return C (app (tc_local C) (app t1s ts)) (app [::t2s] (tc_label  C)) (Some t2s) in
-    b_e_type_checker C' es (Tf [::] t2s)
-  | Func_host tf h => true
-  end.
-*)
-
-

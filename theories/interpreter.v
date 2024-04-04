@@ -1,5 +1,4 @@
 (** Wasm interpreter **)
-(* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 
 From Wasm Require Import common.
 From Coq Require Import ZArith.BinInt BinNat.

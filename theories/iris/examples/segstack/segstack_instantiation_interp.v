@@ -102,7 +102,6 @@ Section StackModule.
                     (* This is technically redundant, but is commonly used in other modules that import the stack *)
                     ⌜ NoDup [idf0; idf1; idf2; idf3; idf4; idf5; idf6] ⌝ ∗
                     ⌜ tab_size >= 1 ⌝ ∗
-(*                    na_inv logrel_nais stkN (stackModuleInv (λ n, isStack n)) ∗ *)
                     (* table starts out as empty *)
                     ([∗ list] elem ∈ tab_data, ⌜elem = None⌝) ∗
                     (* each export function is valid *)
@@ -201,7 +200,6 @@ Section StackModule.
       iExists _, _, _, _, _, _, _.
       iExists _.
       iExists (λ a b, isStack a b).
-      (* iExists (λ n, (N.of_nat m↦[wmlength] N.of_nat n)%I). *)
 
       iSplitL "Hexp0 Hexp1 Hexp2 Hexp3 Hexp4 Hexp5 Hexp6 Hexp7"; first by iFrame => /=.
       
@@ -259,7 +257,7 @@ Section StackModule.
         { iNext. iExists 0. iSplit.
           - iPureIntro. apply N.divide_0_r.
           - iFrame. iExists []. simpl. iSplit;auto. iPureIntro. constructor. lias. }
-(*        iFrame "Hstk". *) iClear "∗".
+        iClear "∗".
         set (i0 := {| inst_types := [Tf [] [T_i32]; Tf [T_i32] [T_i32]; Tf [T_i32; T_i32] []];
                      inst_funcs := [f; f0; f1; f2; f3; f4];
                      inst_tab := [t];

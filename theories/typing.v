@@ -1,5 +1,4 @@
 (** Wasm typing rules **)
-(* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From Wasm Require Import operations segment_list handle.
 From Coq Require Import NArith.

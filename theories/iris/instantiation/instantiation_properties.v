@@ -764,47 +764,6 @@ Proof.
   destruct status' as [[??]?].  
   by apply const_no_reduce in H.
 Qed.
-(*
-Lemma reduce_trans_imm_to_const s1 f1 v1 mes s2 f2 v2:
-  reduce_trans (s1, f1, [AI_basic (BI_const v1)]) mes (s2, f2, [AI_const v2]) ->
-  v2 = VAL_numeric v1.
-Proof.
-  move => Hred.
-  inversion Hred => //.
-  destruct status' as [[??]?].
-  remember ([AI_basic (BI_immediate v1)]) as es1.
-  induction H ; inversion Heqes1; subst.
-  - inversion H => //; subst.
-    + inversion H1 => //; subst.
-      * inversion H0 => //.
-        destruct status' as [[??]?].
-        by apply const_no_reduce in H2.
-      * destruct vs => //.  destruct vs => //.
-      * destruct vs => //. destruct vs => //.
-      * unfold lfilled, lfill in H3. destruct lh => //.  destruct (const_list _) => //.
-        apply b2p in H3. destruct l => //.  destruct l => //.
-    + destruct vcs => //.
-    + destruct vcs => //.
-  - unfold lfilled, lfill in H4.
-    destruct k.
-    + destruct lh => //.
-      destruct (const_list _) eqn:Hconst => //.
-      apply b2p in H4. destruct l => //.
-      * destruct es => //.
-        -- apply empty_no_reduce in H => //.
-        -- destruct es => //. destruct l0 => //.
-           inversion H4; subst.
-           unfold lfilled, lfill in H5. simpl in H5.
-           rewrite app_nil_r in H5.
-           apply b2p in H5 as ->.
-           apply IHreduce => //.
-      * inversion H4; subst. simpl in Hconst. done.
-    + fold lfill in H4. destruct lh => //.
-      destruct (const_list _) eqn:Hconst => //.
-      destruct (lfill _ _ _) => //.
-      apply b2p in H4. destruct l => //.
-      inversion H4; subst. simpl in Hconst. done.
-Qed.  *)
 
            
 

@@ -652,10 +652,7 @@ Proof.
           unfold IntoVal.
           by apply of_to_val.
           iFrame.
-          (* instantiate (1 := λ x, (( _ ∗
-                                      ((∃ k, ⌜ (0 <= k <= ffff0000)%N ⌝ ∗ ⌜ x = callHostV _ _ _ _ ⌝ ∗ nextStackAddrIs _ ∗  _ ↦[wg] _ ∗ isStack k _)
-                                            ∨ ⌜ x = immV [] ⌝ ∗ _ ↦[wg] {| g_mut := MUT_mut; g_val := value_of_int (-1) |})))%I). *)
-          instantiate (1 := λ x, (_ ∗ ((∃ k, ⌜ x = callHostV _ _ _ _ ⌝ ∗ _ ↦[wg] _ ∗ isStack k _ ) ∨ ⌜ x = immV [] ⌝ ∗ 
+          instantiate (1 := λ x, (_ ∗ ((∃ k, ⌜ x = callHostV _ _ _ _ ⌝ ∗ _ ↦[wg] _ ∗ isStack k _ ) ∨ ⌜ x = immV [] ⌝ ∗
                                                                                                             N.of_nat g↦[wg] {| g_mut := MUT_mut; g_val := value_of_int (-1) |}))%I).
            iIntros "!>".
           iCombine "Hwfdbl Hexphost Hcl Himpfcl4 Himpfcl5 Himpfcl7 Ht0 Hwfsq" as "H".

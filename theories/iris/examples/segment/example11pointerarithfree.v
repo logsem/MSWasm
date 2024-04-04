@@ -39,9 +39,6 @@ free (h' 1)
       BI_const (xx 8);
       BI_segalloc;
       BI_set_local 0;
-(*      BI_isdummy;
-      BI_if (Tf [] []) [ BI_unreachable ] []; 
-      BI_get_local 0; *)
       BI_const (xx 4);
       BI_get_local 0;
       BI_handleadd;
@@ -231,7 +228,7 @@ Section Example11Host.
     module_typing example_module (example_func_impts ++ example_glob_impts)
       []. 
   Proof. 
-    exists [Tf [] []],[ (* {| tg_mut := MUT_mut; tg_t := T_i32 |} *) ]. simpl.
+    exists [Tf [] []],[ ]. simpl.
     repeat split;eauto.
     { apply Forall2_cons. split;auto. cbn.
       repeat split;auto.
@@ -247,7 +244,6 @@ Section Example11Host.
   Proof.
     unfold module_restrictions.
     repeat split; try by exists [] => //=.
-(*                           exists [xx 99]. done.  *)
   Qed.
 
 

@@ -1,5 +1,4 @@
 (** Extraction to OCaml. **)
-(* (C) M. Bodin, J. Pichon - see LICENSE.txt *)
 
 (*
 From Coq Require Extraction.

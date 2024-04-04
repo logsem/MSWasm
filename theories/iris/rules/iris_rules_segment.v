@@ -292,16 +292,6 @@ Proof.
   done.
 Qed.
 
-(* Lemma freed_implies_is_in_allocator a i x q:
-  ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
-    i ↣[freed]{ q } x -∗ ⌜ a.(allocated) !! i = Some (Free x) ⌝.
-Proof.
-  iIntros "Ha Hi".
-  iDestruct (ghost_map_lookup with "Ha Hi") as "%H".
-  iPureIntro.
-  done.
-Qed. *)
-
  Lemma in_allocated_implies_isAlloc i x a:
   a.(allocated) !! i = Some (Some x) -> isAlloc i a.
  Proof.
@@ -554,7 +544,6 @@ Proof.
     right; right; left => //. 
   + iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
-(*    rewrite -nth_error_lookup in Hm. *)
     iModIntro.
     prim_split κ HStep HStep. 
     eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
@@ -1198,7 +1187,6 @@ Proof.
   replace (handle_addr h + 1)%N with (handle_addr h').
   2:{ subst; rewrite handle_addr_plus_one => //. }
   iMod (IHbs with "Hσ Hwms") as "[Hσ Hwms]" => //.
-(*  subst; unfold plus_one; simpl; lia. *)
   by subst; eapply segload_append.
   subst h'; simpl; intros. apply Ha.
   rewrite handle_addr_plus_one in H; lia.
@@ -1492,7 +1480,6 @@ Qed.
 Lemma ghost_map_delete_big_ws bs (m : segment) a addr size id:
   length bs = N.to_nat size ->
   a.(allocated) !! id = Some (Some (addr, size)) ->
-  (*  isSound s a -> *)
   compatible addr size (<[ id := None ]> a.(allocated)) ->
   ghost_map_auth segGName 1 (gmap_of_segment m a) -∗
                   ↦[wss][addr] bs ==∗

@@ -505,7 +505,7 @@ Notation " n ↪[mods] v" := (ghost_map_elem (V := module) msGName n (DfracOwn 1
 
 
 Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : weakestpre.irisGS wasm_host_lang Σ := {
-  iris_invGS := func_invG; (* ??? *)
+  iris_invGS := func_invG;
   state_interp σ _ κs _  :=
     let: (s, vis, ms, fs, f) := σ in
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
@@ -519,10 +519,8 @@ Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG
       (ghost_map_auth haGName 1 (gmap_of_list fs)) ∗
       (ghost_map_auth frameGName 1 (<[ tt := f ]> ∅)) ∗ 
       (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
-(*      (gen_heap_interp (<[ () := seg_length s.(s_segs).(seg_data) ]> ∅)) ∗ *)
       (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
       (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
-(*      (@gen_heap_interp _ _ _ _ _ seglimit_hsG (<[ () := seg_max_opt s.(s_segs) ]> ∅)) ∗ *)
       (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables)))) ∗
       ⌜ wellFormedState s ⌝
     )%I;
@@ -2731,9 +2729,9 @@ Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) 
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  ↪[frame] empty_frame -∗ (* interp_allocator all -∗                          *)
+  ↪[frame] empty_frame -∗
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ (* interp_allocator all -∗ *) (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗  (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   iIntros.

@@ -1,5 +1,4 @@
 (** Common useful definitions **)
-(* (C) M. Bodin - see LICENSE.txt *)
 
 From Coq Require Import Lia.
 From mathcomp Require Import ssreflect ssrnat ssrbool seq eqtype.

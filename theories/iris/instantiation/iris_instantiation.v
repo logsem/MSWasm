@@ -1425,7 +1425,6 @@ Definition module_glob_init_value (modglobs: list module_glob): option (list num
 
 Definition instantiation_resources_pre_wasm m v_imps t_imps wfs wts wms wgs : iProp Σ :=
   import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs ∗
-(*                                  seg_resources wss ∗ all_resources was ∗ *)
   ⌜ module_elem_bound_check_gmap wts (fmap modexp_desc v_imps) m ⌝ ∗
   ⌜ module_data_bound_check_gmap wms (fmap modexp_desc v_imps) m ⌝.
 
@@ -3672,7 +3671,6 @@ Section instantiation_spec.
  Context `{HHB :HandleBytes}. 
 Set Bullet Behavior "Strict Subproofs".
 
-(* Surely this lemma already exists in a library somewhere? *)
 Lemma weird_sequence_map_cat {A B} (f : A -> B) l1 l2:
   [seq f i | i <- (l1 ++ l2)] = [seq f i | i <- l1] ++ [seq f i | i <- l2].
 Proof.

@@ -98,10 +98,6 @@ Definition empty_module := {|
 (* The round-trip lemmas compute, but seem to overwhelm coq when doing several qeds in the same run, so I commented them out. Uncommenting one will work, two is too much for emacs to handle *)
 
 
-(* Lemma empty_module_round_trip : run_parse_module (binary_of_module empty_module) = Some empty_module.
-  vm_compute. reflexivity.
-Qed.  *)
-
 Definition module_type := {|
   mod_types := cons (Tf nil (cons T_i32 nil)) nil;
   mod_funcs := nil;
@@ -114,11 +110,6 @@ Definition module_type := {|
   mod_imports := nil;
   mod_exports := nil;
                          |}.
-
-
-(* Lemma module_type_round_trip :
-  run_parse_module (binary_of_module module_type) = Some module_type.
-Proof. vm_compute. reflexivity. Qed. *)
 
 Definition module_type_fun := {|
   mod_types := cons (Tf nil (cons T_i32 nil)) nil;
@@ -133,10 +124,6 @@ Definition module_type_fun := {|
   mod_imports := nil;
   mod_exports := nil;
 |}.
-
-(* Lemma module_type_fun_round_trip :
-  run_parse_module (binary_of_module module_type_fun) = Some module_type_fun.
-Proof. vm_compute. reflexivity. Qed. *)
 
 Definition module_42 := {|
   mod_types := cons (Tf nil (cons T_i32 nil)) nil;
@@ -153,10 +140,6 @@ Definition module_42 := {|
   mod_exports := nil;
 |}.
 
-(* Lemma module_42_round_trip :
-  run_parse_module (binary_of_module module_42) = Some module_42.
-Proof. vm_compute. reflexivity. Qed. *)
-
 Definition module_42_exported := {|
   mod_types := cons (Tf nil (cons T_i32 nil)) nil;
   mod_funcs :=
@@ -171,9 +154,5 @@ Definition module_42_exported := {|
   mod_imports := nil;
   mod_exports := cons {| modexp_name := String.list_byte_of_string "hello"; modexp_desc := MED_func (Mk_funcidx 0); |} nil;
 |}.
-
-(* Lemma module_42_exported_round_trip :
-  run_parse_module (binary_of_module module_42_exported) = Some module_42_exported.
-Proof. vm_compute. reflexivity. Qed. *)
 
 End test.

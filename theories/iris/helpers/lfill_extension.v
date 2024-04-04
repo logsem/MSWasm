@@ -54,7 +54,6 @@ Proof.
   - destruct lh2 ; last by right.
     destruct (decide (l = l1)), (decide (l0 = l2)) ; solve [ by right ; intro H ; inversion H | by subst ; left].
   - set (k := S n) in lh2.
-(*    change (valid_holed k) in lh2. *)
     pose (Logic.eq_refl : k = S n) as Hk.
     change lh2 with (match Hk in _ = w return valid_holed w with
                       | Logic.eq_refl => lh2 end).

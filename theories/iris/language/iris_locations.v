@@ -74,16 +74,6 @@ Definition memory_to_list (m: memory) : list byte :=
 Definition gmap_of_memory (l: list memory) : gmap (N*N) byte :=
   gmap_of_list_2d (fmap memory_to_list l).
 
-(* Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
-  map_fold (fun i '(addr, lim) res =>
-              fold_left (fun res i =>
-                           match s.(seg_data).(segment_list.segl_data) !! i with
-                           | Some v => <[ N.of_nat i := v]> res
-                           | None => ∅ (* Should not happen *)
-                           end
-                ) (iota (N.to_nat addr) (N.to_nat lim)) res
-    ) ∅ a.(allocated). *)
-
 Definition live_locations (a: allocator) : gmap N () :=
   map_fold (fun i x (*'(addr, lim) *) res =>
               match x with
@@ -94,59 +84,14 @@ Definition live_locations (a: allocator) : gmap N () :=
               | _ => res
               end 
     ) ∅ a.(allocated).
-(*
-Lemma decision_in_gmap (m: gmap N ()) :
-  forall (x: (N * (byte * btag))), Decision (let '(x,_) := x in m !! x = Some ()).
-Proof.
-  intro x. destruct x as [x ?]. destruct (m !! x). left. destruct u. done. right. done.
-Qed.
- *)
-
 
 
 Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
   let locs := live_locations a in
-(*  map_imap (fun i '(x, t) => match locs !! i with
-                          | Some id => Some (id, x, t)
-                          | Non => None end) (gmap_of_list (segl_data (seg_data s))). *)
-  filter (fun '(i,_) => locs !! i = Some ()) (gmap_of_list (segl_data (seg_data s))). 
-
-(*
-Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
-  fold_left (fun res '(_,(addr,lim)) =>
-               fold_left (fun res i =>
-                            match list_lookup i s.(seg_data).(segment_list.segl_data) with 
-                              Some v => <[ N.of_nat i := v ]> res
-                            | None => res (* Should not happen *)
-                            end
-                 ) (iota (N.to_nat addr) (N.to_nat lim)) res
-    ) (gmap_to_list a.(allocated)) ∅.
- *)
-
-(* Lemma decide_segment_liveness a :
-  forall i, Decision (exists id addr size, a.(allocated) !! id = Some (addr, size) /\
-                                   (addr <= i)%N /\ (i < addr + size)%N).
-Proof.
-  intros i. Search Decision. Search "exists". apply gmap_exists_dec.
-
-Definition gmap_of_segment (s: segment) (a: allocator) : gmap N (byte * btag) :=
-  filter
-    (fun i => exists id addr size, a.(allocated) !! id = Some (addr, size) /\
-                             (addr <= i)%N /\  (i < addr + size)%N
-    ) gmap_of_list s.(seg_data).(segl_data). *)
-
-(* Definition segment_to_list (s: segment) : list (byte * btag) :=
-  (s.(seg_data)).(segment_list.segl_data).
-
-Definition gmap_of_segment (s: segment) : gmap N (byte * btag) :=
-  gmap_of_list (segment_to_list s). *)
-
-
-(* Definition allocator_to_list (a: allocator) : list (N * (N * N)) :=
-  List.map (λ '(a,b,c), (a,(b,c))) a.(allocated). *)
+  filter (fun '(i,_) => locs !! i = Some ()) (gmap_of_list (segl_data (seg_data s))).
 
 Definition gmap_of_allocator (a: allocator) : gmap N allocator_info :=
-  a.(allocated). (* list_to_map (allocator_to_list a). *) 
+  a.(allocated).
 
 Definition table_to_list (tab: tableinst) : list funcelem :=
   tab.(table_data).

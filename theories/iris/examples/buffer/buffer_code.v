@@ -83,16 +83,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       }}}.
   Proof.
     iIntros (HC Hglob0 Hfunc Hlocs Hes Φ) "!> (Hf & Hall & Hown & #Hfinv & #Hi & Hg) HΦ".
-
-(*    iApply (wp_frame_bind with "Hf"); first done.
-    iIntros "Hf". 
-    rewrite - (app_nil_l [AI_basic _]).
-    iApply (wp_block with "Hf") => //.
-    iIntros "!> Hf".
-    iApply wp_wasm_empty_ctx.
-    iApply wp_label_push_nil.
-    iApply wp_ctx_bind. done.  *)
-    
     iSimpl.
     rewrite (separate2 (AI_basic _)).
     iApply wp_seq.
@@ -379,10 +369,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSplit; [done | iExact "H"].
     2: by iIntros "[[% _] _]".
     iIntros (w) "[(-> & Ha & Hs) Hf]". iSimpl.
-(*     rewrite (separate2 (AI_basic _)).
-    iApply wp_seq.
-    iSplitR; last first.
-    iSplitL "Hf Hg".  *)
     fold_const.
     iApply (wp_wand with "[Hf Hg]").
     iApply (wp_set_global with "[] Hf Hg").

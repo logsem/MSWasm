@@ -125,60 +125,6 @@ Definition func_types := [Tf [] [T_handle] ; Tf [T_handle] [T_i32] ; Tf [T_handl
 Definition expts := (fmap ET_func func_types) ++ [ET_tab {| tt_limits := {| lim_min := 1%N ; lim_max := None |} ;
                                tt_elem_type := ELT_funcref |}].
 
-(*
-Lemma validate_stack_typing x tt tf tloc tlab tret:
-    nth_error tloc x = Some T_i32 ->
-    be_typing
-    {|
-      tc_types_t := tt;
-      tc_func_t := tf;
-      tc_global := [];
-      tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
-      tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type;
-      tc_local := tloc;
-      tc_label := tlab;
-      tc_return := tret
-    |} (validate_stack x) (Tf [] []).
-Proof.
-  move => Htloc.
-  apply/b_e_type_checker_reflects_typing => /=.
-  rewrite Htloc.
-  replace (ssrnat.leq (S x) (length tloc)) with (true); first by apply/eqP.
-  assert (x<length tloc); first by eapply nth_error_Some; rewrite Htloc.
-  symmetry.
-  apply/ssrnat.leP.
-  lia.
-Qed.
-
-Lemma validate_stack_bound_typing x tt tf tloc tlab tret:
-    nth_error tloc x = Some T_i32 ->
-    be_typing
-    {|
-      tc_types_t := tt;
-      tc_func_t := tf;
-      tc_global := [];
-      tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
-      tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type;
-      tc_local := tloc;
-      tc_label := tlab;
-      tc_return := tret
-    |} (validate_stack_bound x) (Tf [] []).
-Proof.
-  move => Htloc.
-  apply/b_e_type_checker_reflects_typing => /=.
-  rewrite Htloc.
-  replace (ssrnat.leq (S x) (length tloc)) with (true); first by apply/eqP.
-  assert (x<length tloc); first by eapply nth_error_Some; rewrite Htloc.
-  symmetry.
-  apply/ssrnat.leP.
-  lia.
-Qed.
-*)
-  
 Lemma new_stack_typing tt tf :
     be_typing
     {|
@@ -214,8 +160,6 @@ Lemma is_empty_typing tt tf tloc tlab tret:
     |} is_empty (Tf [] [T_i32]).
 Proof.
   move => Htloc.
-(*  eapply bet_composition'; first by apply validate_stack_typing.
-  eapply bet_composition'; first by apply validate_stack_bound_typing. *)
   apply/b_e_type_checker_reflects_typing => /=; destruct tloc => //=.
   simpl in Htloc. inversion Htloc; subst. by apply/eqP.
 Qed.
@@ -235,8 +179,6 @@ Lemma is_full_typing tt tf tlab tret:
       tc_return := tret
     |} is_full (Tf [] [T_i32]).
 Proof.
-(*  eapply bet_composition'; first by apply validate_stack_typing.
-  eapply bet_composition'; first by apply validate_stack_bound_typing. *)
   apply/b_e_type_checker_reflects_typing => /=; by apply/eqP.
 Qed.
     
@@ -276,8 +218,6 @@ Lemma push_typing tt tf tlab tret:
       tc_return := tret
     |} push (Tf [] []).
 Proof.
-  (*eapply bet_composition'; first by apply validate_stack_typing.
-  eapply bet_composition'; first by apply validate_stack_bound_typing. *)
   unfold push_op.
   (* Type checker is O(n^2), so it's much faster if we split the expression
      up earlier. *)
@@ -305,8 +245,6 @@ Lemma stack_map_typing tf:
       tc_return := Some []
     |} stack_map (Tf [] []).
 Proof.
-  (*eapply bet_composition'; first by apply validate_stack_typing.
-  eapply bet_composition'; first by apply validate_stack_bound_typing. *)
   unfold map_op.
   eapply bet_composition'.
   { apply/b_e_type_checker_reflects_typing => /=; by apply/eqP. }
@@ -336,8 +274,6 @@ Lemma stack_length_typing tt tf tlab tret:
       tc_return := tret;
     |} stack_length (Tf [] [T_i32]).
 Proof.
-  (*eapply bet_composition'; first by apply validate_stack_typing.
-  eapply bet_composition'; first by apply validate_stack_bound_typing. *)
   apply/b_e_type_checker_reflects_typing => /=; by apply/eqP.
 Qed.
 
@@ -372,22 +308,17 @@ Definition stack_instance idfs m t :=
 
 Definition spec0_new_stack (idf0 : nat) (i0 : instance) (l0 : seq.seq value_type)
            (f0 : seq.seq basic_instruction) (isStack : handle -> seq.seq i32 -> iPropI Σ)
-           (* nextStackAddrIs : nat -> iPropI Σ *) E : iPropI Σ :=
+           E : iPropI Σ :=
 
  (∀ (f : frame), 
       {{{ ↪[frame] f ∗ 
-           N.of_nat idf0 ↦[wf] FC_func_native i0 (Tf [] [T_handle]) l0 f0 (* ∗ *)
-(*           nextStackAddrIs addr ∗ *)
-(*           ⌜ (Wasm_int.Int32.modulus - 1)%Z <> Wasm_int.Int32.Z_mod_modulus (ssrnat.nat_of_bin (N.of_nat addr `div` page_size)) ⌝ ∗ *)
-(*           ⌜ (N.of_nat addr + 4 < Z.to_N (two_power_nat 32))%N ⌝ ∗
-           ⌜ (page_size | N.of_nat addr)%N ⌝ *) }}}
+           N.of_nat idf0 ↦[wf] FC_func_native i0 (Tf [] [T_handle]) l0 f0
+           }}}
         [AI_invoke idf0] @ E
-        {{{  v, (( ⌜ v = immV [value_of_handle dummy_handle] ⌝ (*∗
-                              nextStackAddrIs addr*) ) ∨
+        {{{  v, (( ⌜ v = immV [value_of_handle dummy_handle] ⌝  ) ∨
                  (∃ k, (⌜ v = immV [value_of_handle k]⌝ ∗ ⌜ k <> dummy_handle ⌝ ∗
 (*                     ⌜ (0 <= k <= ffff0000)%N ⌝ ∗ *)
-                     isStack k []  (* ∗
-                     nextStackAddrIs (addr + N.to_nat page_size) *) ) ))   ∗ 
+                     isStack k []) ))   ∗
                      N.of_nat idf0 ↦[wf] FC_func_native i0 (Tf [] [T_handle]) l0 f0 ∗
                       ↪[frame] f }}} )%I.
 
@@ -762,8 +693,6 @@ Proof.
         
         iSplitR; first by iPureIntro => /=; lia.
         
-        (* iSplitL "Hmemlength" ; first done. *)
-        
         (* Proving the parametric spec of each function in the post condition *)
         repeat iSplitR.
         -- iIntros "!>" (fr Φ) "!> (Hf & Hwf) HΦ".
@@ -810,7 +739,6 @@ Proof.
                                           inst_memory := [m];
                                           inst_globs := inst_globs
                                         |} (Tf [] [T_handle]) [T_handle] new_stack ∗  ↪[frame]f6)%I).
-              (*              instantiate (1 := (λ v, ((⌜ v = immV _ ⌝)%I ∨ ((∃ k, ⌜ v = immV [value_of_uint k]⌝ ∗ ⌜ (0 <= k <= ffff0000)%N⌝ ∗ isStack k [] m ∗ N.of_nat m↦[wmlength](N.of_nat addr + page_size)%N))) ∗ N.of_nat f↦[wf] _ ∗ ↪[frame] f6 )%I). *)
               iApply wp_value => //. iFrame.
               iDestruct "H" as "[ -> | (%h & -> & H)]"; first by iLeft.
               iDestruct (stack_pure with "H") as "(% & % & %Hvalid & %)".

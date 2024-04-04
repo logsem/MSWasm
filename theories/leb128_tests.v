@@ -1,4 +1,3 @@
-(* TODO: more tests *)
 Require Import leb128.
 Require Import Coq.Init.Byte.
 Require Import NArith.BinNat.

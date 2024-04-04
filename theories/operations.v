@@ -1,5 +1,4 @@
 (** Basic operations over Wasm datatypes **)
-(* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 
 From Wasm Require Import common memory_list segment_list.
 From mathcomp Require Import ssreflect ssrfun ssrbool eqtype  seq.
@@ -229,12 +228,7 @@ Definition segload (s : segment) (h : handle) (l : nat) :=
 .
 
 Definition sign_extend (s : sx) (l : nat) (bs : bytes) : bytes :=
-  (* TODO: implement sign extension *) bs.
-(* TODO
-  let: msb := msb (msbyte bytes) in
-  let: byte := (match sx with sx_U => O | sx_S => if msb then -1 else 0) in
-  bytes_takefill byte l bytes
-*)
+   bs.
 
 Definition load_packed (s : sx) (m : memory) (n : N) (off : static_offset) (lp : nat) (l : nat) : option bytes :=
   option_map (sign_extend s l) (load m n off lp).
@@ -935,7 +929,6 @@ Definition result_types_agree (ts : result_type) r :=
 
 
 
-(* MAXIME: should cvt_[any type] of a handle value be something else than None ? *)
 Definition cvt_i32 (s : option sx) (v : value) : option i32 :=
   match v with
   | VAL_numeric (NVAL_int32 _) => None
@@ -1041,8 +1034,6 @@ Definition bitzero (t : value_type) : value :=
 
 Definition n_zeros (ts : seq value_type) : seq value :=
   map bitzero ts.
-
-(* TODO: lots of lemmas *)
 
 
 Definition is_none_or {A : Type} (p : A -> bool) (x : option A) : bool :=

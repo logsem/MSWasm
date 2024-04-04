@@ -168,16 +168,16 @@ Section Client.
     [ ID_instantiate (take 8 vis_addrs) stack_mod_addr [] ;
     ID_instantiate (drop 8 vis_addrs) client_mod_addr (take 8 vis_addrs) ].
 
-  Lemma instantiate_stack_client_spec E (vis_addrs: list N) (stack_mod_addr client_mod_addr: N) (* all *):
+  Lemma instantiate_stack_client_spec E (vis_addrs: list N) (stack_mod_addr client_mod_addr: N):
     length vis_addrs = 9 ->
-   ↪[frame] empty_frame -∗ (* interp_allocator all -∗ *) 
+   ↪[frame] empty_frame -∗
     stack_mod_addr ↪[mods] stack_module -∗
     client_mod_addr ↪[mods] client_module -∗
     own_vis_pointers vis_addrs -∗
      WP ((stack_instantiate vis_addrs stack_mod_addr client_mod_addr, []) : host_expr)
      @ E
             {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗ 
-               ↪[frame] empty_frame ∗ (* interp_allocator all ∗ *)
+               ↪[frame] empty_frame ∗
                 stack_mod_addr ↪[mods] stack_module ∗
                  client_mod_addr ↪[mods] client_module ∗
                  ∃ idg name,
@@ -186,7 +186,7 @@ Section Client.
                     (N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int 20%Z |} ∨
                        N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int (-1)%Z |}) }}.
 Proof.
-  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis". (* removed Hall *) 
+  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis".
   do 10 (destruct vis_addrs => //); clear Hvisaddrlen.
   
   rewrite separate8.
@@ -396,17 +396,10 @@ Proof.
           iIntros "!> Hf".
           iApply ("Hspec0" with "[Hf Himpfcl0]").
           iFrame.
-(*          repeat iSplit ; iPureIntro => //.
-          unfold page_size. unfold N.divide.
-          exists 0%N. 
-          done. *)
           iIntros (v0) "(H & Himpfcl0 & Hf)".
           iFrame.
           iCombine "H Himpfcl0 Hf" as "H". iExact "H".
-(*          instantiate (1 := λ v0, (((⌜v0 = immV [value_of_int (-1)%Z]⌝ ∗
-                                    (nextStackAddrIs 0)) ∨  (∃ k, ⌜ v0 = immV [value_of_uint k] ⌝ ∗ ⌜ (0 <= k <= ffff0000)%N ⌝ ∗ isStack k [] ∗ nextStackAddrIs (0+N.to_nat page_size))) ∗ 
-                                     N.of_nat idf0↦[wf]FC_func_native i0 (Tf [] [T_i32]) l0 f0 ∗ ↪[frame] _)%I). 
-          by iFrame.  *) }
+          }
         2:{ iIntros "([%Habs | (%k & %Habs & ?)] & _)"; by inversion Habs. }
 
         iIntros (w) "(H & (Hcl & Hf))".
@@ -584,11 +577,6 @@ Proof.
           2: {
             iApply (wp_if_false with "Hf").
             destruct (is_dummy k) eqn:Habs => //. 
-(*            move => H.
-            clear - Hkb H.
-            rewrite (Wasm_int.Int32.repr_add_modulus (-1)) in H.
-            rewrite u32_modulus in H.
-            apply Wasm_int.Int32.repr_inv in H; (try by unfold ffff0000 in Hkb; lias); (by rewrite u32_modulus; unfold ffff0000 in Hkb; lias). *)
             iIntros "!> Hf".
             instantiate (1:= λ v1, ((⌜ v1 = immV [] ⌝ ∗ N.of_nat g↦[wg] {| g_mut := MUT_mut ; g_val := vg |}) ∗ ↪[frame] _)%I ).         
             rewrite - (app_nil_l [AI_basic _]).

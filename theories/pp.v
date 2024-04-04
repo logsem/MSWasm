@@ -452,26 +452,3 @@ Definition pp_res_tuple_except_store (res_cfg : res_tuple) : string :=
 
 (** As-is, [eqType] tends not to extract well.
   This section provides alternative definitions for better extraction. **)
-(* Module PP (EH : Executable_Host).
-
-Module Exec := convert_to_executable_host EH.
-Import Exec. 
-
-Section Show.
-
-(*Variable show_host_function : EH.host_function -> string.*)
-
-Definition pp_values : list value -> string := pp_values.
-
-Definition pp_store : nat -> store_record -> string := pp_store _.
-
-Definition pp_res_tuple_except_store : res_tuple -> string :=
-  pp_res_tuple_except_store _.
-
-Definition pp_config_tuple_except_store : config_tuple -> string :=
-  pp_config_tuple_except_store _.
-
-End Show.
-
-End PP. *)
-

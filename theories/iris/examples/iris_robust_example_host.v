@@ -183,26 +183,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     CTX
     0; LH_base [] [AI_basic (BI_get_local 0); AI_basic (BI_call log)]
     {{ v, Φ v }}. 
-  (* Lemma lse_log_return_call_host f log log_func h w inst :
-    (inst_funcs inst) !! log = Some log_func ->
-
-    na_inv logrel_nais logN (N.of_nat h↦[ha]HA_print) -∗
-    ▷ interp_call_host_cls [(Mk_hostfuncidx h, Tf [T_i32] [])] [] w -∗
-
-    na_inv logrel_nais (wfN (N.of_nat log_func)) (N.of_nat log_func↦[wf]FC_func_host (Tf [T_i32] []) (Mk_hostfuncidx h)) -∗
-    na_own logrel_nais ⊤ -∗
-    ↪[frame] {| f_locs := [xx 42]; f_inst := inst |} -∗
-
-    WP iris.of_val w
-    CTX
-    0; LH_base [] [AI_basic (BI_get_local 0); AI_basic (BI_call log)]
-    {{ v, WP (iris.of_val v) CTX 1; LH_rec [] 0 [] (LH_base [] []) []
-          {{ w0, ∃ f0,
-                (↪[frame]f -∗
-                  WP iris.of_val w0 @ NotStuck; ⊤ FRAME 0; f0
-                  {{ w1, WP (([], iris.of_val w1) : host_expr)
-                             {{ w2, (⌜w2 = trapHV⌝ ∨ ⌜w2 = immHV []⌝ ∗ na_own logrel_nais ⊤) ∗
-                                                   ↪[frame]f }} }}) ∗  ↪[frame]f0 }} }}. *)
   Proof.
     iIntros (-> -> -> -> Hlog) "#Hh Hv #Hlog Hown Hf Hall".
     iLöb as "IH"

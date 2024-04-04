@@ -129,8 +129,6 @@ Proof.
     eapply reduce_val_false;eauto. eauto. }
   { inversion H;subst. exfalso.
     eapply reduce_val_false;eauto. eauto. }
-(*    { inversion H;subst. exfalso.
-    eapply reduce_val_false;eauto. eauto. } *)
   { inversion H;subst. exfalso.
     eapply reduce_store_false_2;eauto.  instantiate (9 := VAL_numeric n). done. }
     { inversion H;subst. exfalso.

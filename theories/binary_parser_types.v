@@ -1,5 +1,4 @@
 (** Datatypes used in the binary parser. **)
-(* (C) J. Pichon - see LICENSE.txt *)
 
 Require Import common.
 Require Export numerics datatypes.
@@ -30,7 +29,7 @@ Inductive globalidx : Type :=
 Record limits := Mk_limits { lim_min : nat; lim_max : option nat; }.
 
 Inductive elem_type : Type :=
-| elem_type_tt : elem_type (* TODO: am I interpreting the spec correctly? *).
+| elem_type_tt : elem_type.
 
 Record table_type : Type := Mk_table_type {
   tt_limits : limits;

@@ -1,5 +1,4 @@
 (** Definitions to build computable functions. **)
-(* (C) M. Bodin - see LICENSE.txt *)
 
 From mathcomp Require Import ssreflect ssrbool eqtype.
 

@@ -23,12 +23,10 @@ Definition wgN (a: N) : namespace := nroot .@ wg .@ a.
 
 Close Scope byte_scope.
 
-(* Definition relUR := gmapUR N (agreeR (leibnizO gname)). *)
 Definition relT := gmap N (leibnizO (gname * N * N * dfrac (* bool *))).
 
 Class cancelG Σ := CancelG {
-                   (*    cancelG_invG : cinvG Σ; *)
-                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N * dfrac (* bool *) ); (* inG Σ (authR relUR); *)
+                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N * dfrac (* bool *) );
                        γtoks : gname; 
                      }.
 
@@ -36,7 +34,7 @@ Class cancelG Σ := CancelG {
 Section logrel.
 
   Context `{!wasmG Σ, !logrel_na_invs Σ, cancelg: cancelG Σ, 
-(*      !ghost_mapG Σ N gname, *) !cinvG Σ, HHB: HandleBytes}.
+ !cinvG Σ, HHB: HandleBytes}.
 
   
   Definition xb b := (VAL_int32 (wasm_bool b)).
@@ -139,52 +137,6 @@ Section logrel.
           ))
       )%I).
 
-  (* Definition interp_value_handle_0 (ivh: WR) :=
-    (λne w,
-      (∃ (h : handle),
-          (* There exists a handle such that either that handle is invalid, or *)
-          ⌜ w = VAL_handle h ⌝ ∗
-                  (⌜ valid h = false ⌝ ∨
-                     ∃ γ base' bound', gamma_id_white (γ (* , base', bound' *) , ((base' =? base h) && (bound' =? bound h))%N ) (id h) ∗
-          (* There exists a greater range, such that *)
-          ⌜ (base' <= base h)%N ⌝ ∗
-          ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
-          (* We have as an invariant, that *)
-          cinv (wsN (id h)) γ (∃ tbs,
-              (* We own some bytes in segment memory covering that greater range *)
-              ⌜ length tbs = N.to_nat bound' ⌝ ∗
-              ↦[wss][base'] tbs ∗ (*id h ↣[allocated] (base', bound') ∗ *)
-              (* And for all addresses that might store a handle, *)
-              ∀ addr, ⌜ (N.modulo (base' + addr) handle_size = 0 /\ addr + handle_size <= bound' )%N ⌝ -∗
-                  (* Either that address has at least one byte tagged as non-handle *)
-                  ⌜ exists addr' (b: byte), (addr' < handle_size)%N  /\
-                       tbs !! (N.to_nat (addr + addr')%N) = Some (b, Numeric) ⌝ ∨
-                   (* Or the handle stored is valid *)
-                   ivh (VAL_handle (handle_of_bytes (map fst (take (N.to_nat handle_size) (drop (N.to_nat addr) tbs))))) 
-          ))
-      )%I). *)
-  
-(*  Definition align a b: N := (a / b) * b.
-  Definition handle_addresses_sound l z :=
-    Forall (fun x => (N.modulo x handle_size = 0 /\
-                     x >= base z /\
-                     x + handle_size <= bound z)%N) l.
-  Definition numeric_invariants l z : iProp Σ :=
-    ([∗ list] a ∈ iota (N.to_nat (base z)) (N.to_nat (bound z)),
-      ⌜ In (align (N.of_nat a) handle_size) l ⌝ ∨
-        ∃ γ, cinv_own γ 1%Qp ∗ cinv (wsN (N.of_nat a)) γ (∃ b, ↦[ws][ N.of_nat a ] b))%I.
-  Definition interp_value_handle_0 (ivh : WR) := (λne w,
-                                                   (∃ (z : handle) (l : seq.seq N),
-          ⌜w = VAL_handle z⌝ ∗
-                 ⌜ handle_addresses_sound l z ⌝ ∗
-                 numeric_invariants l z ∗
-                 [∗ list] a ∈ l, ∃ γ, cinv_own γ 1%Qp ∗ cinv (wsN a) γ (∃ bs (w' : handle),
-                                       ⌜ length bs = N.to_nat handle_size ⌝ ∗
-                                       ⌜ handle_of_bytes bs = w' ⌝ ∗
-                                       ↦[wss][ a ] map (fun x => (x, Handle)) bs ∗
-                                       ivh (VAL_handle w'))
-      )%I). *)
-
   Global Instance interp_value_handle_contractive :
     Contractive (interp_value_handle_0).
   Proof. solve_contractive. Qed. 
@@ -206,14 +158,6 @@ Section logrel.
                  ⌜ base = base' ⌝ ∗ ⌜ bound = bound' ⌝ ∗ cinv_own γ 1%Qp
              | None => True
              end)%I.
-(*       ([∗ map] id ↦ x ∈ allocated all, ∃ γ, ⌜ f !! id = Some γ ⌝ ∗ cinv_own γ 1%Qp))%I.   *)
-     (*  ([∗ map] id ↦ x ∈ f,  match x with
-                             | Some (γ, base, bound) => ⌜ (allocated all) !! id = Some (base, bound) ⌝ ∗ id ↣[allocated] (base, bound) ∗ cinv_own γ 1%Qp
-                             | None => ⌜ (allocated all) !! id = None ⌝  end))%I.  *)
-(*       ∀ id γ, ⌜ f !! id = Some γ ⌝ -∗ ⌜ isSome (all.(allocated) !! id) ⌝ ∗ cinv_own γ 1%Qp)%I. *)
-                                                     
-(*      ∀ id, ⌜ all.(allocated) !! id = Some x ⌝ -∗
-        ∃ γ, ⌜ f !! id = Some γ ⌝ ∗ cinv_own γ 1%Qp)%I. *)
 
    Definition interp_value (τ : value_type) : WR :=
     match τ return _ with
@@ -459,9 +403,6 @@ Section logrel.
     intros H. apply _.
   Qed.
 
-(*   Global Instance interp_val_handle_0_timeless ivh v :
-    (forall v0, Timeless (ivh v0)) -> Timeless (interp_value_handle_0 ivh v). *)
-
   Global Instance interp_value_handle_persistent vs : Persistent (interp_value_handle vs).
   Proof.
     rewrite fixpoint_interp_value_handle_eq.
@@ -609,7 +550,6 @@ Section logrel.
     ∃ τs' vs k es lh' es' lh'' τs'',
       ⌜τc !! (j - p) = Some τs'⌝ ∗ ⌜get_layer lh ((lh_depth lh) - S (j - p)) = Some (vs,k,es,lh',es')⌝ ∗
                                                                                  ⌜lh_depth lh'' = (lh_depth lh) - S (j - p)⌝ ∧ ⌜is_Some (lh_minus lh lh'')⌝ ∗
-                                                                                                                            (*    ⌜ length w = length (τs'' ++ τs') ⌝ ∗ *)
       interp_val (τs'' ++ τs') (immV w) ∗
       ∀ f all, ↪[frame] f ∗ interp_frame τl i f -∗ interp_allocator all -∗
             WP of_val (immV (drop (length τs'') w)) ++ [::AI_basic (BI_br (j - p))] CTX S (lh_depth lh'); LH_rec vs k es lh' es'

@@ -97,7 +97,7 @@ Lemma those_app {A} (l1 : list (option A)) l2 tl1 tl2 :
 Proof.
   generalize dependent tl1. induction l1 ; intros.
   unfold those in H ; inversion H. rewrite app_nil_l. auto.
-  rewrite <- those_those0 in H. 
+  rewrite <- those_those0 in H.
   unfold those0 in H. destruct a ; try (inversion H; auto).
   fold (those0 l1) in H. rewrite those_those0 in H.
   destruct tl1 ; destruct (those l1) ; inversion H.

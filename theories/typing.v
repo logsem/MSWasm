@@ -288,16 +288,14 @@ Definition tabi_agree ts (n : nat) (tab_t : table_type) : bool :=
   end.
 
 Definition inst_typing (s : store_record) (inst : instance) (C : t_context) : bool :=
-  let '{| inst_types := ts; inst_funcs := fs; inst_tab := tbs; inst_memory := ms; (* inst_segment := ss; inst_allocator := alls ; *) inst_globs := gs; |} := inst in
+  let '{| inst_types := ts; inst_funcs := fs; inst_tab := tbs; inst_memory := ms; inst_globs := gs; |} := inst in
   match C with
   | {| tc_types_t := ts'; tc_func_t := tfs; tc_global := tgs; tc_table := tabs_t; tc_memory := mems_t; tc_segment := segs_t ; tc_allocator := alls_t ; tc_local := nil; tc_label := nil; tc_return := None |} =>
     (ts == ts') &&
     (all2 (functions_agree s.(s_funcs)) fs tfs) &&
     (all2 (globals_agree s.(s_globals)) gs tgs) &&
     (all2 (tabi_agree s.(s_tables)) tbs tabs_t) &&
-      (all2 (memi_agree s.(s_mems)) ms mems_t)  (* &&
-      (all2 (segi_agree s.(s_segs)) ss segs_t) &&
-      (all2 (alli_agree s.(s_alls)) alls alls_t) *)
+    (all2 (memi_agree s.(s_mems)) ms mems_t)
   | _ => false
   end.
 

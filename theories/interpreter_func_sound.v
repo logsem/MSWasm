@@ -2,7 +2,7 @@
 (* (C) J. Pichon, M. Bodin, Rao Xiaojia - see LICENSE.txt *)
 
 Require Import common.
-From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq. 
+From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From StrongInduction Require Import StrongInduction Inductions.
 Require Import Lia.
 
@@ -13,7 +13,6 @@ Unset Printing Implicit Defensive.
 Require Import operations properties opsem interpreter_func properties stdpp_aux type_preservation.
 
 
-  
 Global Hint Constructors reduce_simple : core.
 Global Hint Constructors reduce : core.
 
@@ -69,8 +68,8 @@ Let run_step_with_fuel := @run_step_with_fuel host_function host_instance host_a
 
 Section interpreter_func_sound.
   Set Bullet Behavior "Strict Subproofs".
-  Context `{HHB : HandleBytes}. 
-  
+  Context `{HHB : HandleBytes}.
+
 (** The lemmas [r_eliml] and [r_elimr] are the fundamental framing lemmas.
   They enable to focus on parts of the stack, ignoring the context. **)
 
@@ -79,7 +78,7 @@ Lemma r_eliml: forall s f es me s' f' es' lconst,
     const_list lconst ->
     reduce s f es me s' f' es' ->
     reduce s f (lconst ++ es) me s' f' (lconst ++ es').
-Proof.  
+Proof.
   move => s f es me s' f' es' lconst HConst H.
   apply: rm_label; try apply/lfilledP.
   - by apply: H.
@@ -128,7 +127,7 @@ Proof.
   rewrite/run_step_fuel.
   unfold interpreter_func.run_step_fuel.
   destruct st.
-  by lias.    
+  by lias.
 Qed.
 
 Local Lemma ves_projection: forall vs e es vs' e' es',
@@ -198,7 +197,7 @@ Proof.
   repeat rewrite -catA.
   by apply LfilledBase.
 Qed.
-      
+
 Lemma lfilled0_frame_r_empty: forall vs es LI es'',
   lfilledInd 0 (LH_base vs [::]) es LI ->
   lfilledInd 0 (LH_base vs es'') es (LI ++ es'').
@@ -311,7 +310,7 @@ Ltac explode_and_simplify :=
   repeat lazymatch goal with
   | |- ?T = _ -> _ =>
       lazymatch T with
-      | HandleBytes => idtac 
+      | HandleBytes => idtac
     | context C [split_n ?l ?n] => rewrite (split_n_is_take_drop l n)
     | context C [vs_to_es ?l] => rewrite/vs_to_es
 (*    | context C [host_application_impl _ _ _ _ _ _] =>
@@ -639,11 +638,11 @@ Proof.
   - simpl. destruct b ; (try destruct v); explode_and_simplify; (try destruct n); (try destruct n0); explode_and_simplify; pattern_match => //. 
     destruct p. destruct p.
     destruct (BinNat.N.eqb n0 (base h) && _ );
-      by inversion H1; subst. 
+      by inversion H1; subst.
   - by pattern_match.
   - simpl. explode_and_simplify; try pattern_match => //.
   (*    destruct explode_and_simplify; by pattern_match. *)
-  - simpl. explode_and_simplify; try pattern_match => //. 
+  - simpl. explode_and_simplify; try pattern_match => //.
   - rename l0 into es2.
     set fu := (run_one_step_fuel (AI_label n l es2)) .-1.
     simpl in fu.
@@ -664,7 +663,7 @@ Proof.
     apply run_step_fuel_increase with (fuel' := fu) in E2.
     move: (E1) => D. apply run_step_fuel_enough_aux in D => //.
     + destruct E2 as [E2|E2] => //.
-      
+
       rewrite E2.
       by destruct r'' as [|[|]| | | ] => //; explode_and_simplify; pattern_match.
     + by [].
@@ -688,13 +687,13 @@ Proof.
     move: (E1) => D. apply run_step_fuel_enough_aux in D => //.
     move: (E1) => E2. apply run_step_fuel_increase with (fuel' := fu) in E2.
     + destruct E2 as [E2|E2] => //.
-      
+
       rewrite E2.
       by destruct r'' as [|[|]| | |] => //; explode_and_simplify; pattern_match.
     + by [].
   - simpl. by pattern_match.
 Qed.
-      
+
 (** [run_step_fuel] is indeed enough fuel to run [run_step]. **)
 Lemma run_step_fuel_enough : forall d tt s f r,
   run_step d tt = (s, f, r) ->
@@ -709,7 +708,7 @@ Qed.
   either a [Br] or a [Label] instruction, which itself returned a [RS_break]. **)
 Local Lemma rs_break_trace_bool: forall fuel d s f es s' f' n es',
   run_step_with_fuel fuel.+2 d (s, f, es)
-  = (s', f', RS_break n es') -> 
+  = (s', f', RS_break n es') ->
   let: (ves, es'') := split_vals_e es in
   exists e es2 ln les es3, (es'' == e :: es2) &&
    ((e == AI_basic (BI_br n)) && ((s', f', es') == (s, f, rev ves)) ||
@@ -732,9 +731,6 @@ Proof.
     + destruct p. destruct p. destruct (BinNat.N.eqb n1 (base h) && _ ).
       intro H; inversion H.
       by unfold crash_error; intro Habs; inversion Habs.
-(*    + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs. *)
   - move:H. by explode_and_simplify.
   - move:H. by explode_and_simplify;
     destruct host_application_impl; by explode_and_simplify.
@@ -758,7 +754,7 @@ Qed.
 (** Similar to [rs_break_trace_bool], but in [Prop]. **)
 Lemma rs_break_trace: forall fuel d s f es s' f' n es',
   run_step_with_fuel fuel.+2 d (s, f, es)
-  = (s', f', RS_break n es') -> 
+  = (s', f', RS_break n es') ->
   let: (ves, es'') := split_vals_e es in
   exists e es2 ln les es3, (es'' = e :: es2) /\
     ((e = AI_basic (BI_br n)) /\ ((s, f, es') = (s', f', rev ves)) \/
@@ -806,9 +802,6 @@ Proof.
     + destruct p. destruct p. destruct (BinNat.N.eqb n0 (base h) && _ ).
       by unfold crash_error; intro Habs; inversion Habs.
       by unfold crash_error; intro Habs; inversion Habs.
-(*    + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs.
-    + by unfold crash_error; intro Habs; inversion Habs. *)
   - move:H. by explode_and_simplify.
   - move:H. by explode_and_simplify;
               destruct host_application_impl; explode_and_simplify.
@@ -830,7 +823,7 @@ Proof.
 Qed.
 
 (** If the result of the interpreter is a [RS_break], then we must have
-  started with at least 2 fuel. 
+  started with at least 2 fuel.
     The lemma is stated in this way to make application of other lemmas
   easier. **)
 Lemma rs_break_takes_2_fuel: forall fuel d s f es s' f' n es',
@@ -846,7 +839,7 @@ Proof.
   destruct es2 as [|e es2'] => //.
   destruct e => //=; try (destruct fuel => //; by exists fuel).
   by explode_and_simplify.
-Qed.                   
+Qed.
 
 Lemma rs_return_takes_2_fuel: forall fuel d s f es s' f' rvs,
   run_step_with_fuel fuel d (s, f, es)
@@ -863,7 +856,7 @@ Proof.
   by explode_and_simplify.
 Qed.
 
-(** A sequence of labels with a break/return inside the inner most level. This 
+(** A sequence of labels with a break/return inside the inner most level. This
   characterises the stack when the interpreter ends execution with an
   [RS_break] or [RS_return]. **)
 Inductive Label_sequence: nat -> seq administrative_instruction -> administrative_instruction -> seq administrative_instruction -> Prop :=
@@ -910,20 +903,20 @@ Qed.
 
 (** If the interpreter successfully finishes execution given stack [es] and ends
   up with [RS_break n es'], then [es] is well-founded, i.e. the recursive case
-  [Label _ _ _] cannot take place infinitely often. In fact we even know exactly 
+  [Label _ _ _] cannot take place infinitely often. In fact we even know exactly
   how many times the recursive case takes place. **)
 Lemma rs_break_wellfounded: forall fuel d s f es s' f' n es',
   run_step_with_fuel fuel d (s, f, es)
   = (s', f', RS_break n es') ->
   s = s' /\ f = f' /\
   (exists k m vs0, k+n=m /\ Label_sequence k vs0 (AI_basic (BI_br m)) es /\
-  v_to_e_list es' = rev vs0). 
+  v_to_e_list es' = rev vs0).
 Proof.
   induction fuel using induction2 => //.
   - (* fuel = 1 *)
     move => d s f es s' f' n es' H.
     apply rs_break_takes_2_fuel in H. by inversion H.
-  - (* fuel >= 2 *)    
+  - (* fuel >= 2 *)
     move => d s f es s' f' n es' H.
     eapply rs_break_trace in H.
     destruct (split_vals_e es) as [vs2 es2] eqn:HSplit.
@@ -947,13 +940,13 @@ Lemma rs_return_wellfounded: forall fuel d s f es s' f' es',
   run_step_with_fuel fuel d (s, f, es)
   = (s', f', RS_return es') ->
   s = s' /\ f = f' /\ (exists k vs0, Label_sequence k vs0 (AI_basic BI_return) es /\
-  v_to_e_list es' = rev vs0). 
+  v_to_e_list es' = rev vs0).
 Proof.
   induction fuel using induction2 => //.
   - (* fuel = 1 *)
     move => d s f es s' f' es' H.
     apply rs_return_takes_2_fuel in H. by inversion H.
-  - (* fuel >= 2 *)    
+  - (* fuel >= 2 *)
     move => d s f es s' f' es' H.
     eapply rs_return_trace in H.
     destruct (split_vals_e es) as [vs2 es2] eqn:HSplit.
@@ -986,7 +979,7 @@ Proof.
   destruct k.
   - inversion HLS as [n1 vs1 es1 HConst| |]. subst.
     apply rm_silent, r_simple. eapply rs_br; first by apply v_to_e_is_const_list.
-    + simplify_lists. 
+    + simplify_lists.
       rewrite leq_eqVlt in HSize. move/orP in HSize. destruct HSize as [H|H].
       * move/eqP in H. subst. apply /eqP. by rewrite ltnn.
       * by rewrite H.
@@ -1002,7 +995,7 @@ Proof.
   - eapply Label_sequence_lfilledk in HLS.
     destruct HLS as [lh EH].
     apply rm_silent, r_simple. eapply rs_br; first by apply v_to_e_is_const_list.
-    + simplify_lists. 
+    + simplify_lists.
       rewrite leq_eqVlt in HSize. move/orP in HSize. destruct HSize as [H|H].
       * move/eqP in H. subst. apply /eqP. by rewrite ltnn.
       * by rewrite H.
@@ -1032,7 +1025,7 @@ Lemma take_drop {A} n (l : list A) : n <= length l -> l = seq.take n l ++ seq.dr
 Proof.
   intros. generalize dependent n. induction l ; intros.  by inversion H.
   destruct n. by unfold take, drop.
-  simpl. rewrite <- (IHl n) => //=. 
+  simpl. rewrite <- (IHl n) => //=.
 Qed.
 
 Lemma rev_rev {A} (l : seq A) : rev (rev l) = l.
@@ -1072,7 +1065,7 @@ Proof.
     eapply Label_sequence_lfilledk in HLS.
     destruct HLS as [lh EH].
     apply rm_silent, r_simple. eapply rs_return; first by apply v_to_e_is_const_list.
-    + simplify_lists. 
+    + simplify_lists.
       rewrite leq_eqVlt in HSize. move/orP in HSize. destruct HSize as [H|H].
       * move/eqP in H. subst. apply /eqP. by rewrite ltnn.
       * by rewrite H.
@@ -1103,12 +1096,12 @@ Qed.
 Lemma plus_binnat_lt : forall x y z, BinNat.N.lt x (BinNat.N.add y (BinNat.N_of_nat z)) -> nat_of_bin x < nat_of_bin y + z.
 Proof.
   intros x y z. repeat rewrite nat_bin. lias.
-Qed. 
+Qed.
 
 Lemma binnat_lt : forall a b, BinNat.N.lt a b -> nat_of_bin a < nat_of_bin b.
 Proof.
   intros x y z. repeat rewrite nat_bin. lias.
-Qed. 
+Qed.
 
 
 
@@ -1133,8 +1126,8 @@ Proof.
     pattern_match. destruct e => //. subst; split => //. exists ME_empty. apply: rm_silent. apply: r_simple.
     apply rs_trap with (lh := LH_base (v_to_e_list lconst) les').
     - move/orP in if_expr0. inversion if_expr0 => //=.
-      + move/eqP in H0. destruct lconst => //=. by destruct les'. destruct v => //. 
-      + move/eqP in H0. destruct lconst => //. destruct v => //. 
+      + move/eqP in H0. destruct lconst => //=. by destruct les'. destruct v => //.
+      + move/eqP in H0. destruct lconst => //. destruct v => //.
     - rewrite/operations.lfilled/operations.lfill. rewrite v_to_e_is_const_list. show_list_equality.
   }
   destruct fuel as [|fuel] => //. destruct e as [b| | |cl|n es1 es2|n f0 ess|].
@@ -1151,7 +1144,7 @@ Proof.
         rewrite v_to_e_is_const_list.
         done.
         by repeat econstructor.
-        
+
       - (** [AI_basic Nop] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
         subst; split => //. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
@@ -1180,7 +1173,7 @@ Proof.
 
       - (** [AI_basic Select] **)
         simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
-        
+
         subst; split => //.
         exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -1212,7 +1205,7 @@ Proof.
         done.
         by repeat econstructor.
 
-        
+
  (*       + (** [Select_true] **)
           by auto_frame.
         + (** [Select_false] **)
@@ -1241,7 +1234,6 @@ Proof.
           rewrite subKn. done. apply Compare_dec.leb_complete in if_expr0.
           lias.
         + done.
-(*        + by []. *)
 
       - (** [AI_basic loop] **)
         simpl. explode_and_simplify. pattern_match. auto_frame.
@@ -1340,7 +1332,7 @@ Proof.
         rewrite v_to_e_is_const_list.
         rewrite (catA [:: AI_const _]).
         done.
-        
+
         + apply: rm_silent. apply: r_simple. apply: rs_br_table_length.
           rewrite length_is_size.
           apply NPeano.Nat.ltb_ge in if_expr0; lias.
@@ -1360,7 +1352,7 @@ Proof.
         rewrite v_to_e_is_const_list.
         done.
         subst.
-       
+
         by eapply rm_silent, r_call.
 
       - (** [AI_basic (Call_indirect i0)] **)
@@ -1375,7 +1367,7 @@ Proof.
           instantiate (1 := [:: _ ; _]) => //=.
           subst.
           by apply: rm_silent; apply: r_call_indirect_success; eauto.
-          
+
         + split; last by subst.
           exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
@@ -1409,7 +1401,7 @@ Proof.
           instantiate (1 := [:: _ ]) => //=.
           subst.
           by eapply rm_silent, r_get_local.
-          
+
       - (** [AI_basic (Set_local i0)] **)
         simpl. explode_and_simplify. pattern_match.
         rewrite -update_list_at_is_set_nth => //=.
@@ -1474,7 +1466,7 @@ Proof.
         unfold option_map in option_expr.
         destruct (List.nth_error _ n) => //.
         inversion option_expr; subst => //=.
-        
+
 
       - (** [AI_basic (Load v o a0 s0)] **)
         simpl. explode_and_simplify; destruct n; explode_and_simplify; try (pattern_match; auto_frame).
@@ -1506,7 +1498,7 @@ Proof.
           instantiate (1 := [:: _ ; _]) => //=.
           subst.
           by apply: rm_silent; apply: r_load_success; try eassumption.
-          
+
         + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
@@ -1546,7 +1538,7 @@ Proof.
           instantiate (1 := [:: _ ; _]) => //=.
           subst.
           by apply: rm_silent; apply: r_load_success; try eassumption.
-          
+
         + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
@@ -1567,7 +1559,7 @@ Proof.
           instantiate (1 := [:: _ ; _]) => //=.
           subst.
           by apply: rm_silent; apply: r_load_success; try eassumption.
-          
+
         + split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
@@ -1578,8 +1570,8 @@ Proof.
           subst.
           apply: rm_silent; apply: r_load_failure; try eassumption.
           by right.
-        
-          
+
+
       - (** [AI_basic (Segload t)] **)
         unfold run_one_step.
         destruct (v == T_handle) eqn:Hv.
@@ -1600,7 +1592,7 @@ Proof.
                 repeat rewrite - v_to_e_cat.
                 eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                 unfold lfilled, lfill.
-                rewrite v_to_e_is_const_list. 
+                rewrite v_to_e_is_const_list.
                 by rewrite - catA.
                 unfold lfilled, lfill.
                 rewrite v_to_e_is_const_list.
@@ -1608,13 +1600,13 @@ Proof.
                 done.
                 eapply rm_segload_handle_success => //.
                 apply BinNat.N.leb_le in H2.
-                unfold t_length in H2. 
+                unfold t_length in H2.
                 apply plus_binnat_leq.
                 done.
                 unfold isAlloc. unfold isAllocb in H1. by destruct (find _ _).
                 apply Neqb_ok in H0. exact H0.
                 exact Hsegload.
-           
+
             -- intro Htuple; inversion Htuple; subst.
                split; last by subst. exists ME_trap.
                apply rev_move in Hlconst.
@@ -1624,7 +1616,7 @@ Proof.
                repeat rewrite - v_to_e_cat.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                by rewrite - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -1641,7 +1633,7 @@ Proof.
                repeat rewrite - v_to_e_cat.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                by rewrite - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -1654,7 +1646,7 @@ Proof.
                by left. right; left.
                apply BinNat.N.leb_gt in Hb. apply plus_binnat_lt in Hb.
                done.
-               unfold t_length. unfold t_length in Hb. 
+               unfold t_length. unfold t_length in Hb.
                right; right; left. unfold isNotAlloc.
                unfold isAllocb in Hb. by destruct (find _ _).
                repeat right. split => //.
@@ -1672,11 +1664,10 @@ Proof.
                rewrite rev_cons_app in Hlconst.
                subst lconst.
                unfold vs_to_es in Htuple.
-               (* rewrite rev_cons_app in Htuple.  *)
                repeat rewrite - v_to_e_cat in Htuple.
                repeat rewrite - v_to_e_cat.
                destruct v; inversion Htuple; subst.
-               
+
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -1687,7 +1678,7 @@ Proof.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                replace (VAL_int32 (Wasm_int.Int32.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i32); last done.
-               
+
                eapply rm_segload_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
@@ -1695,14 +1686,14 @@ Proof.
                exact Hsegload.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                rewrite rev_cons_app. rewrite - v_to_e_cat. by rewrite - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                replace (VAL_int64 (Wasm_int.Int64.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i64); last done.
-               
+
                eapply rm_segload_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
@@ -1710,14 +1701,14 @@ Proof.
                exact Hsegload.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                by rewrite rev_cons_app - v_to_e_cat - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                replace (VAL_float32 (Floats.Float32.of_bits (Integers.Int.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f32); last done.
-               
+
                eapply rm_segload_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
@@ -1725,14 +1716,14 @@ Proof.
                exact Hsegload.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                by rewrite rev_cons_app - v_to_e_cat - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                done.
                replace (VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f64); last done.
-               
+
                eapply rm_segload_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
@@ -1749,7 +1740,7 @@ Proof.
                repeat rewrite - v_to_e_cat.
                destruct v; inversion Htuple; subst.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -1758,7 +1749,7 @@ Proof.
                done| eapply rm_segload_failure => //;
                                                    right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -1767,7 +1758,7 @@ Proof.
                done| eapply rm_segload_failure => //;
                                                    right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -1776,7 +1767,7 @@ Proof.
                done| eapply rm_segload_failure => //;
                                                    right; right; right; left; done].
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -1785,8 +1776,8 @@ Proof.
                done| eapply rm_segload_failure => //;
                                                    right; right; right; left; done].
                done.
-              
-              
+
+
           * intro Htuple. split; last by destruct v; inversion Htuple; subst.
             exists ME_trap.
             apply rev_move in Hlconst.
@@ -1798,7 +1789,7 @@ Proof.
             destruct v; inversion Htuple; subst.
             eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -1807,13 +1798,13 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -1822,13 +1813,13 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -1837,8 +1828,8 @@ Proof.
             eapply rm_segload_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
@@ -1853,12 +1844,12 @@ Proof.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             by left. right; left.
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
-          
-     
+
+
       - (** [AI_basic (Store v o a0 s0)] **)
         simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         + split; last by subst.
@@ -1915,7 +1906,6 @@ Proof.
           destruct (rev lconst) eqn:Hlconst => //.
           destruct l => //.
           destruct v0 => //.
-          
           destruct (_ && _ && _ && _) eqn:Hb => //.
           * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segstore _ _ _ _) eqn:Hsegload => //.
@@ -1929,7 +1919,7 @@ Proof.
                repeat rewrite - v_to_e_cat.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                instantiate (2 := [::]). simpl. done.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -1943,17 +1933,9 @@ Proof.
                done.
                unfold isAlloc. unfold isAllocb in H1. by destruct (find _ _).
                apply Neqb_ok in H0. exact H0. simpl in Htuple.
-(*               exact Hsegload.
-               destruct HWF as (i & j & T & A & Hi & HT & Hj & HA & HWF).
-               rewrite Hi in Hseg. inversion Hseg; subst.
-               rewrite Hj in Hall. inversion Hall; subst.
-               rewrite HT in Hsegn. inversion Hsegn; subst.
-               rewrite HA in Halla. inversion Halla; subst.
-               eexists n, a, _, a0. repeat split => //. *)
                assert (forall a b, s_segs (upd_s_seg a b) = b).
                intros a1 b; by destruct a1.
                unfold wellFormedState. rewrite H3.
-(*               unfold isSound, isSound_aux. *)
                unfold wellFormedState in HWF.
                eapply segstore_sound.
                exact HWF. exact Hsegload.
@@ -1966,7 +1948,7 @@ Proof.
                repeat rewrite - v_to_e_cat.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                by rewrite - catA.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
@@ -1986,7 +1968,7 @@ Proof.
             repeat rewrite - v_to_e_cat.
             eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -2001,7 +1983,7 @@ Proof.
             by left. right; left.
             apply BinNat.N.leb_gt in Hb. apply plus_binnat_lt in Hb.
             done.
-            unfold t_length. unfold t_length in Hb. 
+            unfold t_length. unfold t_length in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
             repeat right. split => //.
@@ -2009,11 +1991,6 @@ Proof.
             done.
         + destruct (rev lconst) eqn:Hlconst; try by destruct v => //.
           destruct l; try by destruct v => //. destruct v1; try by destruct v => //.
-(*          destruct (sseg_ind _ _) eqn:Hseg; try by destruct v => //.
-          unfold expect.
-          destruct (sall_ind _ _) eqn:Hall; try by destruct v => //.
-          destruct (List.nth_error _ n) eqn:Hsegn; try by destruct v => //.
-          destruct (List.nth_error _ a) eqn:Halla; try by destruct v => //. *)
           destruct (_ && _ && _) eqn:Hb; try by destruct v.
           * do 2 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segstore _ _ _) eqn:Hsegload; try by destruct v=> //.
@@ -2025,20 +2002,16 @@ Proof.
                unfold vs_to_es in Htuple.
                repeat rewrite - v_to_e_cat.
                destruct v; inversion Htuple; subst.
-               
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
-               instantiate (2 := [::]) => //=. 
+               rewrite v_to_e_is_const_list.
+               instantiate (2 := [::]) => //=.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                rewrite rev_cons_app - v_to_e_cat.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
-(*               replace (VAL_int32 (Wasm_int.Int32.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i32); last done. *)
-               
-               eapply rm_segstore_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
@@ -2052,49 +2025,42 @@ Proof.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
-(*               replace (VAL_int64 (Wasm_int.Int64.repr (Memdata.decode_int (List.map fst l0)))) with (wasm_deserialise (List.map fst l0) T_i64); last done. *)
-               
                eapply rm_segstore_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
-               by instantiate (2 := [::]) => /=. 
+               rewrite v_to_e_is_const_list.
+               by instantiate (2 := [::]) => /=.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                rewrite rev_cons_app - v_to_e_cat.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
-               (*replace (VAL_float32 (Floats.Float32.of_bits (Integers.Int.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f32); last done. *)
-               
                eapply rm_segstore_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.
-               rewrite v_to_e_is_const_list. 
+               rewrite v_to_e_is_const_list.
                instantiate (2 := [::]) => //=.
                unfold lfilled, lfill.
                rewrite v_to_e_is_const_list.
                rewrite rev_cons_app - v_to_e_cat.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)). done.
-(*               replace (VAL_float64 (Floats.Float.of_bits (Integers.Int64.repr (Memdata.decode_int (List.map fst l0))))) with (wasm_deserialise (List.map fst l0) T_f64); last done. *)
-               
                eapply rm_segstore_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
                by inversion Hv.
 
-
                assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
                intros a1 b ; by destruct a1.
-               unfold wellFormedState. 
+               unfold wellFormedState.
                unfold wellFormedState in HWF.
                eapply segstore_sound.
                destruct v; inversion Htuple; subst; simpl; try exact HWF.
@@ -2111,7 +2077,7 @@ Proof.
                repeat rewrite - v_to_e_cat.
                destruct v; inversion Htuple; subst. simpl.
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -2122,7 +2088,7 @@ Proof.
                done| eapply rm_segstore_failure => //;
                                                     right; right; right; left; done].
                 eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -2133,7 +2099,7 @@ Proof.
                done| eapply rm_segstore_failure => //;
                                                     right; right; right; left; done].
                  eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -2144,7 +2110,7 @@ Proof.
                done| eapply rm_segstore_failure => //;
                                                     right; right; right; left; done].
                   eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first;
-                 [  
+                 [
                unfold lfilled, lfill;
                rewrite v_to_e_is_const_list;
                by rewrite - catA | unfold lfilled, lfill;
@@ -2155,7 +2121,7 @@ Proof.
                done| eapply rm_segstore_failure => //;
                                                     right; right; right; left; done].
                   by inversion Hv.
-                     
+
           * intro Htuple. split; last by destruct v; inversion Htuple; subst.
             exists ME_trap.
             apply rev_move in Hlconst.
@@ -2167,7 +2133,7 @@ Proof.
             destruct v; inversion Htuple; subst.
             eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -2178,13 +2144,13 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -2194,13 +2160,13 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -2211,13 +2177,13 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
               eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
             unfold lfilled, lfill.
-            rewrite v_to_e_is_const_list. 
+            rewrite v_to_e_is_const_list.
             by rewrite - catA.
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list.
@@ -2228,8 +2194,8 @@ Proof.
             eapply rm_segstore_failure => //.
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
             apply Bool.andb_false_iff in Hb as [Hb | Hb].
-            by left. right; left. 
-            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.  
+            by left. right; left.
+            apply BinNat.N.leb_gt in Hb. by apply plus_binnat_lt in Hb.
             right; right; left. unfold isNotAlloc.
             unfold isAllocb in Hb. by destruct (find _ _).
             by inversion Hv.
@@ -2278,7 +2244,6 @@ Proof.
                  BinNat.N.add (next_free (s_alls s)) (BinNums.Npos BinNums.xH)
     |}) as Halloc.
         { apply Alloc => //.
-          (*        clear - Hlimit. unfold operations.seg_length, seg_length. lias. *)
           apply BinNat.N.leb_le in Hlimit. exact Hlimit.
           destruct (seg_max_opt (s_segs s)) => //.
           destruct (BinNat.N.leb _ n) eqn:Hpagesize; try by inversion option_expr.
@@ -2293,7 +2258,7 @@ Proof.
           inversion option_expr ; subst.
           unfold seg_grow.
           unfold operations.seg_length, seg_length.
-          rewrite Nnat.Nat2N.id. 
+          rewrite Nnat.Nat2N.id.
           rewrite List.firstn_all.
           rewrite List.skipn_all2.
           by rewrite cats0.
@@ -2306,7 +2271,7 @@ Proof.
           rewrite List.firstn_all.
           rewrite List.skipn_all2.
           by rewrite cats0. lias.
-          unfold allocator_insert. 
+          unfold allocator_insert.
           rewrite BinNat.N.max_r. done. lias.
         }
         split.
@@ -2323,7 +2288,7 @@ Proof.
         assert (forall a b, s_segs (upd_s_seg a b) = b) as Hupd.
         intros ai bi ; by destruct ai.
         unfold wellFormedState; rewrite Hupd.
-        unfold wellFormedState in HWF. 
+        unfold wellFormedState in HWF.
         assert (forall a b c, s_alls (upd_s_seg (upd_s_all a b) c) = b) as Hupd'.
         intros ai bi ci; by destruct ai.
         rewrite Hupd'.
@@ -2341,12 +2306,11 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => //=.
         rewrite rev_cons_app.
-          rewrite - v_to_e_cat.
-          repeat rewrite - catA.
-          instantiate (1 := [:: _ ;_;_]) => //=.
-          
-          eapply rm_silent, r_simple, rs_handleadd_success => //=.
-            split; last by subst.
+        rewrite - v_to_e_cat.
+        repeat rewrite - catA.
+        instantiate (1 := [:: _ ;_;_]) => //=.
+        eapply rm_silent, r_simple, rs_handleadd_success => //=.
+        split; last by subst.
         exists ME_empty; eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)); last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
@@ -2354,10 +2318,9 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => //=.
         rewrite rev_cons_app.
-          rewrite - v_to_e_cat.
-          repeat rewrite - catA.
-          instantiate (1 := [:: _ ;_;_]) => //=.
-          
+        rewrite - v_to_e_cat.
+        repeat rewrite - catA.
+        instantiate (1 := [:: _ ;_;_]) => //=.
         eapply rm_silent, r_simple, rs_handleadd_failure => //=.
 
       - (** [AI_basic BI_segfree] **)
@@ -2367,9 +2330,9 @@ Proof.
         inversion H2; subst.
         assert (sfree (s_segs s) (s_alls s) h.(base) h.(bound) h.(id) (s_segs s) {| allocated := g; next_free := next_free s.(s_alls) |}) as Hfree.
         { econstructor; last done.
-          apply Bool.andb_true_iff in Hn0 as [Hn0 Hn1].  
+          apply Bool.andb_true_iff in Hn0 as [Hn0 Hn1].
           apply BinNat.N.eqb_eq in Hn0 as ->.
-          apply BinNat.N.eqb_eq in Hn1 as ->.  
+          apply BinNat.N.eqb_eq in Hn1 as ->.
           exact HExpect. }
         split.
         exists (ME_sfree h).
@@ -2388,7 +2351,7 @@ Proof.
         unfold upd_s_seg, upd_s_all => /=.
         eapply sfree_sound; last exact Hfree.
         exact HWF.
-        
+
       - (** [AI_basic BI_getoffset] **)
         simpl; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst.
@@ -2427,7 +2390,7 @@ Proof.
           apply (rs_isdummy_false) in if_expr0.
           eapply rm_silent, r_simple => //.
 
-        
+
       - (** [AI_basic Current_memory] **)
         simpl. explode_and_simplify. pattern_match. auto_frame.
         split; last by subst. exists ME_empty.
@@ -2438,12 +2401,10 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ]) => //=.
-        subst. 
-        
-        apply: rm_silent. rewrite - nat_bin. 
+        subst.
+        apply: rm_silent. rewrite - nat_bin.
         eapply r_current_memory => //. exact HExpect. done.
 
-        
       - (** [AI_basic Grow_memory] **)
         simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
         split; last by subst. exists ME_empty.
@@ -2459,7 +2420,7 @@ Proof.
 
 
       - (** [AI_basic (Econst _)] **)
-        by pattern_match. 
+        by pattern_match.
 
       - (** [AI_basic Unop v u] **)
         simpl. explode_and_simplify;  pattern_match; auto_frame.
@@ -2505,32 +2466,26 @@ Proof.
 
       - (** [AI_basic (Testop v t)] **)
         simpl. explode_and_simplify; destruct n; explode_and_simplify; pattern_match; auto_frame.
-(*        destruct v => //.
-        destruct v => //.
-        inversion H2; subst. *)
         split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
-        (* rewrite - catA => //=. *)
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        (* destruct v => //. inversion H2; subst. *) split; last by subst. exists ME_empty.
+        split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
         instantiate ( 2 := [:: _]) => //=.
-        (* rewrite - catA => //=. *)
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-(*         destruct v => //. destruct v => //. destruct v => //.  *)
 
       - (** [AI_basic (Relop v2 v1 r)] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
@@ -2570,7 +2525,7 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-                split; last by subst. exists ME_empty.
+        split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
@@ -2582,7 +2537,7 @@ Proof.
         apply andb_prop in H1 as [??]. destruct o => //.
         econstructor. econstructor. apply rs_reinterpret.
         intros -> => //. intros -> => //. done.
-          
+
         split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -2593,7 +2548,7 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-                split; last by subst. exists ME_empty.
+        split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
@@ -2603,18 +2558,17 @@ Proof.
         instantiate (1 := [:: _ ;_]) => //=.
         subst.
         by repeat econstructor.
-        
     }
     { (** [Const] **)
       by pattern_match.
-    } 
+    }
     { (** [Trap] **)
       by pattern_match.
     }
     { (** [Invoke] **)
       simpl. explode_and_simplify.
       - (** [Func_native] **)
-        pattern_match; auto_frame. 
+        pattern_match; auto_frame.
         split; last by subst. exists ME_empty.
         eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -2633,7 +2587,7 @@ Proof.
         subst.
         apply: rm_silent; apply: r_invoke_native => //=; eauto.
         simplify_lists. rewrite subKn => //.
-    apply Compare_dec.leb_complete in if_expr0.  lias. }
+        apply Compare_dec.leb_complete in if_expr0.  lias. }
 (*      - (** [Func_host] **)
         destruct host_application_impl eqn:HHost; explode_and_simplify; try pattern_match; try frame_cat.
         + auto_frame.
@@ -2646,10 +2600,9 @@ Proof.
           apply r_elimr.
           rewrite (v_to_e_take_drop_split lconst (size lconst - size r)); rewrite -catA;
           apply: r_eliml; try apply: v_to_e_is_const_list.
-          eapply r_invoke_host_diverge; eauto => //=.          
+          eapply r_invoke_host_diverge; eauto => //=.
           { explode_and_simplify. by rewrite subKn. } *)
-    
-    
+
     { (** [Label] **)
       simpl. explode_and_simplify; try (pattern_match; auto_frame).
       split; last by subst. exists ME_empty. eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
@@ -2661,7 +2614,7 @@ Proof.
         instantiate (1 := [:: _ ]) => //=.
         subst.
         by repeat econstructor.
-        split; last by subst. exists ME_empty. 
+        split; last by subst. exists ME_empty.
          eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list.
@@ -2672,7 +2625,6 @@ Proof.
         subst.
         by repeat econstructor.
 
-        
       + destruct run_step_with_fuel as [[s'' f''] r] eqn: EH.
         destruct r as [|nd es''| |es'' |] => //.
         * (** [RS_break] **)
@@ -2683,15 +2635,12 @@ Proof.
           eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
-          2:{ 
+          2:{
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list => /=.
             instantiate (2 := [:: _ ]) => //=. }
-          
-          rewrite rev_cat.
-
+            rewrite rev_cat.
           rewrite rev_rev.
-          
           rewrite - v_to_e_cat.
           repeat rewrite - catA.
           rewrite (catA _ es1).
@@ -2700,7 +2649,7 @@ Proof.
           apply Compare_dec.leb_complete in Hn.
           eapply reduce_label_break => // ; by eauto; lias.
           apply rs_break_wellfounded in EH as (-> & -> & _). done.
-             
+
         * (** [RS_normal] **)
           inversion H2 ; subst.
           (* We actually want to keep the frame here for later use in lfilled.*)
@@ -2750,15 +2699,12 @@ Proof.
           eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
           unfold lfilled, lfill.
           rewrite v_to_e_is_const_list.
-          2:{ 
+          2:{
             unfold lfilled, lfill.
             rewrite v_to_e_is_const_list => /=.
             instantiate (2 := [:: _ ]) => //=. }
-          
           rewrite rev_cat.
-
           rewrite rev_rev.
-          
           rewrite - v_to_e_cat.
           repeat rewrite - catA.
           done.
@@ -2781,7 +2727,7 @@ Proof.
           by apply rm_local.
           done.
     }
-    { by pattern_match. } 
+    { by pattern_match. }
 Qed.
 
 Theorem run_step_soundness : forall d s f es s' f' es',

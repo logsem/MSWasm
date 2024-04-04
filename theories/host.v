@@ -133,14 +133,14 @@ Module convert_to_executable_host (H : Executable_Host).
 
 Export H.
 
-Definition hostfuncidx_eqb f1 f2 : bool := hostfuncidx_eq_dec f1 f2. 
+Definition hostfuncidx_eqb f1 f2 : bool := hostfuncidx_eq_dec f1 f2.
 
 Definition hostfuncidxP : Equality.axiom hostfuncidx_eqb :=
-  eq_dec_Equality_axiom hostfuncidx_eq_dec. 
+  eq_dec_Equality_axiom hostfuncidx_eq_dec.
 
 Canonical Structure hostfuncidx_eqMixin := EqMixin hostfuncidxP.
 Canonical Structure host_function :=
-  Eval hnf in EqType _ hostfuncidx_eqMixin. 
+  Eval hnf in EqType _ hostfuncidx_eqMixin.
 (*
 Definition executable_host := executable_host H.host_function.
 Definition store_record := store_record H.host_function.
@@ -148,7 +148,7 @@ Definition config_tuple := config_tuple H.host_function.
 (*Definition administrative_instruction := administrative_instruction H.host_function.*)
 Definition function_closure := function_closure H.host_function.
 Definition res_tuple := res_tuple H.host_function.
-*) 
+*)
 Definition host_monad : Monad host_event := {|
     ret := host_ret ;
     bind := host_bind

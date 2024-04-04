@@ -25,7 +25,7 @@ Lemma Pos_eqP : Equality.axiom BinPosDef.Pos.eqb.
 Proof.
   move=> x y. apply: Bool.iff_reflect. by rewrite BinPos.Pos.eqb_eq.
 Qed.
-                                                                      
+
 Definition Pos_eqMixin := EqMixin Pos_eqP.
 
 Canonical Structure Pos_eqType := EqType BinNums.positive Pos_eqMixin.
@@ -115,7 +115,7 @@ Ltac remove_bools_options :=
   | H: is_true (_ && _ ) |- _ =>
     move/andP in H; destruct H
   | H: (_ && _) = true |- _ =>
-    move/andP in H; destruct H                                    
+    move/andP in H; destruct H
   | H: is_true (_ == _) |- _ =>
     move/eqP in H
   | H: is_true (_ || _) |- _=>

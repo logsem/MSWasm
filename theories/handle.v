@@ -36,7 +36,7 @@ Qed.
 Lemma is_dummy_false h : is_dummy h = false -> h <> dummy_handle.
 Proof.
   intros H ->. unfold is_dummy, dummy_handle in H. simpl in H. inversion H.
-Qed. 
+Qed.
 
 Definition upd_handle_validity h b :=
   {| base := h.(base) ;
@@ -102,4 +102,3 @@ Class HandleBytes : Type := {
     handle_of_serialise : forall h, handle_of_bytes (serialise_handle h) = h;
     serialise_handle_of : forall bs, serialise_handle (handle_of_bytes bs) = bs
   } .
-    

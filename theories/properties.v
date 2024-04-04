@@ -1478,25 +1478,6 @@ End nil_proofs.
 
 
 
-(* nLemma s_segs_upd_s_seg s s' :
-  s_segs (upd_s_seg s s') = s'.
-Proof.
-  by destruct s.
-Qed.
-
-Lemma s_alls_upd_s_all s s' :
-  s_alls (upd_s_all s s') = s'.
-Proof.
-  by destruct s.
-Qed.
-
-Lemma s_alls_upd_s_seg s s' :
-  s_alls (upd_s_seg s s') = s_alls s.
-Proof.
-  by destruct s.
-Qed. *)
-
-
 Lemma same_length_is_Sound T T' A :
   seg_length T = seg_length T' ->
   isSound T A -> isSound T' A.
@@ -1508,12 +1489,6 @@ Proof.
   intros a b c Ha.
   rewrite - Hlen.
   by apply Haux.
-(*  remember (allocated A) as l. clear Heql.
-  induction l => //=.
-  destruct a as [[??]?]. simpl in HS.
-  destruct HS as (?&?&?&?).
-  repeat split => //. rewrite Hlen in H => //.
-  by apply IHl. *)
 Qed.
 
 
@@ -1544,7 +1519,7 @@ Proof.
   intro k. rewrite IHc'. clear. induction k => //=.
   inversion IHk. rewrite addSn H0. done.
 Qed.
-  
+
 
 Lemma segstore_is_None_aux a a' addr c c' k k':
   length c = length c' ->
@@ -1769,51 +1744,6 @@ Proof.
       apply Hfree. lia.
 Qed. 
 
-     (*   
-    
-  unfold isSound in HSound. unfold isFree in H2.
-  remember (allocated A) as l.
-  clear Heql. induction l => //=.
-  - repeat split => //=.
-    unfold segment_list.seg_length => /=.
-    repeat rewrite List.app_length.
-    rewrite List.firstn_length_le.
-    rewrite List.repeat_length.
-    rewrite List.skipn_length.
-(*    apply N.leb_le. *)
-    unfold segment_list.seg_length in H.
-(*    apply N.leb_le in H. *)
-    repeat rewrite Nnat.Nat2N.inj_add.
-    rewrite Nnat.Nat2N.inj_sub.
-    repeat rewrite Nnat.N2Nat.id. 
-    lia.
-    rewrite - length_is_size. lias.
-  - destruct a0 as [[??]?].
-    destruct HSound as (? & ? & ? & HSound).
-    destruct H3 as [? Hcomp]. simpl in H2.
-    destruct (n0 =? nid)%N eqn:Hn => //.
-    destruct (IHl HSound H2 Hcomp) as (? & ? & ? & ?).
-    repeat split => //=.
-    intro Habs; destruct Habs => //=.
-    subst. rewrite N.eqb_refl in Hn => //.
-    unfold segment_list.seg_length => /=.
-    repeat rewrite List.app_length.
-    rewrite length_is_size size_takel.
-    rewrite List.repeat_length.
-    rewrite length_is_size size_drop.
-    apply N.leb_le.
-    unfold segment_list.seg_length in H4.
-    apply N.leb_le in H4.
-    repeat rewrite Nnat.Nat2N.inj_add.
-    rewrite Nnat.Nat2N.inj_sub.
-    repeat rewrite Nnat.N2Nat.id. 
-    rewrite - length_is_size.
-    lia.
-    rewrite - length_is_size. lias.
-Qed.
-*)
-
-
 
 Lemma sfree_sound T A a n nid T' A' :
   isSound T.(seg_data) A -> sfree T A a n nid T' A' -> isSound T'.(seg_data) A'.
@@ -1838,48 +1768,6 @@ Proof.
   unfold canBeAlloc. rewrite lookup_insert_ne => //.
 Qed.
 
-(*
-Lemma salloc_sound_local1 T A a n nid T' A' T0 :
-  isSound T0 A -> salloc T A a n nid T' A' -> isSound T0 A'.
-Proof.
-  intros HSound Halloc.
-  inversion Halloc; subst.
-  unfold isSound => /=.
-  unfold isSound_aux => /=.
-  unfold isSound, isSound_aux in HSound.
-  apply/andP. split; last done.
-  
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size.
-  rewrite size_takel.
-  rewrite List.repeat_length.
-  apply BinNat.N.leb_le. lias.
-  rewrite - length_is_size.
-  lias. 
-  unfold isSound, isSound_aux in HSound.
-  apply List.forallb_forall.
-  edestruct List.forallb_forall as [??].
-  intros x Hx.
-  apply (H4 HSound x) in Hx.
-  destruct x as [??].
-  destruct p as [??].
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size size_takel.
-  rewrite List.repeat_length.
-  rewrite length_is_size size_drop.
-  apply N.leb_le.
-  unfold segment_list.seg_length in Hx.
-  apply N.leb_le in Hx.
-  repeat rewrite Nnat.Nat2N.inj_add.
-  rewrite Nnat.Nat2N.inj_sub.
-  repeat rewrite Nnat.N2Nat.id. 
-  rewrite - length_is_size.
-  lia.
-  rewrite - length_is_size. lias.
-Qed. *)
-
 End using_gmap.
 
 Lemma salloc_sound_local T A a n nid T' A' A0 :
@@ -1902,33 +1790,8 @@ Proof.
   rewrite Nnat.Nat2N.inj_sub.
   repeat rewrite Nnat.N2Nat.id. 
   lia. lias.
-Qed. 
-(*
-  unfold isSound => /=.
-  unfold isSound in HSound. unfold isFree in H2.
-  remember (allocated A0) as l.
-  clear Heql. induction l => //=.
-  destruct a0 as [[??]?].
-  destruct HSound as (? & ? & ? & HSound).
-  apply IHl in HSound.
-  repeat split => //=.
-  unfold segment_list.seg_length => /=.
-  repeat rewrite List.app_length.
-  rewrite length_is_size size_takel.
-  rewrite List.repeat_length.
-  rewrite length_is_size size_drop.
-  apply N.leb_le.
-  unfold segment_list.seg_length in H4.
-  apply N.leb_le in H4.
-  repeat rewrite Nnat.Nat2N.inj_add.
-  rewrite Nnat.Nat2N.inj_sub.
-  repeat rewrite Nnat.N2Nat.id. 
-  rewrite - length_is_size.
-  lia.
-  rewrite - length_is_size. lias.
-Qed. *)
+Qed.
 
-  
 Lemma sfree_sound_local T A a n nid T' A' A0 :
   isSound T.(seg_data) A0 -> sfree T A a n nid T' A' -> isSound T'.(seg_data) A0.
 Proof.
@@ -2180,7 +2043,7 @@ Lemma reduce_preserves_wellformedness s f es me s' f' es':
 Proof.
   intros HWF Hred.
   induction Hred => //.
-  { inversion H; try by subst. 
+  { inversion H; try by subst.
     subst.
     assert (s_alls s' = s_alls s /\ s_segs s' = s_segs s) as [Halls Hsegs].
     destruct s; simpl.
@@ -2201,7 +2064,7 @@ Proof.
     by subst. }
   { eapply same_length_is_Sound; last exact HWF.
     apply segstore_same_length in H7.
-    by subst. } 
+    by subst. }
   { eapply salloc_sound.
     exact HWF. subst. exact H2. }
   { eapply sfree_sound.
@@ -2209,130 +2072,6 @@ Proof.
   by apply IHHred.
   by apply IHHred.
 Qed.
-  
-    
-    
-(*
-
-Lemma reduce_preserves_wellformedness s f es me s' f' es':
-  wellFormedState s f es ->
-  reduce s f es me s' f' es' ->
-  wellFormedState s' f' es'.
-Proof.
-  intros HWF Hred.
-  induction Hred => //.
-  { inversion H; try by subst.
-    subst.
-    destruct HWF as (i' & j & T & A & HWF) .
-    exists i', j, T, A. rewrite H0. exact HWF.
-    subst.
-    destruct HWF as (i' & j & T & A & HWF).
-    exists i', j, T, A.
-    assert (s_alls s' = s_alls s /\ s_segs s' = s_segs s) as [Halls Hsegs].
-    destruct s; simpl.
-    unfold supdate_glob in H0.
-    unfold option_bind in H0.
-    destruct (sglob_ind _ _ _) => //.
-    unfold supdate_glob_s in H0.
-    simpl in H0.
-    unfold option_map in H0.
-    destruct (List.nth_error _ n) => //.
-    by inversion H0.
-    rewrite Halls Hsegs.
-    exact HWF. }
-  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
-    rewrite H0 in Hi'; inversion Hi'; subst.
-    rewrite H1 in HT; inversion HT; subst.
-    rewrite H2 in Hj'; inversion Hj'; subst.
-    rewrite H3 in HA'; inversion HA'; subst.
-    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
-    rewrite s_alls_upd_s_seg.  *)
-    repeat split => //=.
-    unfold update_list_at.
-    replace i' with (length (take i' (s_segs s))) at 3.
-    rewrite list_nth_prefix.
-    done.
-    rewrite length_is_size.
-    rewrite size_takel => //.
-    rewrite nth_error_lookup in H1.
-    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
-    eapply same_length_is_Sound; last exact HWF.
-    apply segstore_same_length in H9.
-    done. }
-  { destruct HWF as (i' & j' & T & A' & Hi' & HT & Hj' & HA' & HWF).
-    rewrite H0 in Hi'; inversion Hi'; subst.
-    rewrite H1 in HT; inversion HT; subst.
-    rewrite H2 in Hj'; inversion Hj'; subst.
-    rewrite H3 in HA'; inversion HA'; subst.
-    exists i', j', seg', A'. (* rewrite s_segs_upd_s_seg.
-    rewrite s_alls_upd_s_seg.  *)
-    repeat split => //=.
-    unfold update_list_at.
-    replace i' with (length (take i' (s_segs s))) at 3.
-    rewrite list_nth_prefix.
-    done.
-    rewrite length_is_size.
-    rewrite size_takel => //.
-    rewrite nth_error_lookup in H1.
-    apply list.lookup_lt_Some in H1. by rewrite length_is_size in H1; lias.
-    eapply same_length_is_Sound; last exact HWF.
-    apply segstore_same_length in H10.
-    done. }  
-  { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
-    rewrite H in Hi'; inversion Hi'; subst.
-    rewrite H0 in HT; inversion HT; subst.
-    rewrite H1 in Hj'; inversion Hj'; subst.
-    rewrite H2 in HA'; inversion HA'; subst.
-    exists i', j', seg', A'. 
-    repeat split => //=.
-    unfold update_list_at.
-    replace i' with (length (take i' (s_segs s))) at 3.
-    rewrite list_nth_prefix.
-    done.
-    rewrite length_is_size.
-    rewrite size_takel => //.
-    rewrite nth_error_lookup in H0.
-    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
-    unfold update_list_at.
-    replace j' with (length (take j' (s_alls s))) at 3.
-    rewrite list_nth_prefix.
-    done.
-    rewrite length_is_size.
-    rewrite size_takel => //.
-    rewrite nth_error_lookup in H2.
-    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
-    eapply salloc_sound.
-    exact HWF. exact H4. }
-    { destruct HWF as (i' & j' & T & A'' & Hi' & HT & Hj' & HA' & HWF).
-    rewrite H in Hi'; inversion Hi'; subst.
-    rewrite H0 in HT; inversion HT; subst.
-    rewrite H1 in Hj'; inversion Hj'; subst.
-    rewrite H2 in HA'; inversion HA'; subst.
-    exists i', j', seg', A'. 
-    repeat split => //=.
-    unfold update_list_at.
-    replace i' with (length (take i' (s_segs s))) at 3.
-    rewrite list_nth_prefix.
-    done.
-    rewrite length_is_size.
-    rewrite size_takel => //.
-    rewrite nth_error_lookup in H0.
-    apply list.lookup_lt_Some in H0. by rewrite length_is_size in H0; lias.
-    unfold update_list_at.
-    replace j' with (length (take j' (s_alls s))) at 3.
-    rewrite list_nth_prefix.
-    done.
-    rewrite length_is_size.
-    rewrite size_takel => //.
-    rewrite nth_error_lookup in H2.
-    apply list.lookup_lt_Some in H2. by rewrite length_is_size in H2; lias.
-    eapply sfree_sound.
-    exact HWF. exact H3. }
-    by apply IHHred.
-  
-    
-    
-*)
 
 End reduce_wellformed_proof.
 
@@ -2353,7 +2092,7 @@ Section arithmetics.
 
   Lemma mul_le a b c : a <= b -> c * a <= c * b.
   Proof.
-    intros Hab. 
+    intros Hab.
     induction c; lia.
   Qed.
 
@@ -2362,22 +2101,7 @@ Section arithmetics.
     assert (S a <= b); first lia.
     replace (c * a + c) with (c * S a); last lia.
     apply mul_le. done.
-  Qed. 
-  
-(*  Lemma mul_lt a b c : c > 0 -> a < b -> c * a + c <= c * b.
-Proof.
-  intros Hc Hab.
-  induction c; first lia.
-  simpl.
-  destruct (PeanoNat.Nat.ltb 0 c) eqn:Hc'.
-  { apply PeanoNat.Nat.ltb_lt in Hc'.
-    assert (c > 0) as Hc''; first lia.
-    apply IHc in Hc''. lia. }
-  apply PeanoNat.Nat.ltb_ge in Hc'.
-  destruct c; last lia.
-  lia.
-Qed.  *)
-  
+  Qed.
 
 Lemma div_leq a b c: a <= b -> PeanoNat.Nat.div a c <= PeanoNat.Nat.div b c.
 Proof.

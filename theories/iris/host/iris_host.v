@@ -833,10 +833,6 @@ forall (s E es Φ).
     iSpecialize ("Hwp" $! σ ns κ κs nt with "[$]").
     by iApply "Hwp". }
   destruct σ as [[[[s0 vis] ms] has] f].
-(*  iDestruct "Hσ" as "(H1 & H2 & H3 & H4 & H5 & H6 & H7 & H8 & H9 & H10 & H11 & H12 & H13 & H14)".
-  destruct f as [loc ins].
-  iSpecialize ("Hwp" $! (s0, loc, ins) ns κ κs nt).
-  iSpecialize ("Hwp" with "[$]"). *)
   iDestruct "Hσ" as "(? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ? & ?)".
   destruct f as [loc ins].
   iSpecialize ("Hwp" $! (s0, loc, ins) ns κ κs nt with "[$]").
@@ -1904,9 +1900,9 @@ Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vi
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  ↪[frame] empty_frame -∗ (* interp_allocator all -∗ *)                            
+  ↪[frame] empty_frame -∗
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ (* interp_allocator all -∗ *) (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP ((idecls, [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP ((idecls, [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (((ID_instantiate hs_exps hs_mod hs_imps) :: idecls, [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   move => Hmodstart Hmodtype Hmodrestr.

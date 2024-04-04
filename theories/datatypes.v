@@ -46,7 +46,7 @@ If no maximum is given, the respective storage can grow to any size.
 [https://webassembly.github.io/spec/core/syntax/types.html#limits]
  *)
 Record limits : Type := {
-  lim_min : N; 
+  lim_min : N;
   lim_max : option N;
 }.
 
@@ -65,7 +65,7 @@ Record data_vec : Type := {
 
 Record memory : Type := {
   mem_data : memory_list;
-  mem_max_opt: option N; 
+  mem_max_opt: option N;
   }.
 
 Record segment : Type := {
@@ -296,7 +296,7 @@ Inductive binop : Type :=
   | Binop_i : binop_i -> binop
   | Binop_f : binop_f -> binop
   .
-  
+
 Inductive testop : Type :=
   | TO_eqz
   .
@@ -323,11 +323,11 @@ Inductive relop_f : Type :=
   | ROH_eq
   | ROH_ne
   .
-  
+
 Inductive relop : Type :=
   | Relop_i : relop_i -> relop
 | Relop_f : relop_f -> relop
-| Relop_h : relop_h -> relop 
+| Relop_h : relop_h -> relop
   .
 
 Inductive cvtop : Type :=
@@ -356,14 +356,14 @@ Inductive basic_instruction : Type := (* be *)
   | BI_set_global : immediate -> basic_instruction
   | BI_load : value_type -> option (packed_type * sx) -> alignment_exponent -> static_offset -> basic_instruction
   | BI_segload : value_type -> basic_instruction
-| BI_store : value_type -> option packed_type -> alignment_exponent -> static_offset -> basic_instruction
-| BI_segstore : value_type -> basic_instruction
-| BI_slice : basic_instruction
-| BI_segalloc : basic_instruction
-| BI_handleadd : basic_instruction
-| BI_segfree : basic_instruction
-| BI_getoffset : basic_instruction
-| BI_isdummy
+  | BI_store : value_type -> option packed_type -> alignment_exponent -> static_offset -> basic_instruction
+  | BI_segstore : value_type -> basic_instruction
+  | BI_slice : basic_instruction
+  | BI_segalloc : basic_instruction
+  | BI_handleadd : basic_instruction
+  | BI_segfree : basic_instruction
+  | BI_getoffset : basic_instruction
+  | BI_isdummy
   | BI_current_memory
   | BI_grow_memory
   | BI_const : numerical_value -> basic_instruction
@@ -378,7 +378,7 @@ Inductive basic_instruction : Type := (* be *)
 
 
 
-  (* We assume the host keeps track of the functions it populates onto the 
+  (* We assume the host keeps track of the functions it populates onto the
      Wasm table by assigning each function an integer. *)
   Inductive hostfuncidx : Type :=
 | Mk_hostfuncidx : nat -> hostfuncidx.
@@ -386,9 +386,7 @@ Inductive basic_instruction : Type := (* be *)
 Definition funcaddr := immediate.
 Definition tableaddr := immediate.
 Definition memaddr := immediate.
-(* Definition segaddr := immediate. *)
 Definition globaladdr := immediate.
-(* Definition allocaddr := immediate. *)
 
 
 (** std-doc:
@@ -410,8 +408,6 @@ Record instance : Type := (* inst *) {
   inst_funcs : list funcaddr;
   inst_tab : list tableaddr;
     inst_memory : list memaddr;
-(*    inst_segment : list segaddr;
-    inst_allocator: list allocaddr; *)
   inst_globs : list globaladdr;
 }.
 (** std-doc:
@@ -506,7 +502,7 @@ Definition AI_const v :=
   match v with
   | VAL_handle h => AI_handle h
   | VAL_numeric n => AI_basic (BI_const n)
-  end. 
+  end.
 
 Inductive lholed : Type :=
 | LH_base : list administrative_instruction -> list administrative_instruction -> lholed
@@ -532,12 +528,6 @@ Inductive tableidx : Type :=
 Inductive memidx : Type :=
 | Mk_memidx : nat -> memidx.
 
-(* Inductive segidx : Type :=
-| Mk_segidx : nat -> segidx.
-
-Inductive allidx : Type :=
-| Mk_allidx : nat -> allidx. *)
-
 Inductive typeidx : Type :=
 | Mk_typeidx : nat -> typeidx.
 
@@ -551,8 +541,6 @@ Inductive import_desc : Type :=
 | ID_func : nat -> import_desc
 | ID_table : table_type -> import_desc
 | ID_mem : memory_type -> import_desc
-(* | ID_seg : segment_type -> import_desc
-| ID_all : allocator_type -> import_desc *)
 | ID_global : global_type -> import_desc.
 
 Definition name := list Byte.byte.
@@ -593,18 +581,10 @@ Record module_data : Type := {
   moddata_init : list Byte.byte;
   }.
 
-(* Record module_segdata : Type := {
-    modsegdata_data : segidx;
-    modsegdata_offset : expr;
-    modsegdata_init : list (Byte.byte * btag);
-    }. *)
-
 Inductive module_export_desc : Type :=
 | MED_func : funcidx -> module_export_desc
 | MED_table : tableidx -> module_export_desc
 | MED_mem : memidx -> module_export_desc
-(* | MED_seg : segidx -> module_export_desc
-| MED_all : allidx -> module_export_desc *)
 | MED_global : globalidx -> module_export_desc.
 
 Record module_export : Type := {
@@ -626,13 +606,10 @@ Record module : Type := {
   mod_types : list function_type;
   mod_funcs : list module_func;
   mod_tables : list module_table;
-    mod_mems : list memory_type;
-(*    mod_segs : list segment_type; 
-    mod_alls : list allocator_type; *)
+  mod_mems : list memory_type;
   mod_globals : list module_glob;
   mod_elem : list module_element;
-    mod_data : list module_data;
-(*    mod_segdata : list module_segdata; *)
+  mod_data : list module_data;
   mod_start : option module_start;
   mod_imports : list module_import;
   mod_exports : list module_export;
@@ -642,8 +619,6 @@ Inductive extern_t : Type :=
 | ET_func : function_type -> extern_t
 | ET_tab : table_type -> extern_t
 | ET_mem : memory_type -> extern_t
-(* | ET_seg : segment_type -> extern_t
-| ET_all : allocator_type -> extern_t *)
 | ET_glob : global_type -> extern_t
 .
 
@@ -662,15 +637,15 @@ Inductive res_step : Type :=
   | RS_crash : res_crash -> res_step
   | RS_break : nat -> seq value -> res_step
   | RS_return : seq value -> res_step
-| RS_normal : seq administrative_instruction -> res_step
-| RS_call_host : function_type -> hostfuncidx -> seq value -> res_step
+  | RS_normal : seq administrative_instruction -> res_step
+  | RS_call_host : function_type -> hostfuncidx -> seq value -> res_step
   .
 
 Definition res_tuple : Type := store_record * frame * res_step.
 
 
 
-  Inductive memory_event :=
+Inductive memory_event :=
   | ME_empty : memory_event
   | ME_read : value_type -> handle -> memory_event
   | ME_write : value_type -> handle -> value -> memory_event

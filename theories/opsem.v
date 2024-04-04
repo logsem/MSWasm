@@ -3,7 +3,7 @@
 
 From Coq Require Import ZArith.BinInt BinNat.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
-Require Export operations segment_list (* host *) handle.
+Require Export operations segment_list handle.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -12,14 +12,14 @@ Unset Printing Implicit Defensive.
 
 
 Section Opsem.
-   Context `{HandleBytes}. 
+   Context `{HandleBytes}.
 
    Inductive reduce_simple : seq administrative_instruction -> seq administrative_instruction -> Prop :=
 
 (** unop **)
   | rs_unop : forall v op t,
     reduce_simple [::AI_const v; AI_basic (BI_unop t op)] [::AI_const (@app_unop op v)] (* comment *)
-                   
+
 (** binop **)
   | rs_binop_success : forall v1 v2 v op t,
     app_binop op v1 v2 = Some v ->
@@ -27,7 +27,7 @@ Section Opsem.
   | rs_binop_failure : forall v1 v2 op t,
     app_binop op v1 v2 = None ->
     reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_trap] (* MAXIME: should this produce memory-event trap? I'd argue not, no usage of memory here *)
-                  
+
   (** testops **)
   | rs_testop_i32 :
     forall c testop,
@@ -39,7 +39,7 @@ Section Opsem.
   (** relops **)
   | rs_relop: forall v1 v2 t op,
     reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_relop t op)] [::AI_const (VAL_int32 (wasm_bool (app_relop op v1 v2)))]
-                    
+
   (** convert and reinterpret **)
   | rs_convert_success :
     forall t1 t2 v v' sx,
@@ -53,7 +53,7 @@ Section Opsem.
     reduce_simple [::AI_const v; AI_basic (BI_cvtop t2 CVO_convert t1 sx)] [::AI_trap]
   | rs_reinterpret :
     forall t1 t2 v,
-      t1 <> T_handle -> t2 <> T_handle -> 
+      t1 <> T_handle -> t2 <> T_handle ->
     types_agree t1 v ->
     reduce_simple [::AI_const v; AI_basic (BI_cvtop t2 CVO_reinterpret t1 None)] [::AI_const (wasm_deserialise (bits v) t2)]
 
@@ -146,7 +146,7 @@ Section Opsem.
 | rs_handleadd_success :
   forall h c n h',
     n = Wasm_int.Z_of_sint i32m c ->
-    handle_add h n = Some h' -> 
+    handle_add h n = Some h' ->
     reduce_simple [:: AI_const (VAL_int32 c) ; AI_const (VAL_handle h) ; AI_basic BI_handleadd ] [:: AI_const (VAL_handle h')]
 
 | rs_handleadd_failure :
@@ -181,8 +181,6 @@ Section Opsem.
      reduce_simple [:: AI_const (VAL_handle h) ; AI_basic BI_isdummy ] [:: AI_const (VAL_int32 (Wasm_int.Int32.repr 0))]
 
 
-                  
-                      
   | rs_trap :
       forall es lh,
         es <> [::AI_trap] ->
@@ -276,7 +274,6 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       reduce_silent s f [::AI_const (VAL_int32 k); AI_basic (BI_load t None a off)] s f [::AI_trap]
   | r_load_packed_success :
     forall s i f t tp k a off m bs sx,
-(*      t <> T_handle -> *)
       smem_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_mems) i = Some m ->
       load_packed sx m (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t) = Some bs ->
@@ -285,7 +282,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
     forall s i f t tp k a off m sx,
       smem_ind s f.(f_inst) = Some i ->
       List.nth_error s.(s_mems) i = Some m ->
-(*      t = T_handle \/ *) load_packed sx m (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t) = None ->
+      load_packed sx m (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t) = None ->
       reduce_silent s f [::AI_const (VAL_int32 k); AI_basic (BI_load t (Some (tp, sx)) a off)] s f [::AI_trap]
   | r_store_success :
     forall t v s i f mem' k a off m,
@@ -316,8 +313,6 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       store_packed m (Wasm_int.N_of_uint i32m k) off (bits v) (tp_length tp) = None ->
       reduce_silent s f [::AI_const (VAL_int32 k); AI_const v; AI_basic (BI_store t (Some tp) a off)] s f [::AI_trap]
 
-                      
-
   (** memory **)
   | r_current_memory :
       forall i f m n s,
@@ -338,8 +333,6 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
         List.nth_error s.(s_mems) i = Some m ->
         mem_size m = n ->
         reduce_silent s f [::AI_const (VAL_int32 c); AI_basic BI_grow_memory] s f [::AI_const (VAL_int32 int32_minus_one)]
-
- 
   .
 
   Inductive reduce : store_record -> frame -> list administrative_instruction ->
@@ -352,12 +345,12 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
   | rm_segload_success :
     forall s f t tbs bs h m A,
-      t <> T_handle -> 
+      t <> T_handle ->
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
       (h.(offset) + (t_length t) <= h.(bound))%N ->
-      isAlloc h.(id) A -> 
+      isAlloc h.(id) A ->
       segload m h (t_length t) = Some tbs ->
       List.map fst tbs = bs ->
       reduce s f [::AI_const (VAL_handle h); AI_basic (BI_segload t)] (ME_read t h) s f [:: AI_const (wasm_deserialise bs t)]
@@ -366,10 +359,6 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
   | rm_segload_handle_success :
     forall s f t tbs ts bs h m A bc hmem,
       t = T_handle ->
-      (*sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
@@ -387,27 +376,19 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
   | rm_segload_failure :
     forall s f t h m A,
-      (* sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
-      A = s.(s_alls) -> 
+      A = s.(s_alls) ->
       (h.(valid) = false \/
       (h.(offset) + (t_length t) > h.(bound))%N \/
-        (isNotAlloc h.(id) A) \/ 
+        (isNotAlloc h.(id) A) \/
          segload m h (t_length t) = None \/
       t = T_handle /\ (N.modulo (handle_addr h) (N.of_nat (t_length T_handle)) <> N.of_nat 0)%N) ->
       reduce s f [::AI_const (VAL_handle h); AI_basic (BI_segload t)] ME_trap s f [:: AI_trap]
 
-             
+
  | rm_segstore_success :
     forall t v s f tbs seg' h m A,
-      t <> T_handle -> 
-      (* sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
+      t <> T_handle ->
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
@@ -419,11 +400,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
 
   | rm_segstore_handle_success : forall t v s f tbs seg' h m A,
-      t = T_handle -> 
-      (* sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
+      t = T_handle ->
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       h.(valid) = true ->
@@ -436,10 +413,6 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
 
   | rm_segstore_failure :
     forall t v s f h m A,
-      (* sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       (h.(valid) = false \/
@@ -450,26 +423,18 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       reduce s f [::AI_const (VAL_handle h); AI_const v ; AI_basic (BI_segstore t)] ME_trap s f [::AI_trap]
 
   | rm_segalloc_success : forall s f m A a n c nid seg' A' s' h,
-      (*sseg_ind s f.(f_inst) = Some i ->
-      List.nth_error s.(s_segs) i = Some m ->
-      sall_ind s f.(f_inst) = Some j ->
-      List.nth_error s.(s_alls) j = Some A -> *)
       m = s.(s_segs) ->
       A = s.(s_alls) ->
       n = (Wasm_int.N_of_uint i32m c) ->
       salloc m A a n nid seg' A' ->
       s' = upd_s_seg (upd_s_all s A') seg' ->
-      h = new_handle a n nid -> 
+      h = new_handle a n nid ->
       reduce s f [::AI_const (VAL_int32 c) ; AI_basic BI_segalloc]
         (ME_salloc h) s' f
         [:: AI_const (VAL_handle h)]
 
   | rm_segalloc_failure:
          forall f m A s c,
-        (*sseg_ind s f.(f_inst) = Some i ->
-        List.nth_error s.(s_segs) i = Some m ->
-        sall_ind s f.(f_inst) = Some j ->
-        List.nth_error s.(s_alls) j = Some A -> *)
            m = s.(s_segs) ->
            A = s.(s_alls) ->
         reduce s f [::AI_const (VAL_int32 c) ; AI_basic BI_segalloc]
@@ -492,9 +457,7 @@ Inductive reduce_silent : store_record -> frame -> list administrative_instructi
       find_address h.(id) A <> Some (h.(base), h.(bound)) \/ h.(offset) <> N.zero \/ h.(valid) = false ->
       reduce s f [::AI_const (VAL_handle h) ; AI_basic BI_segfree]
              ME_trap s f [::AI_trap]
-        
 
-        
   (** label and local **)
   | rm_label :
       forall s f es les me s' f' es' les' k lh,
@@ -520,11 +483,5 @@ Definition reduce_tuple s_f_es me s'_f'_es' : Prop :=
       reduce_trans status' mes status'' ->
       reduce_trans status (me :: mes) status''
   .
-  
-(* Definition reduce_trans :
-    store_record * frame * seq administrative_instruction -> memory_event ->
-    store_record * frame * seq administrative_instruction -> Prop :=
-  Relations.Relation_Operators.clos_refl_trans _ reduce_tuple. *)
 
 End Opsem.
-  

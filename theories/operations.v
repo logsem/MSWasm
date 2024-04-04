@@ -2,7 +2,7 @@
 (* (C) J. Pichon, M. Bodin - see LICENSE.txt *)
 
 From Wasm Require Import common memory_list segment_list.
-From mathcomp Require Import ssreflect ssrfun (*  ssrnat *) ssrbool eqtype  seq.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype  seq.
 From compcert Require lib.Floats.
 From Wasm Require Export datatypes_properties list_extra.
 From Coq Require Import ZArith.BinInt BinNat Eqdep_dec.
@@ -177,7 +177,7 @@ Section alloc.
 
   Definition allocator_insert id a n all :=
     {| allocated := <[ id := Some (a, n) ]> (allocated all) ;
-      next_free := N.max (next_free all) (id + 1) |}. 
+      next_free := N.max (next_free all) (id + 1) |}.
 
 Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -> Prop
   :=
@@ -192,7 +192,7 @@ Inductive salloc : segment -> allocator -> N -> N -> N -> segment -> allocator -
       T' = {| seg_data :=
                {| segl_data := take (N.to_nat a) (segl_data (seg_data T)) ++ List.repeat (#00, Numeric) (N.to_nat n) ++ drop (N.to_nat (a + n)) (segl_data (seg_data T)) |};
              seg_max_opt := seg_max_opt T |} ->
-      A' = allocator_insert nid a n A -> 
+      A' = allocator_insert nid a n A ->
       salloc T A a n nid T' A'.
 End alloc.
 
@@ -205,11 +205,6 @@ Proof. done. Qed.
 End l_is_s.
 
 
-  
-  
-  
-  
-
 
 
 Inductive sfree : segment -> allocator -> N ->  N ->  N -> segment -> allocator -> Prop :=
@@ -218,8 +213,6 @@ Inductive sfree : segment -> allocator -> N ->  N ->  N -> segment -> allocator 
       A' = {| allocated := l; next_free := next_free A |} ->
       sfree T A a n nid T A'.
 
-
-  
 
 (* TODO: We crucially need documentation here. *)
 
@@ -269,34 +262,6 @@ Definition segstore (s : segment) (h : handle) bs (l : nat) : option segment :=
     then write_segbytes s (handle_addr h) (tagged_bytes_takefill (#00, Numeric) l bs)
     else None
 .
-
-(*
-Lemma segstore_same_length s h bs l s' :
-  segstore s h bs l = Some s' -> seg_length s = seg_length s'.
-Proof.
-  unfold segstore.
-  destruct (_ <=? _)%N eqn:Hsize => //.
-  destruct (write_segbytes _ _ _) eqn:Hbytes => //.
-  intro H; inversion H; subst.
-  unfold write_segbytes in Hbytes. *)
-
-(* Definition handle_of_bytes bs :=
-  match bs with
-  | base1 :: base2 :: base3 :: base4 ::
-      offset1 :: offset2 :: offset3 :: offset4 ::
-      bound1 :: bound2 :: bound3 :: bound4 ::
-      valid1 :: valid2 :: valid3 :: valid4 ::
-      id1 :: id2 :: id3 :: id4 :: [::] =>
-      let base := Wasm_int.Int32.repr (common.Memdata.decode_int [:: base1 ; base2 ; base3 ; base4]) in
-      let offset := Wasm_int.Int32.repr (common.Memdata.decode_int [:: offset1 ; offset2 ; offset3 ; offset4]) in
-      let bound := Wasm_int.Int32.repr (common.Memdata.decode_int [:: bound1 ; bound2 ; bound3 ; bound4]) in
-      let valid := match BinInt.Z.to_N (common.Memdata.decode_int [:: valid1 ; valid2 ; valid3 ; valid4]) with
-                     | 1%N => true | _ => false end in
-      let id := Wasm_int.Int32.repr (common.Memdata.decode_int [:: id1 ; id2 ; id3 ; id4]) in
-      {| base := base ; offset := offset ; bound := bound ; valid := valid ; id := id |}
-  | _ => dummy_handle
-  end. *)
-
 
 Section WasmBytes.
   Import ssrnat.
@@ -480,12 +445,12 @@ Definition app_binop (op: binop) (v1: value) (v2: value) :=
       match v2 with
       | VAL_numeric (NVAL_int32 c2) => option_map (fun v => VAL_int32 v) (@app_binop_i i32t iop c1 c2)
       |  _ => None
-      end                              
+      end
     | VAL_numeric (NVAL_int64 c1) =>
       match v2 with
       | VAL_numeric (NVAL_int64 c2) => option_map (fun v => VAL_int64 v) (@app_binop_i i64t iop c1 c2)
       |  _ => None
-      end                              
+      end
     | _ => None
     end
   | Binop_f fop =>
@@ -494,12 +459,12 @@ Definition app_binop (op: binop) (v1: value) (v2: value) :=
       match v2 with
       | VAL_numeric (NVAL_float32 c2) => option_map (fun v => VAL_float32 v) (@app_binop_f f32t fop c1 c2)
       |  _ => None
-      end                              
+      end
     | VAL_numeric (NVAL_float64 c1) =>
       match v2 with
       | VAL_numeric (NVAL_float64 c2) => option_map (fun v => VAL_float64 v) (@app_binop_f f64t fop c1 c2)
       |  _ => None
-      end                              
+      end
     | _ => None
     end
   end.
@@ -554,12 +519,12 @@ Definition app_relop (op: relop) (v1: value) (v2: value) :=
       match v2 with
       | VAL_numeric (NVAL_int32 c2) => @app_relop_i i32t iop c1 c2
       |  _ => false
-      end                              
+      end
     | VAL_numeric (NVAL_int64 c1) =>
       match v2 with
       | VAL_numeric (NVAL_int64 c2) => @app_relop_i i64t iop c1 c2
       |  _ => false
-      end                              
+      end
     | _ => false
     end
   | Relop_f fop =>
@@ -568,12 +533,12 @@ Definition app_relop (op: relop) (v1: value) (v2: value) :=
       match v2 with
       | VAL_numeric (NVAL_float32 c2) => @app_relop_f f32t fop c1 c2
       |  _ => false
-      end                              
+      end
     | VAL_numeric (NVAL_float64 c1) =>
       match v2 with
       | VAL_numeric (NVAL_float64 c2) => @app_relop_f f64t fop c1 c2
       |  _ => false
-      end                              
+      end
     | _ => false
     end
   | Relop_h fop =>
@@ -634,19 +599,6 @@ Definition smem_ind (s : store_record) (i : instance) : option nat :=
   | cons k _ => Some k
   end.
 
-(* Definition sseg_ind (s : store_record) i : option nat :=
-  match i.(inst_segment) with
-  | nil => None
-  | cons k _ => Some k
-  end.
-
-Definition sall_ind (s : store_record) i :=
-  match i.(inst_allocator) with
-  | nil => None
-  | cons k _ => Some k
-  end. *)
-
-
 Definition tab_size (t: tableinst) : nat :=
   length (table_data t).
 
@@ -705,7 +657,7 @@ Definition is_const (e : administrative_instruction) : bool :=
   | AI_basic (BI_const _) => true
   | AI_handle _ => true
   | _ => false
-  end. 
+  end.
 
 
 Definition const_list (es : seq administrative_instruction) : bool :=
@@ -727,7 +679,7 @@ Proof.
       lazymatch goal with
       | H1: g_val g1 = VAL_numeric (?T3 _) |- _ =>
           destruct (g_val g2) as [ n | ?] eqn:T2;
-          try destruct n; 
+          try destruct n;
           lazymatch goal with
           | H2: g_val g2 = VAL_numeric (T3 _) |- _ => exact true
           | _ => exact false
@@ -791,7 +743,7 @@ Fixpoint es_is_basic (es: seq administrative_instruction) :=
     e_is_basic e /\ es_is_basic es'
   end.
 
-(** [v_to_e_list]: 
+(** [v_to_e_list]:
     takes a list of [v] and gives back a list where each [v] is mapped to [Basic (EConst v)]. **)
 Definition v_to_e_list (ves : seq value) : seq administrative_instruction :=
   map (fun v => AI_const v) ves.
@@ -833,10 +785,10 @@ Proof. by case. Qed.
 Lemma split_vals_e_not_const es vs e es' :
   split_vals_e es = (vs, e :: es') -> is_const e -> False.
 Proof.
-  generalize dependent vs ; generalize dependent e ; generalize dependent es'. 
+  generalize dependent vs ; generalize dependent e ; generalize dependent es'.
   induction es => //= ; intros.
-  destruct a => //= ; try by inversion H ; subst. 
-  destruct b => //= ; try by inversion H ; subst. 
+  destruct a => //= ; try by inversion H ; subst.
+  destruct b => //= ; try by inversion H ; subst.
   all: destruct (split_vals_e es) as [??] eqn:Hes.
   all: destruct l0 => //=.
   all: inversion H ; subst. all: by eapply IHes.
@@ -1128,7 +1080,7 @@ Proof.
   { destruct vs2 ; inversion Heq => //=. rewrite <- H0 in Hvs2.
     simpl in Hvs2. apply Bool.andb_true_iff in Hvs2 as [ Habs _ ].
     rewrite Habs in He1 => //.
-  } 
+  }
   destruct vs2 ; inversion Heq.
   { rewrite H0 in Hvs1.
     simpl in Hvs1. apply Bool.andb_true_iff in Hvs1 as [ Habs _ ].
@@ -1137,7 +1089,7 @@ Proof.
   assert (vs1 = vs2 /\ e1 = e2 /\ es1 = es2) as H ; last by destruct H ; subst.
   apply IHvs1 => //=.
   - by apply Bool.andb_true_iff in Hvs1 as [ _ Hvs1 ].
-  - by apply Bool.andb_true_iff in Hvs2 as [ _ Hvs2 ].  
+  - by apply Bool.andb_true_iff in Hvs2 as [ _ Hvs2 ].
 Qed.
 
 

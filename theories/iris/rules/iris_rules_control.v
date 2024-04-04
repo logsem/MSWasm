@@ -37,7 +37,7 @@ Section control_operations.
     all: intros lh n es' es LI l1 l2 Hconst Hfill.
     { inversion Hfill;subst.
       constructor. auto. constructor. auto.
-    (* apply lfilled_Ind_Equivalent. cbn. rewrite eqseqE app_nil_r. done.  *)}
+    }
     { inversion Hfill;subst. simpl. constructor. auto.
       apply IHi. auto. auto. }
   Qed.

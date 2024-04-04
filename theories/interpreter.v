@@ -107,7 +107,6 @@ Section RunStep.
 (** See ITree/tutorial/Imp.v: these commands are used to enable other events to be mangled in. **)
   Context {eff : Type -> Type}.
   Context `{HandleBytes}.
-(* Context {eff_has_host_event : host_event -< eff}. *)
 
 Definition run_step_base (call : run_stepE ~> itree (run_stepE +' eff))
     (d : depth) (cgf : config_tuple)
@@ -140,7 +139,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
     if ves is v :: ves' then
       ret (s, f, RS_normal (vs_to_es ((app_unop op v) :: ves')))
     else ret (s, f, crash_error)
-             
+
   (** binop **)
   | AI_basic (BI_binop t op) =>
     if ves is v2 :: v1 :: ves' then
@@ -173,7 +172,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
       if ves is VAL_handle h :: ves' then
         if is_dummy h then ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 1) :: ves'))) else ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 0) :: ves')))
       else ret (s, f, crash_error)
-          
+
   (** testops **)
   | AI_basic (BI_testop T_i32 testop) =>
     if ves is (VAL_numeric (NVAL_int32 c)) :: ves' then
@@ -190,7 +189,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
     if ves is v2 :: v1 :: ves' then
       ret (s, f, RS_normal (vs_to_es (VAL_int32 (wasm_bool (app_relop op v1 v2)) :: ves')))
     else ret (s, f, crash_error)
-             
+
   (** convert and reinterpret **)
   | AI_basic (BI_cvtop t2 CVO_convert t1 sx) =>
     if ves is v :: ves' then
@@ -382,9 +381,6 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                       else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
       else ret (s, f, crash_error)
 
-
-               
-               
   | AI_basic (BI_segload t) =>
       if ves is VAL_handle h :: ves' then
                       if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
@@ -405,7 +401,6 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                              (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
       else ret (s, f, crash_error)
-                         
 
     | AI_basic (BI_store t None a off) =>
       if ves is v :: VAL_numeric (NVAL_int32 k) :: ves' then
@@ -442,7 +437,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
             (ret (s, f, crash_error))
         else ret (s, f, crash_error)
       else ret (s, f, crash_error)
-               
+
     | AI_basic BI_current_memory =>
       expect
         (smem_ind s f.(f_inst))
@@ -491,8 +486,8 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
             (ret (s, f, crash_error))
         else ret (s, f, crash_error)
       else ret (s, f, crash_error)
-                                      
-                      
+
+
   | AI_basic (BI_const v) => ret (s, f, crash_error) (* ret (s, f, RS_normal ((vs_to_es ves) ++ AI_const (VAL_numeric v) :: [::])) *)
     | AI_handle _ => ret (s, f, crash_error)
 
@@ -533,14 +528,14 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
       end
 
   | AI_call_host tf h vcs => ret (s , f , RS_call_host tf h vcs)
-        
+
   | AI_label ln les es =>
     if es_is_trap es
     then ret (s, f, RS_normal (vs_to_es ves ++ [::AI_trap]))
     else
       if const_list es
       then ret (s, f, RS_normal (vs_to_es ves ++ es))
-      else         
+      else
       '(s', f', res) <- call _ (call_run_step_base d (s, f, es)) ;;
       match res with
       | RS_break 0 bvs =>
@@ -624,7 +619,6 @@ Section Run.
 
   Context {eff : Type -> Type}.
   Context `{HandleBytes}.
-(* Context {eff_has_host_event : host_event -< eff}. *)
 
 Definition run_v : depth -> instance -> config_tuple -> itree eff (store_record * res) :=
   let run_v :=
@@ -693,7 +687,7 @@ Definition monad_functor := Functor_Monad (M := monad_monad).
 
 (* End convert_target_monad. *)
 
-(* Module Interpreter (EH : Executable_Host) (TM : TargetMonad EH). 
+(* Module Interpreter (EH : Executable_Host) (TM : TargetMonad EH).
 
 Module Exec := convert_to_executable_host EH.
 Import Exec.

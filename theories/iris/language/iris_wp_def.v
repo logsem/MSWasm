@@ -29,11 +29,11 @@ Class wasmG Σ :=
   WasmG {
       func_invG :> invGS Σ;
       func_gen_hsG :> gen_heapGS N function_closure Σ;
-      
+
       tab_gen_hsG :> gen_heapGS (N*N) funcelem Σ;
-      
+
       tabsize_hsG :> gen_heapGS N nat Σ;
-      
+
       tablimit_hsG :> gen_heapGS N (option N) Σ;
 
       mem_gen_hsG :> gen_heapGS (N*N) byte Σ;
@@ -42,21 +42,14 @@ Class wasmG Σ :=
 
       memlimit_hsG :> gen_heapGS N (option N) Σ;
 
-      (*      seg_gen_hsG :> gen_heapGS N (byte * btag) Σ; *)
       segGName : gname;
 
       seg_gen_hsG :> ghost_mapG Σ N (byte * btag);
 
-(*      segsize_gen_hsG :> gen_heapGS unit N Σ;
-
-      seglimit_hsG :> gen_heapGS unit (option N) Σ; *)
-
-      (*      alloc_gen_hsG :> gen_heapGS N (N*N) Σ; *)
       allGName : gname;
 
       all_gen_hsG :> ghost_mapG Σ N allocator_info;
 
-      
       glob_gen_hsG :> gen_heapGS N global Σ;
 
       locs_gen_hsG :> ghost_mapG Σ unit frame;
@@ -85,16 +78,10 @@ Definition gen_heap_wasm_store `{!wasmG Σ} (s: store_record) : iProp Σ :=
   ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
    (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
    (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
-   (*   (gen_heap_interp (gmap_of_segment s.(s_segs) s.(s_alls))) ∗ *)
-(*   (ghost_map_auth segGName 1 (gmap_of_segment s.(s_segs) s.(s_alls))) ∗ *)
-   (*   (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗ *)
-(*   (ghost_map_auth allGName 1 (gmap_of_allocator s.(s_alls))) ∗ *)
    (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
    (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
-(*   (gen_heap_interp ({[ () := seg_length s.(s_segs).(seg_data)]} : gmap unit N)) ∗ *)
    (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
    (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
-(*   (@gen_heap_interp _ _ _ _ _ seglimit_hsG ({[ () := seg_max_opt s.(s_segs)]} : gmap unit (option N))) ∗ *)
    (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables)))))%I.
 
 Global Instance heapG_irisG `{!wasmG Σ} : irisGS wasm_lang Σ := {
@@ -104,17 +91,13 @@ Global Instance heapG_irisG `{!wasmG Σ} : irisGS wasm_lang Σ := {
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
       (gen_heap_interp (gmap_of_table s.(s_tables))) ∗
       (gen_heap_interp (gmap_of_memory s.(s_mems))) ∗
-      (*      (gen_heap_interp (gmap_of_segment s.(s_segs) s.(s_alls))) ∗ *)
       (ghost_map_auth segGName 1 (gmap_of_segment s.(s_segs) s.(s_alls))) ∗
-      (*      (gen_heap_interp (gmap_of_allocator s.(s_alls))) ∗ *)
       (ghost_map_auth allGName 1 (gmap_of_allocator s.(s_alls))) ∗
       (gen_heap_interp (gmap_of_list s.(s_globals))) ∗
       (ghost_map_auth frameGName 1 (<[ tt := Build_frame locs inst ]> ∅)) ∗ 
       (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
-(*      (gen_heap_interp ({[ () := seg_length s.(s_segs).(seg_data) ]} : gmap unit N)) ∗ *)
       (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
       (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
-(*      (@gen_heap_interp _ _ _ _ _ seglimit_hsG ({[ () := seg_max_opt s.(s_segs) ]} : gmap unit (option N))) ∗ *)
       (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables)))) ∗
       ⌜ wellFormedState s ⌝
      )%I;
@@ -150,22 +133,10 @@ Notation "n ↦[wmlength] v" := (mapsto (L:=N) (V:=N) n (DfracOwn 1) v% V)
                            (at level 20, format "n ↦[wmlength] v") : bi_scope.
 Notation "n ↪[wmlimit] v" := (mapsto (L:=N) (V:=option N) (hG:=memlimit_hsG) n (DfracDiscarded) v% V)
                                (at level 20, format "n ↪[wmlimit] v") : bi_scope.
-(*Notation " ↦[ws]{ q } [ i ] v" := (mapsto (L:=N) (V:=byte * btag) i q v%V)
-                                    (at level 20, q at level 5, format " ↦[ws]{ q } [ i ] v"): bi_scope.
-Notation " ↦[ws][ i ] v" := (mapsto (L:=N) (V:= byte * btag) i (DfracOwn 1) v%V)
-                              (at level 20, format " ↦[ws][ i ] v"): bi_scope. *)
 Notation " ↦[ws]{ q }[ i ] v" := (ghost_map_elem segGName i q v)
                                    (at level 20, q at level 5, format " ↦[ws]{ q }[ i ] v") : bi_scope.
 Notation " ↦[ws][ i ] v" := (ghost_map_elem segGName i (DfracOwn 1) v)
                               (at level 20, format " ↦[ws][ i ] v"): bi_scope.
-(*Notation " ↦[wslength] v" := (mapsto (L:=unit) (V:=N) () (DfracOwn 1) v%V)
-                               (at level 20, format " ↦[wslength] v"): bi_scope.
-Notation " ↪[wslimit] v" := (mapsto (L:=unit) (V:=option N) (hG:=seglimit_hsG) () (DfracDiscarded) v % V)  
-                              (at level 20, format " ↪[wslimit] v") : bi_scope. *)
-(* Notation "n ↣[allocated]{ q } v" := (mapsto (L:=N) (V:=N*N) n q v%V)
-                                      (at level 20, q at level 5, format "n ↣[allocated]{ q } v") : bi_scope.
-Notation "n ↣[allocated] v" := (mapsto (L:=N) (V:=N*N) n (DfracOwn 1) v%V)
-                                 (at level 20, format "n ↣[allocated] v") : bi_scope. *)
 Notation "n ↣[allocated]{ q } v" := (ghost_map_elem allGName n q v)
                                       (at level 20, q at level 5, format "n ↣[allocated]{ q } v") : bi_scope.
 Notation "n ↣[allocated] v" := (ghost_map_elem allGName n (DfracOwn 1) v)
@@ -198,8 +169,7 @@ Definition mem_block_at_pos `{!wasmG Σ} (n: N) (l:bytes) k :=
   ([∗ list] i ↦ b ∈ l, n ↦[wm][ (N.of_nat (N.to_nat k+i)) ] b)%I.
 
 Definition seg_block `{!wasmG Σ} (s: segment) :=
-  (([∗ list] i ↦ b ∈ (s.(seg_data).(segl_data)), ↦[ws][ (N.of_nat i) ] b ) (* ∗
-       ↦[wslength] seg_length s.(seg_data) ∗  ↪[wslimit] (seg_max_opt s) *))%I.
+  (([∗ list] i ↦ b ∈ (s.(seg_data).(segl_data)), ↦[ws][ (N.of_nat i) ] b ))%I.
 
 Definition seg_block_at_pos `{!wasmG Σ} (l:list (byte * btag)) k :=
   ([∗ list] i ↦ b ∈ l, ↦[ws][ (N.of_nat (N.to_nat k+i)) ] b)%I.
@@ -211,7 +181,7 @@ Definition tab_block `{!wasmG Σ} (n: N) (tab: tableinst) :=
 
 Notation "n ↦[wmblock] m" := (mem_block n m)
                            (at level 20, format "n ↦[wmblock] m"): bi_scope.
-Notation "n ↦[wms][ i ] l" := (mem_block_at_pos n l i)                    
+Notation "n ↦[wms][ i ] l" := (mem_block_at_pos n l i)
                                 (at level 20, format "n ↦[wms][ i ] l"): bi_scope.
 
 Notation " ↦[wsblock] s" := (seg_block s)
@@ -238,7 +208,6 @@ Proof.
 Qed.
 
 Definition seg_equiv (s1 s2: segment) : Prop :=
-  (* s1.(seg_max_opt) = s2.(seg_max_opt) /\ *)
     s1.(seg_data).(segl_data) = s2.(seg_data).(segl_data).
 
 Lemma seg_equiv_wsblock_rewrite `{!wasmG Σ} (s1 s2: segment):
@@ -248,7 +217,7 @@ Proof.
   unfold seg_equiv, seg_block.
   destruct s1, s2.
   destruct seg_data, seg_data0 => //=.
-  by intros ->. (* by move => [-> ->] => //. *)
+  by intros ->.
 Qed.
 
 

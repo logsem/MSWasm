@@ -4,8 +4,8 @@
 From Wasm Require Import common.
 From Coq Require Import ZArith.BinInt.
 From stdpp Require Import gmap.
-From mathcomp Require Import ssreflect ssrfun (* ssrnat *) ssrbool eqtype seq.
-From Wasm Require Export operations (* host *) type_checker segment_list handle.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype seq.
+From Wasm Require Export operations type_checker segment_list handle.
 Require Import BinNat.
 
 Set Implicit Arguments.
@@ -154,7 +154,7 @@ Qed.*)
 Section interpreter_func.
   Context `{HHB: HandleBytes}.
 
-   
+
 Fixpoint run_step_with_fuel (fuel : fuel) (d : depth) (cfg : config_tuple) : res_tuple :=
   let: (s, f, es) := cfg in
   match fuel with
@@ -176,7 +176,7 @@ Fixpoint run_step_with_fuel (fuel : fuel) (d : depth) (cfg : config_tuple) : res
         else (s', f', r)
     end
   end
-    
+
 with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (e : administrative_instruction) : res_tuple :=
   let: (s, f, ves) := cfg in
   match fuel with
@@ -289,7 +289,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
           | Some cl =>
             if stypes s f.(f_inst) j == Some (cl_type cl)
             then (s, f, RS_normal (vs_to_es ves' ++ [::AI_invoke a]))
-            else (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap]))        
+            else (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap]))
           | None => (s, f, crash_error)
           end
         | None => (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap]))
@@ -326,7 +326,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
     | AI_basic (BI_load t None a off) =>
         if t is T_handle then
           (s, f, crash_error)
-        else 
+        else
       if ves is VAL_numeric (NVAL_int32 k) :: ves' then
         expect
           (smem_ind s f.(f_inst))
@@ -389,8 +389,6 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
 
 
-               
-               
   | AI_basic (BI_segload t) =>
       if ves is VAL_handle h :: ves' then
 (*        expect
@@ -458,10 +456,10 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       if ves is VAL_handle h :: ves' then
         if is_dummy h then (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 1) :: ves'))) else (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 0) :: ves')))
       else (s, f, crash_error)
-               
+
     | AI_basic (BI_load t (Some (tp, sx)) a off) =>
-(*        if t is T_handle then
-          (s, f, crash_error)
+(*        if t is T_handle
+          then (s, f, crash_error)
         else  *)
       if ves is VAL_numeric (NVAL_int32 k) :: ves' then
         expect
@@ -561,7 +559,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
     | AI_handle _ => (s, f, crash_error)
     | AI_invoke a =>
       match List.nth_error s.(s_funcs) a with
-      | Some cl => 
+      | Some cl =>
         match cl with
         | FC_func_native i (Tf t1s t2s) ts es =>
             let: n := length t1s in

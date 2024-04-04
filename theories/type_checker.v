@@ -215,12 +215,12 @@ Section Check.
 Fixpoint check_single (C : t_context) (ts : checker_type) (be : basic_instruction) : checker_type :=
   let b_e_type_checker (C : t_context) (es : list basic_instruction) (tf : function_type) : bool :=
     let: (Tf tn tm) := tf in
-      c_types_agree (List.fold_left (check_single C) es (CT_type tn)) tm 
+      c_types_agree (List.fold_left (check_single C) es (CT_type tn)) tm
 in
   if ts == CT_bot then CT_bot
   else
   match be with
-  | BI_const v => 
+  | BI_const v =>
       type_update ts [::] (CT_type [::typeof_numerical v])
   | BI_unop t op =>
     match op with
@@ -248,7 +248,7 @@ in
       type_update ts [::CTA_some T_handle] (CT_type [::T_i32])
   | BI_isdummy =>
       type_update ts [::CTA_some T_handle] (CT_type [::T_i32])
-                  
+
   | BI_testop t _ =>
     if is_int_t t
     then type_update ts [::CTA_some t] (CT_type [::T_i32])
@@ -387,17 +387,13 @@ in
     then type_update ts [::CTA_some T_i32] (CT_type [::t])
     else CT_bot
   | BI_segload t =>
-(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
-      then *) type_update ts [::CTA_some T_handle] (CT_type [::t])
-(*      else CT_bot *)
+      type_update ts [::CTA_some T_handle] (CT_type [::t])
   | BI_store t tp a off =>
     if (C.(tc_memory) != nil) && load_store_t_bounds a tp t
     then type_update ts [::CTA_some T_i32; CTA_some t] (CT_type [::])
     else CT_bot
   | BI_segstore t =>
-(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
-      then *) type_update ts [::CTA_some T_handle; CTA_some t] (CT_type [::])
-(*      else CT_bot *) 
+      type_update ts [::CTA_some T_handle; CTA_some t] (CT_type [::])
   | BI_current_memory =>
     if C.(tc_memory) != nil
     then type_update ts [::] (CT_type [::T_i32])
@@ -407,13 +403,9 @@ in
     then type_update ts [::CTA_some T_i32] (CT_type [::T_i32])
     else CT_bot
   | BI_segalloc =>
-(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil) 
-      then *) type_update ts [::CTA_some T_i32] (CT_type [::T_handle])
-(*      else CT_bot *)
+      type_update ts [::CTA_some T_i32] (CT_type [::T_handle])
   | BI_segfree =>
-(*      if (C.(tc_segment) != nil) && (C.(tc_allocator) != nil)
-      then *) type_update ts [::CTA_some T_handle] (CT_type [::])
-(*      else CT_bot *)
+      type_update ts [::CTA_some T_handle] (CT_type [::])
   end.
 
 

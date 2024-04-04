@@ -135,15 +135,6 @@ Definition import_tab_resources (wts: gmap N tableinst) : iProp Σ :=
 Definition import_mem_resources (wms: gmap N memory) : iProp Σ :=
   [∗ map] n ↦ v ∈ wms, n ↦[wmblock] v.
 
-(* Definition seg_resources (seg: segment) : iProp Σ :=
-  ↦[wslength] (seg_length seg.(seg_data)).
-
-Definition all_resources (all: allocator) : iProp Σ :=
-(*  (big_opM bi_sep (fun i x =>
-                     i ↣[allocated] x
-                       ) all.(allocated)
-  )%I.   *) True. *)
-
 Definition import_glob_resources (wgs: gmap N global) : iProp Σ :=
   [∗ map] n ↦ v ∈ wgs, n ↦[wg] v.
 
@@ -227,8 +218,6 @@ Definition import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs: iProp 
     unfold func_typecheck;
     unfold tab_typecheck;
     unfold mem_typecheck;
-(*    unfold seg_resources;
-    unfold all_resources; *)
     unfold glob_typecheck;
     unfold func_domcheck;
     unfold tab_domcheck;
@@ -1269,13 +1258,10 @@ Lemma import_resources_wasm_lookup v_imps t_imps wfs wts wms wgs ws:
   ⊢ gen_heap_interp (gmap_of_list (s_funcs ws)) -∗
     gen_heap_interp (gmap_of_table (s_tables ws)) -∗
     gen_heap_interp (gmap_of_memory (s_mems ws)) -∗
-(*    ghost_map_auth segGName 1 (gmap_of_segment (s_segs ws) (s_alls ws)) -∗
-    ghost_map_auth allGName 1 (gmap_of_allocator (s_alls ws)) -∗ *)
     gen_heap_interp (gmap_of_list (s_globals ws)) -∗
     gen_heap_interp (gmap_of_list (fmap tab_size (s_tables ws))) -∗
     @gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt (s_tables ws))) -∗
     gen_heap_interp (gmap_of_list (fmap mem_length (s_mems ws))) -∗
-(*    gen_heap_interp ({[ () := seg_length ws.(s_segs).(seg_data) ]}: gmap unit N) -∗  *)
     @gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt (s_mems ws))) -∗
     import_resources_wasm_typecheck v_imps t_imps wfs wts wms wgs -∗
     ⌜ length v_imps = length t_imps /\ ∀ k v t, v_imps !! k = Some v -> t_imps !! k = Some t ->
@@ -1681,26 +1667,11 @@ Definition module_inst_resources_glob (globs: list global) (inst_g: list globala
     N.of_nat addr ↦[wg] g
   ).
 
-(*
-Definition module_inst_resources_seg (seg : segment) : iProp Σ :=
-  ↦[wsblock] seg
-.
-
-
-Definition module_inst_resources_all (all : allocator) : iProp Σ :=
-  (big_opM bi_sep (fun i x =>
-                     i ↣[allocated] x
-                       ) all.(allocated)
-  )%I. 
-*)
-
 (* The collection of the four types of newly allocated resources *)
 Definition module_inst_resources_wasm (m: module) (inst: instance) (tab_inits: list tableinst) (mem_inits: list memory) (glob_inits: list global) : iProp Σ :=
   (module_inst_resources_func m.(mod_funcs) inst (drop (get_import_func_count m) inst.(inst_funcs)) ∗
   module_inst_resources_tab tab_inits (drop (get_import_table_count m) inst.(inst_tab)) ∗
   module_inst_resources_mem mem_inits (drop (get_import_mem_count m) inst.(inst_memory)) ∗
-(*  seg_resources seg_inits ∗
-  all_resources all_inits ∗                      *)
   module_inst_resources_glob glob_inits (drop (get_import_global_count m) inst.(inst_globs))
   )%I.
 

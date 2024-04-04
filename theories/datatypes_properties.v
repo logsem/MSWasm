@@ -190,7 +190,7 @@ Definition numerical_value_rec_safe (P : Type)
   numerical_value_rect i32 i64 f32 f64 v.
 Definition value_rec_safe (P : Type) (n : numerical_value -> P) (h : handle.handle -> P) v : P :=
   value_rect n h v.
-                          
+
 
 (** Induction scheme for [basic_instruction]. **)
 Definition basic_instruction_rect' :=
@@ -243,7 +243,7 @@ Canonical Structure function_closure_eqType :=
 
 Definition tableinst_eq_dec : forall v1 v2 : tableinst, {v1 = v2} + {v1 <> v2}.
 Proof. decidable_equality. Defined.
-  
+
 Definition tableinst_eqb v1 v2 : bool := tableinst_eq_dec v1 v2.
 Definition eqtableinstP : Equality.axiom tableinst_eqb :=
   eq_dec_Equality_axiom tableinst_eq_dec.
@@ -339,7 +339,7 @@ Canonical Structure administrative_instruction_eqType :=
   Eval hnf in EqType administrative_instruction administrative_instruction_eqMixin.
 
 Definition lholed_eq_dec : forall v1 v2 : lholed, {v1 = v2} + {v1 <> v2}.
-Proof. 
+Proof.
   decidable_equality.
 Defined.
 

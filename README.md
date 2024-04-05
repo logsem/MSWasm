@@ -11,7 +11,7 @@ Installing `esy` itself can be done through `npm`.
 It should then look like something like that:
 ```bash
 sudo apt install npm git curl m4 autoconf
-sudo npm install --global esy@latest # Tested with version 0.6.12 of esy.
+sudo npm install --global esy@latest # Tested with version 0.7.2 of esy.
 ```
 Note that despite using `npm` to be installed, `esy` is not JavaScript-based.
 If you prefer to avoid `npm` altogether, there are other ways to install `esy`: see <https://esy.sh/> for more information.
@@ -45,42 +45,4 @@ Typing `esy coqide theories/wasm.v` should now work.
 To use VSCode in this development, a [.vscode/settings.json](.vscode/settings.json) needs to be generated first: this file enables VSCode to know where the dependencies are stored in your system.
 It can be generated with `esy vscode`.
 
-The [tests](./tests) folder contains Markdown files checked by `mdx` during the continuous intergration.
-
-## Using the project
-
-A file `wasm_interpreter` will have been generated.
-It takes as argument a list of Wasm files, followed by a function name, followed by a depth.
-For instance, to interpret the function `hello` defined in [tests/const.wasm](tests/const.wasm), run:
-```bash
-./wasm_interpreter tests/const.wasm hello 10
-```
-The interpreter can display intermediate states of the operational semantics:
-```bash
-./wasm_interpreter tests/const.wasm hello 10 --vi
-```
-for example
-```
-step 1:
-normal
-  local 1
-  with values (empty)
-    block i32
-        i32.const 42
-    end
-  end local
-with values (empty)
-and store unchanged
-
-step 2:
-normal
-  local 1
-  with values (empty)
-    label 1
-    label_cont
-      i32.const 42
-    end label
-  end local
-with values (empty)
-and store unchanged
-```
+The [tests](./tests) folder contains Markdown files checked by `mdx` during the continuous integration.

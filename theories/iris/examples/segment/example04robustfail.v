@@ -417,5 +417,7 @@ Should be impossible to prove anything (adversary might have freed handle)
     iApply wp_seq. iSplitR; last first.
     (* Where to get Ha and Hs from? Hh0 only knows the handle is safe to use, but it
        could have been freed *)
+
+    (* As expected, we can't prove this specification *)
   Abort.
 End Example04.

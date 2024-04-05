@@ -2012,6 +2012,7 @@ Proof.
                repeat rewrite - catA. rewrite (catA (v_to_e_list [:: _]) [:: _] les').
                rewrite (catA (v_to_e_list [:: _]) (_ ++ _)).
                done.
+               eapply rm_segstore_success => //.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).

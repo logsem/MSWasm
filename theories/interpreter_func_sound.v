@@ -1949,6 +1949,7 @@ Proof.
                done.
                apply BinNat.N.leb_le in H1.
                apply plus_binnat_leq => //.
+               eapply rm_segstore_success => //.
                unfold isAlloc. unfold isAllocb in H0. by destruct (find _ _).
                eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
                unfold lfilled, lfill.

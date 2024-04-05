@@ -26,6 +26,8 @@ Section Opsem.
     reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_const v]
   | rs_binop_failure : forall v1 v2 op t,
     app_binop op v1 v2 = None ->
+    reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_trap]
+
   (** testops **)
   | rs_testop_i32 :
     forall c testop,

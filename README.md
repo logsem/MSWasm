@@ -55,7 +55,7 @@ Here is a lookup table for the definitions in the paper.
 | *paper* | *file* or *folder* | *name* |
 | --- | --- | --- |
 | Code for the buffer example (Fig 1) | theories/iris/examples/buffer/buffer\_code.v | `buffer_program` |
-| Stack module example (mentionned at the end of Section 1.1) | theories/iris/examples/segstack/ | functions each in their own file in `functions/` folder. Example of a client module in `segstack_client.v` or `segstack_with_reentrancy.v` |
+| Stack module example (mentionned at the end of Section 1.1) | theories/iris/examples/segstack/ | functions each in their own file in `function/` folder. Example of a client module in `segstack_client.v` or `segstack_with_reentrancy.v` |
 | MSWasm abstract syntax tree (Fig 2) | theories/datatypes.v | |
 | Helper rules for the allocator (Fig 3) | theories/operations.v | `sfree` and `salloc` |
 | Operational semantics of MSWasm (Fig 4) | theories/opsem.v | |

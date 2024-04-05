@@ -33,7 +33,7 @@ Section code.
   0 (input)     stack pointer
  *)
   
-Definition stack_length_op :=
+Definition stack_length :=
   [
     BI_get_local 0 ;
     BI_segload T_i32;
@@ -42,10 +42,6 @@ Definition stack_length_op :=
   ].
 
 
-Definition stack_length :=
-  (*validate_stack 0 ++
-  validate_stack_bound 0 ++ *)
-  stack_length_op.
 
 End code.
 
@@ -53,13 +49,13 @@ End code.
 
 Section specs.
   
-Lemma spec_stack_length_op f0 (v: handle) s E (len: N): 
+Lemma spec_stack_length f0 (v: handle) s E (len: N): 
   ⊢ {{{
         ⌜ (f_locs f0) !! 0 = Some (value_of_handle v) ⌝ ∗ 
         ⌜ (N.of_nat (length s) = len)%N ⌝ ∗ 
         ↪[frame] f0 ∗
         isStack v s }}}
-    to_e_list stack_length_op @ E
+    to_e_list stack_length @ E
     {{{ w, ⌜ w = immV [value_of_uint len] ⌝ ∗ isStack v s ∗
            ↪[frame] f0}}}.
 Proof.
@@ -99,37 +95,6 @@ Proof.
   iFrame. rewrite Hlen. done.
 Qed.
 
-(*
-Lemma spec_stack_length f0 n (v: N) s E (len: N): 
-  ⊢ {{{ ⌜ f0.(f_inst).(inst_memory) !! 0 = Some n ⌝ ∗
-        ⌜ (f_locs f0) !! 0 = Some (value_of_uint v) ⌝ ∗ 
-        ⌜ (N.of_nat (length s) = len)%N ⌝ ∗ 
-        ↪[frame] f0 ∗
-        isStack v s n }}}
-    to_e_list stack_length @ E
-    {{{ w, ⌜ w = immV [value_of_uint len] ⌝ ∗ isStack v s n ∗
-           ↪[frame] f0}}}.
-Proof.
-  iIntros "!>" (Φ) "(%Hinst & %Hlocv & %Hlen & Hf & Hstack) HΦ" => /=.
-  
-  rewrite separate4.
-  iApply wp_seq.
-  instantiate (1 := λ x,  (⌜ x = immV [] ⌝ ∗ isStack v s n ∗ ↪[frame] f0)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hstack Hf"; first by iApply (is_stack_valid with "[$Hstack $Hf]").
-  iIntros (w) "(-> & Hstack & Hf)".
-  simpl.
-
-  rewrite separate3.
-  iApply wp_seq.
-  instantiate (1 := λ x,  (⌜ x = immV [] ⌝ ∗ isStack v s n ∗ ↪[frame] f0)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hstack Hf"; first by iApply (is_stack_bound_valid with "[$Hstack $Hf]").
-  
-  iIntros (w) "(-> & Hstack & Hf)".
-  simpl.
-  by iApply (spec_stack_length_op with "[$Hf $Hstack] [HΦ]") => //.
-Qed. *)
 
 End specs.
 

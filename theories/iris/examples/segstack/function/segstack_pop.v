@@ -35,8 +35,8 @@ Section code.
   0 (input)     stack pointer
   1             temporary variable storing the new address of the stack top pointer
 *)
-Definition pop_op :=
-  is_empty_op ++
+Definition pop :=
+  is_empty ++
   [
     BI_if (Tf [] []) [BI_unreachable] [];
     BI_get_local 0 ;
@@ -52,20 +52,18 @@ Definition pop_op :=
     BI_segstore T_i32 
   ].
 
-Definition pop :=
-  (* validate_stack 0 ++ validate_stack_bound 0 ++ *) pop_op.
 
 End code.
 
 Section specs.
 
-Lemma spec_pop_op f0 (v: handle) (a : i32) s E:
+Lemma spec_pop f0 (v: handle) (a : i32) s E:
   ⊢ {{{ 
           ⌜ f0.(f_locs) !! 0 = Some (value_of_handle v) ⌝
          ∗ ⌜ length f0.(f_locs) >= 2 ⌝
          ∗ isStack v (a :: s)
          ∗ ↪[frame] f0 }}}
-    to_e_list pop_op @ E
+    to_e_list pop @ E
     {{{ w, ⌜ w = immV [VAL_int32 a] ⌝ ∗
                       isStack v s ∗
                       ∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f0 = f_inst f1 ⌝ }}}.
@@ -78,7 +76,7 @@ Proof.
   iApply wp_seq.
   instantiate (1 := λ x,  (⌜x = immV [value_of_int 0]⌝ ∗ isStack v (a :: s) ∗ ↪[frame] f0)%I).
   iSplitR; last iSplitL "Hstack Hf".
-  2: { iApply (spec_is_empty_op with "[$Hstack $Hf]") => //.
+  2: { iApply (spec_is_empty with "[$Hstack $Hf]") => //.
        iIntros (w) "H".
        iDestruct "H" as (k) "(-> & Hstack & %Hk & Hf)".
        iFrame "Hstack Hf".
@@ -299,196 +297,9 @@ Proof.
 Qed.    
 
 
-(*
-Lemma spec_pop f0 n v (a : i32) s E:
-  ⊢ {{{ ⌜ f0.(f_inst).(inst_memory) !! 0 = Some n ⌝
-         ∗ ⌜ f0.(f_locs) !! 0 = Some (value_of_uint v) ⌝
-         ∗ ⌜ length f0.(f_locs) >= 2 ⌝
-         ∗ isStack v (a :: s) n
-         ∗ ↪[frame] f0 }}}
-    to_e_list pop @ E
-    {{{ w, ⌜ w = immV [VAL_int32 a] ⌝ ∗
-                      isStack v s n ∗
-                      ∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f0 = f_inst f1 ⌝ }}}.
-Proof.
-  iIntros "!>" (Φ) "(%Hinst & %Hlocv & %Hlocs & Hstack & Hf) HΦ" => /=.
-  
-  rewrite separate4.
-  iApply wp_seq.
-  instantiate (1 := λ x,  (⌜ x = immV [] ⌝ ∗ isStack v _ n ∗ ↪[frame] f0)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hstack Hf"; first by iApply (is_stack_valid with "[$Hstack $Hf]").
-  
-  iIntros (w) "(-> & Hstack & Hf) /=".
-  rewrite separate3.
-  iApply wp_seq.
-  instantiate (1 := λ x,  (⌜ x = immV [] ⌝ ∗ isStack v _ n ∗ ↪[frame] f0)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hstack Hf"; first by iApply (is_stack_bound_valid with "[$Hstack $Hf]").
-  
-  iIntros (w) "(-> & Hstack & Hf) /=".
-  iApply (spec_pop_op with "[$Hf $Hstack] [$]").
-  auto.
-Qed.
-*)
 
 End specs.
 
-Section valid.
-  Context `{!logrel_na_invs Σ}.
-  Set Bullet Behavior "Strict Subproofs".
-(*
-  Lemma valid_pop m t funcs :
-    let i0 := {| inst_types := [Tf [] [T_i32]; Tf [T_i32] [T_i32]; Tf [T_i32; T_i32] []];
-                     inst_funcs := funcs;
-                     inst_tab := [t];
-                     inst_memory := [m];
-                     inst_globs := []
-              |} in
-    na_inv logrel_nais stkN (stackModuleInv (λ (a : N) (b : seq.seq i32), isStack a b m) (λ n : nat, N.of_nat m↦[wmlength]N.of_nat n)) -∗
-    interp_closure_native i0 [T_i32] [T_i32] [T_i32] (to_e_list pop) [].
-  Proof.
-    iIntros "#Hstk".
-    iIntros (vcs f) "#Hv Hown Hf".
-    iIntros (LI HLI%lfilled_Ind_Equivalent);inversion HLI;inversion H8;subst;simpl.
-    iApply (wp_frame_bind with "[$]");auto.
-    iIntros "Hf".
-    match goal with | |- context [ [AI_label _ _ ?l] ] => set (e:=l) end.
-    build_ctx e.
-    iApply wp_label_bind.
-    subst e.
-    iDestruct "Hv" as "[%Hcontr|Hws]";[done|iDestruct "Hws" as (ws) "[%Heq Hws]"].
-    iDestruct (big_sepL2_length with "Hws") as %Hlen. inversion Heq;subst.
-    destruct ws as [|w0 ws];[done|destruct ws as [|w1 ws];[|done]].
-    iSimpl in "Hws".
-    iDestruct "Hws" as "[Hw0 _]".
-    iDestruct "Hw0" as (z0) "->".
-    pose proof (value_of_uint_repr z0) as [v ->]. iSimpl in "Hf".
-    take_drop_app_rewrite (length (validate_stack 1)).
-
-    match goal with | |- context [ (WP ?e @ _; _ {{ _ }} )%I ] => set (e0:=e) end.
-    match goal with | |- context [ (↪[frame] ?f0)%I ] => set (f':=f0) end.
-    build_ctx e0. subst e0.
-    iApply wp_seq_can_trap_ctx.
-    instantiate (1:=(λ f0, ⌜f0 = f'⌝ ∗ na_own logrel_nais ⊤)%I).
-    iFrame "Hf".
-    iSplitR;[|iSplitR;[|iSplitL]];cycle 1.
-    - iIntros (f0) "(Hf & -> & Hown)".
-      deconstruct_ctx.
-      iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
-      iApply (wp_label_trap with "Hf");auto.
-      iIntros (v0) "[-> Hf]". iExists _. iFrame.
-      iIntros "Hf".
-      iApply (wp_frame_trap with "Hf").
-      iNext. iLeft. iLeft. auto.
-    - iIntros "Hf". iFrame.
-      iApply (wp_wand with "[Hf]").
-      iApply check_stack_valid;iFrame;subst;eauto.
-      iIntros (v0) "[$ HH]". eauto.
-    - subst f'. iIntros (w f0) "([-> %Hdiv] & Hf & -> & Hown) /=".
-      deconstruct_ctx.
-      take_drop_app_rewrite (length (validate_stack_bound 0)).
-      iApply fupd_wp.
-      iMod (na_inv_acc with "Hstk Hown") as "(>Hstkres & Hown & Hcls)";[solve_ndisj..|].
-      iModIntro.
-      iDestruct "Hstkres" as (l Hmul) "[Hlen Hstkres]".
-      iDestruct "Hstkres" as (l' Hmultiple) "Hl'".
-      match goal with | |- context [ (WP ?e @ _; _ {{ _ }} )%I ] => set (e0:=e) end.
-      match goal with | |- context [ (↪[frame] ?f0)%I ] => set (f':=f0) end.
-      match goal with | |- context [ (?P ={⊤}=∗ ?Q)%I ] => set (CLS:=(P ={⊤}=∗ Q)%I) end.
-      set (k:=Wasm_int.N_of_uint i32m ((Wasm_int.int_of_Z i32m (Z.of_N v)))).
-      destruct (decide (k < N.of_nat l)%N).
-      + apply div_mod_i32 in Hdiv as Hdiv'.
-        eapply multiples_upto_in in Hmultiple as Hin;[..|apply Hdiv'];[|lia].
-        apply elem_of_list_lookup_1 in Hin as [i Hi].
-        iDestruct (big_sepL_lookup_acc with "Hl'") as "[Hv Hl']";[eauto|].
-        iDestruct "Hv" as (stk) "Hv".
-        iApply (wp_seq _ _ _ (λ v, ⌜v = immV []⌝ ∗ _)%I).
-        iSplitR;[by iIntros "[%Hcontr _]"|].
-        iSplitL "Hf Hv".
-        { iApply is_stack_bound_valid. iFrame "Hf Hv". iSplit;auto.
-          iPureIntro. subst f'. simpl. unfold value_of_uint.
-          f_equal. f_equal. apply int_of_Z_mod. }
-        iIntros (w) "(-> & Hstack & Hf) /=".
-        destruct (decide (stk = []));cycle 1.
-        * destruct stk;[done|].
-          iApply (spec_pop_op with "[$Hstack $Hf]").
-          { subst f';simpl;repeat iSplit;auto. iPureIntro.
-            unfold value_of_uint. f_equal. f_equal. apply int_of_Z_mod. }
-          iIntros (w) "[-> [Hstack Hf]]".
-          iDestruct "Hf" as (f1) "[Hf %Hfeq]".
-          iDestruct ("Hl'" with "[Hstack]") as "Hl'".
-          { iExists _. iFrame. }
-          deconstruct_ctx.
-          iApply fupd_wp.
-          iMod ("Hcls" with "[Hlen Hl' $Hown]") as "Hown".
-          { iExists _. iFrame. iNext. iSplit;auto. }
-          iModIntro.
-          iApply (wp_wand _ _ _ (λ v, ⌜v = immV [_]⌝ ∗ _)%I with "[Hf]").
-          iApply (wp_label_value with "Hf");eauto.
-          iIntros (v0) "[-> Hf]".
-          iExists _. iFrame.
-          iIntros "Hf".
-          iApply (wp_frame_value with "Hf");eauto.
-          iNext. iLeft. iRight. iExists [VAL_int32 s]. iSplit;auto. iSplit; simpl;auto. eauto.
-        * iDestruct (stack_pure with "Hstack") as "(_ & _ & %Hstkbound & Hstack)".
-          take_drop_app_rewrite (length (is_empty_op)).
-          iApply wp_seq.
-          iSplitR;[|iSplitL "Hf Hstack"];cycle 1.
-          { iApply (spec_is_empty_op with "[$Hf $Hstack]").
-            - repeat iSplit;auto.
-              iPureIntro. subst f';simpl. unfold value_of_uint.
-              f_equal. f_equal. apply int_of_Z_mod.
-            - iIntros (w) "H". iExact "H". }
-          2: iIntros "H";by iDestruct "H" as (? ?) "_".
-          iIntros (w) "H".
-          iDestruct "H" as (k0) "(-> & Hstack & [[-> %Hcond]|[-> %Hcond]] & Hf)";[|congruence].
-          simpl.
-          iDestruct ("Hl'" with "[Hstack]") as "Hl'".
-          { iExists _. iFrame. }
-          iApply fupd_wp.
-          iMod ("Hcls" with "[Hlen Hl' $Hown]") as "Hown".
-          { iExists _. iFrame. iNext. iSplit;auto. }
-          iModIntro.
-          take_drop_app_rewrite 2.
-          iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
-          iApply wp_seq_trap. iFrame.
-          iIntros "Hf". iApply (wp_if_true with "[$]");auto.
-          iNext. iIntros "Hf".
-          take_drop_app_rewrite 0.
-          iApply (wp_block with "[$]");auto.
-          iNext. iIntros "Hf".
-          build_ctx [AI_basic BI_unreachable].
-          take_drop_app_rewrite 1.
-          iApply wp_seq_trap_ctx. iFrame. iIntros "Hf".
-          iApply (wp_unreachable with "[$]"). auto.
-          iIntros (v') "[-> Hf]".
-          deconstruct_ctx.
-          iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
-          iApply (wp_label_trap with "[$]");eauto.
-          iIntros (v0) "[-> Hf]".
-          iExists _. iFrame. iIntros "Hf".
-          iApply (wp_frame_trap with "[$]").
-          iNext. iLeft. iLeft. auto.          
-      + iApply (wp_wand with "[Hlen Hf]").
-        iApply (fail_stack_bound_valid with "[$Hlen $Hf]").
-        eauto.
-        iIntros (v0) "(-> & Hlen & Hf)".
-        deconstruct_ctx.
-        iApply fupd_wp.
-        iMod ("Hcls" with "[$Hown Hl' Hlen]") as "Hown".
-        { iNext. iExists _. iFrame. auto. }
-        iModIntro.
-        iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
-        iApply (wp_label_trap with "Hf");eauto.
-        iIntros (v0) "[-> Hf]".
-        iExists _. iFrame. iIntros "Hf".
-        iApply (wp_frame_trap with "[$]").
-        iNext. iLeft. iLeft. auto.
-    - iIntros "[%Hcontr _]";done.
-  Qed. *)
-      
-End valid.
 
 End stack.    
       

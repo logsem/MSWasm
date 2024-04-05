@@ -79,15 +79,13 @@ Definition map_loop_body :=
     BI_br 0
   ].
 
-Definition map_op :=
+Definition stack_map :=
   map_initialise ++
   [
     BI_block (Tf [] [])
              [BI_loop (Tf [] []) map_loop_body]
   ].
 
-Definition stack_map :=
-(*  validate_stack 0 ++ validate_stack_bound 0 ++ *) map_op.
 
 End code.
 

@@ -23,10 +23,10 @@ Definition wgN (a: N) : namespace := nroot .@ wg .@ a.
 
 Close Scope byte_scope.
 
-Definition relT := gmap N (leibnizO (gname * N * N * dfrac (* bool *))).
+Definition relT := gmap N (leibnizO (gname * N * N * dfrac)).
 
 Class cancelG Σ := CancelG {
-                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N * dfrac (* bool *) );
+                       cancelG_inv_tokens :> ghost_mapG Σ N (gname * N * N * dfrac );
                        γtoks : gname; 
                      }.
 
@@ -96,7 +96,7 @@ Section logrel.
   Definition interp_value_f64 : WR := λne w, (∃ z, ⌜w = VAL_float64 z⌝)%I.
 
 
-  Definition gamma_id_white (γ: (gname * N * N * dfrac (* bool *) )) (id: N): iProp Σ :=
+  Definition gamma_id_white (γ: (gname * N * N * dfrac )) (id: N): iProp Σ :=
     (id ↪[γtoks]□ γ)%I.
   Definition gamma_id_black (f: relT) : iProp Σ := 
     (ghost_map_auth γtoks 1%Qp f).
@@ -115,11 +115,12 @@ Section logrel.
           ⌜ w = VAL_handle h ⌝ ∗
                   (⌜ valid h = false ⌝ ∨
                      ∃ γ base' bound' base_all bound_all q,
+                       (* there exists a fraction (1/2 or 1) *)
                        ⌜ if ((base_all =? base h) && (bound_all =? bound h) )%N
                          then q = DfracOwn 1%Qp
                          else (q = DfracOwn 1%Qp \/ q = DfracOwn (1 / 2)%Qp) ⌝ ∗
                        gamma_id_white (γ, base_all, bound_all, q) (id h) ∗
-          (* There exists a greater range, such that *)
+          (* and two greater ranges, such that *)
                        ⌜ (base_all <= base')%N ⌝ ∗ ⌜ (base' <= base h)%N ⌝ ∗
                        ⌜ (base_all + bound_all >= base' + bound')%N ⌝ ∗ ⌜ (base' + bound' >= base h + bound h)%N ⌝ ∗
           (* We have as an invariant, that *)

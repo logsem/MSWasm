@@ -46,3 +46,23 @@ To use VSCode in this development, a [.vscode/settings.json](.vscode/settings.js
 It can be generated with `esy vscode`.
 
 The [tests](./tests) folder contains Markdown files checked by `mdx` during the continuous integration.
+
+
+# Organization
+
+Here is a lookup table for the definitions in the paper.
+
+| *paper* | *file* or *folder* | *name* |
+| --- | --- | --- |
+| Code for the buffer example (Fig 1) | theories/iris/examples/buffer/buffer\_code.v | `buffer\_program` |
+| MSWasm abstract syntax tree (Fig 2) | theories/datatypes.v | |
+| Helper rules for the allocator (Fig 3) | theories/operations.v | `sfree` and `salloc` |
+| Operational semantics of MSWasm (Fig 4) | theories/opsem.v | |
+| Points-to resources (Fig 5) | theories/iris/language/iris\_wp\_def.v | |
+| WP-rules for segload, segstore, segalloc and segfree (Fig 6 and 7) | theories/iris/rules/iris\_rules\_segment.v | e.g. `wp\_segload` or `wp\_segfree\_failure3` |
+| WP-rules for slice and handle.add (Fig 7) | theories/iris/rules/iris\_rules\_pure.v | e.g. `wp\_handleadd` or `wp\_slice\_failure` |
+| Specifying the buffer example (Sections 3.3 and 4.3) | theories/iris/examples/buffer/buffer\_code.v | `buffer\_spec` |
+| Adequacy theorem (Theorem 3.1) | theories/iris/language/iris\_adequacy.v | `wp\_adequacy` |
+| Adequacy of the buffer example (Theorem 3.2) | theories/iris/examples/buffer/buffer\_adequacy.v | `buffer\_adequacy` |
+| Logical relation and semantic typing (Fig 8 and 9 and 10) | theories/iris/logrel/iris\_logrel.v | e.g. `interp\_value\_handle` or `semantic\_typing` |
+| Fundamental theorem (Theorem 4.1) | theories/iris/logrel/iris\_fundamental.v | `be_fundamental` |

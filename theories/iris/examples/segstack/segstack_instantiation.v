@@ -255,7 +255,7 @@ Lemma pop_typing tt tf tlab tret:
       tc_return := tret;
     |} pop (Tf [] [T_i32]).
 Proof.
-  unfold pop, pop_op.
+  unfold pop.
   repeat rewrite app_assoc.
   eapply bet_composition'; first by apply is_empty_typing.
   apply/b_e_type_checker_reflects_typing => /=; by apply/eqP.
@@ -278,7 +278,7 @@ Lemma push_typing tt tf tlab tret:
 Proof.
   (*eapply bet_composition'; first by apply validate_stack_typing.
   eapply bet_composition'; first by apply validate_stack_bound_typing. *)
-  unfold push_op.
+  unfold push.
   (* Type checker is O(n^2), so it's much faster if we split the expression
      up earlier. *)
   eapply bet_composition'.
@@ -307,7 +307,7 @@ Lemma stack_map_typing tf:
 Proof.
   (*eapply bet_composition'; first by apply validate_stack_typing.
   eapply bet_composition'; first by apply validate_stack_bound_typing. *)
-  unfold map_op.
+  unfold stack_map.
   eapply bet_composition'.
   { apply/b_e_type_checker_reflects_typing => /=; by apply/eqP. }
   { apply bet_block => /=.
@@ -865,7 +865,7 @@ Proof.
               instantiate (5 := []) => /=.
               rewrite app_nil_r.
               done.
-              iApply (spec_is_empty_op with "[Hlen Hf]").
+              iApply (spec_is_empty with "[Hlen Hf]").
               iFrame.
               repeat iSplit ; iPureIntro => //=.
               (*        lia.
@@ -926,7 +926,7 @@ Proof.
               instantiate (5 := []) => /=.
               rewrite app_nil_r.
               done.
-              iApply (spec_is_full_op with "[Hlen Hf]").
+              iApply (spec_is_full with "[Hlen Hf]").
               iFrame.
               repeat iSplit ; iPureIntro => //=.
               iIntros (w) "H".
@@ -985,7 +985,7 @@ Proof.
               instantiate (5 := []) => /=.
               rewrite app_nil_r.
               done.
-              iApply (spec_pop_op with "[Hs Hf]").
+              iApply (spec_pop with "[Hs Hf]").
               iFrame.
               repeat iSplit ; iPureIntro => //=.
               lia.
@@ -1042,7 +1042,7 @@ Proof.
               instantiate (5 := []) => /=.
               rewrite app_nil_r.
               done.
-              iApply (spec_push_op with "[Hs Hf]").
+              iApply (spec_push with "[Hs Hf]").
               iFrame.
               repeat iSplit ; iPureIntro => //=.
               lia.
@@ -1226,7 +1226,7 @@ Proof.
              instantiate (5 := []) => /=.
              rewrite app_nil_r.
              done.
-             iApply (spec_stack_length_op with "[Hs Hf]").
+             iApply (spec_stack_length with "[Hs Hf]").
              iFrame.
              repeat iSplit ; iPureIntro => //=.
              iIntros (w) "(-> & Hs & Hf)".

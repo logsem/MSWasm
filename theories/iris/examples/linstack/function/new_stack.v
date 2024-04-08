@@ -4,7 +4,7 @@ From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants.
 From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
-Require Export stack.stack_common iris_fundamental proofmode.
+Require Export stack_common iris_fundamental proofmode.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

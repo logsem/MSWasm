@@ -79,15 +79,13 @@ Definition map_loop_body :=
     BI_br 0
   ].
 
-Definition map_op :=
+Definition stack_map :=
   map_initialise ++
   [
     BI_block (Tf [] [])
              [BI_loop (Tf [] []) map_loop_body]
   ].
 
-Definition stack_map :=
-(*  validate_stack 0 ++ validate_stack_bound 0 ++ *) map_op.
 
 End code.
 
@@ -427,19 +425,6 @@ Proof.
        instantiate (1 := λ w, ⌜ w = immV _ ⌝%I) => /=.
        iIntros "!>".
        iPureIntro. done.
-(*       unfold value_of_uint.
-       repeat f_equal.
-       unfold Wasm_int.Int32.iadd, Wasm_int.Int32.add.
-       f_equal.
-       simpl.
-       rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-       rewrite Z.mod_small; last first.
-       { remember (length s) as x; rewrite - Heqx.
-         unfold ffff0000 in Hvb; rewrite u32_modulus; unfold two14 in Hlens.
-         lia.
-       }
-       remember (N.of_nat (length s)) as x; rewrite - Heqx.
-       by destruct j => //; lias. *)
   }
   { by iIntros "(%Habs & _)". }
 
@@ -712,25 +697,10 @@ Proof.
       * rewrite list_lookup_insert; last lia.
         iPureIntro.
         do 2 f_equal.
-(*      rewrite - Nat2N.inj_add in Hlen.
-      apply Nat2N.inj in Hlen.
-      assert (S k + length s' = k + 1 + length s')%nat; first lia.
-      rewrite H Hlen in Hj'.
-      rewrite Hlen in Hj'.
-      rewrite - Hlen.
-      by lias. *)
       * by rewrite list_lookup_insert_ne. 
       * rewrite insert_length. iPureIntro; lia. 
       * iPureIntro. remember (length s) as x. rewrite - Heqx. lia. 
       * iPureIntro. rewrite - Hlen. simpl. lia.
-(*      * 
-      * iPureIntro.
-        simpl.
-        clear - Hlen.
-        remember (length s) as x; rewrite - Heqx.
-        remember (length s') as x'; rewrite - Heqx'.
-        lia.
-    } *)
       * iSplitL "Hs".
         -- replace (<[_ := _]> _) with (take k s ++ sv' :: s'); first done.
            erewrite take_S_r => //.
@@ -797,20 +767,6 @@ Lemma spec_stack_map (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) E
 Proof.
   iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs & Hs & HΦ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf) HΞ" => /=.
 
-(*  rewrite separate4.
-  iApply wp_seq.
-  iSplitR; last iSplitL "Hf Hs".
-  2: { by iApply (is_stack_valid with "[$Hf $Hs]") => //. }
-  { by iIntros "(%Habs & _)". }
-
-  iIntros (w) "(-> & Hs & Hf)" => /=.
-  rewrite separate3.
-  iApply wp_seq.
-  iSplitR; last iSplitL "Hf Hs".
-  2: { by iApply (is_stack_bound_valid with "[$Hf $Hs]") => //. }
-  { by iIntros "(%Habs & _)". }
-  
-  iIntros (w) "(-> & Hs & Hf)" => /=. *)
   rewrite separate5.
   iApply wp_seq.
   iSplitR; last iSplitL "Hf Hs".
@@ -851,14 +807,6 @@ Proof.
       by rewrite Hlocs1.
     + rewrite list_lookup_insert; last by rewrite insert_length; lia.
       done.
-(*      instantiate (1 := N.of_nat (length s)).
-      instantiate (1 := s).
-      simpl.
-      iPureIntro.
-      do 2 f_equal.
-      remember (N.of_nat (length s)) as x; rewrite - Heqx.
-      by destruct x => //; lia.
-    } *)
     + rewrite list_lookup_insert_ne; last lia.
       rewrite list_lookup_insert; last lia.
       done.

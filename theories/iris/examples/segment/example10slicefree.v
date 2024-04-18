@@ -123,7 +123,7 @@ free (h'' 2)
     { (* Case 1: segalloc failed *)
 
       iApply (wp_wand with "[Hf]"). iApply wp_seq_trap.
-      iFrame. iIntros "Hf". 
+      iFrame. iSplitR; last first. iIntros "Hf". 
       
       iApply (wp_if_true with "Hf"). done. 
       iIntros "!> Hf".
@@ -139,7 +139,8 @@ free (h'' 2)
       iApply wp_wasm_empty_ctx.
 
       iApply (wp_label_trap with "Hf"). done.
-      done. 
+      by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
+      by iIntros "!>" (?) "%".
       iIntros (w)  "(-> & Hf)".
       iSimpl. iApply (wp_label_pull_nil _ _ _ _ _ (LH_base [] [])).
       iApply wp_wasm_empty_ctx.

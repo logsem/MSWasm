@@ -697,8 +697,8 @@ Section InterpInstance.
          tc_global := ext_t_globs impts;
          tc_table := [];
          tc_memory := [];
-         tc_segment := {| lim_min := 0; lim_max := None |};
-         tc_allocator := ALL_type;
+(*         tc_segment := {| lim_min := 0; lim_max := None |};
+         tc_allocator := ALL_type; *)
          tc_local := [];
          tc_label := [];
          tc_return := None
@@ -1169,8 +1169,8 @@ Qed.
               tc_global := List.app igs gts;
               tc_table := List.app its (List.map (fun t => t.(modtab_type)) ts);
               tc_memory := List.app ims ms;
-              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct ?*)
-              tc_allocator := ALL_type ; (* This is correct but unsatisfying *)
+(*              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct ?*)
+              tc_allocator := ALL_type ; (* This is correct but unsatisfying *) *)
               tc_local := nil;
               tc_label := nil;
               tc_return := None;
@@ -1181,8 +1181,8 @@ Qed.
                tc_global := igs;
                tc_table := nil;
                tc_memory := nil;
-               tc_segment := {| lim_min := 0; lim_max := None |};
-               tc_allocator := ALL_type;
+(*               tc_segment := {| lim_min := 0; lim_max := None |};
+               tc_allocator := ALL_type; *)
                tc_local := nil;
                tc_label := nil;
                tc_return := None;
@@ -1994,8 +1994,8 @@ Qed.
               tc_global := ((ext_t_globs t_imps) ++ gts)%list;
               tc_table := ((ext_t_tabs t_imps) ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
               tc_memory := ((ext_t_mems t_imps) ++ (mod_mems m))%list;
-              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct? *)
-              tc_allocator := ALL_type;
+(*              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct? *)
+              tc_allocator := ALL_type; *)
               tc_local := [];
               tc_label := [];
               tc_return := None;

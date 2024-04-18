@@ -82,8 +82,8 @@ Section logrel.
   Implicit Types τc : list (list value_type).
   Implicit Types τt : table_type.
   Implicit Types τm : memory_type.
-  Implicit Types τseg : segment_type.
-  Implicit Types τa : allocator_type.
+(*  Implicit Types τseg : segment_type.
+  Implicit Types τa : allocator_type. *)
   Implicit Types τg : global_type.
   Implicit Types τctx : t_context.
 

@@ -16,6 +16,7 @@ Section fundamental.
  
 
   Context `{!wasmG Σ, !logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}.
+  Set Bullet Behavior "Strict Subproofs". 
   
   (* --------------------------------------------------------------------------------------- *)
   (* -------------------------------------- EXPRESSIONS ------------------------------------ *)
@@ -42,10 +43,12 @@ Section fundamental.
 
     iApply (wp_wand_ctx with "[Hf]").
     { iApply wp_seq_trap_ctx. iFrame.
-      iIntros "Hf".
-      by iApply (wp_unreachable with "Hf"). }
+      iSplitR; last first. 
+      - iIntros "Hf". 
+        iApply (wp_unreachable with "Hf"). by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
+      - iIntros "!>" (w) "->". done. }
     
-    iIntros (v) "[-> Hf]".
+    iIntros (v) "(-> & Hf)".
     iSplitR;[|iExists _,_;iFrame].
     iLeft. iLeft. auto.
   Qed.

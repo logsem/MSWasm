@@ -294,7 +294,7 @@ Definition module_func_typing (c : t_context) (m : module_func) (tf : function_t
     tc_global := c.(tc_global);
     tc_table := c.(tc_table);
              tc_memory := c.(tc_memory);
-             tc_segment := c.(tc_segment); tc_allocator := c.(tc_allocator);
+(*             tc_segment := c.(tc_segment); tc_allocator := c.(tc_allocator); *)
     tc_local := c.(tc_local) ++ tn ++ t_locs;
     tc_label := tm :: c.(tc_label);
     tc_return := Some tm;
@@ -315,8 +315,8 @@ Definition module_tab_typing (t : module_table) : bool :=
 Definition module_mem_typing (m : memory_type) : bool :=
   limit_typing m (N.pow 2 32).
 
-Definition module_seg_typing (s : segment_type) : bool :=
-  limit_typing s (N.pow 2 32).
+(* Definition module_seg_typing (s : segment_type) : bool :=
+  limit_typing s (N.pow 2 32). *)
 
 Definition const_expr (c : t_context) (b_e : basic_instruction) : bool :=
   match b_e with
@@ -435,8 +435,8 @@ Definition module_typing (m : module) (impts : list extern_t) (expts : list exte
     tc_global := List.app igs gts;
     tc_table := List.app its (List.map (fun t => t.(modtab_type)) ts);
     tc_memory := List.app ims ms;
-    tc_segment := {| lim_min := 0 ; lim_max := None |} ;
-    tc_allocator := ALL_type ;
+(*    tc_segment := {| lim_min := 0 ; lim_max := None |} ;
+    tc_allocator := ALL_type ; *)
     tc_local := nil;
     tc_label := nil;
     tc_return := None;
@@ -447,8 +447,8 @@ Definition module_typing (m : module) (impts : list extern_t) (expts : list exte
     tc_global := igs;
     tc_table := nil;
     tc_memory := nil;
-    tc_segment := {| lim_min := 0 ; lim_max := None |} ;
-    tc_allocator := ALL_type;
+(*    tc_segment := {| lim_min := 0 ; lim_max := None |} ;
+    tc_allocator := ALL_type; *)
     tc_local := nil;
     tc_label := nil;
     tc_return := None;

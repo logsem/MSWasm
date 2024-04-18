@@ -2410,7 +2410,7 @@ Proof.
   by eapply memi_agree_extension; eauto.
 Qed.
 
-Lemma segi_agree_extension: forall m0 m1 n m,
+(* Lemma segi_agree_extension: forall m0 m1 n m,
     segi_agree m0 n m ->
     all2 seg_extension m0 m1 ->
     segi_agree m1 n m.
@@ -2437,7 +2437,7 @@ Proof.
     unfold operations.seg_length in H1.
     by lias.
   - rewrite H3 in H2. rewrite H2. by apply/eqP.
-Qed.
+Qed. 
 
 Lemma seg_extension_C: forall sm sm' im tcm,
     all2 (segi_agree sm) im tcm ->
@@ -2492,7 +2492,7 @@ Proof.
   simpl in HA. remove_bools_options.
   apply/andP; split => //=; last by eapply IHim; eauto.
   by eapply alli_agree_extension; eauto.
-Qed.
+Qed.*)
 
 Lemma tabi_agree_extension: forall t0 t1 n t,
     tabi_agree t0 n t ->

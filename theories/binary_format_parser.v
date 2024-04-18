@@ -623,11 +623,11 @@ Definition parse_table_type {n} : byte_parser table_type n :=
 Definition parse_memory_type {n} : byte_parser memory_type n :=
   (fun lim => lim) <$> parse_limits.
 
-Definition parse_segment_type {n} : byte_parser segment_type n :=
-  (fun lim => lim) <$> parse_limits.
+(*Definition parse_segment_type {n} : byte_parser segment_type n :=
+  (fun lim => lim) <$> parse_limits. *)
 
-Definition parse_allocator_type {n} : byte_parser allocator_type n :=
-  exact_byte xd6 $> ALL_type.
+(*Definition parse_allocator_type {n} : byte_parser allocator_type n :=
+  exact_byte xd6 $> ALL_type. *)
 
 
 

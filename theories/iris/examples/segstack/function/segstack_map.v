@@ -4,7 +4,7 @@ From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants.
 From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
-Require Export segstack_common.
+Require Export segstack_common iris_logrel.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -14,7 +14,7 @@ Unset Printing Implicit Defensive.
 
 Section stack.
 
- Context `{!wasmG Σ, HHB: HandleBytes }. 
+ Context `{!wasmG Σ, HHB: HandleBytes, cancelg: !cancelG Σ, !cinvG Σ }. 
 
  
 Section code.
@@ -253,7 +253,7 @@ Proof.
 Qed.
 
 Lemma spec_map_loop_body_continue f (s: list i32) v hj E j fn (sv: i32) j0 a cl
-      (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ):
+      (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) all:
   ⊢ {{{ 
         ⌜ f.(f_locs) !! 0 = Some (value_of_handle v) ⌝ ∗
         ⌜ f.(f_locs) !! 1 = Some (VAL_int32 fn) ⌝  ∗
@@ -271,20 +271,20 @@ Lemma spec_map_loop_body_continue f (s: list i32) v hj E j fn (sv: i32) j0 a cl
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl ∗
             ⌜ cl_type cl = Tf [T_i32] [T_i32] ⌝ ∗ 
-            (∀ (u : i32) (fc : frame),
+            (∀ (u : i32) (fc : frame) all,
                 {{{ Φ u ∗
                       ⌜ f_inst f = f_inst fc ⌝ ∗
-                       ↪[frame] fc ∗
+                       ↪[frame] fc ∗ interp_allocator all ∗
                        (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
                   [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
-                           ∗ ↪[frame] fc
+                           ∗ ↪[frame] fc ∗ (∃ all', interp_allocator all')
                            ∗ (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) 
                            ∗ (N.of_nat a) ↦[wf] cl }}}) ∗   
-        ↪[frame] f }}}
+        ↪[frame] f ∗ interp_allocator all }}}
     to_e_list map_loop_body @ E
     {{{ w, ⌜ w = brV (VH_base 0 [] []) ⌝ ∗
            (∃ (sv': i32), isStack v (<[N.to_nat j := sv']> s) ∗ Ψ sv sv') ∗
@@ -293,10 +293,10 @@ Lemma spec_map_loop_body_continue f (s: list i32) v hj E j fn (sv: i32) j0 a cl
             ↪[frame]
             {| f_locs := <[ 2 := value_of_handle hj' ]> f.(f_locs);
                f_inst := f.(f_inst)
-            |}
+            |} ∗ (∃ all', interp_allocator all')
     }}}.
 Proof.
-  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hslookup & Hs & HΦ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf) HΞ" => /=.
+  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hslookup & Hs & HΦ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf & Hall) HΞ" => /=.
 
   iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlens)".
 
@@ -493,11 +493,11 @@ Proof.
   rewrite separate4.
   iApply wp_seq.
   instantiate (1 := λ w, (∃ v0, ⌜ w = immV _ ⌝ ∗ Ψ sv v0 ∗ _)%I).
-  iSplitR; last iSplitL "Hf HΦ Htab Hcl".
+  iSplitR; last iSplitL "Hf HΦ Htab Hcl Hall".
   2: { rewrite (separate1 (AI_handle _)).
        iApply wp_val_app => //.
        iSplit; first by iIntros "!> H" => /=; iDestruct "H" as (v0) "(%Habs & _)".
-       iApply (wp_call_indirect_success_ctx with "[$Htab] [$Hcl] [$Hf] [HΦ]"); last first => /=.
+       iApply (wp_call_indirect_success_ctx with "[$Htab] [$Hcl] [$Hf] [HΦ Hall]"); last first => /=.
        - iPureIntro.
          instantiate (2 := (LH_base [AI_basic (BI_const (NVAL_int32 sv))] [])).
          instantiate (2 := 0).
@@ -507,13 +507,13 @@ Proof.
        - iIntros "!> (Htab & Hcl & Hf)".
          iApply wp_base_pull.
          iApply wp_wasm_empty_ctx.
-         iApply ("Hspec" with "[$HΦ $Htab $Hcl $Hf]"); first done.
-         iIntros (w) "(Hret & Hf & Htab & Hcl)".
+         iApply ("Hspec" with "[$HΦ $Htab $Hcl $Hf $Hall]") ; first done.
+         iIntros (w) "(Hret & Hf & Hall & Htab & Hcl)".
          iDestruct "Hret" as (v0) "(-> & HΨ)".
          iExists v0.
          iSplit => //.
          iFrame "HΨ".
-         iCombine "Hf Htab Hcl" as "H".
+         iCombine "Hf Hall Htab Hcl" as "H".
          by iApply "H".
        - done.
        - by rewrite Hclt. 
@@ -521,7 +521,7 @@ Proof.
   { by iIntros "H"; iDestruct "H" as (v0) "(%Habs & _)". }
 
   iIntros (w) "H".
-  iDestruct "H" as (v0) "(-> & HΨ & Hf & Htab & Hcl)" => /=.
+  iDestruct "H" as (v0) "(-> & HΨ & Hf & Hall & Htab & Hcl)" => /=.
   rewrite separate3.
   iApply wp_seq.
   iSplitR; last iSplitL "Hf Hs".
@@ -543,7 +543,7 @@ Proof.
 Qed.
 
 Lemma spec_map_loop_j f (s: list i32) v hj E j fn j0 a cl
-      (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) (s': list i32):
+      (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) (s': list i32) all:
   ⊢ ( 
         ⌜ f.(f_locs) !! 0 = Some (value_of_handle v) ⌝ ∗
         ⌜ f.(f_locs) !! 1 = Some (VAL_int32 fn) ⌝  ∗
@@ -561,20 +561,20 @@ Lemma spec_map_loop_j f (s: list i32) v hj E j fn j0 a cl
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl ∗
             ⌜ cl_type cl = Tf [T_i32] [T_i32] ⌝ ∗ 
-            (∀ (u : i32) (fc : frame),
+            (∀ (u : i32) (fc : frame) all,
                 {{{ Φ u ∗
                       ⌜ f_inst f = f_inst fc ⌝ ∗
-                       ↪[frame] fc ∗
+                       ↪[frame] fc ∗ interp_allocator all ∗
                        (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
                   [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
-                           ∗ ↪[frame] fc
+                           ∗ ↪[frame] fc ∗ (∃ all', interp_allocator all')
                            ∗ (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) 
                            ∗ (N.of_nat a) ↦[wf] cl }}}) ∗   
-            ↪[frame] f) -∗
+            ↪[frame] f ∗ interp_allocator all) -∗
   WP (to_e_list map_loop_body) @ E CTX 2;
   push_base (LH_rec [] 0 [] (LH_base [] []) []) 0
     [AI_basic
@@ -583,16 +583,17 @@ Lemma spec_map_loop_j f (s: list i32) v hj E j fn j0 a cl
     {{ w, ⌜ w = immV [] ⌝ ∗
            (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
            (∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f = f_inst f1 ⌝) ∗
+           (∃ all', interp_allocator all') ∗
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m fn) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl
     }}.
 Proof.
   remember (N.to_nat j) as k.
   iRevert (Heqk).
-  iRevert (j s' s f hj).
+  iRevert (j s' s f hj all).
   iInduction k as [|k] "IHk".
-  - iIntros (j s' s f hj Habs).
-    iIntros "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hlen & Hs & HΦ & HΨ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf)" => /=.
+  - iIntros (j s' s f hj all Habs).
+    iIntros "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hlen & Hs & HΦ & HΨ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf & Hall)" => /=.
 
     iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlens)".
     
@@ -620,9 +621,9 @@ Proof.
         rewrite drop_0.
         by iFrame.
       * iSplitL "Hf".
-        -- by iExists f; iSplit => //. 
-        -- by iFrame.
-  - iIntros (j s' s f hj Habs).
+        -- by iExists f; iSplit => //.
+        -- iFrame. iExists _. iFrame. 
+  - iIntros (j s' s f hj all Habs).
     iIntros "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hlen & Hs & HΦ & HΨ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf)" => /=.
     
     iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlens)".
@@ -665,6 +666,7 @@ Proof.
     + iIntros (w) "(-> & H)" => /=.
       iDestruct "H" as "(HsvΨ & Htab & Hcl & Hf)".
       iDestruct "Hf" as (hj') "[%Hj' Hf]".
+      iDestruct "Hf" as "(Hf & %all' & Hall)". 
       iDestruct "HsvΨ" as (sv') "(Hs & HΨ')".
       replace ([AI_basic (BI_br 0)]) with ([] ++ [AI_basic (BI_br 0)]) => //.
       iApply (wp_br_ctx_nested with "Hf") => //; first lia.
@@ -682,7 +684,7 @@ Proof.
       iApply "IHk"; first by iPureIntro; instantiate (1 := N.of_nat k); rewrite Nat2N.id.
       rewrite Heqf' => /=.
       iCombine "HΨ HΨ'" as "HΨcomb".
-      iFrame.
+      iFrame. 
       instantiate (1 := (sv' :: s')). 
       rewrite app_length take_length in Hj'.
       assert (S k `min` length s = S k) as Hmin; first lia. 
@@ -731,7 +733,7 @@ Qed.
   
 Lemma spec_stack_map (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) E
       j0 a cl 
-      (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) :
+      (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) all :
   ⊢ {{{ 
             ⌜ f0.(f_locs) !! 0 = Some (value_of_handle v) ⌝ ∗
             ⌜ f0.(f_locs) !! 1 = Some (VAL_int32 f) ⌝  ∗
@@ -743,29 +745,30 @@ Lemma spec_stack_map (f0 : frame) (f : i32) (v : handle) (s : seq.seq i32) E
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl ∗
             ⌜ cl_type cl = Tf [T_i32] [T_i32] ⌝ ∗ 
-            (∀ (u : i32) (fc : frame),
+            (∀ (u : i32) (fc : frame) all,
                 {{{ Φ u ∗
                       ⌜ f_inst f0 = f_inst fc ⌝ ∗
-                       ↪[frame] fc ∗
+                       ↪[frame] fc ∗ interp_allocator all ∗
                        (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
                        (N.of_nat a) ↦[wf] cl
                   }}}
                   [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)
-                           ∗ ↪[frame] fc
+                           ∗ ↪[frame] fc ∗ (∃ all', interp_allocator all') 
                            ∗ (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) 
                            ∗ (N.of_nat a) ↦[wf] cl }}}) ∗   
-            ↪[frame] f0 }}}
+            ↪[frame] f0 ∗ interp_allocator all  }}}
     to_e_list stack_map @ E
     {{{ w, ⌜ w = immV [] ⌝ ∗
            (∃ s', isStack v s' ∗ stackAll2 s s' Ψ) ∗
            (∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f0 = f_inst f1 ⌝) ∗
+           (∃ all', interp_allocator all') ∗
             (N.of_nat j0) ↦[wt][ N.of_nat (Wasm_int.nat_of_uint i32m f) ] (Some a) ∗
             (N.of_nat a) ↦[wf] cl
     }}}.
 Proof.
-  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs & Hs & HΦ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf) HΞ" => /=.
+  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs & Hs & HΦ & %Htypes & %Htab & Htab & Hcl & %Hclt & #Hspec & Hf & Hall) HΞ" => /=.
 
   rewrite separate5.
   iApply wp_seq.
@@ -795,7 +798,7 @@ Proof.
   rewrite - (cats0 [AI_basic _;_;_;_;_;_;_;_;_;_;_;_;_;_;_]). 
   iApply wp_label_push ; first done.
 
-  iApply (wp_wand_ctx with "[HΦ Htab Hcl Hs Hf]").
+  iApply (wp_wand_ctx with "[HΦ Htab Hcl Hs Hf Hall]").
   - iApply spec_map_loop_j.
     iFrame.
     repeat iSplit => /=.

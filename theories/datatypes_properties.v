@@ -359,14 +359,14 @@ Definition eqlimitsP : Equality.axiom limits_eqb :=
 Canonical Structure limits_eqMixin := EqMixin eqlimitsP.
 Canonical Structure limits_eqType := Eval hnf in EqType limits limits_eqMixin.
 
-Definition allocator_type_eq_dec : forall v1 v2 : allocator_type, {v1 = v2} + {v1 <> v2}.
+(* Definition allocator_type_eq_dec : forall v1 v2 : allocator_type, {v1 = v2} + {v1 <> v2}.
 Proof. decidable_equality. Defined.
 Definition allocator_type_eqb v1 v2 : bool := allocator_type_eq_dec v1 v2.
 Definition eqallocator_typeP : Equality.axiom allocator_type_eqb :=
-  eq_dec_Equality_axiom allocator_type_eq_dec.
+  eq_dec_Equality_axiom allocator_type_eq_dec. 
 
 Canonical Structure allocator_type_eqMixin := EqMixin eqallocator_typeP.
-Canonical Structure allocator_type_eqType := Eval hnf in EqType allocator_type allocator_type_eqMixin.
+Canonical Structure allocator_type_eqType := Eval hnf in EqType allocator_type allocator_type_eqMixin. *)
 
 
 Definition table_type_eq_dec : forall v1 v2 : table_type, {v1 = v2} + {v1 <> v2}.

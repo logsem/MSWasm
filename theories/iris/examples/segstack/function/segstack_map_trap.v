@@ -12,14 +12,14 @@ Unset Printing Implicit Defensive.
 
 Section stack.
 
- Context `{!wasmG Σ, logrel_na_invs Σ, HHB: HandleBytes}. 
+ Context `{!wasmG Σ, logrel_na_invs Σ, HHB: HandleBytes, cancelg: cancelG Σ, !cinvG Σ}. 
 
 Section specs.
 
   Set Bullet Behavior "Strict Subproofs".
   
 Lemma spec_map_loop_body_continue_trap f (s: list i32) v E hj j fn (sv: i32) j0 a cl
-  (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) (γ1 : namespace) :
+  (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) (γ1 : namespace) all :
   ↑γ1 ⊆ E ->
   ⊢ {{{
         ⌜ f.(f_locs) !! 0 = Some (value_of_handle v) ⌝ ∗
@@ -39,19 +39,19 @@ Lemma spec_map_loop_body_continue_trap f (s: list i32) v E hj j fn (sv: i32) j0 
             (match a with
              | Some a => ∃ γ2, ⌜↑γ2 ⊆ E ∧ @up_close _ coPset _ γ2 ⊆ ⊤ ∖ ↑γ1⌝ ∗ na_inv logrel_nais γ2 ((N.of_nat a) ↦[wf] cl) ∗
                           ⌜ cl_type cl = Tf [T_i32] [T_i32] ⌝ ∗ 
-                                           (∀ (u : i32) (fc : frame),
+                                           (∀ (u : i32) (fc : frame) all,
                                                {{{ Φ u ∗
                                                      ⌜ f_inst f = f_inst fc ⌝ ∗
-                                                                    ↪[frame] fc ∗
+                                                                    ↪[frame] fc ∗ interp_allocator all ∗
                                                                     na_own logrel_nais ⊤
                                                }}}
                                                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                                                    AI_invoke a ] @ E
                                                  {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
-                                                          ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
+                                                          ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc ∗ (∃ all', interp_allocator all')}}})
              | None => True
              end) ∗ 
-        na_own logrel_nais ⊤ ∗ ↪[frame] f }}}
+        na_own logrel_nais ⊤ ∗ ↪[frame] f ∗ interp_allocator all }}}
     to_e_list map_loop_body @ E
     {{{ w, (⌜ w = trapV ⌝ ∨ ⌜ w = brV (VH_base 0 [] []) ⌝ ∗
            (∃ (sv': i32), isStack v (<[N.to_nat j := sv']> s) ∗ Ψ sv sv')) ∗
@@ -59,11 +59,11 @@ Lemma spec_map_loop_body_continue_trap f (s: list i32) v E hj j fn (sv: i32) j0 
             ↪[frame]
             {| f_locs := <[ 2 := value_of_handle hj' ]> f.(f_locs);
                f_inst := f.(f_inst)
-            |}
+            |} ∗ (∃ all', interp_allocator all') 
     }}}.
 Proof.
   intros Hsub1.
-  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hslookup & Hs & HΦ & %Htypes & %Htab & #Htab & Hcl & Hown & Hf) HΞ" => /=.
+  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hslookup & Hs & HΦ & %Htypes & %Htab & #Htab & Hcl & Hown & Hf & Hall) HΞ" => /=.
 
   iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlens)".
 
@@ -277,12 +277,12 @@ Proof.
                f_inst := f_inst f |}).
   iApply wp_wasm_empty_ctx.  
   iApply wp_seq_can_trap_ctx.
-  instantiate (1 := λ f, (⌜ f = f'⌝ ∗ na_own logrel_nais ⊤)%I).
+  instantiate (1 := λ f, (⌜ f = f'⌝ ∗ na_own logrel_nais ⊤ ∗ (∃ all', interp_allocator all'))%I).
   instantiate (2 := λ w, (∃ v0, ⌜ w = immV _ ⌝ ∗ Ψ sv v0 ∗ isStack v s)%I).  
   iSplitR; last iSplitR.
   { by iIntros "H"; iDestruct "H" as (v0) "(%Habs & _)". }
-  { iIntros (f0) "[Hf [-> Hown]]". subst f'. iFrame. iSplitR. iLeft. done.
-    iExists _ ; iSplit; first done. done.
+  { iIntros (f0) "(Hf & -> & Hown & Hall)". subst f'. iFrame. iSplitR. iLeft. done.
+    iExists _ ; iSplit; first done. iFrame. 
   }
   iFrame "Hf". iSplitL.
   { rewrite (separate1 (AI_handle _)).
@@ -296,7 +296,7 @@ Proof.
     - iDestruct "Hcl" as (γ2) "(%Hsub & #Hcl & %Hclt & #Hspec)".
       destruct Hsub as [Hsub2 Hdiff].
       iMod (na_inv_acc with "Hcl Hown") as "(>Hcl' & Hown & Hcls)";[auto|solve_ndisj|].      
-      iApply (wp_call_indirect_success_ctx with "[$Htab'] [$Hcl'] [$Hf] [HΦ Hs Hcls Hown Hcls']") => /=.
+      iApply (wp_call_indirect_success_ctx with "[$Htab'] [$Hcl'] [$Hf] [HΦ Hs Hcls Hown Hcls' Hall]") => /=.
       { by rewrite Hclt. }
       { done. }
       2: { iPureIntro.
@@ -313,9 +313,9 @@ Proof.
         iMod ("Hcls" with "[$]") as "Hown".
         iMod ("Hcls'" with "[$]") as "Hown".
         iModIntro.
-        iApply ("Hspec" with "[$HΦ $Hown $Hf]"); first done.
-        iIntros (w) "(Hret & Hown & Hf)".
-        iSplitR "Htab Hf Hown";[|iExists _;iFrame;subst f';simpl;auto].
+        iApply ("Hspec" with "[$HΦ $Hown $Hf $Hall]"); first done.
+        iIntros (w) "(Hret & Hown & Hf & Hall)".
+        iSplitR "Htab Hf Hown Hall";[|iExists _;iFrame;subst f';simpl;auto].
         iDestruct "Hret" as "[-> | Hret]";auto.
         iDestruct "Hret" as (v0) "(-> & HΨ)".
         iRight. iExists v0.
@@ -334,11 +334,11 @@ Proof.
       iApply (wp_call_indirect_failure_noindex with "Htab' Hf");auto.
       iIntros (v0) "[[-> Htab'] Hf]".
       iMod ("Hcls'" with "[$]") as "Hown". iModIntro.
-      iSplitR "Hf Hown";[|iExists _; iFrame;subst f';rewrite - fmap_insert_set_nth;auto;lia].
+      iSplitR "Hf Hown Hall";[|iExists _; iFrame;subst f';rewrite - fmap_insert_set_nth;auto;lia].
       iLeft. auto.
   }
 
-  iIntros (w f0) "[H [Hf [-> Hown]]]".
+  iIntros (w f0) "(H & Hf & -> & Hown & Hall)".
   iDestruct "H" as (v0) "(-> & HΨ & Hs)" => /=.
   deconstruct_ctx.
   iApply (wp_wand _ _ _
@@ -365,7 +365,7 @@ Proof.
 Qed.
 
 Lemma spec_map_loop_j_trap f (s: list i32) v E j hj fn j0 a cl
-  (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) (s': list i32) γ1 :
+  (Φ : i32 -> iPropI Σ) (Ψ: i32 -> i32 -> iPropI Σ) (s': list i32) γ1 all :
   ↑γ1 ⊆ E ->
   ⊢ ( 
         ⌜ f.(f_locs) !! 0 = Some (value_of_handle v) ⌝ ∗
@@ -385,19 +385,19 @@ Lemma spec_map_loop_j_trap f (s: list i32) v E j hj fn j0 a cl
             (match a with
              | Some a => ∃ γ2, ⌜↑γ2 ⊆ E ∧ @up_close _ coPset _ γ2 ⊆ ⊤ ∖ ↑γ1⌝ ∗ na_inv logrel_nais γ2 ((N.of_nat a) ↦[wf] cl) ∗
                           ⌜ cl_type cl = Tf [T_i32] [T_i32] ⌝ ∗ 
-                                           (∀ (u : i32) (fc : frame),
+                                           (∀ (u : i32) (fc : frame) all,
                                                {{{ Φ u ∗
                                                      ⌜ f_inst f = f_inst fc ⌝ ∗
-                                                                    ↪[frame] fc ∗
+                                                                    ↪[frame] fc ∗ interp_allocator all ∗
                                                                     na_own logrel_nais ⊤
                                                }}}
                                                  [ AI_basic (BI_const (NVAL_int32 u)) ;
                                                    AI_invoke a ] @ E
                                                  {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
-                                                          ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
+                                                          ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc ∗ (∃ all', interp_allocator all') }}})
              | None => True
              end)  ∗   
-            na_own logrel_nais ⊤ ∗ ↪[frame] f) -∗
+            na_own logrel_nais ⊤ ∗ ↪[frame] f ∗ interp_allocator all ) -∗
   WP (to_e_list map_loop_body) @ E CTX 2;
   push_base (LH_rec [] 0 [] (LH_base [] []) []) 0
     [AI_basic
@@ -405,16 +405,17 @@ Lemma spec_map_loop_j_trap f (s: list i32) v E j hj fn j0 a cl
           map_loop_body)] [] []
     {{ w, (⌜ w = trapV ⌝ ∨ (⌜ w = immV [] ⌝ ∗
                                         (∃ s', isStack v s' ∗ stackAll2 s s' Ψ)))
-             ∗ (∃ f1, ↪[frame] f1 ∗ na_own logrel_nais ⊤ ∗ ⌜ f_inst f = f_inst f1 ⌝ )
+            ∗ (∃ f1, ↪[frame] f1 ∗ na_own logrel_nais ⊤ ∗ ⌜ f_inst f = f_inst f1 ⌝ )
+            ∗ (∃ all', interp_allocator all')
     }}.
 Proof.
   remember (N.to_nat j) as k.
   iRevert (Heqk).
-  iRevert (j hj s' s f).
+  iRevert (j hj s' s f all).
   iInduction k as [|k] "IHk".
   
-  - iIntros (j hj s' s f Habs Hsub1).
-    iIntros "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hlen & Hs & HΦ & HΨ & %Htypes & %Htab & #Htab & Hcl & Hown & Hf)" => /=.
+  - iIntros (j hj s' s f all Habs Hsub1).
+    iIntros "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hlen & Hs & HΦ & HΨ & %Htypes & %Htab & #Htab & Hcl & Hown & Hf & Hall)" => /=.
 
     iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlens)".
     
@@ -435,12 +436,13 @@ Proof.
       iApply (wp_br_ctx with "Hf") => //.
       iIntros "!> Hf" => /=.
       iApply wp_value; first by instantiate (1 := immV []).
-      iFrame. iSplitR "Hf";eauto.
+      iFrame. iSplitR "Hf Hall";eauto.
       iRight. iSplit => //.
       iExists s'.
       rewrite drop_0.
       by iFrame.
-  - iIntros (j hj s' s f Habs Hsub1).
+      iSplitL "Hf"; eauto.
+  - iIntros (j hj s' s f all Habs Hsub1).
     iIntros "(%Hlocs0 & %Hlocs1 & %Hlocs2 & %Hlocs3 & %Hhj & %Hlocs & %Hjbound & %Hlen & Hs & HΦ & HΨ & %Htypes & %Htab & #Htab & #Hcl & Hown & Hf)" => /=.
     
     iDestruct (stack_pure with "Hs") as "(%Hoff & %Hbound & %Hvalid & %Hlens)".
@@ -490,12 +492,12 @@ Proof.
         rewrite lookup_take; last lia.
         done.
     + iIntros (w) "(Hres & Hown & Hf)" => /=.
-      iDestruct "Hf" as (hj') "[%Hhj' Hf]".
+      iDestruct "Hf" as (hj') "(%Hhj' & Hf & %all' & Hall)".
       iDestruct "Hres" as "[-> | Hres]".
       * iApply (wp_wand_ctx _ _ _ (λ w, ⌜w = trapV⌝ ∗ _)%I with "[Hf]"). iClear "IHk".
         take_drop_app_rewrite_twice 0 0. iApply (wp_trap_ctx with "[$]");auto.
         iIntros (v0) "[-> Hf]". iFrame.
-        iSplitR "Hf";eauto. 
+        iSplitR "Hf Hall";eauto. iSplitL "Hf"; eauto.
       * iDestruct "Hres" as "(-> & HsvΨ)".
         iDestruct "HsvΨ" as (sv') "(Hs & HΨ')".
         replace ([AI_basic (BI_br 0)]) with ([] ++ [AI_basic (BI_br 0)]) => //.
@@ -577,7 +579,7 @@ Qed.
   
 Lemma spec_stack_map_trap (f0 : frame) (f : i32) (v: handle) (s : seq.seq i32) E
       j0 a cl γ1
-      (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) :
+      (Φ : i32 -> iPropI Σ) (Ψ : i32 -> i32 -> iPropI Σ) all:
   ↑γ1 ⊆ E ->
   ⊢ {{{ 
             ⌜ f0.(f_locs) !! 0 = Some (value_of_handle v) ⌝ ∗
@@ -592,27 +594,28 @@ Lemma spec_stack_map_trap (f0 : frame) (f : i32) (v: handle) (s : seq.seq i32) E
             match a with
             | Some a => ∃ γ2, ⌜↑γ2 ⊆ E ∧ @up_close _ coPset _ γ2 ⊆ ⊤ ∖ ↑γ1⌝ ∗ na_inv logrel_nais γ2 ((N.of_nat a) ↦[wf] cl) ∗
              ⌜ cl_type cl = Tf [T_i32] [T_i32] ⌝ ∗  
-            (∀ (u : i32) (fc : frame),
+            (∀ (u : i32) (fc : frame) all,
                 {{{ Φ u ∗
                       ⌜ f_inst f0 = f_inst fc ⌝ ∗
-                       ↪[frame] fc ∗
+                       ↪[frame] fc ∗ interp_allocator all ∗
                        na_own logrel_nais ⊤
                   }}}
                   [ AI_basic (BI_const (NVAL_int32 u)) ;
                     AI_invoke a ] @ E
                   {{{ w, (⌜ w = trapV ⌝ ∨ ((∃ v, ⌜ w = immV [VAL_int32 v] ⌝ ∗ Ψ u v)))
-                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc}}})
+                           ∗ na_own logrel_nais ⊤ ∗ ↪[frame] fc ∗ (∃ all', interp_allocator all')}}})
             | None => True
             end ∗
-            na_own logrel_nais ⊤ ∗ ↪[frame] f0 }}}
+            na_own logrel_nais ⊤ ∗ ↪[frame] f0 ∗ interp_allocator all }}}
     to_e_list stack_map @ E
     {{{ w, (⌜ w = trapV ⌝ ∨ (⌜ w = immV [] ⌝ ∗
                                         (∃ s', isStack v s' ∗ stackAll2 s s' Ψ)))
              ∗ (∃ f1, ↪[frame] f1 ∗ na_own logrel_nais ⊤ ∗ ⌜ f_inst f0 = f_inst f1 ⌝ )
+             ∗ (∃ all', interp_allocator all')
     }}}.
 Proof.
   intros Hsub1.
-  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs & Hs & HΦ & %Htypes & %Htab & #Htab & #Hcl & Hinv & Hf) HΞ" => /=.
+  iIntros "!>" (Ξ) "(%Hlocs0 & %Hlocs1 & %Hlocs & Hs & HΦ & %Htypes & %Htab & #Htab & #Hcl & Hinv & Hf & Hall) HΞ" => /=.
   
   rewrite separate5.
   iApply wp_seq.
@@ -643,7 +646,7 @@ Proof.
   rewrite - (cat0s (AI_basic (BI_get_local 2) :: _)).
   rewrite - (cats0 [AI_basic _;_;_;_;_;_;_;_;_;_;_;_;_;_;_]). 
   iApply wp_label_push ; first done.
-  iApply (wp_wand_ctx with "[HΦ Htab Hs Hf Hinv]").
+  iApply (wp_wand_ctx with "[HΦ Htab Hs Hf Hinv Hall]").
   - iApply spec_map_loop_j_trap;[apply Hsub1|].
     iFrame "∗ #".
     repeat iSplit => /=.

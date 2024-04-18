@@ -27,8 +27,8 @@ Definition upd_label C lab :=
     (tc_global C)
     (tc_table C)
     (tc_memory C)
-    (tc_segment C)
-    (tc_allocator C)
+(*    (tc_segment C)
+    (tc_allocator C) *)
     (tc_local C)
     lab
     (tc_return C)
@@ -190,8 +190,8 @@ Definition upd_local C loc :=
     (tc_global C)
     (tc_table C)
     (tc_memory C)
-    (tc_segment C)
-    (tc_allocator C)
+(*    (tc_segment C)
+    (tc_allocator C) *)
     loc
     (tc_label C)
     (tc_return C).
@@ -203,8 +203,8 @@ Definition upd_return C ret :=
     (tc_global C)
     (tc_table C)
     (tc_memory C)
-    (tc_segment C)
-    (tc_allocator C)
+(*    (tc_segment C)
+    (tc_allocator C) *)
     (tc_local C)
     (tc_label C)
     ret.
@@ -216,8 +216,8 @@ Definition upd_local_return C loc ret :=
     (tc_global C)
     (tc_table C)
     (tc_memory C)
-    (tc_segment C)
-    (tc_allocator C)
+(*    (tc_segment C)
+    (tc_allocator C) *)
     loc
     (tc_label C)
     ret.
@@ -229,8 +229,8 @@ Definition upd_local_label_return C loc lab ret :=
     (tc_global C)
     (tc_table C)
     (tc_memory C)
-    (tc_segment C)
-    (tc_allocator C)
+(*    (tc_segment C)
+    (tc_allocator C) *)
     loc
     lab
     ret.
@@ -257,21 +257,21 @@ Definition memi_agree (ms : list memory) (n : nat) (mem_t : memory_type) : bool 
   | None => false
   end.
 
-Definition seg_typing s s_t : bool :=
-  (N.leb s_t.(lim_min) (seg_size s)) &&
-    (s.(seg_max_opt) == s_t.(lim_max)).
+(* Definition seg_typing s s_t : bool :=
+  (N.leb s_t.(lim_min) (seg_size s)) && 
+    (s.(seg_max_opt) == s_t.(lim_max)). *)
 
-Definition segi_agree ss n seg_t : bool :=
+(* Definition segi_agree ss n seg_t : bool :=
   (n < length ss) &&
     match List.nth_error ss n with
     | Some seg => seg_typing seg seg_t
-    | None => false end.
+    | None => false end. *)
 
-Definition alli_agree (alls : list allocator) n (all_t : allocator_type) : bool:=
+(* Definition alli_agree (alls : list allocator) n (all_t : allocator_type) : bool:=
   (n < length alls) &&
     match List.nth_error alls n with
     | Some all => true
-    | None => false end.
+    | None => false end. *)
 
 
 Definition functions_agree (fs : seq function_closure) (n : nat) (f : function_type) : bool :=
@@ -290,7 +290,7 @@ Definition tabi_agree ts (n : nat) (tab_t : table_type) : bool :=
 Definition inst_typing (s : store_record) (inst : instance) (C : t_context) : bool :=
   let '{| inst_types := ts; inst_funcs := fs; inst_tab := tbs; inst_memory := ms; inst_globs := gs; |} := inst in
   match C with
-  | {| tc_types_t := ts'; tc_func_t := tfs; tc_global := tgs; tc_table := tabs_t; tc_memory := mems_t; tc_segment := segs_t ; tc_allocator := alls_t ; tc_local := nil; tc_label := nil; tc_return := None |} =>
+  | {| tc_types_t := ts'; tc_func_t := tfs; tc_global := tgs; tc_table := tabs_t; tc_memory := mems_t; (* tc_segment := segs_t ; tc_allocator := alls_t ; *) tc_local := nil; tc_label := nil; tc_return := None |} =>
     (ts == ts') &&
     (all2 (functions_agree s.(s_funcs)) fs tfs) &&
     (all2 (globals_agree s.(s_globals)) gs tgs) &&

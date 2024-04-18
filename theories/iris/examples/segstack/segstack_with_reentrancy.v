@@ -199,9 +199,9 @@ Section Client2.
       ID_instantiate [exp_addrs !!! 8] client_mod_addr ((take 8 exp_addrs) ++ [(exp_addrs !!! 9)]) ].
   (* the 7th element is the host import *)
 
-  Lemma instantiate_stack_client_spec (s: stuckness) E name idmodtab (exp_addrs: list N) (stack_mod_addr client_mod_addr: N) (ha_mod_table_addr: nat) (* all *) :
+  Lemma instantiate_stack_client_spec (s: stuckness) E name idmodtab (exp_addrs: list N) (stack_mod_addr client_mod_addr: N) (ha_mod_table_addr: nat) all :
     length exp_addrs = 10 -> 
-  ↪[frame] empty_frame -∗ (* interp_allocator all -∗ *)
+  ↪[frame] empty_frame -∗ interp_allocator all -∗ 
   stack_mod_addr%N ↪[mods] stack_module -∗
   client_mod_addr%N ↪[mods] client_module -∗
   own_vis_pointers (take 9 exp_addrs) -∗
@@ -216,7 +216,7 @@ Section Client2.
      WP ((stack_instantiate exp_addrs stack_mod_addr client_mod_addr , []) : host_expr)
      @ E
      {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗
-              ↪[frame] empty_frame ∗ (* interp_allocator all ∗ *)
+              ↪[frame] empty_frame ∗ (∃ all', interp_allocator all') ∗
                 stack_mod_addr ↪[mods] stack_module ∗
                  client_mod_addr ↪[mods] client_module ∗
                  ∃ idg name,
@@ -225,7 +225,7 @@ Section Client2.
                     (N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int 40%Z |} ∨
                        N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int (-1)%Z |}) }}.
 Proof.
-  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis Hvishost Hwfcallhost Hha". (* removed Hall *)
+  iIntros (Hvisaddrlen) "Hemptyframe Hall Hmod0 Hmod1 Hvis Hvishost Hwfcallhost Hha". 
   
   do 11 (destruct exp_addrs => //); clear Hvisaddrlen.
   simpl.
@@ -492,7 +492,7 @@ Proof.
       iApply wp_lift_wasm.
       
       iApply wp_wand_r.
-      iSplitR "Hmod1 Hha Himpfcl1 Himpfcl2 Himpfcl3 ". (* removed Hall *)
+      iSplitR "Hmod1 Hha Himpfcl1 Himpfcl2 Himpfcl3". 
       rewrite - (app_nil_l [AI_invoke idnstart]).
       iApply (wp_invoke_native with "Hf Hwfcl").
       done. done. done.
@@ -504,7 +504,7 @@ Proof.
       done. done. done. done.
       iIntros "!> Hf".
       iApply (wp_label_bind with
-               "[Hwg Ht0 Hwfsq Hwfdbl Hf Himpfcl0 Himpfcl4 Himpfcl5 Hexphost Himpfcl7]") ; last first.
+               "[Hwg Ht0 Hwfsq Hwfdbl Hf Hall Himpfcl0 Himpfcl4 Himpfcl5 Hexphost Himpfcl7]") ; last first.
       iPureIntro.
       unfold lfilled, lfill => /=.
       instantiate (5 := []) => /=.
@@ -655,11 +655,11 @@ Proof.
           (* instantiate (1 := λ x, (( _ ∗
                                       ((∃ k, ⌜ (0 <= k <= ffff0000)%N ⌝ ∗ ⌜ x = callHostV _ _ _ _ ⌝ ∗ nextStackAddrIs _ ∗  _ ↦[wg] _ ∗ isStack k _)
                                             ∨ ⌜ x = immV [] ⌝ ∗ _ ↦[wg] {| g_mut := MUT_mut; g_val := value_of_int (-1) |})))%I). *)
-          instantiate (1 := λ x, (_ ∗ ((∃ k, ⌜ x = callHostV _ _ _ _ ⌝ ∗ _ ↦[wg] _ ∗ isStack k _ ) ∨ ⌜ x = immV [] ⌝ ∗ 
+          instantiate (1 := λ x, (_ ∗ (∃ all', interp_allocator all') ∗ ((∃ k, ⌜ x = callHostV _ _ _ _ ⌝ ∗ _ ↦[wg] _ ∗ isStack k _ ) ∨ ⌜ x = immV [] ⌝ ∗ 
                                                                                                             N.of_nat g↦[wg] {| g_mut := MUT_mut; g_val := value_of_int (-1) |}))%I).
            iIntros "!>".
           iCombine "Hwfdbl Hexphost Hcl Himpfcl4 Himpfcl5 Himpfcl7 Ht0 Hwfsq" as "H".
-          iSplitL "H"; first iExact "H".
+          iSplitL "H"; first iExact "H". iSplitL "Hall"; first by iExists _. 
           iRight.
           by iFrame.
         }
@@ -829,7 +829,7 @@ Proof.
           iSimpl.
           rewrite (separate3 (AI_handle _)).
           iApply wp_seq.
-          iSplitR; last iSplitL "Himpfcl5 Hf Hs Ht0 Hwfsq".
+          iSplitR; last iSplitL "Himpfcl5 Hf Hs Ht0 Hwfsq Hall".
           2: {
             rewrite (separate2 (AI_handle _)).
             rewrite - (app_nil_r [AI_basic (BI_call 5)]).
@@ -840,13 +840,13 @@ Proof.
             iApply wp_base_pull.
             rewrite app_nil_r.
             iApply wp_wasm_empty_ctx.
-            iApply ("Hspec5" with "[Hf Himpfcl5 Hs Ht0 Hwfsq]").
+            iApply ("Hspec5" with "[Hf Himpfcl5 Hs Ht0 Hwfsq Hall]").
             iFrame.
             instantiate (2 := λ x, True%I).
             iSimpl.
             repeat iSplit => //.
-            iIntros (u fc) "!>".
-            iIntros (?) "(_ & -> & Hf & Ht & Hcl)".
+            iIntros (u fc all0) "!>".
+            iIntros (?) "(_ & -> & Hf & Hall & Ht & Hcl)".
             iIntros "HΦ".
             rewrite (separate1 _ [AI_invoke _]).
             iApply wp_wand_r.
@@ -920,22 +920,22 @@ Proof.
           instantiate (1 := (λ x y, ⌜y = Wasm_int.Int32.imul x x⌝%I)).
           iIntros (v0) "[[-> Hcl] Hf]".
           iApply "HΦ".
-          iFrame.
+          iFrame. iSplitR; last by iExists _. 
           iExists _.
           iSplit => //.
           
-          iIntros (w0) "(-> & H & Hwimpcl5 & Hf & Ht & Ha)".
+          iIntros (w0) "(-> & H & Hwimpcl5 & Hf & Hall & Ht & Ha)".
           iDestruct "H" as (s') "[Hs Hs']".
           destruct s' ; first by iExFalso ; iExact "Hs'".
           iDestruct "Hs'" as "[-> Hs']".
           destruct s' ; first by iExFalso ; iExact "Hs'".
           iDestruct "Hs'" as "[-> Hs']".
           destruct s' ; last by iExFalso ; iExact "Hs'".
-          by instantiate (1 := λ x, ((⌜ x = immV _ ⌝ ∗ isStack _ _ ∗ N.of_nat idf5 ↦[wf] _ ∗ (N.of_nat idt) ↦[wt][_] _ ∗ N.of_nat f15 ↦[wf] _) ∗ ↪[frame] _)%I) ; iFrame.
+          by instantiate (1 := λ x, ((⌜ x = immV _ ⌝ ∗ isStack _ _ ∗ N.of_nat idf5 ↦[wf] _ ∗ (N.of_nat idt) ↦[wt][_] _ ∗ N.of_nat f15 ↦[wf] _) ∗ ↪[frame] _ ∗ ∃ _, interp_allocator _)%I) ; iFrame.
           }
           { iIntros "((%Habs & _) & _)"; by inversion Habs. }
         
-          iIntros (w0) "[(-> & Hs & Himpfcl5 & Ht & Hfsquare) Hf]".
+          iIntros (w0) "((-> & Hs & Himpfcl5 & Ht & Hfsquare) & Hf & Hall)".
           iSimpl.
           rewrite (separate3 (AI_basic _)).
           iApply wp_seq.
@@ -988,8 +988,8 @@ Proof.
         }
       }
       
-      
-      iIntros (w0) "(((Hf16 & Hvis8 & Himpfcl0 & Himpfcl4 & Himpfcl5 & Hmodtab & Himpidt & Hf15) & H) & Hf)".
+      iIntros (w0) "(((Hf16 & Hvis8 & Himpfcl0 & Himpfcl4 & Himpfcl5 & Hmodtab & Himpidt & Hf15) & Hall & H) & Hf)".
+      iDestruct "Hall" as (all0) "Hall".
       iDestruct "H" as "[[%k (-> & Hwg & Hs)] | [-> Hwg]]".
       simpl.
       iApply wp_call_host_modify_table ; last first.
@@ -1004,7 +1004,7 @@ Proof.
       iApply wp_lift_wasm.
       iApply (wp_frame_bind with "Hf"). done.
       iIntros "Hf".
-      iApply (wp_label_bind with "[Hf Hwg Himpfcl5 Himpfcl3 Hs Hwt Hf16 Hvis8]") ; last first.
+      iApply (wp_label_bind with "[Hf Hwg Himpfcl5 Himpfcl3 Hs Hwt Hf16 Hvis8 Hall]") ; last first.
       iPureIntro.
       unfold lfilled, lfill => //=.
       instantiate (5 := []) => //=.
@@ -1037,13 +1037,13 @@ Proof.
       rewrite app_nil_r.
       iApply wp_wasm_empty_ctx.
       simpl. 
-      iApply ("Hspec5" with "[Himpfcl5 Hf Hs Hf16 Hwt]"). iFrame.
+      iApply ("Hspec5" with "[Himpfcl5 Hf Hs Hf16 Hwt Hall]"). iFrame.
       repeat iSplit => //.
       instantiate (1 := λ x, ⌜ (0 <= (Wasm_int.Int32.intval x) < 65536%Z)%Z ⌝%I).
       done.
       
-      iIntros (u f) "!>".
-      iIntros (Φ) "(% & -> & Hf & Hwt & Hf16) HΦ".
+      iIntros (u f all1) "!>".
+      iIntros (Φ) "(% & -> & Hf & Hall & Hwt & Hf16) HΦ".
       rewrite (separate1 (AI_basic _)).
       iApply (wp_invoke_native with "Hf Hf16"). done.
       done. done.
@@ -1053,7 +1053,7 @@ Proof.
       rewrite - (app_nil_l [AI_basic _]).
       iApply (wp_block with "Hf") => //.
       iIntros "!> Hf".
-      iApply (wp_label_bind with "[Hf HΦ Hwt Hf16]") ; last first.
+      iApply (wp_label_bind with "[Hf HΦ Hwt Hf16 Hall]") ; last first.
       iPureIntro. unfold lfilled, lfill.
       instantiate (6 := []) => /=.
       by rewrite app_nil_r.
@@ -1080,7 +1080,7 @@ Proof.
       done. by instantiate (1 := λ x, ⌜ x = immV _ ⌝%I).
       iIntros (v) "[-> Hf]".
       iApply "HΦ".
-      iFrame. iExists _. iSplit ; first done.
+      iFrame. iSplitR; last by iExists _. iExists _. iSplit ; first done.
       unfold spec5_stack_map. 
       instantiate ( 1 := λ x y, ⌜ (Wasm_int.Int32.intval y = 2 * Wasm_int.Int32.intval x)%Z ⌝%I ).
       simpl. iPureIntro. 
@@ -1101,7 +1101,7 @@ Proof.
       instantiate (1 := λ x, (⌜ x = immV [] ⌝ ∗ _)%I).
       iSplitR ; first done.
       iExact "H".
-      iIntros (w0) "(-> & H & Himpfcl5 & Hf & Hwt & Hf16)".
+      iIntros (w0) "(-> & H & Himpfcl5 & Hf & Hall & Hwt & Hf16)".
       iDestruct "H" as (s') "[Hs Hs']".
       destruct s'; first by iExFalso ; iExact "Hs'".
       destruct s'; first iExFalso.
@@ -1236,12 +1236,13 @@ Proof.
       iIntros (v) "[-> Hf]".
       iApply iris_host.wp_value. done.
       iSplit => //.
-      iFrame "Hf".
+      iFrame "Hf Hall".
       iExists _, _.
       iFrame.
       iApply iris_host.wp_value. done.
       iSplit => //.
-      iFrame "Hf Hmod1 ". (* removed Hall *)
+      iFrame "Hf Hmod1 ".
+      iSplitL "Hall"; first by iExists _. 
       iExists _, _. by iFrame.
 Qed.
 

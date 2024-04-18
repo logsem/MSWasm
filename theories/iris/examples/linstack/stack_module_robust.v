@@ -88,8 +88,8 @@ Section RobustStack.
       tc_global := (ext_t_globs impts ++ gts)%list;
       tc_table := (ext_t_tabs impts ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
           tc_memory := (ext_t_mems impts ++ (mod_mems m))%list;
-          tc_segment := {| lim_min := 0; lim_max := None |} ; (* is this correct? *)
-          tc_allocator := ALL_type;
+(*          tc_segment := {| lim_min := 0; lim_max := None |} ; (* is this correct? *)
+          tc_allocator := ALL_type; *)
       tc_local := [];
       tc_label := [];
       tc_return := None

@@ -130,10 +130,11 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     { (* Case 1: segalloc failed: we trap safely *)
 
       iApply (wp_wand with "[Hf]"). iApply wp_seq_trap.
-      iFrame. iIntros "Hf". 
+      iFrame. iSplitR; last first. iIntros "Hf". 
 
       fold_const. iApply (wp_segstore_failure1 with "[$Hf]") => //.
-      by left.
+      by left. by instantiate (1 := λ x, ⌜ x = trapV ⌝%I).
+      by iIntros "!>" (?) "%".
       
       iIntros (w) "[-> Hf]".
       iApply "HΦ". iSplitL; last by iLeft. by iExists _. } 

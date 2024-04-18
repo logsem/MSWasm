@@ -404,11 +404,11 @@ Definition binary_of_global_type (g_ty : global_type) : list byte :=
 Definition binary_of_memory_type (m : memory_type) : list byte :=
   binary_of_limits m.
 
-Definition binary_of_segment_type (m : segment_type) : list byte :=
-  binary_of_limits m.
+(* Definition binary_of_segment_type (m : segment_type) : list byte :=
+  binary_of_limits m. 
 
 Definition binary_of_allocator_type (m : allocator_type) : list byte :=
-  [:: xd6].
+  [:: xd6]. *)
 
 Definition binary_of_import_desc (imp_desc : import_desc) : list byte :=
   match imp_desc with
@@ -438,11 +438,11 @@ Definition binary_of_tablesec (ts : list module_table) : list byte :=
 Definition binary_of_memsec (ms : list memory_type) : list byte :=
   x05 :: with_length (binary_of_vec binary_of_memory_type ms).
 
-Definition binary_of_segsec (ms : list segment_type) : list byte :=
+(*Definition binary_of_segsec (ms : list segment_type) : list byte :=
   xd3 :: with_length (binary_of_vec binary_of_segment_type ms).
 
 Definition binary_of_allsec (ms : list allocator_type) : list byte :=
-  xd4 :: with_length (binary_of_vec binary_of_allocator_type ms).
+  xd4 :: with_length (binary_of_vec binary_of_allocator_type ms). *)
 
 Definition binary_of_module_glob (g : module_glob) : list byte :=
   binary_of_global_type g.(modglob_type) ++

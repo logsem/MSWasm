@@ -500,16 +500,18 @@ Section stack.
           take_drop_app_rewrite 2.
           iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
           iApply wp_seq_trap. iFrame.
-          iIntros "Hf". iApply (wp_if_true with "[$]");auto.
+          iSplitR; last first. iIntros "Hf". iApply (wp_if_true with "[$]");auto.
           iNext. iIntros "Hf".
           take_drop_app_rewrite 0.
           iApply (wp_block with "[$]");auto.
           iNext. iIntros "Hf".
           build_ctx [AI_basic BI_unreachable].
           take_drop_app_rewrite 1.
-          iApply wp_seq_trap_ctx. iFrame. iIntros "Hf".
+          iApply wp_seq_trap_ctx.
+          iSplitR; first by iIntros "!>" (?) "%".
+          iFrame. iIntros "Hf".
           iApply (wp_unreachable with "[$]"). auto.
-          iIntros (v') "[-> Hf]".
+          by iIntros "!>" (?) "%". iIntros (v') "[-> Hf]".
           deconstruct_ctx.
           iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
           iApply (wp_label_trap with "[$]");eauto.

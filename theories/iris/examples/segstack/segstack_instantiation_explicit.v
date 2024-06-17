@@ -6,19 +6,21 @@ From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
 Require Export iris_host iris_fundamental_helpers segstack_specs.
 Require Export type_checker_reflects_typing.
-Require Export segstack_instantiation segstack_pop_robust iris_interp_instance_alloc. 
+Require Export segstack_instantiation segstack_pop_robust iris_interp_instance_alloc.
+
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-Section robust_instantiation.
+Section explicit_instantiation.
 
   Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ, cancelg: cancelG Σ, !cinvG Σ}.
 
   Set Bullet Behavior "Strict Subproofs".
 
-Lemma instantiate_stack_spec_robust `{!logrel_na_invs Σ} (s : stuckness) (E: coPset) (exp_addrs: list N) (stack_mod_addr : N) hl (* (hfs : list (hostfuncidx * function_type)) *):
+
+  Lemma instantiate_stack_spec_explicit `{!logrel_na_invs Σ} (s : stuckness) (E: coPset) (exp_addrs: list N) (stack_mod_addr : N) :
   length exp_addrs = 8 ->
   (* Knowing that we hold the stack module… *)
   stack_mod_addr ↪[mods] stack_module -∗
@@ -34,9 +36,9 @@ Lemma instantiate_stack_spec_robust `{!logrel_na_invs Σ} (s : stuckness) (E: co
                  stack_mod_addr ↪[mods] stack_module ∗ 
                   ∃ (idf0 idf1 idf2 idf3 idf4 idf5 idf6 idt : nat)
                     (name0 name1 name2 name3 name4 name5 name6 name7 : name)
-                    (f0 f1 f2 f3 f4 f5 f6 : list basic_instruction)
-                    (i0 : instance)
-                    (l0 l1 l2 l3 l4 l5 l6: list value_type)
+              (*      (f0 f1 f2 f3 f4 f5 f6 : list basic_instruction)
+(*                    (i0 : instance) *)
+                    (l0 l1 l2 l3 l4 l5 l6: list value_type) *)
                     tab 
                     (isStack : handle -> seq.seq i32 -> iPropI Σ),
                     (* Our exports are in the vis stated. Note that everything is 
@@ -46,6 +48,7 @@ Lemma instantiate_stack_spec_robust `{!logrel_na_invs Σ} (s : stuckness) (E: co
                        we only care about their spec (see next comment). This also
                        makes this lemma more readable than if we stated explicitely all
                        the codes of the functions *)
+                    let i0 := segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt in
                     let inst_vis := (map (λ '(name, idf),
                                                  {| modexp_name := name ;
                                                    modexp_desc := MED_func (Mk_funcidx idf)
@@ -56,19 +59,18 @@ Lemma instantiate_stack_spec_robust `{!logrel_na_invs Σ} (s : stuckness) (E: co
                                         ++ [ {| modexp_name := name7 ;
                                                 modexp_desc := MED_table (Mk_tableidx idt) |} ]
                     in let inst_map := (list_to_map (zip (fmap N.of_nat [idf0; idf1; idf2; idf3; idf4; idf5; idf6])
-                                                    [(FC_func_native i0 (Tf [] [T_handle]) l0 f0) ;
-                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l1 f1) ;
-                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l2 f2) ;
-                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l3 f3) ;
-                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) l4 f4) ;
-                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) l5 f5) ;
-                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) l6 f6)])) in
+                                                    [(FC_func_native i0 (Tf [] [T_handle]) [T_handle] new_stack) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) [] is_empty) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) [] is_full ) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) [T_i32] pop) ;
+                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) [T_i32] push) ;
+                                                     (FC_func_native i0 (Tf [T_handle; T_i32] []) [T_handle; T_i32] stack_map) ;
+                                                     (FC_func_native i0 (Tf [T_handle] [T_i32]) [] stack_length)])) in
                     (* These two import functions state that all [vis] and [wf] point 
                        to the correct exports/functions, i.e. a client will be able 
                        to successfully import them *)
-                       (∃ C, interp_instance C hl i0) ∗
                     import_resources_host exp_addrs inst_vis ∗
-                    import_resources_wasm_typecheck_invs inst_vis expts inst_map
+                    import_resources_wasm_typecheck_sepL2 inst_vis expts inst_map
                     (<[ N.of_nat idt := tab ]> ∅) 
                     ∅ ∅ ∗
                     ⌜ NoDup (modexp_desc <$> inst_vis) ⌝ ∗
@@ -77,24 +79,23 @@ Lemma instantiate_stack_spec_robust `{!logrel_na_invs Σ} (s : stuckness) (E: co
                     ⌜ length tab.(table_data) >= 1 ⌝ ∗
                     (* And finally we have specs for all our exports : *)
                     (* Spec for new_stack (call 0) *)
-                    spec0_new_stack idf0 i0 l0 f0 isStack E ∗
+                    spec0_new_stack idf0 i0 [T_handle] new_stack isStack E ∗
                     (* Spec for is_empty (call 1) *)
-                    spec1_is_empty idf1 i0 l1 f1 isStack E ∗
+                    spec1_is_empty idf1 i0 [] is_empty isStack E ∗
                     (* Spec for is_full (call 2) *)
-                    spec2_is_full idf2 i0 l2 f2 isStack E ∗
+                    spec2_is_full idf2 i0 [] is_full isStack E ∗
                     (* Spec for pop (call 3) *)
-                    spec3_pop idf3 i0 l3 f3 isStack E ∗
-(*                    (∀ hfs, interp_closure hfs (Tf [T_handle] [T_i32]) (FC_func_native i0 (Tf [T_handle] [T_i32]) l3 f3)) ∗  *)
+                    spec3_pop idf3 i0 [T_i32] pop isStack E ∗
                     (* Spec for push (call 4) *)
-                    spec4_push idf4 i0 l4 f4 isStack E ∗
+                    spec4_push idf4 i0 [T_i32] push isStack E ∗
                     (* Spec of stack_map (call 5) *)
-                    spec5_stack_map idf5 i0 l5 f5 isStack idt E ∗
-                    spec5_stack_map_trap idf5 i0 l5 f5 isStack idt E ∗
+                    spec5_stack_map idf5 i0 [T_handle; T_i32] stack_map isStack idt E ∗
+                    spec5_stack_map_trap idf5 i0 [T_handle; T_i32] stack_map isStack idt E ∗
                     (* Spec of stack_length (call 6) *)
-                    spec6_stack_length idf6 i0 l6 f6 isStack E
+                    spec6_stack_length idf6 i0 [] stack_length isStack E
              }}.
 Proof.
- move => Hexpaddrlen.
+  move => Hexpaddrlen.
   do 9 (destruct exp_addrs => //).
   iIntros "Hmod Hexps".
   iDestruct (own_vis_pointers_nodup with "Hexps") as "%Hnodupexp".
@@ -115,18 +116,17 @@ Proof.
       
   - iIntros (v) "(-> & Hinst)".
     unfold instantiation_resources_post.
-    Opaque list_to_map interp_instance. 
+    Opaque list_to_map. 
     iDestruct "Hinst" as "(Hmod & _ & (%inst & Himpwasm & Hexphost))".
     iSplitR => //.
     iFrame "Hmod".
     iDestruct "Himpwasm" as (g_inits t_inits m_inits gms wts wms) "(Himpwasm & %Hinst & -> & -> & %Hbound & -> & -> & %Hbound' & %Hginit & -> & Hwasm)".
-    destruct Hinst as (Hinsttype & Hpreff & Hpreft & Hprefm & Hprefg & Hstart).
+    destruct Hinst as (Hinsttype & _ & _ & _ & _ & Hstart).
     unfold module_inst_resources_wasm, module_export_resources_host => /=.
-    remember inst as inst' in Hnodupexp. destruct inst => /=.
+    destruct inst => /=.
     iDestruct "Hwasm" as "(Hwf & Hwt & Hwm & Hwg)".
     iDestruct (module_inst_resources_func_nodup with "Hwf") as "%Hnodupwf".
-    
-    unfold module_inst_resources_func, module_inst_resources_tab, module_inst_resources_mem => /=.
+    unfold module_inst_resources_func, module_inst_resources_tab, module_inst_resources_mem, module_inst_resources_glob => /=.
 
     simpl in Hinsttype; subst inst_types.
     
@@ -142,13 +142,14 @@ Proof.
     simpl in Himlen.
     unfold get_import_mem_count in * => /=; simpl in Himlen.
 
-    rewrite -> drop_0 in *.
-    do 7 (destruct inst_funcs; first done).
-    destruct inst_funcs; last done.
-    do 2 (destruct inst_tab => //).
-    do 2 (destruct inst_memory => //).
+    unfold get_import_global_count => /=.
+    rewrite -> drop_0 in *. repeat rewrite drop_0.
 
-    
+    do 8 (destruct inst_funcs => //).
+    do 2 (destruct inst_tab => //).
+    do 1 (destruct inst_memory => //).
+    destruct inst_globs; last done.
+
     iExists f, f0, f1, f2, f3, f4, f5, t.
 
     iSimpl in "Hexphost".
@@ -163,240 +164,73 @@ Proof.
     iDestruct "Hexp7" as (name7) "Hexp7".
     iExists name0, name1, name2, name3, name4, name5, name6, name7.
     
-    iExists _, _, _, _, _, _, _.
-    iExists _.
-    iExists _, _, _, _, _, _, _.
     iExists _.
 
     iExists isStack.
 
-(*    edestruct module_typing_body_eq as [H ?]. module_typing_body
-    destruct (H module_typing_stack) as (fts & gts & Hstack).
-    clear H. *)
-
-    iAssert ( module_inst_resources_wasm stack_module inst'
-              (module_inst_build_tables stack_module inst')
-              (module_inst_build_mems stack_module inst')
-              (module_inst_global_init
-                 (module_inst_build_globals (mod_globals stack_module)) g_inits))%I with "[Hwf Hwt Hwm Hwg]" as "Hwasm".
-    { subst inst'. iFrame. }
-    
-    iMod (interp_instance_alloc with "[] [] [] [] Himpwasm [Hwasm]") as "(Hi & _ & Hinvs1 & Hinvs2)".
-    + by apply module_typing_body_stack. 
-    + repeat split => //.
-    + by destruct Hginit as [? _].
-    + done. 
-    + done.
-    + done. 
-    + done.
-    + subst inst'. done.
-    + iSplitL "Hi".
-      { iExists _. iFrame "Hi". done. } 
-      
     iSplitL "Hexp0 Hexp1 Hexp2 Hexp3 Hexp4 Hexp5 Hexp6 Hexp7"; first by iFrame => /=.
     
-
-      iDestruct "Hinvs1" as "(Hwf & Hwt & Hwm & Hwg)".
     iDestruct "Hwf" as "(Hf & Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & _)".
     iDestruct "Hwt" as "(Ht & _)".
-(*    iDestruct "Hwm" as "(Hm & _)". *)
+    (*iDestruct "Hwm" as "(Hm & _)".
 
+    iDestruct "Hm" as "(Hmem & Hmemlength & Hmlim)". *)
     
     iSplitL "Hf Hf0 Hf1 Hf2 Hf3 Hf4 Hf5 Ht".
-    * unfold import_resources_wasm_typecheck_invs.
-      iModIntro. iSplitR "Ht". 
-      -- apply (NoDup_fmap_2 N.of_nat) in Hnodupwf.
-         inversion Hnodupwf as [| ?? Hf Hrestf].
-         inversion Hrestf as [| ?? Hf0 Hrestf0].
-         inversion Hrestf0 as [| ?? Hf1 Hrestf1].
-         inversion Hrestf1 as [| ?? Hf2 Hrestf2].
-         inversion Hrestf2 as [| ?? Hf3 Hrestf3].
-         inversion Hrestf3 as [| ?? Hf4 _].
-        Transparent list_to_map.  iSimpl.
-         unfold import_func_wasm_check_invs.
-         iSplitL.
-         ++ unfold import_func_nainv.
-            iApply big_sepM_insert.
-            { repeat (rewrite lookup_insert_ne; last by
-                        intros Habs; rewrite Habs in Hf;
-                      apply Hf; repeat ((by left) + right)).
-              done. }
-            iFrame "Hf".
-            iApply big_sepM_insert.
-            { repeat (rewrite lookup_insert_ne; last by 
-                 intro Habs; rewrite Habs in Hf0; 
-                apply Hf0; repeat ((by left) + right)).
-              done. }
-            iFrame "Hf0".
-            iApply big_sepM_insert.
-            { repeat (rewrite lookup_insert_ne; last by
-                        intro Habs; rewrite Habs in Hf1; 
-                      apply Hf1; repeat ((by left) + right)).
-              done. }
-            iFrame "Hf1".
-            iApply big_sepM_insert.
-            { repeat (rewrite lookup_insert_ne; last by
-                        intro Habs; rewrite Habs in Hf2; 
-                      apply Hf2 ; repeat ((by left) + right)).
-              done. }
-            iFrame "Hf2".
-            iApply big_sepM_insert.
-            { repeat (rewrite lookup_insert_ne; last by
-                        intro Habs; rewrite Habs in Hf3; 
-                      apply Hf3 ; repeat ((by left) + right)).
-              done. }
-            iFrame "Hf3".
-            iApply big_sepM_insert.
-            { repeat (rewrite lookup_insert_ne; last by
-                        intro Habs; rewrite Habs in Hf4; 
-                      apply Hf4; repeat ((by left) + right)).
-              done. }
-            iFrame "Hf4".
-            iApply big_sepM_insert; first done.
-            iFrame "Hf5". done.
-         ++ iSplitR.
-            unfold func_domcheck.
-            by repeat rewrite dom_insert.
-            iPureIntro.
-            unfold func_typecheck.
-            constructor => /=.
-            { eexists. rewrite lookup_insert. done. }
-            constructor => /=.
-            { eexists.
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf;
-                apply Hf; repeat ((by left) + right).
-              rewrite lookup_insert.
-              done. } 
-            constructor => /=.
-            { eexists.
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf;
-                apply Hf; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf0;
-                apply Hf0; repeat ((by left) + right).
-              rewrite lookup_insert.
-              done. }
-            constructor => /=.
-            { eexists.
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf;
-                apply Hf; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf0;
-                apply Hf0; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf1;
-                apply Hf1; repeat ((by left) + right).
-              rewrite lookup_insert.
-              done.
-            }
-               constructor => /=.
-            { eexists.
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf;
-                apply Hf; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf0;
-                apply Hf0; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf1;
-                apply Hf1; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf2;
-                apply Hf2; repeat ((by left) + right).
-              rewrite lookup_insert.
-              done.
-            }
-                  constructor => /=.
-            { eexists.
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf;
-                apply Hf; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf0;
-                apply Hf0; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf1;
-                apply Hf1; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf2;
-                apply Hf2; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf3;
-                apply Hf3; repeat ((by left) + right).
-              rewrite lookup_insert.
-              done.
-            }
-                       constructor => /=.
-            { eexists.
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf;
-                apply Hf; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf0;
-                apply Hf0; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf1;
-                apply Hf1; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf2;
-                apply Hf2; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf3;
-                apply Hf3; repeat ((by left) + right).
-              rewrite lookup_insert_ne;
-                last by intro Habs; rewrite Habs in Hf4;
-                apply Hf4; repeat ((by left) + right).
-              rewrite lookup_insert.
-              done.
-            }
-            constructor => /=.
-            done.
-            constructor.
-      -- iSplitL.
-         { iSplitL. unfold import_tab_nainv. iApply big_sepM_insert.
-           done. iFrame. done.
-           iPureIntro. split. unfold tab_domcheck. rewrite dom_insert. done.
-           unfold tab_typecheck. repeat (constructor => //=).
-           eexists _,_. rewrite lookup_insert. done. }
-         iSplit.
-         iSplit. by unfold import_mem_nainv. iPureIntro. split. done.
-         repeat (constructor => //).
-         iSplit. by unfold import_glob_nainv. iPureIntro. split. done.
-         repeat (constructor => //).
-    * iSplitR.
-      --  iPureIntro.
-          eapply (NoDup_fmap_2 (λ x, (MED_func (Mk_funcidx x)))) in Hnodupwf.
-          simpl in Hnodupwf.
-          rewrite separate7.
-          apply NoDup_app; split => //.
-          split => //; last by apply NoDup_singleton.
-          by set_solver+.
-      -- Unshelve.
-         2:{ move => x y Heq. by inversion Heq. }
-         iSplitR => //.
-         
-         iSplitR; first by iPureIntro => /=; lia.
-         
+    + unfold import_resources_wasm_typecheck_sepL2.
+      iSplitR.
+      * unfold import_resources_wasm_domcheck.
+        by repeat rewrite dom_insert.
+      * simpl.
+        apply (NoDup_fmap_2 N.of_nat) in Hnodupwf.
+        iSplitL "Hf";
+          last iSplitL "Hf0"; 
+          last iSplitL "Hf1"; 
+          last iSplitL "Hf2"; 
+          last iSplitL "Hf3"; 
+          last iSplitL "Hf4"; 
+          last iSplitL "Hf5";
+          last first.
+        { iModIntro; iSplit => //.
+          iExists _, _.
+          iFrame.
+          rewrite lookup_insert.
+          iPureIntro.
+          by split => //. }
+        all: (iExists _; iFrame; rewrite - elem_of_list_to_map => //=; iPureIntro; split => //; apply elem_of_list_In; repeat ((try by left); right)).
+    + Transparent list_to_map.
+      iSplitR.
+      * iPureIntro.
+        eapply (NoDup_fmap_2 (λ x, (MED_func (Mk_funcidx x)))) in Hnodupwf.
+        simpl in Hnodupwf.
+        rewrite separate7.
+        apply NoDup_app; split => //.
+        split => //; last by apply NoDup_singleton.
+        by set_solver+.
+      * Unshelve.
+        2:{ move => x y Heq. by inversion Heq. }
+        iSplitR => //.
         
-         (* Proving the parametric spec of each function in the post condition *)
-         repeat iSplitR.
-         ++ iIntros "!>" (fr Φ) "!> (Hf & Hwf) HΦ".
-            iApply wp_wand_r.
-            iSplitR "HΦ".
-            ** rewrite - (app_nil_l [AI_invoke f]).
-               iApply (wp_invoke_native with "Hf Hwf") => //.
-               iIntros "!> [Hf Hf0]".
-               iSimpl.
-               iApply (wp_frame_bind with "Hf").
-               unfold iris.to_val => //=.
-               iIntros "Hf".
-               rewrite - (app_nil_l [AI_basic _]).
-               iApply (wp_block with "Hf") => //.
-               iIntros "!> Hf".
-               iApply (wp_label_bind with "[Hf Hf0]") ; last first.
+        iSplitR; first by iPureIntro => /=; lia.
+        
+        (* iSplitL "Hmemlength" ; first done. *)
+        
+        (* Proving the parametric spec of each function in the post condition *)
+        repeat iSplitR.
+        -- iIntros "!>" (fr Φ) "!> (Hf & Hwf) HΦ".
+           iApply wp_wand_r.
+           iSplitR "HΦ".
+           ++ rewrite - (app_nil_l [AI_invoke f]).
+              iApply (wp_invoke_native with "Hf Hwf") => //.
+              iIntros "!> [Hf Hf0]".
+              iSimpl.
+              iApply (wp_frame_bind with "Hf").
+              unfold iris.to_val => //=.
+              iIntros "Hf".
+              rewrite - (app_nil_l [AI_basic _]).
+              iApply (wp_block with "Hf") => //.
+              iIntros "!> Hf".
+              iApply (wp_label_bind with "[Hf Hf0]") ; last first.
               iPureIntro.
               unfold lfilled, lfill => /=.
               instantiate (5 := []) => /=.
@@ -424,8 +258,8 @@ Proof.
                                              Tf [T_handle; T_i32] []; Tf [T_i32] [T_i32]];
                                           inst_funcs := [f; f0; f1; f2; f3; f4; f5];
                                           inst_tab := [t];
-                                          inst_memory := [m];
-                                          inst_globs := inst_globs
+                                          inst_memory := [];
+                                          inst_globs := []
                                         |} (Tf [] [T_handle]) [T_handle] new_stack ∗  ↪[frame]f6)%I).
               (*              instantiate (1 := (λ v, ((⌜ v = immV _ ⌝)%I ∨ ((∃ k, ⌜ v = immV [value_of_uint k]⌝ ∗ ⌜ (0 <= k <= ffff0000)%N⌝ ∗ isStack k [] m ∗ N.of_nat m↦[wmlength](N.of_nat addr + page_size)%N))) ∗ N.of_nat f↦[wf] _ ∗ ↪[frame] f6 )%I). *)
               iApply wp_value => //. iFrame.
@@ -455,18 +289,18 @@ Proof.
                                               Tf [T_handle; T_i32] []; Tf [T_i32] [T_i32]];
                                            inst_funcs := [f; f0; f1; f2; f3; f4; f5];
                                            inst_tab := [t];
-                                           inst_memory := [m];
-                                           inst_globs := inst_globs
+                                           inst_memory := [];
+                                           inst_globs := []
                                          |} (Tf [] [T_handle]) [T_handle] new_stack)%I)).
               iFrame. 
-           ** iIntros (w) "[[H Hf0] Hf]".
+           ++ iIntros (w) "[[H Hf0] Hf]".
               iApply "HΦ".
               iFrame.
 
-        ++ iIntros "!>" (v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Hlen & %Hdiv & Hlen) HΦ".
+        -- iIntros "!>" (v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Hlen & %Hdiv & Hlen) HΦ".
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ** rewrite (separate1 (AI_handle (_)) _).
+           ++ rewrite (separate1 (AI_handle (_)) _).
               rewrite - (app_nil_r [AI_handle _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -518,16 +352,16 @@ Proof.
               iFrame.
               iExists k.
               done. 
-           ** iIntros (w) "[(H & Hs & Hf0) Hf]".
+           ++ iIntros (w) "[(H & Hs & Hf0) Hf]".
               iDestruct "H" as (k) "%Hk".
               iApply "HΦ".
               iFrame.
               by iExists _.
               
-        ++ iIntros "!>" (v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Hlen & %Hdiv & Hlen) HΦ".
+        -- iIntros "!>" (v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Hlen & %Hdiv & Hlen) HΦ".
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ** rewrite (separate1 (AI_handle ( _)) _).
+           ++ rewrite (separate1 (AI_handle ( _)) _).
               rewrite - (app_nil_r [AI_handle _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -578,15 +412,15 @@ Proof.
               iSimpl.
               iFrame.
               iExists k. done.
-           ** iIntros (w) "[(H & Hs & Hf0) Hf]".
+           ++ iIntros (w) "[(H & Hs & Hf0) Hf]".
               iDestruct "H" as (k) "%Hk".
               iApply "HΦ".
               iFrame.
               by iExists _.
-        ++ iIntros "!>" (a v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Ha & Hs) HΦ". 
+        -- iIntros "!>" (a v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Ha & Hs) HΦ". 
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ** rewrite (separate1 (AI_handle ( _)) _).
+           ++ rewrite (separate1 (AI_handle ( _)) _).
               rewrite - (app_nil_r [AI_handle _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -637,13 +471,13 @@ Proof.
               iSimpl.
               iFrame.
               done.
-           ** iIntros (w) "[(-> & Hs & Hf0) Hf]".
+           ++ iIntros (w) "[(-> & Hs & Hf0) Hf]".
               iApply "HΦ".
               by iFrame.
-        ++ iIntros "!>" (a v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Ha & %Hlen & Hs) HΦ".
+        -- iIntros "!>" (a v0 s0 vs Φ) "!> (Hf & Hf0 & %H & %Ha & %Hlen & Hs) HΦ".
            iApply wp_wand_r.
            iSplitR "HΦ".
-           ** rewrite (separate2 (AI_handle ( _)) _ _).
+           ++ rewrite (separate2 (AI_handle ( _)) _ _).
               rewrite - (app_nil_r [AI_basic _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -694,14 +528,14 @@ Proof.
               iFrame.
               iFrame.
               done. 
-           ** iIntros (w) "[(-> & Hs & Hf0) Hf]".
+           ++ iIntros (w) "[(-> & Hs & Hf0) Hf]".
               iApply "HΦ".
               by iFrame.
-        ++ iIntros "!>" (f6 fi v0 s0 a cl Φ Ψ all Ξ)
+        -- iIntros "!>" (f6 fi v0 s0 a cl Φ Ψ all Ξ)
              "!> (Hf & Hall & Hf0 & Hs & HΦ & Htab & Hcl & %Hclt & #Hspec) HΞ".
            iApply wp_wand_r.
            iSplitR "HΞ".
-           ** rewrite (separate2 (AI_handle (_)) _ _).
+           ++ rewrite (separate2 (AI_handle (_)) _ _).
               rewrite - (app_nil_r [AI_basic _]).
               iApply (wp_invoke_native with "Hf Hf0") => //.
               iIntros "!> [Hf Hf0]".
@@ -731,7 +565,6 @@ Proof.
               iApply wp_value => //=.
               unfold IntoVal.
               apply of_to_val => //.
-              iFrame.
               instantiate (1 := λ v, (⌜ v = immV [] ⌝ ∗
                                               ( ∃ s', isStack v0 s' ∗ stackAll2 s0 s' Ψ) ∗
                                               N.of_nat f4↦[wf] _ ∗ ↪[frame] _ )%I).
@@ -745,66 +578,69 @@ Proof.
               iSimpl.         
               iApply (wp_frame_value with "Hf") => //.
               iNext.
-              instantiate (1 := λ v, (⌜ v = immV [] ⌝ ∗ (∃ all', interp_allocator all') ∗
+              instantiate (1 := λ v, (⌜ v = immV [] ⌝ ∗
                                               ( ∃ s', isStack v0 s' ∗ stackAll2 s0 s' Ψ) ∗
                                               N.of_nat t↦[wt][N.of_nat (Wasm_int.nat_of_uint i32m fi)]Some a ∗
                                               N.of_nat a↦[wf]cl ∗
-                                              N.of_nat f4↦[wf] _)%I).
+                                              N.of_nat f4↦[wf] _ ∗
+                                              (∃ _, interp_allocator _)
+                                     )%I).
               iSimpl.
               iFrame.
-              iFrame.
               done. 
-           ** iIntros (w) "[(-> & Hall & Hs & Ht & Ha & Hf0) Hf]".
+           ++ iIntros (w) "[(-> & Hs & Ht & Ha & Hf0 & Hall) Hf]".
               iApply "HΞ".
               by iFrame.
         (* Trap spec *)  
-        ++ iIntros "!>" (f6 fi v0 s0 a cl γ Φ Ψ all Hsub Hsub2 Ξ)
-             "!> (#Hf6 & Hs & HΦ & #Htab & #Hcl & Hown & Hf0 & Hall) HΞ".
+        -- iIntros "!>" (f6 fi v0 s0 a cl γ Φ Ψ all Hsub Hsub2 Ξ)
+             "!> (#Hf & Hs & HΦ & #Htab & #Hcl & Hown & Hf0 & Hall) HΞ".
            iApply wp_wand_r.
            iSplitR "HΞ".
-           ** iApply fupd_wp.
-              iMod (na_inv_acc with "Hf6 Hown") as "(>Hf5 & Hown & Hcls0)".
+           ++ iApply fupd_wp.
+              iMod (na_inv_acc with "Hf Hown") as "(>Hf5 & Hown & Hcls0)".
               done. solve_ndisj.
               iModIntro.
+
               rewrite (separate2 (AI_handle ( _)) _ _).
               rewrite - (app_nil_r [AI_basic _]).
               iApply (wp_invoke_native with "Hf0 Hf5") => //.
-              iIntros "!> [Hf Hf0]".
+              iIntros "!> [Hf0 Hf5]".
               iSimpl.
-              
+
               iApply fupd_wp.
-              iMod ("Hcls0" with "[$Hf0 $Hown]") as "Hown".
+              iMod ("Hcls0" with "[$Hf5 $Hown]") as "Hown".
               iModIntro. 
 
-              iApply (wp_frame_bind with "Hf").
-              done. iIntros "Hf".
+              
+              iApply (wp_frame_bind with "Hf0").
+              done. iIntros "Hf0".
               rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
-              iApply (wp_block with "Hf") => //.
-              iIntros "!> Hf".
-              iApply (wp_label_bind with "[Hs Hf HΦ Htab Hown Hall]") ; last first.
+              iApply (wp_block with "Hf0") => //.
+              iIntros "!> Hf0".
+              iApply (wp_label_bind with "[Hs Hf0 HΦ Htab Hown Hall]") ; last first.
               iPureIntro.
               unfold lfilled, lfill => /=.
               instantiate (5 := []) => /=.
               rewrite app_nil_r.
               done.
               iApply (spec_stack_map_trap _ _ v0 s0 _ _ _ Φ Ψ
-                       with "[Hs Hf HΦ Htab Hown Hall]");[apply Hsub|..].
+                       with "[Hs Hf0 HΦ Htab Hown Hall]");[apply Hsub|..].
               iFrame "∗ #".
               repeat iSplit ; try iPureIntro => //=.
               lia. iFrame "Hcl".
-              iIntros (w) "([-> | Hs] & Hf & Hall)";
-                iDestruct "Hf" as (f7) "[Hf [Hown %Hf4]]".
-              --- iApply (wp_wand_ctx with "[Hf]").
+              iIntros (w) "([-> | Hs] & Hf0 & Hall)";
+                iDestruct "Hf0" as (f7) "(Hf0 & Hown & %Hf4)".
+              ** iApply (wp_wand_ctx with "[Hf0]").
                  iSimpl. take_drop_app_rewrite_twice 0 0.
                  iApply wp_trap_ctx;auto.
-                 iIntros (v1) "[-> Hf]".
-                 iExists _. iFrame. iIntros "Hf".
-                 iApply (wp_frame_trap with "Hf").
-                 instantiate (1:=(λ v, (⌜v = trapV⌝ ∨ ⌜ v = immV [] ⌝ ∗ _) ∗ (∃ all', interp_allocator all') ∗ na_own logrel_nais ⊤)%I). iNext. iFrame.  eauto.
-              --- iDestruct "Hs" as "[-> Hs]".
-                 iApply (wp_wand_ctx with "[Hs Hf]").
-                 iApply (wp_val_return with "Hf") => //.
-                 iIntros "Hf".
+                 iIntros (v1) "[-> Hf0]".
+                 iExists _. iFrame. iIntros "Hf0".
+                 iApply (wp_frame_trap with "Hf0").
+                 instantiate (1:=(λ v, (⌜v = trapV⌝ ∨ ⌜ v = immV [] ⌝ ∗ _) ∗ na_own logrel_nais ⊤ ∗ (∃ all', interp_allocator all'))%I). iNext. iFrame.  eauto.
+              ** iDestruct "Hs" as "[-> Hs]".
+                 iApply (wp_wand_ctx with "[Hs Hf Hf0]").
+                 iApply (wp_val_return with "Hf0") => //.
+                 iIntros "Hf0".
                  iSimpl.
                  iApply wp_value => //=.
                  unfold IntoVal.
@@ -816,27 +652,27 @@ Proof.
                  iSimpl.
                  iFrame.
                  done.
-                 iIntros (w) "(-> & H & Hf)".
+                 iIntros (w) "(-> & H &  Hf0)".
                  iExists _.
                  iFrame.
-                 iIntros "Hf".
+                 iIntros "Hf0".
                  iSimpl.         
-                 iApply (wp_frame_value with "Hf") => //.
+                 iApply (wp_frame_value with "Hf0") => //.
                  iNext. iRight.
                  instantiate (1 :=  (( ∃ s', isStack v0 s' ∗ stackAll2 s0 s' Ψ) (* ∗
                                        N.of_nat f4↦[wf] _ *) )%I).
                  iSimpl. iSplitR;[done|].
                  iFrame. 
 
-           ** iSimpl.
-              iIntros (w) "[([-> | (-> & Hs)] & Hall & Hown) Hf]".
+           ++ iSimpl.
+              iIntros (w) "[([-> | (-> & Hs)] & Hown & Hall) Hf0]".
               all: try iApply "HΞ";iFrame. by iLeft.
               iRight. iSplit;auto. 
-        ++ (* length spec *)
+        -- (* length spec *)
           iIntros "!>" (v0 s0 f6 len Φ) "!> (Hf & Hf0 & %Hret & Hs) HΦ".
           iApply wp_wand_r.
           iSplitR "HΦ".
-          ** rewrite (separate1 (AI_handle (_)) _).
+          ++ rewrite (separate1 (AI_handle (_)) _).
              rewrite - (app_nil_r [AI_handle _]).
              iApply (wp_invoke_native with "Hf Hf0") => //.
              iIntros "!> [Hf Hf0]".
@@ -881,9 +717,10 @@ Proof.
              iSimpl.
              iFrame.
              done. 
-          ** iIntros (w) "[(-> & Hs & Hf0) Hf]".
+          ++ iIntros (w) "[(-> & Hs & Hf0) Hf]".
              iApply "HΦ".
              by iFrame.
 Qed.
+
   
-End robust_instantiation.
+End explicit_instantiation.

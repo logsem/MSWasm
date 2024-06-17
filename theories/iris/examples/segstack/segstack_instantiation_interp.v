@@ -204,6 +204,9 @@ Section StackModule.
       (* iExists (λ n, (N.of_nat m↦[wmlength] N.of_nat n)%I). *)
 
       iSplitL "Hexp0 Hexp1 Hexp2 Hexp3 Hexp4 Hexp5 Hexp6 Hexp7"; first by iFrame => /=.
+
+  Admitted.
+  (* 
       
       iDestruct "Hwf" as "(Hf & Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & _)".
       iDestruct "Hwt" as "(Ht & _)".
@@ -288,7 +291,7 @@ Section StackModule.
         Transparent zip_with.
         simpl.
         repeat (iSplitR => //; first (iSplit => //; iIntros "!>!>")).
-        Admitted. 
+        Admitted.  *)
 (*        * iApply (valid_new_stack with "Hstk'").
         * iApply (valid_is_empty with "Hstk'").
         * iApply (valid_is_full with "Hstk'").

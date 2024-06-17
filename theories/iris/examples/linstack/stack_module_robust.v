@@ -253,7 +253,7 @@ Section RobustStack.
         apply mod_imps_len_t in Htyp as Hcount.
         destruct Htyp as [fts [gts Htyp]]. simplify_eq.
         simpl in *. destruct H as [? [? [? [? [? ?]]]]].
-        iMod (interp_instance_alloc with "[] [] [] [] Himpres Hres") as "[#Hi [Hres Himpres]]";[apply Htyp|auto|auto|..].
+        iMod (interp_instance_alloc with "[] [] [] [] Himpres Hres") as "(#Hi & _ & Hres & Himpres)";[apply Htyp|auto|auto|..].
         { instantiate (1:=[]). iFrame "Hinterp". }
         1,2,3: by iApply big_sepM_empty. 
         iModIntro.

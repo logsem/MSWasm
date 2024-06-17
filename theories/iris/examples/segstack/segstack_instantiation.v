@@ -5,7 +5,7 @@ From iris.base_logic Require Export gen_heap ghost_map proph_map na_invariants.
 From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
 Require Export iris_host iris_fundamental_helpers segstack_specs.
-Require Export type_checker_reflects_typing.
+Require Export type_checker_reflects_typing iris_interp_instance_alloc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -76,7 +76,7 @@ Definition stack_module :=
     mod_tables := [ {| modtab_type := {| tt_limits := {| lim_min := 1%N ; lim_max := None |} ;
                                         tt_elem_type := ELT_funcref |} |} ] ;
     mod_mems := [
-      {| lim_min := 0%N ; lim_max := None |}
+(*      {| lim_min := 0%N ; lim_max := None |} *)
     ] ;
     mod_globals := [] ;
     mod_elem := [] ;
@@ -186,7 +186,7 @@ Lemma new_stack_typing tt tf :
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := [T_handle];
@@ -205,7 +205,7 @@ Lemma is_empty_typing tt tf tloc tlab tret:
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := tloc;
@@ -227,7 +227,7 @@ Lemma is_full_typing tt tf tlab tret:
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := [T_handle];
@@ -247,7 +247,7 @@ Lemma pop_typing tt tf tlab tret:
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := [T_handle; T_i32];
@@ -268,7 +268,7 @@ Lemma push_typing tt tf tlab tret:
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := [T_handle; T_i32; T_i32];
@@ -297,7 +297,7 @@ Lemma stack_map_typing tf:
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := [T_handle; T_i32; T_handle; T_i32];
@@ -328,7 +328,7 @@ Lemma stack_length_typing tt tf tlab tret:
       tc_func_t := tf;
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
-      tc_memory := [ {| lim_min := 0; lim_max := None |}];
+      tc_memory := [ (* {| lim_min := 0; lim_max := None |} *) ];
 (*         tc_segment := {| lim_min := 0; lim_max := None |};
       tc_allocator := ALL_type; *)
       tc_local := [T_handle];
@@ -341,11 +341,9 @@ Proof.
   apply/b_e_type_checker_reflects_typing => /=; by apply/eqP.
 Qed.
 
-Lemma module_typing_stack :
-  module_typing stack_module [] expts.
+Lemma module_typing_body_stack :
+  module_typing_body stack_module [] expts func_types [].
 Proof.
-  unfold module_typing => /=. 
-  exists func_types, [].
   repeat split => //.
   repeat (apply Forall2_cons ; repeat split => //) => /=.
   - by apply new_stack_typing.
@@ -359,13 +357,21 @@ Proof.
     repeat (apply Forall2_cons ; repeat split => //) => //=.
 Qed.
 
+Lemma module_typing_stack :
+  module_typing stack_module [] expts.
+Proof.
+  apply module_typing_body_eq.
+  eexists _,_.
+  by apply module_typing_body_stack.
+Qed. 
 
-Definition stack_instance idfs m t :=
+
+Definition segstack_instance idfs t (* m  *) :=
   {|
-    inst_types := [Tf [] [T_i32] ; Tf [T_i32] [T_i32] ; Tf [T_i32 ; T_i32] []] ;
+    inst_types := [Tf [] [T_handle] ; Tf [T_handle] [T_i32] ; Tf [T_handle ; T_i32] []; Tf [T_i32] [T_i32]] ;
     inst_funcs := idfs ;
     inst_tab := [t] ;
-    inst_memory := [m] ;
+    inst_memory := [(* m *) ] ;
     inst_globs := []
   |}.
 
@@ -698,7 +704,7 @@ Proof.
 
     do 8 (destruct inst_funcs => //).
     do 2 (destruct inst_tab => //).
-    do 2 (destruct inst_memory => //).
+    do 1 (destruct inst_memory => //).
     iExists f, f0, f1, f2, f3, f4, f5, t.
 
     iSimpl in "Hexphost".
@@ -724,9 +730,9 @@ Proof.
     
     iDestruct "Hwf" as "(Hf & Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & _)".
     iDestruct "Hwt" as "(Ht & _)".
-    iDestruct "Hwm" as "(Hm & _)".
+    (* iDestruct "Hwm" as "(Hm & _)".
 
-    iDestruct "Hm" as "(Hmem & Hmemlength & Hmlim)".
+    iDestruct "Hm" as "(Hmem & Hmemlength & Hmlim)". *)
     
     iSplitL "Hf Hf0 Hf1 Hf2 Hf3 Hf4 Hf5 Ht".
     + unfold import_resources_wasm_typecheck_sepL2.
@@ -810,7 +816,7 @@ Proof.
                                              Tf [T_handle; T_i32] []; Tf [T_i32] [T_i32]];
                                           inst_funcs := [f; f0; f1; f2; f3; f4; f5];
                                           inst_tab := [t];
-                                          inst_memory := [m];
+                                          inst_memory := [];
                                           inst_globs := inst_globs
                                         |} (Tf [] [T_handle]) [T_handle] new_stack ∗  ↪[frame]f6)%I).
               (*              instantiate (1 := (λ v, ((⌜ v = immV _ ⌝)%I ∨ ((∃ k, ⌜ v = immV [value_of_uint k]⌝ ∗ ⌜ (0 <= k <= ffff0000)%N⌝ ∗ isStack k [] m ∗ N.of_nat m↦[wmlength](N.of_nat addr + page_size)%N))) ∗ N.of_nat f↦[wf] _ ∗ ↪[frame] f6 )%I). *)
@@ -841,7 +847,7 @@ Proof.
                                               Tf [T_handle; T_i32] []; Tf [T_i32] [T_i32]];
                                            inst_funcs := [f; f0; f1; f2; f3; f4; f5];
                                            inst_tab := [t];
-                                           inst_memory := [m];
+                                           inst_memory := [];
                                            inst_globs := inst_globs
                                          |} (Tf [] [T_handle]) [T_handle] new_stack)%I)).
               iFrame. 

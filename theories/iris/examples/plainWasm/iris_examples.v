@@ -6,7 +6,7 @@ From iris.base_logic.lib Require Export fancy_updates.
 From iris.bi Require Export weakestpre.
 Require Export iris iris_locations iris_properties iris_atomicity stdpp_aux.
 Require Export iris_rules.
-Require Export datatypes operations properties opsem.
+Require Export datatypes operations properties opsem proofmode.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -17,20 +17,18 @@ Close Scope byte_scope.
 (* Example Programs *)
 Section Examples.
 
-  (* Uncomment when ready to deal with AI_const *)
-  (*
-
-
+ 
 Context `{!wasmG Σ, HHB: HandleBytes}.
 
 Definition xx i := (NVAL_int32 (Wasm_int.int_of_Z i32m i)).
+Definition xxv i := (VAL_int32 (Wasm_int.int_of_Z i32m i)).
 Definition xb b := (NVAL_int32 (wasm_bool b)).
 
 Let expr := iris.expr.
 
 Definition my_add : expr :=
-  [AI_basic (BI_immediate (xx 3));
-     AI_basic (BI_immediate (xx 2));
+  [AI_const (xxv 3);
+     AI_const (xxv 2);
   AI_basic (BI_binop T_i32 (Binop_i BOI_add))].
 
 Lemma myadd_spec (s : stuckness) (E : coPset) (Φ: val -> iProp Σ) (f0: frame): 
@@ -42,23 +40,23 @@ Qed.
 
 (* An example to show framing from the stack. *)
 Definition my_add2: expr :=
-  [AI_const (xx 1);
-  AI_const (xx 2);
+  [AI_const (xxv 1);
+  AI_const (xxv 2);
   AI_basic (BI_binop T_i32 (Binop_i BOI_add));
-  AI_const (xx 2);
+  AI_const (xxv 2);
   AI_basic (BI_binop T_i32 (Binop_i BOI_add))].
 
 Lemma myadd2_spec (s : stuckness) (E : coPset) (Φ: val -> iProp Σ) f0:
-  ↪[frame] f0 -∗ Φ (immV [xx 5]) -∗ WP my_add2 @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
+  ↪[frame] f0 -∗ Φ (immV [xxv 5]) -∗ WP my_add2 @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
 Proof.
   iIntros "Hf0 HΦ".
   replace my_add2 with (take 3 my_add2 ++ drop 3 my_add2) => //.
   iApply wp_seq => /=.
-  instantiate (1 := fun v => (⌜ v = immV [xx 3] ⌝ ∗ ↪[frame] f0)%I ).
+  instantiate (1 := fun v => (⌜ v = immV [xxv 3] ⌝ ∗ ↪[frame] f0)%I ).
   iSplitL ""; first by iIntros "(%H & ?)".
-  iSplitL "Hf0"; first by iApply (wp_binop with "[$]") => //.
+  iSplitL "Hf0"; first by fold_const; iApply (wp_binop with "[$]") => //.
   iIntros (?) "(-> & Hf0)" => /=.
-  by iApply (wp_binop with "[$]").
+  fold_const; by iApply (wp_binop with "[$]").
 Qed.
 
 (* --------------------------------------------------------------------------------------------- *)
@@ -105,7 +103,7 @@ Lemma label_check_easy f0:
   ↪[frame] f0
   ⊢ WP [::AI_basic
          (BI_block (Tf [] [T_i32;T_i32])
-            [::BI_immediate (xx 2); BI_immediate (xx 3)] )] {{ λ v, ⌜v = immV [xx 2;xx 3]⌝ ∗ ↪[frame] f0}}.
+            [::BI_const (xx 2); BI_const (xx 3)] )] {{ λ v, ⌜v = immV [xxv 2;xxv 3]⌝ ∗ ↪[frame] f0}}.
 Proof.
   rewrite -iRewrite_nil_l.
   iIntros "Hf0"; iApply (wp_block with "[$]");eauto. iNext.
@@ -121,7 +119,7 @@ Lemma label_check_easy' f0 :
   ⊢ WP [::AI_basic
          (BI_block (Tf [] [T_i32;T_i32])
                    [:: (BI_block (Tf [] [T_i32;T_i32])
-                                [::BI_const (xx 2); BI_const (xx 3)] )] )] {{ λ v, ⌜v = immV [xx 2;xx 3]⌝ ∗ ↪[frame] f0 }}.
+                                [::BI_const (xx 2); BI_const (xx 3)] )] )] {{ λ v, ⌜v = immV [xxv 2;xxv 3]⌝ ∗ ↪[frame] f0 }}.
 Proof.
   rewrite -iRewrite_nil_l.
   iIntros "Hf0".
@@ -130,7 +128,7 @@ Proof.
   iApply wp_wasm_empty_ctx.
   iApply wp_label_push_nil. simpl.
   iApply iRewrite_nil_r_ctx.
-  iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xx 2; xx 3]⌝ ∗ ↪[frame] f0)%I).
+  iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xxv 2; xxv 3]⌝ ∗ ↪[frame] f0)%I).
   iSplitR; [by iIntros "[%Hcontr _]"|].
   iSplitL "Hf0"; first by iApply label_check_easy.
   iIntros (w) "(-> & Hf0)". simpl.
@@ -144,7 +142,7 @@ Lemma br_check_bind_return f0 :
   ⊢ WP [::AI_basic
          (BI_block (Tf [] [T_i32])
          [:: BI_block (Tf [] [])
-            [::BI_const (xx 3); BI_br 1] ])] {{ λ v, ⌜v = immV [xx 3]⌝ ∗ ↪[frame] f0}}.
+            [::BI_const (xx 3); BI_br 1] ])] {{ λ v, ⌜v = immV [xxv 3]⌝ ∗ ↪[frame] f0}}.
 Proof.
   iIntros "Hf".
   iApply iRewrite_nil_l.
@@ -169,7 +167,7 @@ Lemma br_check_bind_return_2 f0 :
   ⊢ WP [::AI_basic
          (BI_block (Tf [] [T_i32])
          [:: BI_block (Tf [] [])
-            [::BI_const (xx 2);BI_const (xx 3); BI_br 1] ])] {{ λ v, ⌜v = immV [xx 3]⌝ ∗ ↪[frame] f0}}.
+            [::BI_const (xx 2);BI_const (xx 3); BI_br 1] ])] {{ λ v, ⌜v = immV [xxv 3]⌝ ∗ ↪[frame] f0}}.
 Proof.
   iIntros "Hf".
   iApply iRewrite_nil_l.
@@ -197,7 +195,7 @@ Lemma br_check_bind_return_3 f0 :
   ⊢ WP [::AI_basic
          (BI_block (Tf [] [T_i32])
          [:: BI_block (Tf [] [])
-            [::BI_const (xx 2); BI_const (xx 3); (BI_binop T_i32 (Binop_i BOI_add)); BI_br 1] ])] {{ λ v, ⌜v = immV [xx 5]⌝ ∗ ↪[frame] f0}}.
+            [::BI_const (xx 2); BI_const (xx 3); (BI_binop T_i32 (Binop_i BOI_add)); BI_br 1] ])] {{ λ v, ⌜v = immV [xxv 5]⌝ ∗ ↪[frame] f0}}.
 Proof.
   iIntros "Hf".
   iApply iRewrite_nil_l.
@@ -208,10 +206,10 @@ Proof.
   iApply (wp_block_ctx with "[$]");eauto;simpl. iNext. iIntros "?".
   iApply wp_label_push_nil. simpl.
   take_drop_app_rewrite 3.
-  iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xx 5]⌝ ∗ ↪[frame] f0)%I).
+  iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xxv 5]⌝ ∗ ↪[frame] f0)%I).
   iSplitR; [by iIntros "[%Hcontr _]"|].
   iSplitL.
-  { iApply (wp_binop with "[$]");eauto. }
+  { fold_const; iApply (wp_binop with "[$]");eauto. }
   iIntros (w) "[-> ?]". simpl.
   take_drop_app_rewrite 1.
   iApply iRewrite_nil_l_ctx.
@@ -233,7 +231,7 @@ Lemma br_check_bind_return_4 f0 :
                                 BI_br 1;
                                 (BI_binop T_i32 (Binop_i BOI_add))] (* this expression gets stuck without br *) ];
                     (BI_binop T_i32 (Binop_i BOI_add)) ])] (* this expression only reds after previous block is reduced *)
-    {{ λ v, ⌜v = immV [xx 6]⌝ ∗ ↪[frame] f0}}.
+    {{ λ v, ⌜v = immV [xxv 6]⌝ ∗ ↪[frame] f0}}.
 Proof.
   iIntros "?".
   iApply iRewrite_nil_l.
@@ -241,14 +239,14 @@ Proof.
   iApply wp_wasm_empty_ctx.
   iApply wp_label_push_nil. simpl.
   iApply iRewrite_nil_r_ctx.
-  iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xx 6]⌝ ∗ ↪[frame] f0)%I).
+  iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xxv 6]⌝ ∗ ↪[frame] f0)%I).
   iSplitR; [by iIntros "[%Hcontr _]"|].
   iSplitL.
   { take_drop_app_rewrite_twice 1 1.
     iApply wp_wasm_empty_ctx.
     iApply wp_base_push;auto. simpl.
     iApply iRewrite_nil_r_ctx.
-    iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xx 5]⌝ ∗ ↪[frame] f0)%I).
+    iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xxv 5]⌝ ∗ ↪[frame] f0)%I).
     iSplitR; [by iIntros "[%Hcontr _]"|].
     iSplitL.
     { iApply iRewrite_nil_l.
@@ -259,10 +257,10 @@ Proof.
       iApply (wp_block_ctx with "[$]");eauto. simpl. iNext. iIntros "?".
       iApply wp_label_push_nil. simpl.
       take_drop_app_rewrite 3.
-      iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xx 5]⌝ ∗ ↪[frame] f0)%I).
+      iApply (wp_seq_ctx _ _ _ (λ v, ⌜v = immV [xxv 5]⌝ ∗ ↪[frame] f0)%I).
       iSplitR; [by iIntros "[%Hcontr _]"|].
       iSplitL.
-      { iApply (wp_binop with "[$]");eauto. }
+      { fold_const; iApply (wp_binop with "[$]");eauto. }
       iIntros (w) "[-> ?]". simpl.
       take_drop_app_rewrite 2.
       iApply iRewrite_nil_l_ctx.
@@ -272,7 +270,7 @@ Proof.
       iApply wp_value;eauto. done. }
     iIntros (w) "[-> ?]". simpl.
     iApply wp_base;auto. simpl.
-    iApply (wp_binop with "[$]");eauto. }
+    fold_const; iApply (wp_binop with "[$]");eauto. }
   iIntros (w) "[-> ?] /=".
   iApply (wp_val_return with "[$]");auto;simpl. iIntros "?".
   iApply wp_value;eauto. done.
@@ -327,11 +325,11 @@ Lemma store42_spec f n c :
   f.(f_inst).(inst_memory) !! 0 = Some n ->
   ↪[frame] f -∗
    (N.of_nat n) ↦[wms][ 0%N ] (bits (VAL_int32 c)) -∗
-   WP store42 {{ w, (⌜w = immV []⌝ ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xx 42))) ∗ ↪[frame] f }}.
+   WP store42 {{ w, (⌜w = immV []⌝ ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xxv 42))) ∗ ↪[frame] f }}.
 Proof.
   iIntros (Hfmem) "Hf Hn".
   iApply wp_wand_r. iSplitL.  
-  iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
+  cbn; fold_const. iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
   by rewrite Memdata.encode_int_length.
   iIntros (v) "[[-> Hn] Hf]". rewrite /= N.add_0_l.
   iFrame. auto.
@@ -342,11 +340,11 @@ Lemma store11_spec f n c :
   f.(f_inst).(inst_memory) !! 0 = Some n ->
   ↪[frame] f -∗
    (N.of_nat n) ↦[wms][ 0%N ] (bits (VAL_int32 c)) -∗
-   WP store11 {{ w, (⌜w = immV []⌝ ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xx 11))) ∗ ↪[frame] f }}.
+   WP store11 {{ w, (⌜w = immV []⌝ ∗ (N.of_nat n) ↦[wms][ 0%N ] (bits (xxv 11))) ∗ ↪[frame] f }}.
 Proof.
   iIntros (Hfmem) "Hf Hn".
   iApply wp_wand_r. iSplitL.  
-  iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
+  cbn; fold_const; iApply (wp_store (λ w, ⌜w = immV ([])⌝)%I with "[$Hf Hn]");eauto.
   by rewrite Memdata.encode_int_length.
   iIntros (v) "[[-> Hn] Hf]". rewrite /= N.add_0_l.
   iFrame. auto.
@@ -393,6 +391,7 @@ Proof.
     iApply (f1_spec with "Hf Hn");auto.
     iIntros (w) "[[-> Hn] Hf] /=".
     iApply (wp_val_return with "[$]");auto.
+    destruct v => //. 
     iIntros "Hf /=".
     iApply wp_value. by instantiate (1:=immV [_]).
     iFrame. auto.
@@ -402,7 +401,8 @@ Proof.
   iIntros (w) "[[-> Hn] Hf] /=".
   iApply wp_wasm_empty_ctx_frame.
   iApply (wp_frame_value with "[$]");eauto.
+  destruct v => //. 
 Qed.
-*)
+
 End Examples.
 

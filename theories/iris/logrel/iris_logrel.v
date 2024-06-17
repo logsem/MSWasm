@@ -441,6 +441,14 @@ Section logrel.
     apply exist_persistent =>cl/=.
     apply sep_persistent;[apply _|]. auto.
   Qed.
+
+  Global Instance interp_closure_persistent hf tf cl :
+    Persistent (interp_closure hf tf cl).
+  Proof.
+    unfold interp_closure.
+    destruct cl, f => /=; apply sep_persistent; apply _. 
+  Qed. 
+  
   Global Instance interp_global_persistent τg n : Persistent (interp_global τg n).
   Proof.
     unfold interp_global.
@@ -816,5 +824,21 @@ Section logrel_host.
                                                                 (Build_frame vs i)
                                                                 [::AI_label (length τ2) [] (to_e_list es)]]
     end.
+
+(*
+  Definition semantic_typing_module (m : module) : iProp Σ :=
+    (
+      (* For a module  to type semantically … *)
+      (* Its functions must be safe: *)
+      ([∗ list] f ∈ m.(mod_funcs), True) ∗ (* TODO *)
+    (* Its globals must be safe: *)
+        ([∗ list] g ∈ m.(mod_globals), interp_global g.(modglob_type) g.(modglob_init)) ∗ (* TODO *)
+    (* Its elems must be safe: *)
+        ([∗ list] e ∈ m.(mod_elem), True) ∗ (* TODO *)
+    (* And its data must be safe: *)
+        ([∗ list] d ∈ m.(mod_data), True) (* TODO *)
+    )%I.
+
+*)
 
 End logrel_host.

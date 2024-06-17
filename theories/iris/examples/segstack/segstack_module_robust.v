@@ -11,10 +11,12 @@ Set Implicit Arguments.
 Unset Strict Implicit.
 Unset Printing Implicit Defensive.
 
-(* 
+(* Need to define the stack_inv *)
+(*
+
 Section RobustStack.
   Context `{HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ,
-      !logrel_na_invs Σ, !hasG Σ}.
+      !logrel_na_invs Σ, !hasG Σ, cancelg: cancelG Σ, !cinvG Σ}.
 
   Set Bullet Behavior "Strict Subproofs".
 
@@ -88,8 +90,7 @@ Section RobustStack.
       tc_global := (ext_t_globs impts ++ gts)%list;
       tc_table := (ext_t_tabs impts ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
           tc_memory := (ext_t_mems impts ++ (mod_mems m))%list;
-          tc_segment := {| lim_min := 0; lim_max := None |} ; (* is this correct? *)
-          tc_allocator := ALL_type;
+          
       tc_local := [];
       tc_label := [];
       tc_return := None
@@ -138,7 +139,7 @@ Section RobustStack.
       }}}
         ((stack_adv_instantiate exp_addrs stack_mod_addr adv_mod_addr,[]) : host_expr) 
         {{{ λ v: language.val wasm_host_lang, ((⌜v = trapHV ∨ v = immHV []⌝) ∗ na_own logrel_nais ⊤
-                  ∗ ∃ newStackAddrIs isStack, na_inv logrel_nais stkN (stackModuleInv (λ n0, isStack n0) newStackAddrIs))
+                  ∗ ∃ isStack, na_inv logrel_nais stkN (stackModuleInv (λ n0, isStack n0) newStackAddrIs))
                  ∗ ↪[frame] empty_frame }}} .
   Proof.
     iIntros (Hexpaddrlen Htyp Hnostart Hrestrict Hboundst Hboundsm).
@@ -164,7 +165,7 @@ Section RobustStack.
     iDestruct "Hstack" as (idf0 idf1 idf2 idf3 idf4 idf5 idf6 idt) "Hstack".
     iDestruct "Hstack" as (nm0 nm1 nm2 nm3 nm4 nm5 nm6 nm7 f0 f1) "Hstack".
     iDestruct "Hstack" as (f2 f3 f4 f5 f6 istack l0 l1 l2 l3) "Hstack".
-    iDestruct "Hstack" as (l4 l5 l6 stacktab isStack newStackAddrIs) "Hstack".
+    iDestruct "Hstack" as (l4 l5 l6 stacktab isStack) "Hstack".
     iDestruct "Hstack" as "(HimpsH & HimpsW & %Hnodup & %Hfnodup & %Htablen & #Hinv & #Hnewstack & #Hinterp)".
     
     (* Cleanup of stack resources *)

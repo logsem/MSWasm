@@ -296,7 +296,7 @@ Definition module_func_typing (c : t_context) (m : module_func) (tf : function_t
              tc_memory := c.(tc_memory);
 (*             tc_segment := c.(tc_segment); tc_allocator := c.(tc_allocator); *)
     tc_local := c.(tc_local) ++ tn ++ t_locs;
-    tc_label := tm :: c.(tc_label);
+    tc_label := [::tm] (* tm :: c.(tc_label) *) ;
     tc_return := Some tm;
   |} in
   typing.be_typing c' b_es (Tf [::] tm).

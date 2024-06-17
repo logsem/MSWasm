@@ -14,8 +14,7 @@ Unset Printing Implicit Defensive.
 
 Close Scope byte_scope.
 
-(* Uncomment when ready to deal with AI_const *)
-(*
+
 
 (* Example Programs *)
 Section Factorial.
@@ -49,7 +48,7 @@ Section Factorial.
     destruct n;auto.
   Qed.
 
-  Definition fact_val n : val -> iProp Σ := λ v, ⌜v = immV [xx (ssrnat.factorial (Wasm_int.nat_of_uint i32m n))]⌝%I.
+  Definition fact_val n : val -> iProp Σ := λ v, ⌜v = immV [xxv (ssrnat.factorial (Wasm_int.nat_of_uint i32m n))]⌝%I.
 
   Lemma factorial_spec fact (n : Equality.sort i32) i a :
     (ssrnat.factorial (Wasm_int.nat_of_uint i32m n) < Wasm_int.Int32.modulus)%Z -> (* no overflow *)
@@ -86,7 +85,7 @@ Section Factorial.
     iApply (wp_seq _ _ _ (λ v', ⌜v' = immV [_]⌝ ∗ ↪[frame] f)%I).
     iSplitR;[by iIntros "[%Hcontr _]"|].
     iSplitL "Hf".
-    { iApply (wp_relop with "[$]"). eauto. eauto. }
+    { fold_const; iApply (wp_relop with "[$]"). eauto. eauto. }
 
     (* br if *)
     iIntros (w) "[-> Hf] /=".
@@ -108,9 +107,9 @@ Section Factorial.
 
       (* halt and post condition *)
       iIntros "Hf".
-      simpl. iApply (iris_wp.wp_value _ _ _ _ (immV ([xx 1]))). by cbv.
+      simpl. iApply (iris_wp.wp_value _ _ _ _ (immV ([xxv 1]))). by cbv.
       iFrame. iPureIntro. f_equiv. f_equiv.
-      unfold xx. f_equiv. f_equiv. clear -Hle Hbool.
+      unfold xx. f_equiv. clear -Hle Hbool.
       destruct n;simpl in *.
       unfold Wasm_int.Int32.ltu in Hbool. simpl in *.
       destruct (Coqlib.zlt 1 intval);[done|].
@@ -142,7 +141,7 @@ Section Factorial.
       iApply (wp_seq_ctx _ _ _ (λ v', ⌜v' = immV _⌝ ∗ ↪[frame] f)%I).
       iSplitR; [by iIntros "[%Hcontr _]"|].
       iSplitL "Hf".
-      { iApply (wp_binop with "[$]"). eauto. eauto. }
+      { fold_const; iApply (wp_binop with "[$]"). eauto. eauto. }
 
       (* recursive call *)
       simpl.
@@ -216,7 +215,7 @@ Section Factorial.
               iIntros (w) "[[-> Hi] Hf] /=".
               iApply (wp_val_return with "[$] [Hi]"). auto.
               iIntros "Hf /=".
-              iApply iris_wp.wp_value. instantiate (1 := immV [_]). reflexivity.
+              iApply iris_wp.wp_value. instantiate (1 := immV [VAL_numeric _]). done. 
               iFrame. eauto. }
           { simpl. by iIntros "[[%Hcontr _] _]". } }
 
@@ -246,7 +245,7 @@ Section Factorial.
       iApply (wp_seq_ctx _ _ _ (λ v', ⌜v' = immV _⌝ ∗ ↪[frame] f)%I).
       iSplitR;[by iIntros "[%Hcontr _]"|].
       iSplitL "Hf".
-      { iApply (wp_binop with "[$]"). simpl. eauto. eauto. }
+      { fold_const; iApply (wp_binop with "[$]"). simpl. eauto. eauto. }
 
       (* return *)
       iIntros (w) "[-> Hf] /=".
@@ -254,13 +253,13 @@ Section Factorial.
       iIntros "Hf /=".
 
       (* postcondition *)
-      iApply iris_wp.wp_value. instantiate (1 := immV [_]). reflexivity.
+      iApply iris_wp.wp_value. instantiate (1 := immV [VAL_numeric _]). reflexivity.
       iFrame. iPureIntro.
 
       unfold xx.
       repeat f_equiv.
       unfold Wasm_int.Int32.imul, Wasm_int.Int32.mul. simpl.
-      f_equiv.
+      
       clear -Ha Hbool Hoverflow.
       unfold Wasm_int.Int32.ltu in Hbool.
       destruct n;simpl in *.
@@ -274,7 +273,8 @@ Section Factorial.
               = ssrnat.muln (Z.to_nat intval) (ssrnat.factorial (Z.to_nat intval - 1))) as Heq.
       { unfold ssrnat.muln. unfold ssrnat.muln_rec. lia. }
       rewrite Zmod_small.
-      rewrite Heq factPred;lia.
+      cbn. unfold xxv. rewrite Heq factPred; try lia.
+      unfold VAL_int32. done.
       split. lia.
       apply Zmult_gt_0_lt_reg_r with (p:=intval). lia.
       rewrite Heq factPred. 2: lia.
@@ -290,9 +290,9 @@ Section Factorial.
     
     ↪[frame] f0 -∗
     (N.of_nat a) ↦[wf] (FC_func_native i (Tf [T_i32] [T_i32]) [] (factorial_instrs fact)) -∗
-    WP [AI_basic (BI_const (VAL_int32 n));
+    WP [AI_basic (BI_const (NVAL_int32 n));
         AI_invoke a]
-    {{ v, (⌜v = immV [xx (ssrnat.factorial (Wasm_int.nat_of_uint i32m n))]⌝
+    {{ v, (⌜v = immV [xxv (ssrnat.factorial (Wasm_int.nat_of_uint i32m n))]⌝
             ∗ (N.of_nat a) ↦[wf] (FC_func_native i (Tf [T_i32] [T_i32]) [] (factorial_instrs fact)))
             ∗ ↪[frame] f0 }}.
   Proof.
@@ -414,7 +414,7 @@ Section Factorial.
     iApply (wp_seq _ _ _ (λ v', ⌜v' = immV [_]⌝ ∗ ↪[frame] f)%I).
     iSplitR;[by iIntros "[%Hcontr _]"|].
     iSplitL "Hf".
-    { iApply (wp_relop with "[$]"). eauto. eauto. }
+    { fold_const; iApply (wp_relop with "[$]"). eauto. eauto. }
 
     (* br if *)
     iIntros (w) "[-> Hf] /=".
@@ -436,9 +436,9 @@ Section Factorial.
 
       (* halt and post condition *)
       iIntros "Hf".
-      simpl. iApply (iris_wp.wp_value _ _ _ _ (immV ([xx 1]))). by cbv.
+      simpl. iApply (iris_wp.wp_value _ _ _ _ (immV ([xxv 1]))). by cbv.
       iFrame. iPureIntro. f_equiv. f_equiv.
-      unfold xx. f_equiv. f_equiv. clear -Hle Hbool.
+      unfold xx. f_equiv.  clear -Hle Hbool.
       destruct n;simpl in *.
       unfold Wasm_int.Int32.ltu in Hbool. simpl in *.
       destruct (Coqlib.zlt 1 intval);[done|].
@@ -470,7 +470,7 @@ Section Factorial.
       iApply (wp_seq_ctx _ _ _ (λ v', ⌜v' = immV _⌝ ∗ ↪[frame] f)%I).
       iSplitR; [by iIntros "[%Hcontr _]"|].
       iSplitL "Hf".
-      { iApply (wp_binop with "[$]"). eauto. eauto. }
+      { fold_const; iApply (wp_binop with "[$]"). eauto. eauto. }
 
       (* recursive call: now happens indirectly through the higher order store *)
       simpl.
@@ -544,7 +544,7 @@ Section Factorial.
               iIntros (w) "[[-> [Htab Hi]] Hf] /=".
               iApply (wp_val_return with "[$] [Hi Htab]"). auto.
               iIntros "Hf /=".
-              iApply iris_wp.wp_value. instantiate (1 := immV [_]). reflexivity.
+              iApply iris_wp.wp_value. instantiate (1 := immV [VAL_numeric _]). done.
               iFrame. eauto. }
           { simpl. by iIntros "[[%Hcontr _] _]". } }
 
@@ -574,7 +574,7 @@ Section Factorial.
       iApply (wp_seq_ctx _ _ _ (λ v', ⌜v' = immV _⌝ ∗ ↪[frame] f)%I).
       iSplitR;[by iIntros "[%Hcontr _]"|].
       iSplitL "Hf".
-      { iApply (wp_binop with "[$]"). simpl. eauto. eauto. }
+      { fold_const; iApply (wp_binop with "[$]"). simpl. eauto. eauto. }
 
       (* return *)
       iIntros (w) "[-> Hf] /=".
@@ -582,13 +582,13 @@ Section Factorial.
       iIntros "Hf /=".
 
       (* postcondition *)
-      iApply iris_wp.wp_value. instantiate (1 := immV [_]). reflexivity.
+      iApply iris_wp.wp_value. instantiate (1 := immV [VAL_numeric _]). reflexivity.
       iFrame. iPureIntro.
 
       unfold xx.
       repeat f_equiv.
       unfold Wasm_int.Int32.imul, Wasm_int.Int32.mul. simpl.
-      f_equiv.
+      
       clear -Ha Hbool Hoverflow.
       unfold Wasm_int.Int32.ltu in Hbool.
       destruct n;simpl in *.
@@ -602,7 +602,7 @@ Section Factorial.
               = ssrnat.muln (Z.to_nat intval) (ssrnat.factorial (Z.to_nat intval - 1))) as Heq.
       { unfold ssrnat.muln. unfold ssrnat.muln_rec. lia. }
       rewrite Zmod_small.
-      rewrite Heq factPred;lia.
+      rewrite Heq factPred => //; lia.
       split. lia.
       apply Zmult_gt_0_lt_reg_r with (p:=intval). lia.
       rewrite Heq factPred. 2: lia.
@@ -616,7 +616,7 @@ Section Factorial.
 
     ↪[frame] Build_frame [fidx] i -∗
     N.of_nat a↦[wf]FC_func_host (Tf [T_i32; T_i32] []) mut_tab -∗
-    WP myrec h_mut_tab {{ v, (⌜v = callHostV (Tf [T_i32; T_i32] []) mut_tab [xx 0; fidx] (LL_base [] [])⌝
+    WP myrec h_mut_tab {{ v, (⌜v = callHostV (Tf [T_i32; T_i32] []) mut_tab [xxv 0; fidx] (LL_base [] [])⌝
                              ∗ N.of_nat a↦[wf]FC_func_host (Tf [T_i32; T_i32] []) mut_tab) ∗ ↪[frame] Build_frame [fidx] i }}.
   Proof.
     iIntros (Hh) "Hf Ha".
@@ -636,14 +636,15 @@ Section Factorial.
     iApply wp_base_pull.
     take_drop_app_rewrite_twice 2 0.
     iApply wp_base_push;auto.
+    destruct fidx => //. 
 
-    iApply (wp_call_ctx with "[$]");eauto.
+    fold_const; iApply (wp_call_ctx with "[$]");eauto.
     iNext. iIntros "Hf".
 
     iApply wp_base_pull.
     iApply wp_wasm_empty_ctx. simpl.
     take_drop_app_rewrite 2.
-    iApply (wp_invoke_host _ _ _ [xx 0; fidx] with "[$] [$]");auto. 
+    iApply (wp_invoke_host _ _ _ [xxv 0; fidx] with "[$] [$]");auto. 
     iNext. iIntros "Ha Hf".
     iApply iris_wp.wp_value;[apply iris.of_to_val; eauto|].
     iFrame. auto.
@@ -676,7 +677,7 @@ Section FactorialHostMain.
 
     (∀ v : host_val, ⌜v = immHV []⌝ ∗ (∃ w : value, fact_val n (immV [w]) ∗ (N.of_nat g_glob) ↦[wg] {| g_mut := MUT_mut; g_val := w |}) -∗ Φ v) -∗
     ↪[frame] (* Build_frame [] i *) f -∗
-    (N.of_nat f_fact) ↦[wf] FC_func_native i (Tf [T_i32] [T_i32]) [] (fact_instr (VAL_int32 F) myrec t_fact_typ) -∗
+    (N.of_nat f_fact) ↦[wf] FC_func_native i (Tf [T_i32] [T_i32]) [] (fact_instr (NVAL_int32 F) myrec t_fact_typ) -∗
     (N.of_nat f_F) ↦[wf] FC_func_native i (Tf [T_i32] [T_i32]) [] (F_instr t_fact_typ) -∗
     (N.of_nat f_myrec) ↦[wf] FC_func_native i (Tf [T_i32] []) [] (myrec_instr mut_tab) -∗
     (N.of_nat f_mut_tab) ↦[wf] FC_func_host (Tf [T_i32; T_i32] []) (Mk_hostfuncidx mt) -∗
@@ -713,12 +714,12 @@ Section FactorialHostMain.
     iApply (wp_get_global with "[] [$] [$]");eauto.
     iIntros (w) "[-> [Hg Hf]] /=".
     (* call fact *)
-    build_ctx [AI_basic (BI_call fact)].
-    iApply (wp_call_ctx with "[$]");eauto.
+    fold_const. build_ctx [AI_basic (BI_call fact)].
+    fold_const; iApply (wp_call_ctx with "[$]");eauto.
     iNext. iIntros "Hf".
     deconstruct_ctx.
     (* invoke f_fact *)
-    bind_seq_base_callhost [AI_basic (BI_const (VAL_int32 n)); AI_invoke f_fact] with "[Hf Hfact Hmyrec Htab Hmut_tab]".
+    bind_seq_base_callhost [AI_basic (BI_const (NVAL_int32 n)); AI_invoke f_fact] with "[Hf Hfact Hmyrec Htab Hmut_tab]".
     { (* f_fact *)
       take_drop_app_rewrite 1.
       iApply (wp_invoke_native with "[$] [$Hfact]");eauto.
@@ -729,19 +730,20 @@ Section FactorialHostMain.
       iApply (wp_block with "[$]");auto.
       iNext. iIntros "Hf".
       erewrite app_nil_l.
-      build_ctx (to_e_list (fact_instr (VAL_int32 F) myrec t_fact_typ)).
+      build_ctx (to_e_list (fact_instr (NVAL_int32 F) myrec t_fact_typ)).
       iApply wp_label_bind.
       (* get_local 0 *)
       bind_seq_base_imm [AI_basic (BI_get_local 0)] with "[Hf]".
       iApply (wp_get_local with "[] [$]");eauto.
       iIntros (w) "[-> Hf] /=".
       (* call myrec *)
-      build_ctx [AI_basic (BI_call myrec)].
-      iApply (wp_call_ctx with "[$]");eauto.
+      fold_const. build_ctx [AI_basic (BI_call myrec)].
+      fold_const; iApply (wp_call_ctx with "[$]");eauto.
       iNext. iIntros "Hf".
       deconstruct_ctx.
       (* invoke f_myrec *)
-      bind_seq_base_callhost [AI_basic (BI_const (VAL_int32 F)); AI_invoke f_myrec] with "[Hf Hmyrec Hmut_tab]".
+      bind_seq_base_callhost [AI_basic (BI_const (NVAL_int32 F)); AI_invoke f_myrec] with "[Hf Hmyrec Hmut_tab]".
+      constructor. instantiate (2 := [VAL_int32 _]). done.
       { (* myrec *)
         take_drop_app_rewrite 1.
         iApply (wp_invoke_native with "[$] [$]");eauto.
@@ -782,8 +784,9 @@ Section FactorialHostMain.
     iApply iris_wp.wp_value;[apply iris.of_to_val;eauto|simpl].
     iExists _. iFrame. iIntros "Hf".
     iApply iris_wp.wp_value;[apply iris.of_to_val;eauto|simpl].
-
+    fold_const. 
     iApply wp_call_host_modify_table;[eauto|build_llfill|simpl;reflexivity|eauto|eauto|].
+    
     iFrame. iNext. iIntros "[Hf [Ha Htab]]".
 
     iApply wp_lift_wasm.
@@ -799,7 +802,7 @@ Section FactorialHostMain.
       build_ctx l; subst l.
       iApply wp_label_bind.
       match goal with | |- context [ AI_local ?i ?f ?es ] => set (l:=es) end.
-      bind_seq_base_imm [AI_local 0 {| f_locs := [VAL_int32 F]; f_inst := i |} l] with "[Hf]";[subst l|].
+      fold_const; bind_seq_base_imm [AI_local 0 {| f_locs := [VAL_int32 F]; f_inst := i |} l] with "[Hf]";[subst l|].
       { iApply (wp_frame_bind with "[$]");auto.
         iIntros "Hf".
         iApply (wp_wand _ _ _ (λ v, ⌜v = immV _⌝ ∗ _)%I with "[Hf]"). iApply (wp_label_value with "Hf");eauto.
@@ -808,8 +811,8 @@ Section FactorialHostMain.
         iApply (wp_frame_value with "[$]");eauto. }
       iIntros (v) "[-> Hf] /=".
       (* BI_call_indirect *)
-      build_ctx [AI_basic (BI_const (xx 0));AI_basic (BI_call_indirect t_fact_typ)].
-      iApply (wp_call_indirect_success_ctx with "[Htab] HF Hf");eauto.
+      fold_const; build_ctx [AI_basic (BI_const (xx 0));AI_basic (BI_call_indirect t_fact_typ)].
+      fold_const; iApply (wp_call_indirect_success_ctx with "[Htab] HF Hf");eauto.
       iNext. iIntros "[Htab [HF Hf]]".
       deconstruct_ctx.
       (* invoke f_F *)
@@ -847,7 +850,7 @@ Section FactorialHostMain.
     }
     iIntros (v) "[-> [Htab [HF Hf]]] /=".
     iApply (wp_wand _ _ _ (λ v, ⌜v = immV _⌝ ∗ _)%I with "[Hg Hf]").
-    iApply (wp_set_global with "[] [$] [$]");eauto.
+    fold_const; iApply (wp_set_global with "[] [$] [$]");eauto.
     iIntros (v) "[-> [Hg Hf]]".
     iApply (wp_val_return with "[$]");auto.
     iIntros "Hf /=".    
@@ -1052,4 +1055,4 @@ Section FactorialHost.
     
     
 End FactorialHost.
- *)
+

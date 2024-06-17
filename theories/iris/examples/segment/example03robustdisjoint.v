@@ -842,7 +842,7 @@ Section Example03Host.
     iDestruct ("Hrestorefuncs" with "Hfadv") as "Hadvfuncs".
     
     iApply weakestpre.fupd_wp.
-    iMod (interp_instance_alloc [] ⊤ with "[] [] [] [] [] [Hadvfuncs Hadvtabs Hadvmems Hadvglobs]") as "(#Hi & (#Hiresf & _ & _ & #Hiresg) & _)".
+    iMod (interp_instance_alloc [] ⊤ with "[] [] [] [] [] [Hadvfuncs Hadvtabs Hadvmems Hadvglobs]") as "(#Hi & _ & (#Hiresf & _ & _ & #Hiresg) & _)".
     apply Hadvtype'.
     repeat split => //=.
     by rewrite Heqadvm.

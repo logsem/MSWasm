@@ -827,7 +827,7 @@ Section Client_instantiation.
     subst tab.
     
     iApply weakestpre.fupd_wp.
-    iMod (interp_instance_alloc with "[] [] [] [] [] [Hrest Hresm Hresg Hresf]") as "[#Hi [[#Hires _] _]]";
+    iMod (interp_instance_alloc with "[] [] [] [] [] [Hrest Hresm Hresg Hresf]") as "(#Hi & _ & [#Hires _] & _)";
       [apply Htyp|repeat split;eauto|eauto|..].
     2,3,4,5: by instantiate (1:=∅).
     { destruct Hglob_inits_vals as [? ?];eauto. }

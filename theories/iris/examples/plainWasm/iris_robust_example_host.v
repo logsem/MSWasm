@@ -804,7 +804,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
         
         iApply weakestpre.fupd_wp.
         iMod (interp_instance_alloc [(Mk_hostfuncidx h, Tf [T_i32] [])]
-                with "[] [] [] [] [Hcl] [Hrest Hresm Hresg Hresf]") as "[#Hi [[#Hires _] #Himpres]]"; 
+                with "[] [] [] [] [Hcl] [Hrest Hresm Hresg Hresf]") as "(#Hi & _ & [#Hires _] & #Himpres)"; 
           [apply Htyp|repeat split;eauto|eauto|..].
         4,5,6: by instantiate (1:=∅).
         { rewrite Heqadvm /=. auto. }

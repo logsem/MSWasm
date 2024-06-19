@@ -513,7 +513,7 @@ Section Factorial.
           iApply iRewrite_nil_r_ctx.
           iApply wp_seq_ctx.
           iSplitR;cycle 1.
-          { iSplitL. (* apply IH *)
+          { iSplitL. (* apply induction hypothesis *)
             unfold IH.
             iApply ("IH" with "[] [] [] [] [] Hf Htab Hi");auto.
             - iPureIntro.
@@ -676,7 +676,7 @@ Section FactorialHostMain.
     (0 <= (Wasm_int.Int32.intval n))%Z -> (* the parameter must be positive *)
 
     (∀ v : host_val, ⌜v = immHV []⌝ ∗ (∃ w : value, fact_val n (immV [w]) ∗ (N.of_nat g_glob) ↦[wg] {| g_mut := MUT_mut; g_val := w |}) -∗ Φ v) -∗
-    ↪[frame] (* Build_frame [] i *) f -∗
+    ↪[frame] f -∗
     (N.of_nat f_fact) ↦[wf] FC_func_native i (Tf [T_i32] [T_i32]) [] (fact_instr (NVAL_int32 F) myrec t_fact_typ) -∗
     (N.of_nat f_F) ↦[wf] FC_func_native i (Tf [T_i32] [T_i32]) [] (F_instr t_fact_typ) -∗
     (N.of_nat f_myrec) ↦[wf] FC_func_native i (Tf [T_i32] []) [] (myrec_instr mut_tab) -∗
@@ -687,9 +687,6 @@ Section FactorialHostMain.
     (N.of_nat idnstart) ↦[wf]FC_func_native i (Tf [] []) [] (main_instr fact glob) -∗
                                                                                                                                                               
     WP (([], [AI_invoke idnstart]) : host_expr) {{ Φ }}.
-    (* WP (([],to_e_list (main_instr fact glob)) : host_expr) {{ v, ∃ w, ⌜v = immHV []⌝ *)
-    (*                                                              ∗ fact_val n (immV [w]) *)
-    (*                                                              ∗ (N.of_nat g_glob) ↦[wg] {| g_mut := MUT_mut; g_val := w |} }}. *)
   Proof.
     iIntros (Hfact HF Hmyrec Hmut_tab Ht Htab Hglob Hoverflow Hpos).
     iIntros "HΦ Hf Hfact HF Hmyrec Hmut_tab Hmt Htab Hg Hstart".
@@ -766,8 +763,6 @@ Section FactorialHostMain.
         iApply iris_wp.wp_value;[apply iris.of_to_val;eauto|].
         iSplitR;eauto. iCombine "Hmyrec Hmut_tab Hf" as "HH". instantiate (1:=λ _,_). iExact "HH". }
       iIntros (w) "[-> [Hmyrec [Hmut_tab Hf]]]".
-      (* iApply wp_base_pull. *)
-      (* iApply wp_wasm_empty_ctx. *)
       iApply iris_wp.wp_value;[apply iris.of_to_val;eauto|].
       deconstruct_ctx.
       iApply iris_wp.wp_value;[apply iris.of_to_val;eauto|simpl].
@@ -895,7 +890,7 @@ Section FactorialHost.
       ] ;
       mod_tables := [ {| modtab_type := {| tt_limits := {| lim_min := 1 ; lim_max := None |} ; tt_elem_type := ELT_funcref |} |} ] ; 
       mod_mems := [] ;
-      mod_globals := [ (* {| modglob_type := {| tg_mut := MUT_mut ; tg_t := T_i32 |} ; modglob_init := [BI_const (xx 0)] |} *) ] ;
+      mod_globals := [ ] ;
       mod_elem := [] ;
       mod_data := [] ;
       mod_start := Some (Build_module_start (Mk_funcidx 4)) ;
@@ -939,7 +934,7 @@ Section FactorialHost.
   Lemma factorial_module_typing :
     module_typing factorial_module (factorial_impts) [].
   Proof. unfold module_typing.
-    exists [Tf [T_i32] []; Tf [T_i32] [T_i32]; Tf [T_i32] [T_i32]; Tf [] []],[ (* {| tg_mut := MUT_mut ; tg_t := T_i32 |} *) ]. simpl.
+    exists [Tf [T_i32] []; Tf [T_i32] [T_i32]; Tf [T_i32] [T_i32]; Tf [] []],[ ]. simpl.
     repeat split;eauto.
     { rewrite ! Forall2_cons. repeat split;auto; cbn;auto.
       { type_go. }

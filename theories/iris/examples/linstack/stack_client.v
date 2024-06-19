@@ -169,16 +169,16 @@ Section Client.
     [ ID_instantiate (take 8 vis_addrs) stack_mod_addr [] ;
     ID_instantiate (drop 8 vis_addrs) client_mod_addr (take 8 vis_addrs) ].
 
-  Lemma instantiate_stack_client_spec E (vis_addrs: list N) (stack_mod_addr client_mod_addr: N) (* all *) :
+  Lemma instantiate_stack_client_spec E (vis_addrs: list N) (stack_mod_addr client_mod_addr: N) :
     length vis_addrs = 9 ->
-   ↪[frame] empty_frame -∗ (* interp_allocator all -∗ *)
+   ↪[frame] empty_frame -∗ 
     stack_mod_addr ↪[mods] stack_module -∗
     client_mod_addr ↪[mods] client_module -∗
     own_vis_pointers vis_addrs -∗
      WP ((stack_instantiate vis_addrs stack_mod_addr client_mod_addr, []) : host_expr)
      @ E
             {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗ 
-               ↪[frame] empty_frame ∗ (* interp_allocator all ∗ *)
+               ↪[frame] empty_frame ∗ 
                 stack_mod_addr ↪[mods] stack_module ∗
                  client_mod_addr ↪[mods] client_module ∗
                  ∃ idg name,
@@ -187,7 +187,7 @@ Section Client.
                     (N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int 20%Z |} ∨
                        N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int (-1)%Z |}) }}.
 Proof.
-  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis". (* removed Hall *)
+  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis". 
   do 10 (destruct vis_addrs => //); clear Hvisaddrlen.
   
   rewrite separate8.
@@ -355,7 +355,7 @@ Proof.
       inversion Hstart ; subst ; clear Hstart.
       iApply weakestpre.wp_wand_l. iSplitR ; last iApply wp_lift_wasm.
       iIntros (v).
-      instantiate ( 1 := λ v, (⌜ v = immHV [] ⌝ ∗ ↪[frame] empty_frame (* ∗ interp_allocator all *) ∗ client_mod_addr↪[mods]client_module ∗
+      instantiate ( 1 := λ v, (⌜ v = immHV [] ⌝ ∗ ↪[frame] empty_frame ∗ client_mod_addr↪[mods]client_module ∗
   (∃ (idg : nat) (name8: datatypes.name),
       n7↪[vis] {| modexp_name := name8; modexp_desc := MED_global (Mk_globalidx idg) |} ∗
      (N.of_nat idg↦[wg] {| g_mut := MUT_mut; g_val := value_of_int 20 |}
@@ -363,7 +363,7 @@ Proof.
       iIntros "H" ; done. 
       
       iApply wp_wand_r.
-      iSplitR "Hmod1". (* removed Hall *)
+      iSplitR "Hmod1". 
       rewrite - (app_nil_l [AI_invoke idnstart]).
       iApply (wp_invoke_native with "Hf Hwfcl").
       done. done. done.

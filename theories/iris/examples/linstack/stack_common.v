@@ -232,13 +232,6 @@ Proof.
     destruct Hcontr. exists (N.to_nat x). lia.
 Qed.
 
-(* Lemma Z_divide_dec: ∀ a b : Z, {(a | b)%Z} + {¬ (a | b)%Z}. *)
-(* Proof. *)
-(*   intros. destruct (decide ((Z.to_nat a) | (Z.to_nat b))). *)
-(*   - left. destruct d. exists (Z.of_nat x). lia. *)
-(*   - right. intros Hcontr. apply n. *)
-(*     destruct Hcontr. exists (N.to_nat x). lia. *)
-(* Qed. *)
 
 Inductive multiples_upto: N -> N -> list N -> Prop :=
 | mu_base_nil n: (n > 0)%N -> multiples_upto n 0 []
@@ -466,7 +459,7 @@ Proof.
   by iApply (wp_label_value with "Hf").
 Qed.
 
-Lemma check_stack_valid (v : N) (* s *) (* n *) f E x:
+Lemma check_stack_valid (v : N) f E x:
     ⌜ (f_locs f) !! x = Some (value_of_uint v) ⌝ ∗ 
      ↪[frame] f ⊢ 
     WP to_e_list (validate_stack x) @ E

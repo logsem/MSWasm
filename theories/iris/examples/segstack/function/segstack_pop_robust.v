@@ -15,9 +15,7 @@ Unset Printing Implicit Defensive.
 Section pop_robust.
 Context `{ HHB: HandleBytes, !wasmG Σ, !cinvG Σ, cancelg: cancelG Σ, !hvisG Σ, !hasG Σ, !hmsG Σ, !logrel_na_invs Σ}. 
   
-Lemma spec_pop_robust vcs f hfs (* C *) i all:
-(*   tc_label C = [] ∧ tc_return C = None ->
-   interp_instance C [] i -∗ *)
+Lemma spec_pop_robust vcs f hfs i all:
      interp_val [T_handle] (immV vcs) -∗
       ↪[frame] f -∗
       na_own logrel_nais ⊤ -∗
@@ -35,45 +33,9 @@ Lemma spec_pop_robust vcs f hfs (* C *) i all:
                na_own logrel_nais ⊤ ∗  ↪[frame]f ∗
                (∃ all0 : leibnizO allocator, interp_allocator all0) }}.
 Proof.
-(*  intros HC. *)
   iIntros "#Hv Hf Hown Hall" (lh HLI%lfilled_Ind_Equivalent).
   inversion HLI; inversion H8 ; subst.
 
-(*  assert (be_typing (upd_local_label_return C ([T_handle] ++ [T_i32]) [[T_i32]] (Some [T_i32])) pop (Tf [] [T_i32])).
-  { unfold pop, is_empty. simpl.
-     rewrite (separate9 (i32const _ )).
-     eapply bet_composition'.
-     { apply/b_e_type_checker_reflects_typing => /= ; by apply/eqP. }
-     { apply/b_e_type_checker_reflects_typing => /=; by apply/eqP. }
-  } 
-
-  iDestruct (be_fundamental_local _ pop [T_handle] _ _ HC H) as "H".
-  
-  iApply (wp_wand with "[-]").
-  iApply ("H" with "Hi Hf Hown Hall [Hv]").
-  { iRight. iDestruct "Hv" as "[%Habs | Hv]"; first done.
-    iDestruct "Hv" as (ws) "(%Heq & Hv)". inversion Heq; subst.
-    iDestruct (big_sepL2_length with "Hv") as "%Hlen". 
-    destruct ws; first done.  destruct ws; last done.
-    iSimpl in "Hv". iDestruct "Hv" as "[Hv _]".
-    iSimpl. iExists _. repeat iSplit => //. iExists _. done. }
-
-  iIntros (v) "([Hv' Hown] & Hf & Hall)".
-  iFrame. 
- *)
-
-
-  (* iSimpl. rewrite separate2. iApply wp_seq.
-  iSplitR; last first. iSplitL "Hf".
-  rewrite (separate1 (AI_basic _)).
-  iApply wp_val_app. done.
-  iSplitR; last first.
-  iApply (wp_wand with "[-]").
-
-   iDestruct (typing_get_local with "[] [] [] [] []") as "H".
-  6:{ instantiate (1 := immV []). iRight. iExists _. iSplit => //. }
-  6:{ iSimpl in "H". iApply "H". }
-  6:{ iIntros (w) "H".  *)
 
 
     iApply (wp_frame_bind with "Hf").

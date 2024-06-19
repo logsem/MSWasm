@@ -127,10 +127,6 @@ Proof.
     iApply (wp_set_local with "[]Hf") => //.
     
   - iIntros (w) "[-> Hf]".
-(*    remember {| f_locs := set_nth (value_of_uint (v + N.of_nat (S (length s)) * 4)) (f_locs f0) 1
-                                  (value_of_uint (v + N.of_nat (S (length s)) * 4)) ;
-                f_inst := f_inst f0 |} as f1.
-    rewrite - Heqf1. *)
     iSimpl. 
     rewrite separate2.
     iApply wp_seq.

@@ -200,10 +200,9 @@ Section Client2.
       ID_instantiate [exp_addrs !!! 8] client_mod_addr ((take 8 exp_addrs) ++ [(exp_addrs !!! 9)]) ].
   (* the 7th element is the host import *)
 
-  Lemma instantiate_stack_client_spec (s: stuckness) E name idmodtab (exp_addrs: list N) (stack_mod_addr client_mod_addr: N) (ha_mod_table_addr: nat) (* all *) :
+  Lemma instantiate_stack_client_spec (s: stuckness) E name idmodtab (exp_addrs: list N) (stack_mod_addr client_mod_addr: N) (ha_mod_table_addr: nat) :
     length exp_addrs = 10 -> 
     ↪[frame] empty_frame -∗
-(*     interp_allocator all -∗ *)
   stack_mod_addr%N ↪[mods] stack_module -∗
   client_mod_addr%N ↪[mods] client_module -∗
   own_vis_pointers (take 9 exp_addrs) -∗
@@ -218,7 +217,7 @@ Section Client2.
      WP ((stack_instantiate exp_addrs stack_mod_addr client_mod_addr , []) : host_expr)
      @ E
      {{ λ v: language.val wasm_host_lang, ⌜ v = immHV [] ⌝ ∗
-              ↪[frame] empty_frame ∗ (* interp_allocator all ∗ *)
+              ↪[frame] empty_frame ∗ 
                 stack_mod_addr ↪[mods] stack_module ∗
                  client_mod_addr ↪[mods] client_module ∗
                  ∃ idg name,
@@ -227,7 +226,7 @@ Section Client2.
                     (N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int 40%Z |} ∨
                        N.of_nat idg ↦[wg] {| g_mut := MUT_mut ; g_val := value_of_int (-1)%Z |}) }}.
 Proof.
-  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis Hvishost Hwfcallhost Hha". (* removed Hall *)
+  iIntros (Hvisaddrlen) "Hemptyframe Hmod0 Hmod1 Hvis Hvishost Hwfcallhost Hha". 
   
   do 11 (destruct exp_addrs => //); clear Hvisaddrlen.
   simpl.
@@ -494,7 +493,7 @@ Proof.
       iApply wp_lift_wasm.
       
       iApply wp_wand_r.
-      iSplitR "Hmod1 Hha Himpfcl1 Himpfcl2 Himpfcl3 ". (* removed Hall *)
+      iSplitR "Hmod1 Hha Himpfcl1 Himpfcl2 Himpfcl3 ". 
       rewrite - (app_nil_l [AI_invoke idnstart]).
       iApply (wp_invoke_native with "Hf Hwfcl").
       done. done. done.
@@ -1254,7 +1253,7 @@ Proof.
       iFrame.
       iApply iris_host.wp_value. done.
       iSplit => //.
-      iFrame "Hf Hmod1". (* removed Hall *)
+      iFrame "Hf Hmod1". 
       iExists _, _. by iFrame.
 Qed.
 

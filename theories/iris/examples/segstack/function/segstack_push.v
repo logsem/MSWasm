@@ -219,9 +219,6 @@ Section stack.
                                                   (base v + N.of_nat (length s) * 4 +
                                                   4) +
                                                   (4 + k))]y)) ∗
-        (* [∗ list] k↦y ∈ bs,  ↦[ws][N.of_nat
-                                      (N.to_nat (base v + N.of_nat (length s) * 4 + 4) +
-                                       S (S (S (S k))))]y ∗ *)
                                id v↣[allocated] Some (base v, bound v) ∗
         ↦[wss][base v +
                   Z.to_N

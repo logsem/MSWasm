@@ -297,9 +297,7 @@ Section Client_main.
       rewrite Hflocs. iSimpl in "Hf".
       iApply (wp_seq _ _ _ (λ v, ⌜v = immV _⌝ ∗ _)%I).
       iSplitR;[|iSplitL "Hf"];[by iIntros "[%Hcontr _]"|..].
-      { (* take_drop_app_rewrite 1. *)
-        (* iApply wp_val. iSplitR;[by iIntros "[%Hcontr _]"|]. *)
-        iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
+      { iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
       iIntros (w) "[-> Hf]".
       iSimpl.
       (* push *)
@@ -325,9 +323,7 @@ Section Client_main.
       take_drop_app_rewrite 1.
       iApply (wp_seq _ _ _ (λ v, ⌜v = immV _⌝ ∗ _)%I).
       iSplitR;[|iSplitL "Hf"];[by iIntros "[%Hcontr _]"|..].
-      { (* take_drop_app_rewrite 1. *)
-        (* iApply wp_val. iSplitR;[by iIntros "[%Hcontr _]"|]. *)
-        iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
+      { iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
       iIntros (w) "[-> Hf]".
       iSimpl.
       (* push *)
@@ -360,7 +356,7 @@ Section Client_main.
       rewrite firstn_cons. iDestruct "Ht" as "[Ht _]".
       
       take_drop_app_rewrite 3.
-      iApply (wp_wand with "[-HΦ]"). (* Removed Hall *) 
+      iApply (wp_wand with "[-HΦ]"). 
       { iApply wp_wasm_empty_ctx.
         iApply wp_seq_can_trap_ctx. iFrame "Hf".
         instantiate (2 := λ f', (⌜ f' = {|
@@ -831,8 +827,7 @@ Section Client_instantiation.
       [apply Htyp|repeat split;eauto|eauto|..].
     2,3,4,5: by instantiate (1:=∅).
     { destruct Hglob_inits_vals as [? ?];eauto. }
-    { (* instantiate (1:=∅). *)
-      rewrite irwt_nodup_equiv; last by apply NoDup_nil.
+    { rewrite irwt_nodup_equiv; last by apply NoDup_nil.
       repeat iSplit;auto.
       rewrite module_import_init_tabs_dom. auto.
       rewrite module_import_init_mems_dom. auto.

@@ -54,33 +54,26 @@ End code.
 
 Section specs.
 
-Lemma spec_new_stack f0 (* len *) E: 
+Lemma spec_new_stack f0 E: 
   ⊢ {{{
           ⌜ length (f_locs f0) >= 1 ⌝ ∗
-  (*        ⌜ (page_size | len)%N ⌝ ∗ *)
-            ↪[frame] f0 (* ∗
-            ↦[wslength] len *)
+            ↪[frame] f0 
     }}}
     to_e_list new_stack @ E
-    {{{ v , ((⌜ v = immV [value_of_handle dummy_handle] ⌝ (* ∗
-                      ↦[wslength] len *)) ∨
-               (∃ h (* len' *), ⌜ v = immV [value_of_handle h]⌝ ∗
-                             isStack h [] (* ∗
-                             ↦[wslength] len' ∗
-                             ⌜ (len' >= len)%N ⌝ *)
+    {{{ v , ((⌜ v = immV [value_of_handle dummy_handle] ⌝ 
+             ) ∨
+               (∃ h, ⌜ v = immV [value_of_handle h]⌝ ∗
+                             isStack h [] 
             )) ∗
               ∃ f1, ↪[frame] f1 ∗ ⌜ f_inst f1 = f_inst f0 ⌝ }}}.
 Proof.
   iIntros "!>" (Φ) "(%Hflocs & Hframe) HΦ".
-  (*assert (page_size | len)%N as Hlenmod => //=.
-  apply divide_and_multiply in Hlenmod => //=. *)
   simpl. rewrite separate2.
   iApply wp_seq => /=.
   iDestruct (wp_segalloc with "[$Hframe]") as "HWP" => //.
   iIntros "!>" (w) "H". iExact "H".
   iSplitR; last first.
   
-  (* { iSplitL ; by instantiate (1 := λ v, ⌜ v = immV _ ⌝%I ). } *)
   iSplitL "HWP".
   by iApply "HWP".
   2:{ iIntros "[Habs _]". iDestruct "Habs" as (?) "[% _]".  done. }
@@ -142,8 +135,6 @@ Proof.
       rewrite - (app_nil_l [AI_basic (BI_block _ _)]).
       iApply wp_wand_r. 
       iSplitL "Hf".
-      (*iApply (wp_block with "Hf") => //=. 
-      iIntros "!> Hf". *)
       iApply wp_wasm_empty_ctx.
       iApply (wp_block_ctx with "Hf"). done. done. done. done.
       iIntros "!> Hf".
@@ -174,20 +165,6 @@ Proof.
 
       iDestruct "H" as "[ %Hdum | (Hid & %Hbound & %Hoff & %Hval & Hs)]".
       subst h. unfold handle_eqb, dummy_handle in Hv; simpl in Hv. done.
-      (* assert (len `div` page_size <= 65535)%N as Hpagebound.
-      { unfold mem_in_bound, page_limit in Hbound.
-        simpl in Hbound.
-        by lias.
-      }
-      assert (len <= ffff0000)%N as Hlenbound.
-      { rewrite <- Hlenmod.
-        remember (len `div` page_size)%N as pagenum.
-        replace page_size with 65536%N => //.
-        unfold ffff0000.
-        by lias.
-      }
-      unfold page_size at 3.
-      replace (N.to_nat (_ * (64 * 1024))) with (4 + N.to_nat (65532)) ; last done. *)
       assert (Wasm_int.N_of_uint i32m (Wasm_int.int_of_Z i32m 65536) = 65536%N); first done.
       rewrite H.
       assert (N.to_nat 65536 = 4 + N.to_nat 65532); first done.
@@ -205,9 +182,7 @@ Proof.
         replace (base h + 1 + 1)%N with (base h + N.of_nat 2)%N ; last lia.
         replace (base h + N.of_nat 2 + 1)%N with (base h + N.of_nat 3)%N ; last lia.
         iFrame. }
-(*      remember (Wasm_int.Int32.repr (ssrnat.nat_of_bin (len `div` page_size))) as c. *)
       iApply wp_wand_r.        
-      (*      instantiate (1 := λ x, ((⌜ x = immV [value_of_uint len] ⌝ ∗ N.of_nat n↦[i32][ len ] (Wasm_int.Int32.repr (Z.of_N len))) ∗ ↪[frame] {| f_locs := set_nth (VAL_int32 c) (f_locs f0) 0 (VAL_int32 (Wasm_int.Int32.imul c (Wasm_int.Int32.repr 65536))); f_inst := f_inst f0 |} )%I). *)
       iSplitL "Hf Hbs Hid".
       * { iApply wp_wasm_empty_ctx.
           iApply (wp_block_ctx with "Hf"). done. done. done. done.
@@ -304,77 +279,7 @@ Section valid.
     iIntros "". unfold interp_value. simpl.
     iExists _. eauto. Qed.
 
-  (*
-  Lemma valid_new_stack t funcs :
-    let i0 := {| inst_types := [Tf [] [T_i32]; Tf [T_i32] [T_i32]; Tf [T_i32; T_i32] []];
-                     inst_funcs := funcs;
-                     inst_tab := [t];
-                     inst_memory := [];
-                     inst_globs := []
-              |} in
-    na_inv logrel_nais stkN (stackModuleInv (λ (a : handle) (b : seq.seq i32), isStack a b) (λ n : nat, ↦[wslength]N.of_nat n)) -∗
-    interp_closure_native i0 [] [T_i32] [T_i32] (to_e_list new_stack) [].
-  Proof.
-    iIntros "#Hstk".
-    iIntros (vcs f) "#Hv Hown Hf".
-    iIntros (LI HLI%lfilled_Ind_Equivalent);inversion HLI;inversion H8;subst;simpl.
-    iApply (wp_frame_bind with "[$]");auto.
-    iIntros "Hf".
-    match goal with | |- context [ [AI_label _ _ ?l] ] => set (e:=l) end.
-    build_ctx e.
-    iApply wp_label_bind.
-    subst e.
-    iDestruct "Hv" as "[%Hcontr|Hws]";[done|iDestruct "Hws" as (ws) "[%Heq Hws]"].
-    iDestruct (big_sepL2_length with "Hws") as %Hlen. inversion Heq. destruct ws;[|done]. simpl.
-    iApply fupd_wp.
-    iMod (na_inv_acc with "Hstk Hown") as "(>Hstkres & Hown & Hcls)";[solve_ndisj..|].
-    iDestruct "Hstkres" as (len) "[% [Hlen Hstkres]]".
-    iApply (spec_new_stack with "[$Hf $Hlen]") ;[auto|].
-    iModIntro.
-    iIntros (v) "HH".
-    iDestruct "HH" as "[Hcases Hf]".
-    iDestruct "Hf" as (f') "[Hf %Hfinst]". simpl in Hfinst.
-    iAssert (⌜const_list (iris.of_val v)⌝)%I as %Hval.
-    { iDestruct "Hcases" as "[[-> Hm] | [-> [Hs Hm]]]";auto. }
-    apply const_list_to_val in Hval as Hvs. destruct Hvs as [vs Hvs].
-    rewrite to_of_val in Hvs.
-    iAssert (⌜length vs = 1⌝)%I as %Hlenvs.
-    { inversion Hvs;subst v.
-      iDestruct "Hcases" as "[[%eq1 Hm] | [%eq1 [Hs Hm]]]";inversion eq1;auto. }
-    iAssert (interp_values [T_i32] v) as "#Hv".
-    { iDestruct "Hcases" as "[[-> Hm] | [-> [Hs Hm]]]"; iSimpl.
-      iExists _. iSplit;eauto. iSplit =>//. iApply interp_value_of_int.
-      iExists _. iSplit;eauto. iSplit =>//. iApply interp_value_of_uint.
-    }
-    iApply (wp_val_return with "[$]");auto.
-    iIntros "Hf /=".
-    iApply wp_value;[rewrite app_nil_r;eapply of_to_val;eauto;eapply to_of_val|].
-    iExists _. iFrame. iIntros "Hf".
-    
-    iApply fupd_wp.
-    iMod ("Hcls" with "[$Hown Hcases Hstkres]") as "Hown".
-    { iNext.
-      iDestruct "Hcases" as "[[Heq Hm] | [% [Hs Hm]]]".
-      - iExists _. iFrame. auto.
-      - iExists _.
-        rewrite <- (N2Nat.id page_size), <- Nat2N.inj_add.
-        iFrame "Hm". repeat iSplit.
-        + iPureIntro. rewrite N2Nat.id Nat2N.inj_add N2Nat.id.
-          apply N.divide_add_r;auto. apply N.divide_refl.
-        + iDestruct "Hstkres" as (l Hmul) "Hstkres".
-          rewrite N2Nat.id in Hmul. iExists (N.of_nat len :: l).
-          iSplit.
-          { iPureIntro. rewrite Nat2N.inj_add N2Nat.id. constructor. auto. }
-          iSimpl. iFrame. iExists _. iFrame. }
-    iModIntro.
-    inversion Hvs;subst v.
-    iApply (wp_wand _ _ _ (λ v, ⌜v = immV vs⌝ ∗ _)%I with "[Hf]").
-    { iApply (wp_frame_value with "[$]");eauto. apply to_of_val. simpl.
-      rewrite v_to_e_length. auto. }
-    iIntros (v) "[-> Hf]". iFrame.
-    iLeft. iRight. iFrame "#". 
-  Qed.
-*)
+
 End valid.
 
 

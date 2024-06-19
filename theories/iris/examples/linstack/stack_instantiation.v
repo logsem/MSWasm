@@ -133,8 +133,6 @@ Lemma validate_stack_typing x tt tf tloc tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*      tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := tloc;
       tc_label := tlab;
       tc_return := tret
@@ -159,8 +157,6 @@ Lemma validate_stack_bound_typing x tt tf tloc tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*      tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := tloc;
       tc_label := tlab;
       tc_return := tret
@@ -184,8 +180,6 @@ Lemma new_stack_typing tt tf :
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := [T_i32];
       tc_label := [[T_i32]];
       tc_return := Some [T_i32]
@@ -203,8 +197,6 @@ Lemma is_empty_typing tt tf tloc tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := tloc;
       tc_label := tlab;
       tc_return := tret
@@ -225,8 +217,6 @@ Lemma is_full_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *) 
       tc_local := [T_i32];
       tc_label := tlab;
       tc_return := tret
@@ -245,8 +235,6 @@ Lemma pop_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := [T_i32; T_i32];
       tc_label := tlab;
       tc_return := tret;
@@ -266,8 +254,6 @@ Lemma push_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := [T_i32; T_i32; T_i32];
       tc_label := tlab;
       tc_return := tret
@@ -295,8 +281,6 @@ Lemma stack_map_typing tf:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := [T_i32; T_i32; T_i32; T_i32];
       tc_label := [[]];
       tc_return := Some []
@@ -326,8 +310,6 @@ Lemma stack_length_typing tt tf tlab tret:
       tc_global := [];
       tc_table := [ {| tt_limits := {| lim_min := 1; lim_max := None |}; tt_elem_type := ELT_funcref |}];
       tc_memory := [ {| lim_min := 0; lim_max := None |}];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-      tc_allocator := ALL_type; *)
       tc_local := [T_i32];
       tc_label := tlab;
       tc_return := tret;
@@ -1244,8 +1226,7 @@ Proof.
       iSimpl.
       iIntros (w) "[[[-> | (-> & Hs & Hf0)] [HΞ Hown]] Hf]".
       all: try iApply "HΞ1";iFrame. by iLeft.
-      iRight. iSplit;auto. iFrame. (* iDestruct "Hs" as (s') "(?&?&?)".
-      iFrame. iExists _. iFrame.  *)
+      iRight. iSplit;auto. iFrame. 
     }
       
     (* length spec *)

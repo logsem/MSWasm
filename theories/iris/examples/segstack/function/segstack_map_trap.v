@@ -187,17 +187,6 @@ Proof.
        iPureIntro.
        unfold value_of_uint.
        repeat f_equal.
-(*       unfold Wasm_int.Int32.iadd, Wasm_int.Int32.add.
-       f_equal.
-       simpl.
-       rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-       rewrite Z.mod_small; last first.
-       { remember (length s) as x; rewrite - Heqx.
-         unfold ffff0000 in Hvb; rewrite u32_modulus; unfold two14 in Hlens.
-         lia.
-       }
-       remember (N.of_nat (length s)) as x; rewrite - Heqx.
-       by destruct j => //; lias. *)
   }
   { by iIntros "(%Habs & _)". }
 
@@ -477,12 +466,6 @@ Proof.
         replace (length s * 4 - 4 * Z.of_N (N.of_nat k) - 4)%Z
           with (length s * 4 - 4 * Z.of_N (N.of_nat (k + 1)))%Z.
         done. lia.
-(*      * 
-      { rewrite Hlocs2.
-        iPureIntro.
-        do 2 f_equal.
-        lia.
-      } *)
       * iPureIntro. lia. 
       * iPureIntro. lia. 
       * iPureIntro.
@@ -512,7 +495,6 @@ Proof.
            simpl.
            remember ({| f_locs := <[2:=value_of_handle hj' ]> (f_locs f);
                        f_inst := f_inst f |}) as f'.
-           (* rewrite -Heqf'. *)
            replace (f_inst f) with (f_inst f'); last by rewrite Heqf'.
            iApply "IHk"; auto; first by iPureIntro; instantiate (1 := N.of_nat k); rewrite Nat2N.id.
            rewrite Heqf' => /=.
@@ -532,9 +514,6 @@ Proof.
            ++ rewrite list_lookup_insert; last lia.
               iPureIntro.
               do 2 f_equal.
-(*              rewrite - Hlen.
-      by lias.
-    } *)
            ++ by rewrite list_lookup_insert_ne.
            ++ rewrite insert_length. iPureIntro; lia.
            ++ iPureIntro. lia. 
@@ -657,14 +636,7 @@ Proof.
       rewrite list_lookup_insert_ne; last lia.
       by rewrite Hlocs1.
     + rewrite list_lookup_insert; last by rewrite insert_length; lia.
-      done. (*  instantiate (1 := N.of_nat (length s)).
-      instantiate (1 := s).
-      simpl.
-      iPureIntro.
-      do 2 f_equal.
-      remember (N.of_nat (length s)) as x; rewrite - Heqx.
-      by destruct x => //; lia.
-    } *)
+      done. 
     + rewrite list_lookup_insert_ne; last lia.
       rewrite list_lookup_insert; last lia.
       done.

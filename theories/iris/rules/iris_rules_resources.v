@@ -780,7 +780,6 @@ Proof.
   destruct o ; inversion Hm0.
   simpl.
   assert (m1 = mem_data m0) ; first by rewrite - H5.
-  (*    simpl in Hfl. *)
   cut (forall i dat datf n,
           i <= length bs ->
           length (ml_data dat) = N.to_nat (mem_length m) ->
@@ -1204,7 +1203,6 @@ Proof.
   unfold load, read_bytes, fold_lefti.
   unfold load, read_bytes in Hload.
   rewrite N.add_assoc in Hload.
-  (* rewrite - Hlen. *)
   destruct (_ <=? _)%N eqn:Hklen ; try by inversion Hload.
   destruct (k + (off + N.of_nat (len)) <=? mem_length m)%N eqn:Hklen'.
   2: { apply N.leb_le in Hklen. apply N.leb_nle in Hklen'. lia. }
@@ -1798,9 +1796,6 @@ Proof.
   rewrite lookup_insert in Hf0.
   inversion Hf0; subst; clear Hf0.
   destruct bv eqn:Hb. destruct t => //.
-(*  simpl in Htv. destruct HHB. simpl in Htv.
-  assert (ssrnat.leq 1 (ssrnat.nat_of_bin handle_size)) => //.
-  rewrite <- Htv in H. lias. *)
   iDestruct (wms_implies_smems_is_Some with "Hm Hwms") as "(Hwms & Hm & %Hm)".
   destruct Hm as [m Hm].
   rewrite <- Hb.
@@ -1900,7 +1895,7 @@ Proof.
     destruct σ2 as [[ws' locs'] inst'] => //=.
     prim_split κ HStep H.
     eapply reduce_det in H as [ H | [ (? & Hfirst & Hme) | [ [? Hfirst] | (?&?&?&Hfirst & Hfirst2 &
-                                                                  Hfirst3 & Hσ & Hme)(* ] *)]]] ;
+                                                                  Hfirst3 & Hσ & Hme)]]] ;
       last (eapply rm_silent, r_load_packed_success => //= ; unfold smem_ind ; by rewrite Hinstmem) ;
       try by     unfold first_instr in Hfirst ; simpl in Hfirst ; inversion Hfirst.
     inversion H ; subst. iFrame. destruct (wasm_deserialise _ _) ; iFrame; done.

@@ -380,7 +380,7 @@ Proof.
     iSplit.
     { iPureIntro.
       destruct s => //.
-      eapply append_reducible (* with (es2:=es2) *) in H1;auto.
+      eapply append_reducible in H1;auto.
       eapply local_frame_lfilled_reducible. apply Hfilled. exact H1. }
     iIntros (e2 σ2 efs HStep').
     destruct σ2 as [[s3 locs2] inst2].

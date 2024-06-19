@@ -11,28 +11,6 @@ Section iris_rules_pure.
 Context `{HHB: HandleBytes}.
 Context `{!wasmG Σ}.
 
-(*Lemma wp_immediate (s : stuckness) (E : coPset) (Φ : iris.val -> iProp Σ) (v : numerical_value) f0:
-  ↪[frame] f0 -∗
-  ▷ Φ (immV [VAL_numeric v]) -∗
-  WP [AI_basic (BI_immediate v)] @ s; E {{ v, Φ v ∗ ↪[frame] f0 }}.
-Proof.
-  iIntros "Hf HΦ".
-  iApply wp_lift_atomic_step. simpl ; trivial.
-  iIntros (σ ns κ κs nt) "Hσ !>".
-  iSplit.
-  - iPureIntro.
-    destruct s => //=.
-    unfold language.reducible, language.prim_step => /=.
-    exists [ME_empty], [AI_const (VAL_numeric v)], σ, [].
-    destruct σ as [[ws locs] inst].
-    unfold iris.prim_step => /=.
-    repeat split => //. apply rm_silent, r_simple. apply rs_immediate.
-  - destruct σ as [[ws locs] inst].
-    iIntros "!>" (es σ2 efs HStep) "!>".
-    destruct σ2 as [[ ws' locs'] inst'].
-    prim_split κ HStep H.
-    only_one_reduction H. iFrame.
-Qed. *)
 
 
 

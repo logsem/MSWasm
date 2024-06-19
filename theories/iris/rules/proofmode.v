@@ -86,8 +86,6 @@ Class DecomposeBase l e l1 l2 :=
 
 Hint Mode DecomposeBase ! ! - - : typeclass_instances.
 
-(* Instance DecomposeBaseAppHere : forall e l2, DecomposeBase (e ++ l2) e [] l2. *)
-(* Proof. intros. constructor. auto. Qed. *)
 
 Instance DecomposeBaseConsAppNil : forall e, DecomposeBase e e [] [].
 Proof. intros. constructor. simpl. rewrite app_nil_r. auto. Qed.
@@ -206,7 +204,7 @@ Ltac build_ctx e :=
 Ltac deconstruct_ctx :=
   match goal with
   | |- context [ (WP ?es @ ?s; ?E CTX ?i; ?lh {{ ?P }})%I ] =>
-      iApply (@wp_deconstruct_ctx _ _ _ es); (* added an underscore to accound for HHB *)
+      iApply (@wp_deconstruct_ctx _ _ _ es); 
       try (constructor;cbn;rewrite eqseqE;eauto);
       iSimpl
   end.
@@ -251,13 +249,13 @@ Proof.
 Qed.
 
 Ltac bind_seq_base_imm e h :=
-  iApply (@bind_seq_base_imm _ _ _ e with h). (* added an underscore to accound for HHB *)
+  iApply (@bind_seq_base_imm _ _ _ e with h). 
 
 Tactic Notation "bind_seq_base_imm" constr(e) "with" constr(h) :=
   bind_seq_base_imm e h.
 
 Ltac bind_seq_base_callhost e h :=
-  iApply (@bind_seq_base_callhost _ _ _ e with h). (* added an underscore to accound for HHB *)
+  iApply (@bind_seq_base_callhost _ _ _ e with h). 
 
 Tactic Notation "bind_seq_base_callhost" constr(e) "with" constr(h) :=
   bind_seq_base_callhost e h.

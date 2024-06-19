@@ -138,7 +138,7 @@ Section trap_rules.
         iDestruct "H2" as "[Hσ H]".
         iDestruct "H" as (f1) "(Hf1 & Hes'' & Hefs)".
         iApply bi.sep_exist_l. iExists f1.
-        iFrame. (* iSplit => //. *)
+        iFrame. 
         iIntros "?".
         iSpecialize ("IH" with "[$]").
         iApply "IH". eauto.
@@ -167,8 +167,7 @@ Section trap_rules.
         iMod "Hes''" as "(H & Hf1)".
         iDestruct (ghost_map_lookup with "Hfr Hf1") as %Heq'.
         simplify_map_eq.
-        (* iModIntro. *)
-        iFrame. (* iApply fupd_frame_r. iSplit => //. *)
+        iFrame. 
         iModIntro. iIntros "Hf".
         erewrite cons_middle.
         erewrite app_assoc.
@@ -256,7 +255,6 @@ Section trap_rules.
     iIntros "(#HΦ & Hf & HWP)".
     iInduction vs as [|c vs] "IH" forall (s E es).
     { simpl.
-(*      iIntros "[Hf HWP]". *)
       destruct s.
       2: iApply wp_stuck_weaken.
       all: iDestruct ("HWP" with "Hf") as "HWP" => //.
@@ -447,7 +445,6 @@ Section trap_rules.
       iIntros "!>" (es2 σ2 efs HStep) "!>".
       destruct σ2 as [[ ws' locs'] inst'].
       prim_split κ HStep H. iFrame.
-      (* iDestruct ("H" with "Hframe") as "[H Hframe]". iFrame. *)
       apply reduce_det_local_trap in H as [? [? [? ?]]]. simplify_eq. iFrame. done.
   Qed.
 
@@ -651,7 +648,7 @@ Section trap_rules.
         iPoseProof (wp_trap_ctx s E f0 i lh [] es2 with "Hf") as "HH";auto.
         iSpecialize ("HH" $! LI with "[]");auto.
         iApply (wp_wand with "HH").
-        iIntros (v) "[-> Hf]". iFrame. iApply "Ht";iFrame. (* iExists _. iFrame.  *)
+        iIntros (v) "[-> Hf]". iFrame. iApply "Ht";iFrame. 
       }
       { iApply wp_unfold. rewrite /wp_pre /= Hetov.
         iIntros (σ ns κ κs nt) "Hσ".

@@ -292,15 +292,6 @@ Proof.
   done.
 Qed.
 
-(* Lemma freed_implies_is_in_allocator a i x q:
-  ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
-    i ↣[freed]{ q } x -∗ ⌜ a.(allocated) !! i = Some (Free x) ⌝.
-Proof.
-  iIntros "Ha Hi".
-  iDestruct (ghost_map_lookup with "Ha Hi") as "%H".
-  iPureIntro.
-  done.
-Qed. *)
 
  Lemma in_allocated_implies_isAlloc i x a:
   a.(allocated) !! i = Some (Some x) -> isAlloc i a.
@@ -554,7 +545,6 @@ Proof.
     right; right; left => //. 
   + iIntros "!>" (es σ2 efs HStep).
     destruct σ2 as [[ws2 locs2] winst2].
-(*    rewrite -nth_error_lookup in Hm. *)
     iModIntro.
     prim_split κ HStep HStep. 
     eapply reduce_det in HStep as [H | [ (? & Hfirst & ?) | [ [? Hfirst] | (?&?&?& Hfirst & Hfirst2 &
@@ -1198,7 +1188,6 @@ Proof.
   replace (handle_addr h + 1)%N with (handle_addr h').
   2:{ subst; rewrite handle_addr_plus_one => //. }
   iMod (IHbs with "Hσ Hwms") as "[Hσ Hwms]" => //.
-(*  subst; unfold plus_one; simpl; lia. *)
   by subst; eapply segload_append.
   subst h'; simpl; intros. apply Ha.
   rewrite handle_addr_plus_one in H; lia.
@@ -1492,7 +1481,6 @@ Qed.
 Lemma ghost_map_delete_big_ws bs (m : segment) a addr size id:
   length bs = N.to_nat size ->
   a.(allocated) !! id = Some (Some (addr, size)) ->
-  (*  isSound s a -> *)
   compatible addr size (<[ id := None ]> a.(allocated)) ->
   ghost_map_auth segGName 1 (gmap_of_segment m a) -∗
                   ↦[wss][addr] bs ==∗
@@ -1521,7 +1509,7 @@ Proof.
                            fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                              (iota (N.to_nat addr + k) (N.to_nat size - k))
                              (map_fold
-                                (λ (_ : N) x (* '(addr0, lim) *) (res : gmap N ()),
+                                (λ (_ : N) x (res : gmap N ()),
                                   match x with 
                                     | Some (addr0, lim) => fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                                             (iota (N.to_nat addr0) (N.to_nat lim)) res
@@ -1550,7 +1538,7 @@ Proof.
                  fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
                    (iota (N.to_nat addr + k) (N.to_nat size - k))
                    (map_fold
-                      (λ (_ : N) x (* '(addr0, lim) *) (res : gmap N ()),
+                      (λ (_ : N) x (res : gmap N ()),
                         match x with 
                           Some (addr0, lim) => fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                                 (iota (N.to_nat addr0) (N.to_nat lim)) res
@@ -1560,7 +1548,7 @@ Proof.
             fold_left (λ (res : gmap N ()) (j : nat), <[N.of_nat j:=()]> res)
               (iota (N.to_nat addr + S k) (N.to_nat size - S k))
               (map_fold
-                 (λ (_ : N) x (* '(addr0, lim) *) (res : gmap N ()),
+                 (λ (_ : N) x (res : gmap N ()),
                    match x with
                      | Some (addr0, lim) => fold_left (λ (res0 : gmap N ()) (j : nat), <[N.of_nat j:=()]> res0)
                                              (iota (N.to_nat addr0) (N.to_nat lim)) res
@@ -1590,7 +1578,7 @@ Proof.
         rewrite lookup_insert_ne => //. lia. lia.
     }
     subst mf. 
-    eapply map_fold_grows in Habs as (j & x0 (* [addr0 lim0] *) & res & Hres & Hin & Habs).
+    eapply map_fold_grows in Habs as (j & x0 & res & Hres & Hin & Habs).
     2: done.
     destruct x0 as [[addr0 lim0]|] => //.
     2:{ by rewrite Hres in Habs. } 
@@ -1654,25 +1642,6 @@ Proof.
 
 Qed.
 
-
-(*
-Lemma point_to_implies_compatible id addr size bs s a:
-    length bs = N.to_nat size ->
-    ↦[wss][ addr ] bs -∗
-      id ↣[allocated] (addr, size) -∗
-      ghost_map_auth segGName 1 (gmap_of_segment s a) -∗
-      ghost_map_auth allGName 1 (gmap_of_allocator a) -∗
-      ⌜ compatible addr size (delete id a.(allocated)) ⌝.
-Proof.
-  iIntros (Hbs) "Hwss Hall Hs Ha".
-  unfold compatible.
-  iIntros (nid addr' size' H).
-
-  iAssert (∀ nid addr' size', ⌜ delete id (allocated a) !! nid = Some (addr', size') ⌝ -∗
-                                                                   ⌜ (addr + size <= addr')%N \/ (addr >= addr' + size')%N ⌝)%I
-    with "[Hwss Hall Hs Ha]" as "H".
-  2:{ iIntros (nid).
-*)
 
 
 Lemma wp_segfree h f0 bts Φ s E:

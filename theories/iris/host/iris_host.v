@@ -4,7 +4,7 @@ From iris.program_logic Require Import language weakestpre lifting.
 From iris.proofmode Require Import base tactics classes.
 From iris.base_logic Require Export gen_heap ghost_map proph_map.
 From iris.base_logic.lib Require Export fancy_updates.
-Require Export iris_locations iris_properties iris_rules_resources iris_wp_def stdpp_aux iris_instantiation iris (* iris_logrel *).
+Require Export iris_locations iris_properties iris_rules_resources iris_wp_def stdpp_aux iris_instantiation iris.
 Require Export datatypes operations properties opsem instantiation.
 Require Export type_preservation.
 
@@ -505,7 +505,7 @@ Notation " n ↪[mods] v" := (ghost_map_elem (V := module) msGName n (DfracOwn 1
 
 
 Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ} : weakestpre.irisGS wasm_host_lang Σ := {
-  iris_invGS := func_invG; (* ??? *)
+  iris_invGS := func_invG;
   state_interp σ _ κs _  :=
     let: (s, vis, ms, fs, f) := σ in
      ((gen_heap_interp (gmap_of_list s.(s_funcs))) ∗
@@ -519,10 +519,8 @@ Global Instance host_heapG_irisG `{ HHB:HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG
       (ghost_map_auth haGName 1 (gmap_of_list fs)) ∗
       (ghost_map_auth frameGName 1 (<[ tt := f ]> ∅)) ∗ 
       (gen_heap_interp (gmap_of_list (fmap mem_length s.(s_mems)))) ∗
-(*      (gen_heap_interp (<[ () := seg_length s.(s_segs).(seg_data) ]> ∅)) ∗ *)
       (gen_heap_interp (gmap_of_list (fmap tab_size s.(s_tables)))) ∗
       (@gen_heap_interp _ _ _ _ _ memlimit_hsG (gmap_of_list (fmap mem_max_opt s.(s_mems)))) ∗
-(*      (@gen_heap_interp _ _ _ _ _ seglimit_hsG (<[ () := seg_max_opt s.(s_segs) ]> ∅)) ∗ *)
       (@gen_heap_interp _ _ _ _ _ tablimit_hsG (gmap_of_list (fmap table_max_opt s.(s_tables)))) ∗
       ⌜ wellFormedState s ⌝
     )%I;
@@ -539,7 +537,7 @@ Section Iris_host.
 
     Context `{ HHB: HandleBytes, !wasmG Σ, !hvisG Σ, !hmsG Σ, !hasG Σ}.   
 
-(* I removed the type annotation Φ : host_val -> iProp Σ, which gave a typeclass error *)
+
 Lemma wp_call_host_action_no_state_change s E hes tf h hi f vcs Φ res llh LI LI' :
   h = Mk_hostfuncidx hi ->
   llfill llh [AI_call_host tf h vcs] = LI ->
@@ -586,12 +584,8 @@ Proof.
   done.
 Qed. 
 
-(* Not exactly sure why, but from now on just removing the Φ type annotation isn't enough
-   I have to force it to be language.val wasm_host_lang -> iPropI Σ 
-   Which is identical to the previous host_val -> iProp Σ, but whatever
-*)
 
-Lemma wp_get_global_host s E g v vs (Φ : language.val wasm_host_lang -> iPropI Σ) : (* (Φ : host_val -> iProp Σ) : *)
+Lemma wp_get_global_host s E g v vs (Φ : language.val wasm_host_lang -> iPropI Σ) :
   N.of_nat g ↦[wg] v -∗
     ▷ (N.of_nat g ↦[wg] v -∗ Φ (immHV ((g_val v) :: vs))) -∗ 
     WP (([H_get_global g], v_to_e_list vs) : host_expr) @ s; E {{ Φ }}.
@@ -762,7 +756,6 @@ Proof.
     iMod (gen_heap_update with "Htab Hwt") as "[Htab Hwt]".
     iMod "Hfupd".
     iDestruct ("Hwp" with "[$]") as "Hwp".
-    (* instantiate (1:= Some a).  *)
     iFrame. repeat rewrite fmap_update_list_at => /=.
     rewrite (update_trivial (table_max_opt <$> _)).
     rewrite (update_trivial (tab_size <$> _)). iFrame.
@@ -1262,8 +1255,6 @@ Proof.
 
     exists e_inits, d_inits.
     repeat split => //.
-(*    - (* module_typing *)
-      by apply Hmodtype. *)
     - (* import types *)
       apply Forall2_same_length_lookup.
       split => //; first by rewrite fmap_length.
@@ -1351,7 +1342,7 @@ Proof.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
         simpl. eexists. 
-        repeat econstructor.  (* econstructor. econstructor. econstructor. *)
+        repeat econstructor.  
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -1372,8 +1363,7 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        eexists. repeat constructor. (* econstructor. instantiate (1 := (_,_,_)). econstructor.
-        econstructor. econstructor. econstructor.  *)
+        eexists. repeat constructor. 
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -1394,8 +1384,7 @@ Proof.
         inversion Hmoddata; subst; clear Hmoddata.
         rewrite H0.
         simpl.
-        eexists. repeat constructor. (* econstructor. instantiate (1 := (_,_,_)). econstructor.
-        econstructor. econstructor. econstructor. *)
+        eexists. repeat constructor. 
       + apply lookup_ge_None in Hmdata.
         rewrite Hdinitslen in Hmdata.
         apply lookup_ge_None in Hmdata.
@@ -1858,7 +1847,6 @@ Proof.
     iDestruct "Hσ" as "(?&?&?&?&?&?&?&?)".
     iFrame.
 
-    (* rewrite <- H3. *)
     rewrite <- H2 in H23.
 
     rewrite -> H1 in *.
@@ -1896,7 +1884,7 @@ Proof.
 Qed.
 
 (* Instantiating modules with a start function. We combine the handling of sequence here all in one. *)
-Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls (* all *):
+Lemma instantiation_spec_operational_start_seq s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) idecls:
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
@@ -1908,7 +1896,7 @@ Proof.
   move => Hmodstart Hmodtype Hmodrestr.
   assert (module_restrictions m) as Hmodrestr2 => //.
   
-  iIntros "Hframeown (Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp) Hwpstart". (* Removed Hall after frameown *)
+  iIntros "Hframeown (Hmod & Himphost & Himpwasmpre & Hexphost & %Hlenexp) Hwpstart". 
   iDestruct "Himpwasmpre" as "(Himpwasm & %Hebound & %Hdbound)".
   
   repeat rewrite weakestpre.wp_unfold /weakestpre.wp_pre /=.
@@ -2115,7 +2103,7 @@ Proof.
         inversion Hmodglob; clear Hmodglob.
         rewrite H0.
         simpl.
-        eexists; repeat constructor. (* econstructor. instantiate (1 := (_,_,_)). repeat econstructor. econstructor.  *)
+        eexists; repeat constructor. 
       + apply lookup_ge_None in Hmglob.
         rewrite Hginitslen in Hmglob.
         apply lookup_ge_None in Hmglob.
@@ -2136,7 +2124,7 @@ Proof.
         inversion Hmodelem; subst; clear Hmodelem.
         rewrite H0.
         simpl.
-        eexists; repeat econstructor. (* econstructor. econstructor. econstructor.  *)
+        eexists; repeat econstructor. 
       + apply lookup_ge_None in Hmelem.
         rewrite Heinitslen in Hmelem.
         apply lookup_ge_None in Hmelem.
@@ -2691,7 +2679,6 @@ Proof.
     iDestruct "Hσ" as "(?&?&?&?&?&?&?&?)".
     iFrame.
 
-    (* rewrite <- H3. *)
     rewrite <- H2 in H23.
 
     rewrite -> H1 in *.
@@ -2719,7 +2706,7 @@ Proof.
 
     (* Apply the wp spec premise for start function *)
     iSpecialize ("Hwpstart" $! idfstart).
-    iApply ("Hwpstart" with "Hframeown") => //. (* removed Hall *)
+    iApply ("Hwpstart" with "Hframeown") => //. 
 
     unfold instantiation_resources_post.
     iFrame.
@@ -2727,13 +2714,13 @@ Proof.
     by iFrame.
 Qed.
     
-Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ) (* all *):
+Lemma instantiation_spec_operational_start s E (hs_mod: N) (hs_imps: list vimp) (v_imps: list module_export) (hs_exps: list vi) (m: module) t_imps t_exps wfs wts wms wgs nstart (Φ: language.val wasm_host_lang -> iProp Σ):
   m.(mod_start) = Some (Build_module_start (Mk_funcidx nstart)) ->
   module_typing m t_imps t_exps ->
   module_restrictions m ->
-  ↪[frame] empty_frame -∗ (* interp_allocator all -∗                          *)
+  ↪[frame] empty_frame -∗ 
   instantiation_resources_pre hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps -∗
-  (∀ idnstart, (↪[frame] empty_frame) -∗ (* interp_allocator all -∗ *) (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
+  (∀ idnstart, (↪[frame] empty_frame) -∗ (instantiation_resources_post hs_mod m hs_imps v_imps t_imps wfs wts wms wgs hs_exps (Some idnstart)) -∗ WP (([::], [::AI_invoke idnstart]) : host_expr) @ s; E {{ Φ }}) -∗
   WP (([:: ID_instantiate hs_exps hs_mod hs_imps], [::]): host_expr) @ s; E {{ Φ }}.
 Proof.
   iIntros.

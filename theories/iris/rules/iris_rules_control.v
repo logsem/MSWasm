@@ -386,7 +386,7 @@ Section control_rules.
       
       eapply val_head_stuck_reduce.
       eapply rm_label. 3: apply Hfill2'. 2: eauto.
-      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
+      eapply rm_label. 
       2: { apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
@@ -403,7 +403,7 @@ Section control_rules.
       simpl.
       repeat split => //.
       eapply rm_label. 3: apply Hfill2'. 2: eauto.
-      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
+      eapply rm_label. 
       2: { apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
@@ -782,7 +782,7 @@ Section control_rules.
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //.   
-      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
+      eapply rm_label. 
       2: { erewrite cons_middle. apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
@@ -804,7 +804,7 @@ Section control_rules.
       first (unfold lfilled, lfill ; rewrite Hvs ; by rewrite app_nil_r).
     eapply reduce_det in H as [H | [(i0 & Hstart & ?) | [[i0 Hstart] |
                                                     (i1 & i2 & i3 & Hstart & Hstart1 & Hstart2 & Hσ) ]]].
-    5: { eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
+    5: { eapply rm_label. 
          2: { apply lfilled_Ind_Equivalent.
               econstructor;auto. }
          2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
@@ -852,7 +852,7 @@ Section control_rules.
       destruct σ as [[ws locs] inst].
       unfold iris.prim_step => /=.
       repeat split => //. eapply rm_local.
-      eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
+      eapply rm_label. 
       2: { erewrite cons_middle. apply lfilled_Ind_Equivalent.
            econstructor;auto. }
       2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
@@ -885,7 +885,7 @@ Section control_rules.
       eapply lfilled_implies_starts in Hfilln ; (try done) ;
       rewrite Hfilln in Hstart ; inversion Hstart => //=. 
     2: { eapply rm_local.
-         eapply rm_label. (* with (lh:=(LH_base vs' es')). *)
+         eapply rm_label. 
          2: { apply lfilled_Ind_Equivalent.
               econstructor;auto. }
          2: { apply lfilled_Ind_Equivalent. econstructor;auto. }
@@ -1663,7 +1663,7 @@ Section control_rules.
                    (l ++ [AI_label (length vs) l0 LI0] ++ l1) ME_empty s0
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply rm_label; cycle 1. (* with (k:=0) (lh:=LH_base l l1);cycle 1. *)
+    { eapply rm_label; cycle 1. 
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
       eapply rm_silent, r_simple, rs_br;eauto. }
@@ -1673,7 +1673,7 @@ Section control_rules.
                    (l ++ [AI_label (length vs) l0 LIi] ++ l1) ME_empty s0 
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply rm_label; cycle 1. (* with (k:=0) (lh:=LH_base l l1);cycle 1. *)
+    { eapply rm_label; cycle 1. 
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
       eapply rm_silent, r_simple, rs_br;eauto. }
@@ -1753,7 +1753,7 @@ Section control_rules.
                    (l ++ [AI_label (length vs) l0 LI0] ++ l1) ME_empty s0 
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply rm_label (* with (k:=0) (lh:=LH_base l l1) *) ;cycle 1.
+    { eapply rm_label; cycle 1.
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
       eapply rm_silent, r_simple, rs_br;eauto. }
@@ -1763,7 +1763,7 @@ Section control_rules.
                    (l ++ [AI_label (length vs) l0 LI1] ++ l1) ME_empty s0 
                    {| f_locs := l2; f_inst := i0 |}
                    (l ++ (vs ++ l0) ++ l1)).
-    { eapply rm_label (* with (k:=0) (lh:=LH_base l l1)*);cycle 1.
+    { eapply rm_label; cycle 1.
       apply lfilled_Ind_Equivalent. by constructor.
       apply lfilled_Ind_Equivalent. by constructor.
       eapply rm_silent, r_simple, rs_br;eauto. apply lfilled_Ind_Equivalent. eauto. }

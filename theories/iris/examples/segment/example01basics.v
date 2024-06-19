@@ -332,7 +332,7 @@ Section Example01Host.
     module_typing example_module (example_func_impts ++ example_glob_impts)
       []. 
   Proof. 
-    exists [Tf [] []],[ (* {| tg_mut := MUT_mut; tg_t := T_i32 |} *) ]. simpl.
+    exists [Tf [] []],[ ]. simpl.
     repeat split;eauto.
     { apply Forall2_cons. split;auto. cbn.
       repeat split;auto.
@@ -348,7 +348,6 @@ Section Example01Host.
   Proof.
     unfold module_restrictions.
     repeat split; try by exists [] => //=.
-(*                           exists [xx 99]. done.  *)
   Qed.
 
 
@@ -356,13 +355,12 @@ Section Example01Host.
     [ ID_instantiate [] 0 [0%N] ;
       H_get_global g ].
 
-  Lemma instantiate_example g_ret wret (*all*):
+  Lemma instantiate_example g_ret wret:
     typeof wret = T_i32 ->
-    ⊢ {{{ ↪[frame] empty_frame ∗ (* interp_allocator all ∗ *)
+    ⊢ {{{ ↪[frame] empty_frame ∗ 
             (N.of_nat g_ret) ↦[wg] {| g_mut := MUT_mut; g_val := wret |} ∗
              (∃ name, 0%N ↪[vis] {| modexp_name := name; modexp_desc := MED_global (Mk_globalidx g_ret) |}) ∗
-            0%N ↪[mods] example_module (* ∗ 
-          na_own logrel_nais ⊤ ∗ *)
+            0%N ↪[mods] example_module 
       }}}
       ((example_instantiate g_ret,[]) : host_expr)
       {{{  λ v: language.val wasm_host_lang, ⌜v = immHV [xxv 0]⌝ ∨ ⌜v = immHV [xxv 42]⌝ }}} .
@@ -432,18 +430,10 @@ Section Example01Host.
     iClear "Hsing". 
     
     simpl in Hglobinit.
-(*    assert (exists v, glob_allocs = [ {| g_mut := MUT_mut; g_val := VAL_numeric v |} ])
-      as [gv ->].
-    { destruct g_inits; eexists => //. }
-    
-    iDestruct (big_sepL2_length with "Hglobs") as "%Hlenglobs".
-    unfold get_import_global_count in Hlenglobs. simpl in Hlenglobs.
-    rewrite drop_0 in Hlenglobs. *)
     destruct (inst_globs inst) eqn:Hglobs => //.
     { inversion Hextglob. simpl in H. done. }
     inversion Hextglob. simpl in H. inversion H; subst g. 
 
-    (* iDestruct "Hglobs" as "[Hg _]".  *)
 
 
     unfold check_start in Hstart. simpl in Hstart. rewrite Hfuncs in Hstart.

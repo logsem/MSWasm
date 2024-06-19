@@ -314,7 +314,7 @@ Section Example10Host.
     module_typing example_module (example_func_impts ++ example_glob_impts)
       []. 
   Proof. 
-    exists [Tf [] []],[ (* {| tg_mut := MUT_mut; tg_t := T_i32 |} *) ]. simpl.
+    exists [Tf [] []],[]. simpl.
     repeat split;eauto.
     { apply Forall2_cons. split;auto. cbn.
       repeat split;auto.
@@ -330,7 +330,6 @@ Section Example10Host.
   Proof.
     unfold module_restrictions.
     repeat split; try by exists [] => //=.
-(*                           exists [xx 99]. done.  *)
   Qed.
 
 

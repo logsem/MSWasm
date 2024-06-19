@@ -286,28 +286,12 @@ free h
     2: by iIntros "[% _]".
     iIntros (w) "(-> & Hg' & Hf)".
     iSimpl.
-(*    rewrite (separate2 (AI_basic _)).
-    iApply wp_seq. iSplitR; last first.
-    iSplitL "Hf". 
-    iApply (wp_segalloc with "[$Hf]").
-    
-    done. iIntros "!>" (w) "H". iExact "H".
-    2: by iIntros "[(% & % & _) _]". 
-    iIntros (w) "[H Hf]".
-    iDestruct "H" as (h0) "[-> Hh0]". 
-    iSimpl. *)
     iApply fupd_wp.
     remember {| base := base h + 4; offset := offset h; bound := 4; valid := valid h; id := id h|} as h0.
 
-    iAssert (|={⊤}=> interp_value_handle (VAL_handle h0) ∗ interp_allocator (allocator_insert (id h) (base h) (bound h) all) ∗  id h↣[allocated]{(DfracOwn (1 / 2))}Some (handle_addr h, 8%N) (* (⌜ h0 = dummy_handle ⌝ ∗ interp_allocator all ∨ interp_allocator (allocator_insert (id h0) (base h0) (bound h0) all)) *) )%I with "[Hpublic Hall Ha]" as "Hh0".
+    iAssert (|={⊤}=> interp_value_handle (VAL_handle h0) ∗ interp_allocator (allocator_insert (id h) (base h) (bound h) all) ∗  id h↣[allocated]{(DfracOwn (1 / 2))}Some (handle_addr h, 8%N) )%I with "[Hpublic Hall Ha]" as "Hh0".
 
     { rewrite fixpoint_interp_value_handle_eq.
-(*      iExists _.
-      iSplitR; first done. iRight.  
-      iDestruct "Hh0" as "[-> | (Ha & %Hbound0 & %Hoff0 & %Hvalid0 & Hss)]".
-      iSplitR. iExists _. iSplitR; first done. 
-      iLeft. done. iExists _. done. (* iLeft. iFrame. done.  *)
-      (* iRight.  *) *)
       iAssert (▷ (∃ tbs, ⌜ length tbs = N.to_nat (bound h0) ⌝ ∗
                                           ↦[wss][ base h0 ] tbs ∗
                                           (∀ addr,
@@ -325,8 +309,6 @@ free h
       iSplitL "H2". rewrite N2Nat.inj_add. repeat rewrite - Nat.add_assoc. done.
       iSplitL "H3". rewrite N2Nat.inj_add. repeat rewrite - Nat.add_assoc. done.
       iSplitL; last done. rewrite N2Nat.inj_add. repeat rewrite - Nat.add_assoc. done. 
-(*      iFrame. iSplit; first iPureIntro.
-      rewrite repeat_length. by rewrite Hbound0. *)
       iIntros (addr [Haddrlo Haddrhi]).
       iLeft. iPureIntro. exists 0%N, #00%byte.
       split. assert (H:= hsnz). rewrite nat_bin in H. lia.
@@ -342,7 +324,6 @@ free h
 
       iMod (cinv_alloc with "HP") as (γ) "[#Hinv Hcown]".
       
-      (* iExists γ, (base h0), (bound h0). *)
 
 
       iDestruct "Hall" as (f1) "[Hblack Hmap]".

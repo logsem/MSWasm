@@ -267,15 +267,12 @@ free h
     iDestruct "H" as (h0) "[-> Hh0]". 
     iSimpl.
     iApply fupd_wp.
-    iAssert (|={⊤}=> interp_value_handle (VAL_handle h0) ∗ ∃ all, interp_allocator all (* (⌜ h0 = dummy_handle ⌝ ∗ interp_allocator all ∨ interp_allocator (allocator_insert (id h0) (base h0) (bound h0) all)) *) )%I with "[Hh0 Hall]" as "Hh0".
+    iAssert (|={⊤}=> interp_value_handle (VAL_handle h0) ∗ ∃ all, interp_allocator all )%I with "[Hh0 Hall]" as "Hh0".
 
     { rewrite fixpoint_interp_value_handle_eq.
-      (* iExists _.
-      iSplitR; first done. *)
       iDestruct "Hh0" as "[-> | (Ha & %Hbound0 & %Hoff0 & %Hvalid0 & Hss)]".
       iSplitR. iExists _. iSplitR; first done. 
-      iLeft. done. iExists _. done. (* iLeft. iFrame. done.  *)
-      (* iRight.  *)
+      iLeft. done. iExists _. done. 
       iAssert (▷ (∃ tbs, ⌜ length tbs = N.to_nat (bound h0) ⌝ ∗
                                           ↦[wss][ base h0 ] tbs ∗
                                           (∀ addr,
@@ -297,8 +294,6 @@ free h
       apply Hrl in H. rewrite H. done. 
       iMod (cinv_alloc with "HP") as (γ) "[#Hinv Hcown]".
       
-      (* iExists γ, (base h0), (bound h0). *)
-
 
       iDestruct "Hall" as (f1) "[Hblack Hmap]".
       iAssert ⌜ f1 !! (id h0) = None ⌝%I with "[-]" as "%Hf1".
@@ -318,7 +313,8 @@ free h
       iExists γ, (base h0), (bound h0), (base h0), (bound h0), (DfracOwn 1).
       iFrame "Hinv Hwhite". iSplitL; iPureIntro; try lia.
       do 2 rewrite N.eqb_refl. done. 
-      iExists (allocator_insert (id h0) (base h0) (bound h0) all). (* iRight. *) iExists (<[ id h0 := _]> f1).
+      iExists (allocator_insert (id h0) (base h0) (bound h0) all).
+      iExists (<[ id h0 := _]> f1).
       iFrame "Hblack".
       iApply big_sepM_insert; first done.
       iSplitR "Hmap".
@@ -346,7 +342,6 @@ free h
     
     rewrite (separate2 (AI_handle _)).
 
-(*    iDestruct "Hall" as "[[ -> Hall ] | Hall]".  
 
     { (* Case 1: the second allocation failed *) *)
       iApply (wp_wand_ctx with "[-HΦ]").

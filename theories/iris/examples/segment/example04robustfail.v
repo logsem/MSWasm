@@ -33,6 +33,8 @@ call an adversary function of type [handle] -> [], with argument h
 read from h
 
 Should be impossible to prove anything (adversary might have freed handle)
+
+Let us copy-paste the code from the equivalent functioning example, and see where the proof fails
 *)
 
 

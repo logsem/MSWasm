@@ -76,7 +76,8 @@ Section explicit_instantiation.
                     ⌜ NoDup (modexp_desc <$> inst_vis) ⌝ ∗
                     (* This is technically redundant, but is commonly used in other modules that import the stack *)
                     ⌜ NoDup [idf0; idf1; idf2; idf3; idf4; idf5; idf6] ⌝ ∗
-                    ⌜ length tab.(table_data) >= 1 ⌝ ∗
+                    ⌜ length tab.(table_data) = 1 ⌝ ∗
+                                                  ⌜ tab.(table_max_opt) = None ⌝ ∗
                     (* And finally we have specs for all our exports : *)
                     (* Spec for new_stack (call 0) *)
                     spec0_new_stack idf0 i0 [T_handle] new_stack isStack E ∗
@@ -212,6 +213,7 @@ Proof.
         iSplitR => //.
         
         iSplitR; first by iPureIntro => /=; lia.
+        iSplitR; first done.
         
         (* iSplitL "Hmemlength" ; first done. *)
         

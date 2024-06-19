@@ -175,7 +175,9 @@ Section Client_main.
     ⊢ {{{ ↪[frame] f ∗ interp_allocator all 
          ∗ na_own logrel_nais ⊤
          ∗ na_inv logrel_nais (wfN (N.of_nat a)) ((N.of_nat a) ↦[wf] (FC_func_native i (Tf [T_i32] [T_i32]) locs es))
-         ∗ interp_instance C [] i
+(*         ∗  interp_closure_native i [T_i32] [T_i32] locs
+         (to_e_list es) []  *)
+        ∗ interp_instance C [] i  
          ∗ (∃ gv, N.of_nat k ↦[wg] {| g_mut := MUT_mut; g_val := gv |})
          (* new stack *)
          ∗  na_inv logrel_nais (wfN (N.of_nat idf0))
@@ -419,6 +421,9 @@ Section Client_main.
             iNext. iIntros "Hf".
             iApply wp_base_pull. iApply wp_wasm_empty_ctx.
             iSimpl.
+
+            
+            
             iDestruct (be_fundamental_local _ _ [] _ (T_i32 :: locs) with "Hi") as "Hl";eauto.
             unfold interp_expression_closure.
 
@@ -625,8 +630,11 @@ Section Client_instantiation.
     iDestruct "Hstack" as (idf0 idf1 idf2 idf3 idf4 idf5 idf6 idt ) "Hstack".
     iDestruct "Hstack" as (nm0 nm1 nm2 nm3 nm4 nm5 nm6 nm7) "Hstack".
     iDestruct "Hstack" as (stacktab isStack) "Hstack".
-    iDestruct "Hstack" as "(HimpsH & HimpsW & %Hnodup & %Hfnodup & %Htablen
-    & #Hnewstack & #Hisempty & #Hisfull & #Hpop & #Hpush & #Hmap & #Hmaptrap & #Hstacklen)". 
+    iDestruct "Hstack" as "(HimpsH & HimpsW & %Hnodup & %Hfnodup & %Htablen & %Htabmaxopt
+    & #Hnewstack & #Hisempty & #Hisfull & #Hpop & #Hpush & #Hmap & #Hmaptrap & #Hstacklen)".
+
+    remember (table_data stacktab) as l.
+    do 2 destruct l => //.  
 
     iDestruct "HimpsW" as "(_ & Hidf0 & Hidf1 & Hidf2 & Hidf3 & Hidf4 & Hidf5 & Hidf6 & Hidt & _)".
 
@@ -800,10 +808,10 @@ Section Client_instantiation.
     simpl in Hexpts.
     apply Forall2_cons in Hexpts as [He _].
     unfold module_export_typing in He. simpl in He.
-    destruct (modexp_desc m) eqn:Hm;[destruct f|by destruct t|by destruct m7|by destruct g].
+    destruct (modexp_desc m) eqn:Hm;[destruct f0|by destruct t|by destruct m7|by destruct g].
     apply andb_true_iff in He as [Hle He].
     destruct (nth_error _ n16) eqn:Hn;[|done].
-    revert He. move/eqP=>He. subst f.
+    revert He. move/eqP=>He. subst f0.
     iDestruct "Hn" as (name) "Hn".
 
     rewrite Heqadvm.
@@ -1012,7 +1020,7 @@ Section Client_instantiation.
       iSplit;[|iPureIntro;apply Forall_nil].
       iPureIntro. apply Forall_cons.
       split;[|apply Forall_nil].
-      simpl. rewrite lookup_insert;auto. done. done. cbn. done. }
+      simpl. rewrite lookup_insert;auto. rewrite - Heql. rewrite Htablen. lia. done. done. cbn. done. }
 
     iIntros (idnstart) "Hf [Hmod_lse Hr]".
     iDestruct "Hr" as "((Himpf0 & Himpf1 & Himpf2 & Himpf3 & Himpf4 & Himpf5 & Himpf6 & Htab & Hadvf & Hg & _) & Hr)".
@@ -1092,9 +1100,18 @@ Section Client_instantiation.
         mod_start := mod_start;
         mod_imports := [m0; m1; m2; m3; m4; m5; m6];
         mod_exports := [m]
-      |} as advm. 
+      |} as advm.
 
-    (*    iApply weakestpre.fupd_wp.   *)
+    assert (get_import_func_count advm = 7) as Himpfunccount.
+    { subst advm. cbn. rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. done. }
+    assert (get_import_table_count advm = 0) as Himptabcount.
+    { subst advm. cbn. rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. done. }
+    assert (get_import_mem_count advm = 0) as Himpmemcount.
+    { subst advm. cbn. rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. done. }
+    assert (get_import_global_count advm = 0) as Himpglobcount.
+    { subst advm. cbn. rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. done. } 
+
+
 
     (* We wish to use the FTLR, ultimately to know that the adv function is safe *)
     (* For this, we will need to know that the adversary module is safe *)
@@ -1103,7 +1120,42 @@ Section Client_instantiation.
     (* Since at this point the stack module's table contains the adversary function, we need to know that the adversary function is safe *)
     (* Hence circularity -> we need to do a Löb induction *)
     (* Let us use iAssert to focus on proving the desired module safety (interp_instance) and function safety (module_inst_resources_invs) *)
-    iAssert ( |={⊤}=> interp_instance
+    iAssert ( |={⊤}=> (* interp_closure_native inst_adv [T_i32] [T_i32] modfunc_locals
+        (to_e_list modfunc_body) [] ∗ *)
+        interp_instance
+              {|
+                tc_types_t := inst_types inst_adv;
+                tc_func_t := (ext_t_funcs (ET_func <$> func_types) ++ fts)%list;
+                tc_global := (ext_t_globs (ET_func <$> func_types) ++ gts)%list;
+                tc_table :=
+                  (ext_t_tabs (ET_func <$> func_types) ++
+                   map (λ t : module_table, modtab_type t) mod_tables)%list;
+                tc_memory := (ext_t_mems (ET_func <$> func_types) ++ mod_mems)%list;
+                tc_local := [];
+                tc_label := [];
+                tc_return := None
+              |} [] inst_adv ∗
+                    module_inst_resources_wasm_invs advm
+                       inst_adv gts
+                       (module_inst_build_tables
+                          advm
+                          inst_adv)
+              (module_inst_build_mems
+                 advm
+                 inst_adv)
+              (module_inst_global_init
+                 (module_inst_build_globals mod_globals
+                 ) g_adv_inits) ∗
+            module_inst_resources_wasm_invs stack_module
+                   (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt) []
+                   [table_init_replace_single stacktab (nat_of_int (Wasm_int.Int32.repr 0))
+                      [Some advf]]
+                   (module_inst_build_mems stack_module
+                      (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt))
+                   (module_inst_global_init
+                      (module_inst_build_globals (datatypes.mod_globals stack_module)) [])
+)%I  with "[Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hrest Hresm Hresg Hresf]" as "Hi".
+(*    iAssert ( |={⊤}=> interp_instance
                        {|
                          tc_types_t := inst_types inst_adv;
                          tc_func_t := (ext_t_funcs (ET_func <$> func_types) ++ fts)%list;
@@ -1220,7 +1272,7 @@ Section Client_instantiation.
                       (module_inst_build_globals (datatypes.mod_globals stack_module)) [])
 
 
-            )%I with "[Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hrest Hresm Hresg Hresf]" as "Hi".
+            )%I with "[Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hrest Hresm Hresg Hresf]" as "Hi". *)
     {
 
       (* We rephrase our resources in the terms used by the TFLR *)
@@ -1270,13 +1322,41 @@ Section Client_instantiation.
         iApply big_sepM_singleton.
         iFrame "H6".
 
-         admit. (* All stack imports typecheck. This is probably already proved somewhere *) } 
+        subst mtmp0.
+        instantiate (1 := (λ x, {| modexp_desc := MED_func (Mk_funcidx x) ; modexp_name := [] |}) <$> [idf0; idf1; idf2; idf3; idf4; idf5; idf6]).
+        instantiate (1 := [_;_;_;_;_;_;_]).
+        
+        split.
+        constructor.
+        simpl. eexists. split. rewrite lookup_insert. done. done.
+        constructor.
+        simpl. eexists. split. repeat (rewrite lookup_insert_ne; last done). 
+        rewrite lookup_insert. done. done.
+        constructor.
+        simpl. eexists. split. repeat (rewrite lookup_insert_ne; last done).
+        rewrite lookup_insert. done. done.
+         constructor.
+        simpl. eexists. split. repeat (rewrite lookup_insert_ne; last done).
+        rewrite lookup_insert. done. done.
+         constructor.
+        simpl. eexists. split. repeat (rewrite lookup_insert_ne; last done).
+        rewrite lookup_insert. done. done.
+         constructor.
+        simpl. eexists. split. repeat (rewrite lookup_insert_ne; last done).
+        rewrite lookup_insert. done. done.
+         constructor.
+        simpl. eexists. split. repeat (rewrite lookup_insert_ne; last done).
+        rewrite lookup_insert. done. done.
+        constructor.
+        unfold func_domcheck. simpl.
+        repeat rewrite dom_insert. done.
+      } 
       { instantiate (2 := advm). instantiate (1 := inst_adv).
         unfold module_inst_resources_func.
-        subst advm. iSimpl. unfold get_import_func_count. iSimpl.
-        rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. iSimpl. 
-        done. } 
-      
+        subst advm. iSimpl. rewrite Himpfunccount.  
+        done. }
+
+     
       
       (* Before we do the Löb induction, let us allocate all invariants so we can get rid of the fupd *) 
       iMod (module_inst_resources_func_invs_alloc with "Hirf") as "#Hstackfinvs".
@@ -1296,35 +1376,37 @@ Section Client_instantiation.
       2: by rewrite Heqadvm.
       { destruct Hglob_inits_vals as [? ?];eauto. }
 
-      (* Now we get rid of the fupd and perform the Löb induction *)
-      iModIntro. 
-      iLöb as "IH".  
+      (* Now we get rid of the fupd, of useless goals for the induction, *)
+      (* and perform the Löb induction *)
+      iModIntro.
+      iSplit.
+      2:{ subst advm istack. iFrame "Hstackfinvs Hstacktinvs".
+          rewrite /module_inst_resources_wasm_invs /=
+            Himpfunccount
+            Himpglobcount
+            Himptabcount
+            Himpmemcount
+            !drop_0.
+          iFrame "Hfinvs Htinvs Hminvs Hginvs".  
+          repeat iSplit; try by iPureIntro.
+          unfold module_inst_resources_mem_invs. done.
+          unfold module_inst_resources_glob_invs. done. } 
+
+      iLöb as "IH".
+
+
+
+
+      
       iDestruct (interp_instance_alloc_core with "[] [] [] [] [] [] []") as "[Histack Hstackfuncs]".
-      (* iMod (interp_instance_alloc_table_any with "[] [] [] [] [] [] [Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr]") as "(#Histack & #Hstackfuncs & #Hinvsstack & _)".*)
     { by apply module_typing_body_stack. }
     10:{ iSplit. instantiate (1 := istack). subst istack. iExact "Hstackfinvs".
          iSplit. rewrite drop_0. subst istack. iExact "Hstacktinvs".
          iSplit. subst istack. iSimpl. unfold module_inst_resources_mem_invs.
          done.
          unfold module_inst_resources_glob_invs. subst istack. done. } 
-(*         9:{ iSplitR "Htabr".
-        - unfold module_inst_resources_func.
-          iSimpl.
-          unfold get_import_func_count. iSimpl.
-          rewrite drop_0. instantiate (1 := istack).
-          subst. iSimpl. iFrame.
-        - repeat iSplitL.
-          unfold module_inst_resources_tab.
-          instantiate (1 := [ _ ]). 
-          rewrite drop_0. subst. iSimpl. iFrame "Htabr". 
 
-          unfold module_inst_resources_mem. cbn.
-          rewrite drop_0. subst istack. done.
-          unfold module_inst_resources_glob. subst istack. cbn.
-          done. } *)
-
-    (* 4,5,6,7: *) 5,6,7,8: by instantiate (1 := ∅).
-    (*4:{ *)
+    5,6,7,8: by instantiate (1 := ∅).
     5:{  instantiate (1 := []). unfold import_resources_wasm_typecheck_invs.
          repeat iSplitL; try by iPureIntro; constructor. 
          by unfold import_func_nainv.
@@ -1342,15 +1424,39 @@ Section Client_instantiation.
     instantiate (1 := []).
     unfold tab_inits_valid. iSimpl. iSplit; last done.
     { rewrite take_all_alt.
-      2:{ destruct (table_data stacktab); last done.
-          clear - Htablen. simpl in Htablen. lia. }
+      2:{ rewrite - Heql. done. }
       iSplit; first iPureIntro.
-      { admit. (* Maybe can remove that requirement in interp_instance_alloc.v? Else add clause to instantiate_explicit.v to insure the limit is None *) }
+      { rewrite Htabmaxopt. done. } 
       iSimpl. iSplit.
       iExists _,_.
+      { unfold module_inst_resources_func_invs.
+        rewrite nth_error_lookup in Hadv.
+        iDestruct (big_sepL2_lookup with "Hfinvs") as "H".
+        by subst advm. done. iFrame "H". 
+        iSimpl. iClear "H". erewrite nth_error_nth; last done. iSimpl. iSplit; first done.
+(*        iDestruct "IH" as "[Hi _]". *)
+        iIntros "!> !>".
+        unfold interp_closure_native.
+        iIntros (vcs f0 all0) "Hvcs Hown Hf Hall".
+        iDestruct (be_fundamental_local_stuck_host _ _ [] _ (T_i32 :: modfunc_locals) with "IH") as "Hl";eauto.    
+        unfold interp_expression_closure_stuck_host.
+        iIntros (LI HLI).
+        apply lfilled_Ind_Equivalent in HLI. inversion HLI; subst.
+        inversion H19; subst.
+        repeat rewrite cats0.
+        repeat rewrite cat0s.
+        iApply (wp_wand with "[-]").
+        iApply ("Hl" with "Hf Hown Hall").
+        { iDestruct "Hvcs" as "[% | [%ws [%Hws Hvcs]]]"; first done.
+          iRight.
+          inversion Hws; subst ws. 
+          iExists (vcs ++ _). iSplit; first done.
+          iApply (big_sepL2_app with "Hvcs").
+          iApply n_zeros_interp_values. }
+        iIntros (v) "[[$ $] $]".
 
-      (* For the next two admits, it will be necessary to add a later in interp_instance_alloc.v so we can use the IH *)
-      admit. admit. 
+      }
+      { rewrite - Heql. done. }
     } 
     
 
@@ -1439,31 +1545,9 @@ Section Client_instantiation.
       done. 
     }
     { done. } 
-    { (* Need to add a later in interp_instance_alloc.v *) admit. } 
-(*    { admit. (*intros i fa Hfa. cbn in Hfa.
-      rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6 in Hfa.
-      simpl in Hfa.
-      subst mtmp0.
-      simpl.
-      remember (inst_funcs inst_adv) as l.
-      repeat (destruct l; first by inversion H0).
-      inversion H0. simpl in H. inversion H; subst f f0 f1 f2 f3 f4 f5.
-      simpl in Hfa. Search NoDup. 
-      rewrite lookup_insert_ne.
-      rewrite lookup_insert_ne.
-      rewrite lookup_insert_ne.
-      rewrite lookup_insert_ne.
-      rewrite lookup_insert_ne.
-      rewrite lookup_insert_ne.
-      rewrite lookup_insert_ne.
-      done.
-      intro Habs.
-      apply Nat2N.inj in Habs as ->.
-      Search (inst_funcs inst_adv).
-aia 
-      admit.*)  }  *)
-    1,2,3: by instantiate (1 := ∅).
-    { 
+
+    2,3,4: by instantiate (1 := ∅).
+    2:{ 
 (*      iDestruct "Hinvsstack" as "(Hinvsfunc & Hinvstab & Hinvsmem & Hinvsglob)". *)
       iSplit.
       unfold import_func_wasm_check_invs.
@@ -1500,17 +1584,16 @@ aia
       repeat (constructor => //=; first by eexists ; split; [(repeat (rewrite lookup_insert_ne ; last done)); rewrite lookup_insert; done | done]).
       iSplit. unfold import_tab_wasm_check_invs.
       iSplit. unfold import_tab_nainv.
-      unfold module_import_init_tabs. iSimpl. unfold get_import_table_count. rewrite Heqadvm. 
-      iSimpl. rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. iSimpl.
-      replace (fold_left (λ (x: gmap N tableinst) '{| modelem_table := Mk_tableidx _ |}, x) mod_elem (∅: gmap N tableinst)) with (∅ : gmap N tableinst). done.
+      unfold module_import_init_tabs. iSimpl. rewrite Himptabcount. 
+      iSimpl. subst advm. replace (fold_left (λ (x: gmap N tableinst) '{| modelem_table := Mk_tableidx _ |}, x) mod_elem (∅: gmap N tableinst)) with (∅ : gmap N tableinst). done.
       clear. induction mod_elem; first done. simpl. destruct a. destruct modelem_table. done.
       iPureIntro. split => //=.
       unfold tab_domcheck. rewrite module_import_init_tabs_dom. done.
       unfold tab_typecheck. by repeat constructor.
       iSplit. unfold import_mem_wasm_check_invs.
       iSplit. unfold import_mem_nainv.
-      unfold module_import_init_mems. iSimpl. unfold get_import_mem_count.
-      subst advm. iSimpl. rewrite Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6. iSimpl.
+      unfold module_import_init_mems. iSimpl. rewrite Himpmemcount. 
+      subst advm. 
       replace (fold_left (λ (wms: gmap N memory) '{| moddata_data := Mk_memidx _ |}, wms) mod_data ∅) with (∅ : gmap N memory). done.
       clear. induction mod_data; first done. simpl. destruct a. destruct moddata_data. done.
       iPureIntro. split => //=.
@@ -1551,27 +1634,130 @@ aia
       iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
       done.
     } *)
-    {
+    2:{
       subst advm. 
       rewrite /module_inst_resources_wasm_invs /=
-        /get_import_table_count
-        /get_import_mem_count
-        /get_import_global_count
-        /get_import_func_count /=
-        Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6 /=
+        Himptabcount
+        Himpmemcount
+        Himpfunccount
+        Himpglobcount
         !drop_0.
       iFrame "Hfinvs Htinvs Hminvs Hginvs".  
     }
+    {  iApply module_inst_build_tables_valid.
+       done.
+       repeat split => //.
+       by subst advm.
+       done. subst advm. 
+       (* iDestruct "IH" as "[$ _]".  *) iFrame "IH".
+       subst mtmp0. iSimpl.
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hstackfunc0". iSplit; first by iPureIntro. 
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hstackfunc1". iSplit; first by iPureIntro.
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hstackfunc2". iSplit; first by iPureIntro.
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hstackfunc3". iSplit; first by iPureIntro.
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hstackfunc4". iSplit; first by iPureIntro.
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hstackfunc5". iSplit; first by iPureIntro.
+       iApply big_sepM_singleton.
+       iFrame "Hstackfunc6".
+       by iPureIntro.
+       repeat iSplit.
+       unfold import_func_nainv.
+       unfold module_inst_resources_func_invs, stack_module.
+       iSimpl in "Hstackfinvs".
+       iDestruct "Hstackfinvs" as "(Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & Hf6 & _)".
+       subst mtmp0. iSimpl.
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hf0". 
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hf1".
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hf2".
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hf3".
+       iApply big_sepM_insert.
+       by repeat (rewrite lookup_insert_ne; last done).
+       iFrame "Hf4".
+       iApply big_sepM_insert.
+       by rewrite lookup_insert_ne.
+       iFrame "Hf5".
+       iApply big_sepM_singleton.
+       iFrame "Hf6".
+       iPureIntro.
+       subst mtmp0. simpl. unfold func_domcheck.
+       simpl. repeat rewrite dom_insert. done.
+       iPureIntro. unfold func_typecheck. subst mtmp0.
+       
+       repeat (constructor => //=; first by eexists ; split; [(repeat (rewrite lookup_insert_ne ; last done)); rewrite lookup_insert; done | done]).
+       unfold module_import_init_tabs. iSimpl. rewrite Himptabcount. 
+      subst advm. replace (fold_left (λ (x: gmap N tableinst) '{| modelem_table := Mk_tableidx _ |}, x) mod_elem (∅: gmap N tableinst)) with (∅ : gmap N tableinst). unfold import_tab_nainv. done.
+      clear. induction mod_elem; first done. simpl. destruct a. destruct modelem_table. done.
+      iPureIntro. 
+      unfold tab_domcheck. rewrite module_import_init_tabs_dom. done.
+      iPureIntro. unfold tab_typecheck. by repeat constructor.
 
-    subst advm. 
+      unfold import_mem_nainv.
+      unfold module_import_init_mems. iSimpl. rewrite Himpmemcount. 
+      subst advm. 
+      replace (fold_left (λ (wms: gmap N memory) '{| moddata_data := Mk_memidx _ |}, wms) mod_data ∅) with (∅ : gmap N memory). done.
+      clear. induction mod_data; first done. simpl. destruct a. destruct moddata_data. done.
+      iPureIntro.
+      unfold mem_domcheck. rewrite module_import_init_mems_dom. done.
+      iPureIntro. unfold mem_typecheck.  by repeat constructor.
+
+      unfold import_glob_nainv. done.
+      iPureIntro. done.
+      iPureIntro. repeat constructor => //.
+      subst advm. rewrite /module_inst_resources_wasm_invs /=
+                    Himpfunccount
+                    Himptabcount
+                    Himpmemcount
+                    Himpglobcount
+        !drop_0.
+       iFrame "Hfinvs Htinvs Hminvs Hginvs".  
+    } 
+       
+
+    subst advm. iFrame "Hi".
+    (*"Hstackfinvs Hstacktinvs".
+    iSplit.
+     {  rewrite /module_inst_resources_wasm_invs /=
+         Himpfunccount
+         Himpglobcount
+         Himptabcount
+         Himpmemcount
+        !drop_0.
+       iFrame "Hfinvs Htinvs Hminvs Hginvs".  }
+    repeat iSplit; try by iPureIntro.
+    unfold module_inst_resources_mem_invs. done.
+    unfold module_inst_resources_glob_invs. done.
+    *)
+   } 
+    (*
+
+    
     iFrame "Hi Histack Hstackfinvs Hstacktinvs Hstackfunc0 Hstackfunc1 Hstackfunc2 Hstackfunc3 Hstackfunc4 Hstackfunc5 Hstackfunc6". 
     iSplit.
     {  rewrite /module_inst_resources_wasm_invs /=
-        /get_import_table_count
-        /get_import_mem_count
-        /get_import_global_count
-        /get_import_func_count /=
-        Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6 /=
+         Himpfunccount
+         Himpglobcount
+         Himptabcount
+         Himpmemcount
         !drop_0.
        iFrame "Hfinvs Htinvs Hminvs Hginvs".  }
     repeat iSplit; try by iPureIntro.
@@ -1579,10 +1765,10 @@ aia
     done.
     unfold module_inst_resources_glob_invs.
     done.
-    }
+    } *)
 
     iApply weakestpre.fupd_wp.
-    iMod "Hi" as "(#Hi & #Hires & #Histack & #Hstackfuncs & #Hinvsstack)".
+    iMod "Hi" as "(#Hi & #Hires & #Hinvsstack)".
 
     cbn in Heq5. rewrite Heq2 /= in Heq5.
     revert Heq5;move/eqP=>Heq5. subst n18.
@@ -1595,8 +1781,7 @@ aia
     unfold module_inst_resources_tab_invs. iSimpl in "Hts".
     iDestruct "Hts" as "[(Htabs & Htabl & Htabrs) _]".
     rewrite take_all_alt.
-    2:{ destruct (table_data stacktab); first by simpl in Htablen; clear - Htablen; lia.
-        done. }
+    2:{ rewrite - Heql. done. }
     iSimpl in "Htabrs".
     iDestruct "Htabrs" as "[Htabr Htabrs]".
   
@@ -1621,14 +1806,14 @@ aia
       { simpl. rewrite Heq3. simpl. eauto. }
       1,2,3,4: rewrite /= Heq2 /=;eauto.
       { eauto. }
-      { apply Htablen. }
+      { instantiate (1 := stacktab). rewrite - Heql. simpl. lia. } 
       { unfold upd_local_label_return. simpl.
         apply Htypf. }
       { iFrame. iSplit.
         { iDestruct "Hires" as "[Hires _]".
           iDestruct (big_sepL2_lookup with "Hires") as "Ha".
           { by subst advm. }
-          { rewrite Heqadvm /get_import_func_count /= Hdesc0 Hdesc1 Hdesc2 Hdesc3 Hdesc4 Hdesc5 Hdesc6 /=. rewrite - nth_error_lookup. done. }
+          { rewrite Himpfunccount /=. rewrite - nth_error_lookup. done. }
           iSimpl in "Ha". erewrite nth_error_nth;eauto. }
         iSplitL "Hgret";[iExists _;rewrite N2Nat.id;iFrame|].
         subst istack. 
@@ -1637,13 +1822,13 @@ aia
       iIntros (v) "HH". iExact "HH".
     }
     iIntros (v) "(HH & Hf & Hall)".
-    iDestruct "Hf" as (f) "[Hf %Hfeq]".
+    iDestruct "Hf" as (f0) "[Hf %Hfeq]".
     iDestruct "HH" as "[-> | Hres]".
     { take_drop_app_rewrite_twice 0 0.
       iApply (wp_wand_ctx with "[Hf]").
       { iApply (wp_trap_ctx with "Hf"). auto. }
       iIntros (v) "[-> Hf]".
-      iExists f;iFrame.
+      iExists f0;iFrame.
       iIntros "Hf".
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗ _)%I with "[Hf]").
       { iApply (wp_frame_trap with "Hf"). iNext. auto. }

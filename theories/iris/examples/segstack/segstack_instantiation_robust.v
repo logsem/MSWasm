@@ -18,6 +18,7 @@ Section robust_instantiation.
 
   Set Bullet Behavior "Strict Subproofs".
 
+  (*
 Lemma instantiate_stack_spec_robust `{!logrel_na_invs Σ} (s : stuckness) (E: coPset) (exp_addrs: list N) (stack_mod_addr : N) hl (* (hfs : list (hostfuncidx * function_type)) *):
   length exp_addrs = 8 ->
   (* Knowing that we hold the stack module… *)
@@ -415,7 +416,7 @@ Proof.
               iApply (wp_val_return with "Hf") => //.
               iIntros "Hf".
               rewrite app_nil_r app_nil_l.
-              instantiate (1 := (λ w, (⌜w = immV [value_of_handle dummy_handle]⌝
+               instantiate (1 :=  (λ w, (⌜w = immV [value_of_handle dummy_handle]⌝
                                        ∨ (∃ h : handle, ⌜w = immV [value_of_handle h]⌝ ∗ ⌜ h <> dummy_handle ⌝ ∗ isStack h [])) ∗
                                         N.of_nat f↦[wf]FC_func_native
                                         {|
@@ -424,7 +425,7 @@ Proof.
                                              Tf [T_handle; T_i32] []; Tf [T_i32] [T_i32]];
                                           inst_funcs := [f; f0; f1; f2; f3; f4; f5];
                                           inst_tab := [t];
-                                          inst_memory := [m];
+                                          inst_memory := [];
                                           inst_globs := inst_globs
                                         |} (Tf [] [T_handle]) [T_handle] new_stack ∗  ↪[frame]f6)%I).
               (*              instantiate (1 := (λ v, ((⌜ v = immV _ ⌝)%I ∨ ((∃ k, ⌜ v = immV [value_of_uint k]⌝ ∗ ⌜ (0 <= k <= ffff0000)%N⌝ ∗ isStack k [] m ∗ N.of_nat m↦[wmlength](N.of_nat addr + page_size)%N))) ∗ N.of_nat f↦[wf] _ ∗ ↪[frame] f6 )%I). *)
@@ -455,7 +456,7 @@ Proof.
                                               Tf [T_handle; T_i32] []; Tf [T_i32] [T_i32]];
                                            inst_funcs := [f; f0; f1; f2; f3; f4; f5];
                                            inst_tab := [t];
-                                           inst_memory := [m];
+                                           inst_memory := [];
                                            inst_globs := inst_globs
                                          |} (Tf [] [T_handle]) [T_handle] new_stack)%I)).
               iFrame. 
@@ -884,6 +885,7 @@ Proof.
           ** iIntros (w) "[(-> & Hs & Hf0) Hf]".
              iApply "HΦ".
              by iFrame.
-Qed.
+    + 
+Qed. *)
   
 End robust_instantiation.

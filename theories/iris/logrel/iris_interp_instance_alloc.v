@@ -132,15 +132,16 @@ Section InterpInstance.
        interp_module_func_pre τctx inst τf (FC_func_native inst tf f.(modfunc_locals) f.(modfunc_body))
     )%I. 
 
-      Definition tab_inits_valid tab_inits mod_tabs hl :=
+      Definition tab_inits_valid tab_inits (mod_tabs: seq.seq module_table) hl :=
      ([∗ list] tab; lim ∈ tab_inits; mod_tabs,
        ⌜ssrnat.leq (ssrnat.nat_of_bool (table_max_opt tab)) (ssrnat.nat_of_bool (lim_max (tt_limits (modtab_type lim))))⌝
         ∗
       [∗ list] tabf ∈ table_data tab,
       match tabf with
       | None => True%I
-      | Some n => (∃ τf, interp_function τf (λ (n: N) (τf: function_type), λne cl, (* ⌜ wfs !! n = Some cl ⌝ ∗ *) interp_closure hl τf cl) (N.of_nat n))%I
+      | Some n => (∃ τf, interp_function τf (λ (n: N) (τf: function_type), λne cl, interp_closure hl τf cl) (N.of_nat n))%I
       end)%I.
+
 
   
   Lemma interp_instance_pre_create τctx i fimps hl m fts :

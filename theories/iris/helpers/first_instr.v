@@ -231,7 +231,7 @@ Proof.
         { unfold first_instr,first_instr_instr in Hl0. rewrite Hl0 in Ha0. destruct p;done. }
         { unfold first_instr,first_instr_instr in Hl0. rewrite Hl0 in Ha0. done. }
       }
-        { all: cbn in Hf. rewrite separate1. (* destruct b; try done; simplify_eq; try by constructor. *)
+        { all: cbn in Hf. rewrite separate1. 
          constructor;auto.
         induction es;try done.
         simpl in Hf.

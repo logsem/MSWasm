@@ -76,7 +76,7 @@ Proof.
           lia. }
         destruct (IHnnn _ _ _ _ _ _ _ H1 _ H2 H3) as [Hσ | [(i & Hstart & Hme) |
                                                              [[i Hstart] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ & Hme)]
-                                                        (*] *)]].
+          ]].
         - left. rewrite H0. inversion Hσ ; subst.
           replace (es' ++ ys)%SEQ with (es' ++ ys)%list in H8 => //=.
           rewrite H8. by rewrite <- Hes2y.
@@ -353,7 +353,7 @@ assert (prim_step ([AI_handle h] ++ bef ++ es ++ aft)
                         [AI_label n0 l2 l4]).
         unfold lfilled, lfill => //=. by rewrite app_nil_r.
         destruct (IHnnn _ _ _ _ _ _ _ H _ H0 H3)
-          as [ Hσ | [ (i & Hstart & Hme) | [ [ i Hstart] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ & Hme)] (* ] *)]].
+          as [ Hσ | [ (i & Hstart & Hme) | [ [ i Hstart] |(i1 & i2 & i3 & Hstart1 & Hstart2 & Hstart3 & Hσ & Hme)]]].
         - left. move/eqP in H2. inversion Hσ ; by subst.
         - right ; left. exists (i + 1).
           split => //. eapply starts_with_lfilled => //=.

@@ -185,7 +185,7 @@ Note that this is a property very similar to Iris context.
       24: destruct v; try destruct b => //.
       24: fold (AI_const (VAL_numeric n)) in Hfill.
       25: fold (AI_const (VAL_handle h)) in Hfill.
-      all: try ((* destruct v ; try *) (by inversion H)) ;
+      all: try (by inversion H) ;
         try (by filled1 Hfill i lh Hes es ;
              eapply rm_silent, r_simple; econstructor) ;
         try (by filled2 Hfill i lh Hes es ;

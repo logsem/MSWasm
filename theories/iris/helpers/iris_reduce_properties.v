@@ -104,8 +104,7 @@ Ltac no_reduce Heqes Hred :=
   let IHreduce := fresh "IHreduce" in
   (* clear all unimportant hypothesis, in order to make induction hypothesis 
      created at next step as simple as possible *)
-  clear - (*host_function host function_closure store_record
-                      host_instance*)
+  clear - 
     Hred Heqes ;
   induction Hred as [s f es s' f' es' H | | | | | | | | | | | s f es les me s' f' es' les' k lh Hred IHreduce H0 _ | ] ; (try by inversion Heqes; try destruct_const) ; 
   [ destruct H as [ e e' s f H | | | | | a | a | a | | | | | | | | | | | | | | ] ;
@@ -443,9 +442,7 @@ Ltac not_enough_arguments s f vs obj t1s me s' f' es' :=
   remember (cat vs [obj]) as es eqn:Heqes ;
   induction H as [ s f es s' f' es' H | | | | | | | | | | |
                    s f es les m s' f' es' les' k lh Hred IHreduce H0 _ | ] ;
-(*  induction H as [e e' s f H | | | | | | | | | | | | | | | | | | | | | | 
-                      s f es les s' f' es' les' k lh Hred IHreduce H0 _ |
-    ]; *) (try by found_intruse obj Heqes Hxl1;
+  (try by found_intruse obj Heqes Hxl1;
            lazymatch goal with H:AI_const ?y = _ |- _ => by destruct y end
   );
   (try rewrite (separate2 (AI_const _) (AI_const _)) in Heqes);
@@ -514,7 +511,6 @@ Ltac not_enough_arguments s f vs obj t1s me s' f' es' :=
             rewrite app_assoc in H0 ; rewrite app_assoc in H0 ;
             apply app_inj_tail in H0 ; destruct H0 as [ Hes _ ] ;
             values_no_reduce ;
-(*            apply (values_no_reduce _ _ _ _ _ _ _ _ Hred) ; *)
             rewrite <- Hes in Hconst ; unfold const_list in Hconst ;
             rewrite forallb_app in Hconst ;
             apply andb_true_iff in Hconst ;
@@ -619,9 +615,6 @@ Section reduce_properties_lemmas.
   - apply app_inj_tail in Heqes. destruct Heqes as [Hves Hinvoke].
     inversion Hinvoke as [Ha]. rewrite Ha in H. rewrite H in Hs.
     rewrite H0 in Hs. inversion Hs.
-(*  - apply app_inj_tail in Heqes. destruct Heqes as [Hves Hinvoke].
-    inversion Hinvoke as [Ha]. rewrite Ha in H. rewrite H in Hs.
-    rewrite H0 in Hs. inversion Hs.*)
   - simple_filled H0 k lh bef aft n0 l l'.
     destruct aft.
     { destruct es. { empty_list_no_reduce. }
@@ -1126,14 +1119,6 @@ Section reduce_properties_lemmas.
       instantiate (1 := AI_basic (BI_tee_local i)) => //=.
       by constructor. by rewrite app_nil_r.
     }
-(*    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). econstructor.
-    apply (r_call_indirect_success H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    econstructor. apply (r_call_indirect_failure1 H H0 H1).  *) 
     left ; eexists 0, (LH_base [] []), _, _, _ ; repeat split ;
       (try unfold lfilled, lfill => //=) ; (try done) ; (try by rewrite app_nil_r).
     rewrite H1 ; by apply v_to_e_is_const_list. done.
@@ -1142,58 +1127,6 @@ Section reduce_properties_lemmas.
     (try unfold lfilled, lfill => //=) ; (try done) ; (try by rewrite app_nil_r).
     rewrite H1 ; by apply v_to_e_is_const_list. done.
     apply rm_silent, (r_invoke_host _ H H0 H1 H2 H3 H4).
-(*    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_set_local _ H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_load_success _ H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_load_failure _ H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_load_packed_success _ H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_load_packed_failure _ H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                        AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_store_success _ H H0 H1 H2).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                        AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_store_failure _ H H0 H1 H2).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                        AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_store_packed_success _ H H0 H1 H2).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _) ;
-                                        AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_store_packed_failure _ H H0 H1 H2).
-    left ; eexists 0, (LH_base [] []), [], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_current_memory H H0 H1).
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_grow_memory_success H H0 H1 H2). 
-    left ; eexists 0, (LH_base [] []), [AI_basic (BI_const _)], _, _.
-    repeat split ; unfold lfilled, lfill ; simpl ; (try done) ; (try done) ;
-      (try by rewrite app_nil_r). 
-    apply (r_grow_memory_failure _ H H0 H1). *)
     destruct IHHred as [ (k0 & lh0 & vs & e & es'' & Hvs & He & Hred' & Hes & Hes')
                        | (k0 & lh0 & bef & aft & Hbef & Hba & Hfill & Hfill' & Hσ) ].
     destruct (lfilled_trans2 _ _ _ _ _ _ _ _ _ _ Hes Hes' H H0) as (lh' & Hfill1 & Hfill2). 
@@ -1540,9 +1473,6 @@ Section reduce_properties_lemmas.
         do 3 (destruct vs0 || destruct vs || destruct es'0 || destruct es') =>//.
         inversion Heq;subst.
         do 2 destruct vs0 => //. }
-(*      { destruct vs',es'' => //. destruct es'' => //.
-        rewrite app_nil_l in Heq. inversion Heq;subst. done.
-        1,2: do 2 destruct vs' => //. } *)
       { apply lfilled_Ind_Equivalent in H0. inversion H0;subst.
         apply const_list_concat_inv in H1 as [? [? ?]];auto; done. }
     }
@@ -1630,12 +1560,6 @@ Section reduce_properties_lemmas.
         simplify_eq. 
         apply Hnbr in H1. done. auto.
       }
-(*      { destruct vs => //.
-        { inversion Heq;subst. done. }
-        destruct vs =>//.
-        { inversion Heq;subst. simpl in Hconst.
-          apply andb_true_iff in Hconst as [? ?]. done. }
-      } *)
       { apply lfilled_Ind_Equivalent in H0; inversion H0;subst.
         apply first_values in H1 as [? [? ?]];auto. done. all: by intros [? ?].
       }      
@@ -1792,10 +1716,6 @@ Section reduce_properties_lemmas.
         unfold const_list. rewrite forallb_app.
         apply andb_false_iff ; right => //. 
         do 2 destruct vs => //. }
-(*      { destruct vs => //;[|do 2 destruct vs => //].
-        inversion H0;subst. done. }
-      { destruct vs => //;[|do 2 destruct vs => //].
-        inversion H0;subst. done. } *)
       { exists (LH_base [] []),0. by cbn. }
       { exists (LH_base [] []),0. split;[|lia]. by cbn. }
       
@@ -2048,9 +1968,6 @@ Section reduce_properties_lemmas.
         assert (iris.of_val (brV vh) = es1);[auto|].
         rewrite -H in Hes1.
         rewrite to_of_val in Hes1. done. }
-(*      { assert ([v;AI_basic (BI_tee_local i)] = [v] ++ [AI_basic (BI_tee_local i)]) as Heq;[auto|].
-        rewrite Heq in Heqes''.
-        apply first_values in Heqes'' as (?&?&?);auto;[done|]. simpl. rewrite H;auto. } *)
       { apply lfilled_Ind_Equivalent in H0. inversion H0.
         apply first_values in H1 as (?&?&?);auto. done. }
     }
@@ -2059,10 +1976,6 @@ Section reduce_properties_lemmas.
     apply in_app_or in Hxl1 as [|[|]] => //.
     assert (const_list (v_to_e_list vcs)) ; first by apply v_to_e_is_const_list.
     intruse_among_values (v_to_e_list vcs) H0 H1.
-    (*{ erewrite <-(take_drop 2 [_;_;_]) in Heqes'';simpl take in Heqes'';simpl drop in Heqes''.
-      apply first_values in Heqes'' as (?&?&?);auto. done. } *)
-(*    all: try (erewrite <-(take_drop 2 [_;_;_]) in Heqes'';simpl take in Heqes'';simpl drop in Heqes'').
-    all: try by (apply first_values in Heqes'' as (?&?&?);auto). *)
     { apply lfilled_Ind_Equivalent in H0.
       inversion H0;simplify_eq.
       { apply val_head_stuck_reduce in H as Hstuck.

@@ -32,7 +32,6 @@ Section reduction_core.
           es1 = bc1 ++ core ++ ac1 /\
           bef0 ++ bc0 = bef1 ++ bc1 /\
           ac0 ++ aft0 = ac1 ++ aft1 /\
-(*          me0 = me1 /\ *)
           reduce s f core me1 s' f' core' /\
           bc1 ++ core' ++ ac1 = es1') \/
       exists lh0 lh1, lfilled 0 lh0 [AI_trap] es0 /\ lfilled 0 lh1 [AI_trap] es1 /\
@@ -47,7 +46,6 @@ Section reduction_core.
                      ∧ es1 = bc1 ++ core ++ ac1
                      ∧ bef0 ++ bc0 = bef1 ++ bc1
                      ∧ ac0 ++ aft0 = ac1 ++ aft1
-                     (* /\ me0 = me1 *)
                      ∧ reduce s f core me1 s' f' core' ∧ bc1 ++ core' ++ ac1 = es1')
                  ∨ (∃ lh0 lh1 : lholed, lfilled 0 lh0 [AI_trap] es0 ∧ lfilled 0 lh1 [AI_trap] es1 /\ (s,f) = (s',f') /\ me1 = ME_empty)).
     { intro Hn ; eapply (Hn (S (length es1))) ; lia. }
@@ -364,7 +362,7 @@ Section reduction_core.
                          ? ? ? ? Hr | ? ? ? ? ? ? Hr1 Hr2 Hr3 |
                          ? ? ? ? Hr | ? ? ? ? ? Hr | ? ? ? ? ? kkk aaa ? ? Hr1 Hr2 Hr3 Hr4 |
                          ? ? ? ? kkk aaa ? ? Hr1 Hr2 Hr3 |
-                         ? ? ? ? ? kkk aaa ? ? ? ? Hr1 Hr2 Hr3 (*Hr4*) |
+                         ? ? ? ? ? kkk aaa ? ? ? ? Hr1 Hr2 Hr3 |
                          ? ? ? ? ? kkk aaa ? ? ? Hr1 Hr2 Hr3 |
                          ? ? ? ? ? ? kkk aaa ? ? Hr1 Hr2 Hr3 Hr4 |
                          ? ? ? ? ? ? kkk ? aaa Hr1 Hr2 Hr3 Hr4 |
@@ -496,9 +494,6 @@ Section reduction_core.
                  try (by destruct v2; inversion Heq0);
                  try (by destruct v3; inversion Heq0);
                      try (by destruct vs as [|a0 ves]; inversion Heq0 ;
-                          (* assert (const_list (a0 :: ves)) as Hconst ;
-                          first (by rewrite H1 ; apply v_to_e_is_const_list) ;
-                          first_not_const Hconst *)
                           first_not_const H1) ;
                      try (by inversion Heq0; subst; inversion H);
                      destruct H ; try (by inversion Heq0) ;
@@ -709,7 +704,6 @@ Section reduction_core.
                   try (by destruct v0; inversion Heq0);
                   try (by destruct v1; inversion Heq0);
                   try (by destruct v2; inversion Heq0);
-(*                    try (by destruct v3; inversion Heq0); *)
                   try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                        assert (const_list (a0 :: ves)) as Hconst ;
                        first (by rewrite H1 ; apply v_to_e_is_const_list) ;
@@ -719,7 +713,6 @@ Section reduction_core.
                   try (by destruct v0; inversion Heq0);
                   try (by destruct v1; inversion Heq0);
                      try (by destruct v2; inversion Heq0);
-(*                       try (by destruct v3; inversion Heq0); *)
                     
                   try (by destruct ves as [|a0 ves]; inversion Heq0 ;
                        assert (const_list (a0 :: ves)) as Hconst ;
@@ -730,7 +723,6 @@ Section reduction_core.
                   try (by destruct v0; inversion Heq0);
                   try (by destruct v1; inversion Heq0);
                      try (by destruct v2; inversion Heq0);
-(*                       try (by destruct v3; inversion Heq0); *)
                    
                     try (by destruct vs ; inversion Heq0 ;
                          first_not_const H) ; 

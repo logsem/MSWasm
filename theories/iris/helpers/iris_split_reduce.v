@@ -62,8 +62,6 @@ Section split_reduce_properties.
                                                       inversion Hes1)) ;
        inversion Heqes.
      { destruct H ;
-       (*  repeat (destruct es1 ; first (by inversion Heqes ; subst ;
-           replace [::] with (iris.of_val (immV [::])) in Hes1; [repeat rewrite to_val_cons_immV in Hes1| done])) ; *)
          repeat (destruct es1 ; first (by inversion Heqes ; subst ;
                                        try destruct v; try destruct v1; try destruct v2; inversion Hes1)) ; 
         inversion Heqes. 
@@ -434,7 +432,6 @@ Section split_reduce_properties.
             rewrite H4 in H. simpl in H ; false_assumption.
             destruct vs ; inversion Heqes0.
             rewrite H4 in H ; simpl in H ; false_assumption.
-(*            inversion Heqes0. rewrite H1 in H ; simpl in H ; false_assumption. *)
             exists (2 + length es).
             repeat split => //=. lia. rewrite app_length. lia.
             unfold lfilled, lfill. simpl. by rewrite drop_app.
@@ -558,7 +555,6 @@ Section split_reduce_properties.
             rewrite H4 in H. simpl in H ; false_assumption.
             destruct vs ; inversion Heqes0.
             rewrite H4 in H ; simpl in H ; false_assumption.
-(*            inversion Heqes0. rewrite H1 in H ; simpl in H ; false_assumption. *)
             exists (2 + length es).
             repeat split => //=. lia. rewrite app_length. lia.
             unfold lfilled, lfill. simpl. by rewrite drop_app.
@@ -752,7 +748,7 @@ Section split_reduce_properties.
                                vs es' n m t1s t2s Hconst Hlenvs Ht1s Ht2s |
                              | | | | | | | | | | | | | | | | | | | | ] ;
          inversion Heqves as [[ Hhd Htl ]] ;
-         (try by exfalso ; (* try destruct v2; *) no_reduce Htl Hred0).
+         (try by exfalso ; no_reduce Htl Hred0).
        { destruct es. { rewrite app_nil_r in Heqves ;
                           rewrite <- app_nil_l in Heqves ; apply app_inj_tail in Heqves ;
                           destruct Heqves as [_ Habs] ; destruct v; inversion Habs. }
@@ -891,9 +887,6 @@ Section split_reduce_properties.
             exfalso ; no_reduce Heqev Hred.
           apply app_eq_nil in Hes as [ Hes _].
           subst ; empty_list_no_reduce.
-          (* destruct bef0; first by destruct v; inversion H0.
-          destruct bef0; last by destruct v; inversion H0.
-          inversion H0. *)
           split => //.
           apply AI_trap_reduce_det in Hred.
           by inversion Hred; subst.

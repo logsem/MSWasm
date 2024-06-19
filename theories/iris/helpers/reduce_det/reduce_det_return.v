@@ -130,7 +130,7 @@ Proof.
             [ intruse_among_values vs0 Habs H0
             | destruct Habs as [Habs | Habs] => //=]].
         - simple_filled2 H1 i lh bef aft nn ll ll'.
-          found_intruse (AI_basic BI_return) H1 Hxl1 ; (* try (by destruct v); *)
+          found_intruse (AI_basic BI_return) H1 Hxl1 ; 
             apply in_or_app ; right ; apply in_or_app ; left ;
             apply in_or_app ; right ; by left.
           destruct bef ; last by inversion H1 as [[ Hhd Htl ]]; 

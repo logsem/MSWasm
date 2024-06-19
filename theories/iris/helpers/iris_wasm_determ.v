@@ -80,7 +80,6 @@ Section determ.
      present *)
     destruct H.
     { destruct H ; clear IHnnn.
-(*      - only_one [AI_basic (BI_immediate v)] Hred2. done. *)
       - by apply unop_det.
       - by apply binop_det.
       - by apply binop_none_det.
@@ -112,8 +111,6 @@ Section determ.
          these for when we will handle the rs_label_trap and rs_br cases (the next 2) ;
          the r_label case will also face this difficulty (among many others inherent to
          the nature of r_label *)
-(*        + done.
-        + done. *)
         + unfold lfilled, lfill in H2.
           destruct i. { destruct lh ; last by false_assumption.
                         destruct (const_list l) ; last by false_assumption.
@@ -146,8 +143,6 @@ Section determ.
           apply andb_true_iff in H as [_ Habs] ; by inversion Habs.
           apply Logic.eq_sym, app_eq_nil in H4 as [_ Habs] ; inversion Habs.
       - only_one [AI_label n es [AI_trap]] Hred2.
-(*        + done.
-        + done. *)
         + rewrite <- H5 in H1. unfold lfilled, lfill in H1.
           destruct i. { destruct lh ; last by false_assumption.
                         destruct (const_list l) ; last by false_assumption.
@@ -234,7 +229,6 @@ Section determ.
         subst. apply (ssrnat.leq_trans H) in H1. rewrite ssrnat.ltnn in H1. false_assumption.
       - only_one [AI_const (VAL_int32 c) ; AI_basic (BI_br_table iss i)] Hred2.
         subst. apply (ssrnat.leq_trans H0) in H. rewrite ssrnat.ltnn in H. false_assumption.
-        (* done. *)
       - (* [ only_one ] cannot be applied in the following cases, so we perform the 
          case analysis by hand *)
         left ; remember [AI_local n f0 es] as es0.
@@ -340,7 +334,6 @@ Section determ.
       - only_one [AI_const (VAL_handle h); AI_basic BI_getoffset] Hred2.
       - only_one [AI_const (VAL_handle dummy_handle); AI_basic BI_isdummy] Hred2.
       - only_one [AI_const (VAL_handle h); AI_basic BI_isdummy] Hred2.
-(*        done. *)
       - (* rs_trap case. [ only_one ] cannot be applied because the left-hand-side of Hred2
          is not an explicit list. We perform the case analysis by hand.
          We make extensive use of the [ filled_trap ] tactic, which concludes false

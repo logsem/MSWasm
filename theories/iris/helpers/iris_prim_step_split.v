@@ -62,7 +62,6 @@ Section prim_step_split_properties.
       by unfold lfilled, lfill ; rewrite Hbef Hes1.
       destruct e => //. destruct b => //. 
       all:unfold to_val, iris.to_val in He ; simpl in He ; destruct He as [?|?] => //.
-(*      by destruct Hσ. *)
   Qed.
 
 

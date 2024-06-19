@@ -1135,7 +1135,7 @@ Proof.
 
     - apply (lfilled_all_values' H1 Hfill) => //=;try by intros [? ?].
       by left.
-    - apply (lfilled_all_values' H1 Hfill) => //=. by right. (* by intros [? ?]. *)
+    - apply (lfilled_all_values' H1 Hfill) => //=. by right. 
     - assert (lfilled (S i0) (LH_rec [] n es lh0 []) (vs0 ++ [AI_basic (BI_br i0)])
                       [AI_label n es LI0]) as Hfill'.
       unfold lfilled, lfill ; fold lfill => //=.
@@ -1555,7 +1555,7 @@ Proof.
 
     - apply (lfilled_all_values' H1 Hfill) => //=;try by intros [? ?].
       by left.
-    - apply (lfilled_all_values' H1 Hfill) => //=. by right. (* by intros [? ?]. *)
+    - apply (lfilled_all_values' H1 Hfill) => //=. by right. 
     - assert (lfilled (S i0) (LH_rec [] n es lh0 []) (vs0 ++ [AI_basic (BI_br i0)])
                       [AI_label n es LI0]) as Hfill'.
       unfold lfilled, lfill ; fold lfill => //=.

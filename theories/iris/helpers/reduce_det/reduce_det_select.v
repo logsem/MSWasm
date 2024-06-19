@@ -13,8 +13,7 @@ Lemma select_false_det v1 v2 n s f me s' f' es:
 Proof.
   move => H Hred.
   only_one [AI_const v1 ; AI_const v2;
-            AI_const (VAL_int32 n) ; AI_basic BI_select] Hred. (*  ;
-    [done | by inversion Heqes ; subst ]. *)
+            AI_const (VAL_int32 n) ; AI_basic BI_select] Hred. 
 Qed.
 
 Lemma select_true_det v1 v2 n s f me s' f' es:
@@ -24,8 +23,7 @@ Lemma select_true_det v1 v2 n s f me s' f' es:
 Proof.
   move => H Hred.
   only_one [AI_const v1 ; AI_const v2;
-            AI_const (VAL_int32 n) ; AI_basic BI_select] Hred. (*;
-    [ by inversion Heqes ; subst | done ]. *)
+            AI_const (VAL_int32 n) ; AI_basic BI_select] Hred. 
 Qed.
 
 End reduce_det_select.

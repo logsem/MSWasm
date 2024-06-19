@@ -1199,37 +1199,6 @@ Proof.
       inversion Ha; subst. rewrite merge_call_host => //.
     - inversion Ha; subst. rewrite merge_call_host => //. 
   }
-(*    {
-    inversion Ha.
-      rewrite merge_prepend.
-      destruct (merge_values_list _) eqn:Hmerge => //=.
-      assert (to_val es = Some v0) ; first by unfold to_val ; rewrite Hmerge.
-      apply of_to_val in H.
-      rewrite H.
-      destruct es => //.
-      by intro H' ; inversion H'.
-      erewrite IHes => //.
-      destruct e => //.
-      by intro H ; inversion H. } 
-    destruct (merge_values_list (map _ l0)) eqn:Hmerge => //.
-    destruct v0 => //.
-    destruct i => //.
-    destruct (vh_decrease _) => //.
-    inversion Ha.
-
-    rewrite merge_br => //.
-    inversion Ha.
-    rewrite merge_return => //.
-    inversion Ha.
-    inversion Ha ; subst.
-    rewrite merge_call_host => //.
-    destruct (merge_values_list (map to_val_instr l)) eqn:Hl => //.
-    destruct v0 => //.
-    inversion Ha => //.
-    rewrite merge_call_host => //.
-    inversion Ha.
-    rewrite merge_call_host => //.
-  } *)
   rewrite flatten_simplify.
   intro H ; inversion H.
   destruct a => // ; try by inversion Ha. 

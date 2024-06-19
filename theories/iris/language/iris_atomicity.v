@@ -54,7 +54,7 @@ Proof.
   do 2 (destruct e;try done).
   { destruct a;try done.
     destruct b;try done. right. right. right. right. right. eauto.
-    (* destruct v;try done. *)  destruct n; try done.
+    destruct n; try done.
     right. right. right. right. right. right. right. by right. }
   do 1 (destruct e;try done).
   { revert He. cbn. repeat destruct_match_goal.
@@ -129,8 +129,6 @@ Proof.
     eapply reduce_val_false;eauto. eauto. }
   { inversion H;subst. exfalso.
     eapply reduce_val_false;eauto. eauto. }
-(*    { inversion H;subst. exfalso.
-    eapply reduce_val_false;eauto. eauto. } *)
   { inversion H;subst. exfalso.
     eapply reduce_store_false_2;eauto.  instantiate (9 := VAL_numeric n). done. }
     { inversion H;subst. exfalso.
@@ -270,7 +268,7 @@ Proof.
   destruct σ' as [[[hs' ws'] locs'] inst'].
   destruct K => //. destruct K => //.
   destruct Hstep as [Hstep ->].
-  induction Hstep. (* using reduce_ind. *)
+  induction Hstep. 
   destruct H.
   all: apply is_atomic_eq in Ha as Heq. 
   all: destruct Heq as [(?&?&?&?&?&?)|[(?&?&?)|[(?&?&?&?&?&?&?)|[(?&?&?&?)|[(?&?)|[(?&?)|[(?&?&?)|[(?&?)|?]]]]]]]];simplify_eq; eauto.

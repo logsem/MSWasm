@@ -51,7 +51,7 @@ Definition wp_pre `{!irisGS Λ Σ} {A : Type} (P: A -> iProp Σ) (s : stuckness)
     (wp : coPset -d> expr Λ -d> (val Λ -d> iPropO Σ) -d> iPropO Σ) :
   coPset -d> expr Λ -d> (val Λ -d> iPropO Σ) -d> iPropO Σ := λ E e1 Φ,
   (match to_val e1 with
-  | Some v => |={E}=> Φ v (* ∗ P *)
+  | Some v => |={E}=> Φ v 
   | None => ∀ σ1 ns κ κs nt,
      (state_interp σ1 ns (κ ++ κs) nt) ={E,∅}=∗
        ⌜if s is NotStuck then reducible e1 σ1 else True⌝ ∗

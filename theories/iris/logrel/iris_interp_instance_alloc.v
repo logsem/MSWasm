@@ -39,7 +39,7 @@ Section InterpInstance.
   Proof. destruct cl,f;try apply _. Qed.
   
   Definition interp_instance_pre (τctx : t_context) (fimps : gmap N function_closure) hl :=
-    λne (i : leibnizO instance), interp_instance' τctx (interp_closure_pre τctx fimps i hl) (λ n, interp_closure(*_pre τctx fimps i*) hl) i.
+    λne (i : leibnizO instance), interp_instance' τctx (interp_closure_pre τctx fimps i hl) (λ n, interp_closure hl) i.
   Global Instance interp_instance_pre_persistent τctx fimps i hl : Persistent (interp_instance_pre τctx fimps i hl).
   Proof. apply interp_instance_persistent';intros; destruct cl,f; apply _.  Qed.
 
@@ -157,26 +157,13 @@ Section InterpInstance.
     destruct τctx, i.  
     iDestruct "Hpre" as "[Htypes [Hfunc [Htable [Hmem Hglob]]]]".
     
-    iFrame "#". iSplit. (* iSplit. *)
+    iFrame "#". iSplit. 
     { iDestruct (big_sepL2_length with "Hfunc") as %Hlen.
       iApply (big_sepL2_forall).
       iSplit;[auto|iIntros (k f ft Hf Hft)].
       iDestruct (big_sepL2_lookup with "Hfunc") as (cl) "[Hfna Hcl]";[eauto..|].
       iExists _. iFrame "Hfna".
       iApply interp_closure_pre_ind;eauto. }
-(*    { destruct (nth_error tc_table 0);auto.
-      destruct (nth_error inst_tab 0);[|done].
-      iDestruct "Htable" as (table_size table_lim Hlim) "(Hlim & Hsize & Ht)".
-      iExists _,_. iFrame "# %".
-      iApply (big_sepL_forall).
-      iIntros (k f Hf).
-      iDestruct (big_sepL_lookup with "Ht") as (τf fe) "[Hfna Hfe]";[eauto|].
-      iExists τf,fe. iFrame "#".
-      destruct fe;auto.
-      iDestruct "Hfe" as (cl) "[Hna Hcl]".
-      iExists _;iFrame "#".
-      iApply interp_closure_pre_ind;eauto.
-    } *)
     { 
       iApply big_sepL2_forall.
       iDestruct (big_sepL2_length with "Hpref") as %Hlenpref.
@@ -238,27 +225,6 @@ Section InterpInstance.
     import_glob_wasm_check_invs v_imps t_imps wgs.
   
   
- (* Definition import_resources_wasm_typecheck_invs (v_imps: list module_export)
-             (t_imps: list extern_t) (wfs: gmap N function_closure)
-             (wts: gmap N tableinst) (wms: gmap N memory) (wgs: gmap N global): iProp Σ :=
-    import_resources_wasm_domcheck v_imps wfs wts wms wgs ∗
-  [∗ list] i ↦ v; t ∈ v_imps; t_imps,
-  match v.(modexp_desc) with
-  | MED_func (Mk_funcidx i) => ((∃ cl, na_inv logrel_nais (wfN (N.of_nat i)) (N.of_nat i ↦[wf] cl) ∗ ⌜ wfs !! (N.of_nat i) = Some cl /\ t = ET_func (cl_type cl) ⌝)%I)
-                                
-  | MED_table (Mk_tableidx i) => (∃ tab tt, N.of_nat i ↪[wtsize]tab_size tab ∗
-                                           N.of_nat i ↪[wtlimit]table_max_opt tab ∗
-                                           ([∗ list] j↦tabelem ∈ table_data tab, na_inv logrel_nais (wtN (N.of_nat i) (N.of_nat j)) (N.of_nat i ↦[wt][N.of_nat j]tabelem))
-                                           ∗ ⌜ wts !! (N.of_nat i) = Some tab /\ t = ET_tab tt /\ tab_typing tab tt ⌝)
-                                  
-  | MED_mem (Mk_memidx i) => (∃ mem mt, (na_inv logrel_nais (wmN (N.of_nat i)) (∃ (mem : memory),
-                                ([∗ list] j ↦ b ∈ (mem.(mem_data).(ml_data)), N.of_nat i ↦[wm][N.of_nat j] b) ∗
-                                N.of_nat i ↦[wmlength] mem_length mem)) ∗
-                            N.of_nat i ↪[wmlimit] mem_max_opt mem ∗ ⌜ wms !! (N.of_nat i) = Some mem /\ t = ET_mem mt /\ mem_typing mem mt ⌝)
-                              
-  | MED_global (Mk_globalidx i) => (∃ g gt, na_inv logrel_nais (wgN (N.of_nat i)) (∃ w, N.of_nat i ↦[wg] Build_global (tg_mut gt) w ∗ interp_value (tg_t gt) w)
-                                                  ∗ ⌜ wgs !! (N.of_nat i) = Some g /\ t = ET_glob gt /\ global_agree g gt ⌝)
-  end.*)
 
 
   Global Instance imports_invs_persistent v_imps t_imps wfs wts wms wgs : Persistent (import_resources_wasm_typecheck_invs v_imps t_imps wfs wts wms wgs).
@@ -512,27 +478,6 @@ Section InterpInstance.
     iApply na_inv_alloc. iNext. iFrame.
   Qed.
 
-  (*Lemma module_inst_resources_func_NoDup mfuncs inst inst_f :
-    module_inst_resources_func mfuncs inst inst_f -∗
-    ⌜NoDup inst_f⌝.
-  Proof.
-    iIntros "H". iDestruct (big_sepL2_length with "H") as %Hlen.
-    iInduction inst_f as [] "IH" forall (mfuncs Hlen).
-    { iPureIntro. destruct mfuncs;[|done]. by apply NoDup_nil. }
-    { destruct mfuncs;[done|].
-      rewrite NoDup_cons.      
-      iDestruct "H" as "[H H']".
-      simpl in Hlen. inversion Hlen.
-      iSplit.
-      { iIntros (Hcontr).
-        apply elem_of_list_lookup in Hcontr as [k Hk].
-        apply lookup_lt_Some in Hk as Hlt. rewrite -H0 in Hlt.
-        apply lookup_lt_is_Some_2 in Hlt as [cl Hk'].
-        iDestruct (big_sepL2_lookup with "H'") as "H'";eauto.
-        iDestruct (mapsto_valid_2 with "H H'") as "[% ?]". done. }
-      { iDestruct ("IH" with "[] H'") as "H'";auto. }
-    } 
-  Qed.*)
 
   Lemma ext_func_addrs_elem_of fa v_imps :
     fa ∈ ext_func_addrs (modexp_desc <$> v_imps) ->
@@ -638,22 +583,6 @@ Section InterpInstance.
   Qed. 
     
 
-  (* Definition module_inst_resources_tab_invs (mtabs: list module_table) (t_inits : gmap (nat * nat) funcelem) (inst_t: list tableaddr) : iProp Σ := *)
-  (*   ([∗ list] i↦tab; addr ∈ mtabs; inst_t, *)
-  (*      let tab := (match tab.(modtab_type).(tt_limits) with *)
-  (*                                | {| lim_min := min; lim_max := omax |} => *)
-  (*                                    (Build_tableinst *)
-  (*                                       (imap *)
-  (*                                          (λ (j : nat) (_ : funcelem), *)
-  (*                                            match t_inits !! (i, j) with *)
-  (*                                            | Some felem => felem *)
-  (*                                            | None => None : funcelem *)
-  (*                                            end) (repeat (None : funcelem) (ssrnat.nat_of_bin min)))) *)
-  (*                                      (omax) *)
-  (*                  end) in *)
-  (*      N.of_nat addr ↪[wtsize]tab_size tab ∗ N.of_nat addr ↪[wtlimit]table_max_opt tab ∗ *)
-  (*      ([∗ list] j↦tabelem ∈ table_data tab, na_inv logrel_nais (wtN (N.of_nat addr) (N.of_nat j)) (N.of_nat addr ↦[wt][N.of_nat j]tabelem))        *)
-  (*   )%I. *)
 
   Definition module_inst_resources_tab_invs (mtabs : list tableinst) (inst_t : list tableaddr) : iProp Σ :=
     ([∗ list] i↦tab; addr ∈ mtabs; inst_t,
@@ -674,19 +603,6 @@ Section InterpInstance.
     iApply na_inv_alloc. iNext. iFrame.
   Qed.
 
-  (* Definition module_inst_resources_mem_invs (mmems: list memory_type) (inst_m: list memaddr) : iProp Σ :=  *)
-  (*   ([∗ list] mem; addr ∈ mmems; inst_m, N.of_nat addr ↪[wmlimit] lim_max mem ∗ *)
-  (*      na_inv logrel_nais (wmN (N.of_nat addr)) *)
-  (*             (∃ (mem : memory), *)
-  (*                 ([∗ list] i ↦ b ∈ (mem.(mem_data).(ml_data)), (N.of_nat addr) ↦[wm][ (N.of_nat i) ] b) ∗ *)
-  (*                                                               (N.of_nat addr) ↦[wmlength] mem_length mem) *)
-  (*      (* (N.of_nat addr ↦[wmblock] (match mem with *) *)
-  (*      (*                           | {| lim_min:= min; lim_max := omax |} => *) *)
-  (*      (*                               Build_memory *) *)
-  (*      (*                                 {| ml_init := #00%byte; ml_data := repeat #00%byte (N.to_nat min) |} *) *)
-  (*      (*                                 (omax) *) *)
-  (*      (*                           end)) *) *)
-  (*   ). *)
 
   Definition module_inst_resources_mem_invs (mmems : list memory) (inst_m : list memaddr) : iProp Σ :=
     ([∗ list] mem;addr ∈ mmems;inst_m, N.of_nat addr ↪[wmlimit] mem_max_opt mem ∗
@@ -707,12 +623,6 @@ Section InterpInstance.
     iApply na_inv_alloc. iNext. iExists _. iFrame.
   Qed.
   
-  (* Definition module_inst_resources_glob_invs (mglobs: list module_glob) (g_inits: list value) (inst_g: list globaladdr) (gts : seq.seq global_type) : iProp Σ := *)
-  (*   ([∗ list] i↦g; addr ∈ mglobs; inst_g, *)
-  (*      ∃ w τg, ⌜g_inits !! i = Some w⌝ ∗ ⌜gts !! i = Some τg⌝ ∗ *)
-  (*      na_inv logrel_nais (wgN (N.of_nat addr)) (∃ w, N.of_nat addr ↦[wg] Build_global (tg_mut τg) w *)
-  (*                                                              ∗ interp_value (tg_t τg) w) *)
-  (*   ). *)
 
   Definition module_inst_resources_glob_invs (mglobs : list global) (inst_g : list globaladdr) (gts : seq.seq global_type) : iProp Σ :=
     ([∗ list] i ↦ g;addr ∈ mglobs; inst_g,
@@ -751,8 +661,6 @@ Section InterpInstance.
          tc_global := ext_t_globs impts;
          tc_table := [];
          tc_memory := [];
-(*         tc_segment := {| lim_min := 0; lim_max := None |};
-         tc_allocator := ALL_type; *)
          tc_local := [];
          tc_label := [];
          tc_return := None
@@ -1223,8 +1131,6 @@ Qed.
               tc_global := List.app igs gts;
               tc_table := List.app its (List.map (fun t => t.(modtab_type)) ts);
               tc_memory := List.app ims ms;
-(*              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct ?*)
-              tc_allocator := ALL_type ; (* This is correct but unsatisfying *) *)
               tc_local := nil;
               tc_label := nil;
               tc_return := None;
@@ -1235,15 +1141,13 @@ Qed.
                tc_global := igs;
                tc_table := nil;
                tc_memory := nil;
-(*               tc_segment := {| lim_min := 0; lim_max := None |};
-               tc_allocator := ALL_type; *)
                tc_local := nil;
                tc_label := nil;
                tc_return := None;
              |} in
     List.Forall2 (module_func_typing c) fs fts /\
       seq.all module_tab_typing ts /\
-      seq.all module_mem_typing ms /\ (* Insert equivalent for seg? *)
+      seq.all module_mem_typing ms /\ 
       List.Forall2 (module_glob_typing c') gs gts /\
       List.Forall (module_elem_typing c) els /\
       List.Forall (module_data_typing c) ds /\
@@ -1472,7 +1376,7 @@ Qed.
                        table_init_replace_single t (assert_const1_i32_to_nat moff) (lookup_funcaddr inst me_init)
                end
             ) (module_element_filter_relevant_idx (mod_elem m) n) (module_inst_table_base_create mt).
-  (* using filters is an nice definition, but makes the proofs very bad because the types of the two fold_lefts do not match.... *)
+  (* using filters is an nice definition, but makes the proofs very tedious because the types of the two fold_lefts do not match.... *)
   Definition module_inst_build_table (m : module) (inst: instance) (n : nat) (mt : module_table) : tableinst :=
   fold_left (fun t '{| modelem_table := mt; modelem_offset := moff; modelem_init := me_init |} =>
                let itc := get_import_table_count m in 
@@ -2173,7 +2077,7 @@ Proof.
            clear -n. lia. }
          eassert (get_import_func_count m' = length _) as Heq.
          { eapply get_import_count_length;eauto. subst m'. done. }
-         rewrite Heq. (* instantiate (1 := t_imps). *)
+         rewrite Heq. 
          rewrite -Hlenir Hfunceq. rewrite drop_app. eauto. }
        iDestruct (big_sepL2_length with "Hfr") as %Hfrlen.
        apply lookup_lt_Some in Hfid as Hltfid.
@@ -2188,7 +2092,7 @@ Proof.
        destruct Hftyp as [Hle [Hnth Hftyp]].             
        revert Hnth; move/eqP => Hnth.
        assert (wfs !! (N.of_nat f) = None) as Hnone.
-       { eapply Hdisj. done. (*rewrite Heqi;eauto.*) }
+       { eapply Hdisj. done.  }
 
        iExists _,_. iFrame "#". iSimpl.
        
@@ -2203,10 +2107,6 @@ Proof.
        iDestruct (be_fundamental_local_stuck_host) as "[%Hctx H]"; last first.
        unfold interp_expression_closure_stuck_host.
        iDestruct ("H" with "IH Hf0 Hown Hall [Hvcs]") as "Hwp"; last first.
-(*       instantiate (1 := r0).
-       instantiate (1 := modfunc_body).
-       instantiate (1 := inst).
-       instantiate (1 := vcs ++ n_zeros modfunc_locals). *)
        
 
        iIntros (LI HLI). 
@@ -2231,7 +2131,7 @@ Qed.
                            
   
   (* This is the core lemma mentionned earlier *) 
-    Lemma interp_instance_alloc_core hl (* E *) (m: module) (t_imps t_exps: list extern_t) (v_imps: list module_export) (wfs : gmap N function_closure) wts wms wgs inst fts gts g_inits tab_inits:
+    Lemma interp_instance_alloc_core hl (m: module) (t_imps t_exps: list extern_t) (v_imps: list module_export) (wfs : gmap N function_closure) wts wms wgs inst fts gts g_inits tab_inits:
     let C := {|
               tc_types_t := (mod_types m);
               tc_func_t := ((ext_t_funcs t_imps) ++ fts)%list;
@@ -2242,7 +2142,6 @@ Qed.
               tc_label := [];
               tc_return := None;
             |} in
-(*    let tab_inits := module_inst_build_tables m inst in  *)
     let wts' := module_import_init_tabs m inst wts in
     let mem_inits := module_inst_build_mems m inst in
     let wms' := module_import_init_mems m inst wms in
@@ -2257,7 +2156,6 @@ Qed.
          prefix (ext_glob_addrs v_imp_descs) inst.(inst_globs)) ->
     typeof_numerical <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->
 
-(*    length tab_inits = length (mod_tables m) (* (drop (get_import_table_count m) inst.(inst_tab)) *) -> *)
        
     (∀ i fa, (drop (get_import_func_count m) (inst_funcs inst)) !! i = Some fa -> wfs !! (N.of_nat fa) = None) ->
     
@@ -2270,12 +2168,11 @@ Qed.
                                                                    
     import_resources_wasm_typecheck_invs v_imps t_imps wfs wts' wms' wgs -∗
     module_inst_resources_wasm_invs m inst gts tab_inits mem_inits glob_inits
-(*    ={E}=∗ *) -∗ interp_instance C hl inst ∗
-    interp_module_funcs m fts inst hl (* ∗
-    module_inst_resources_wasm_invs m inst gts tab_inits mem_inits glob_inits *)
+    -∗ interp_instance C hl inst ∗
+    interp_module_funcs m fts inst hl 
    . 
    Proof.
-     iIntros (C (* tab_inits *) wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals (* Htab_inits *) Hdisj) "#Htab_inits #Himps_val #Htabs_val #Hmems_val #Hglobs_val #Hir #Hmr".
+     iIntros (C wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals Hdisj) "#Htab_inits #Himps_val #Htabs_val #Hmems_val #Hglobs_val #Hir #Hmr".
 
    
      
@@ -2288,16 +2185,6 @@ Qed.
 
     iDestruct "Hmr" as "(Hfr & Htr & Hmr & Hgr)".
 
-(*    iMod (module_inst_resources_func_invs_alloc with "Hfr") as "#Hfr".
-    iMod (module_inst_resources_tab_invs_alloc with "Htr") as "#Htr". 
-    iMod (module_inst_resources_mem_invs_alloc with "Hmr") as "#Hmr".
-    iMod (module_inst_resources_glob_invs_alloc with "Hgr") as "#Hgr".
-    { instantiate (1:=gts).
-      instantiate (1:=(mod_globals m)).
-      destruct m. simpl in Hmod.
-      destruct Hmod as (Htypes & Htables & Hmems & Hglobals
-                        & Helem & Hdata & Hstart & Himps & Hexps). simpl. apply Hglobals. }
-    1,2: eauto. *)
 
     iDestruct (irwt_vtlen with "Hir") as "%Hvtlen".
 
@@ -2310,7 +2197,6 @@ Qed.
              
              
     
-    (* iModIntro. *)
     iLöb as "IH".
     
     iDestruct (interp_instance_pre_create _ wfs with "[] []") as "[H1 H2]";
@@ -2340,7 +2226,6 @@ Qed.
       rewrite Htyp. simpl. apply b2p in Hnth as ->.
       done.
     }
-(*    2: by repeat iSplit. *)
 
 
     
@@ -2429,13 +2314,9 @@ Qed.
     iSplitR.
     { iClear "Hmr Hgr". iSimpl in "Htr". simpl in Hpretables.
       destruct Hpretables as [fdecls Himpdeclapp].
-(*      remember m.  *)
-      destruct m. (* rename m0 into m. *) simpl in Hmod.
-(*      unfold modify_elem in tab_inits. simpl in tab_inits. *)
-      (* rewrite Heqm0 in Hmod. *)
+      destruct m. simpl in Hmod.
       destruct Hmod as (Htypes & Htables & Hmems & Hglobals
                         & Helem & Hdata & Hstart & Himps & Hexps).
-      (* rewrite Heqm0. *)
       eassert (get_import_table_count _ = length _) as ->.
       { eapply get_import_count_length;simpl;eauto. }
       rewrite Himpdeclapp. simpl datatypes.mod_tables.
@@ -2452,8 +2333,7 @@ Qed.
         destruct fdecls.
         { exfalso.
           rewrite Htab_inits in Htbllen. done. } 
-(*          by rewrite /tab_inits module_inst_build_tables_length (* Heqm0 *) /= in Htbllen. } *)
-        rewrite (* -Heqm0 *) /module_inst_resources_tab_invs (* /tab_inits *).
+        rewrite /module_inst_resources_tab_invs.
         remember {|
                   mod_types := mod_types;
                   mod_funcs := mod_funcs;
@@ -2482,15 +2362,12 @@ Qed.
         { unfold tab_inits_valid. iSimpl in "Htab_inits". rewrite Hlim.
           iDestruct "Htab_inits" as "[[%H _] _]".
           iPureIntro. done. } 
-(*        iPureIntro. rewrite module_inst_built_table_max_opt_eq Hlim /=. lia. } *)
-        { (* rewrite module_inst_build_table_length. *)
-          (* the table can be initialised with imported or declared functions *)
+        { (* the table can be initialised with imported or declared functions *)
           iApply big_sepL_forall.
           iIntros (k j Hj).
           apply lookup_lt_Some in Hj as Hlt.
           rewrite repeat_length in Hlt.
           apply lookup_lt_is_Some in Hlt as [x Hlook].
-(*          apply module_inst_build_table_lt_is_Some with (m:=(m')) (i:=i) (n:=get_import_table_count (m')) in Hlt as [x Hlook]. *)
           iDestruct (big_sepL_lookup _ _ k with "Ht") as "Hk"; first done.
           unfold tab_inits_valid. iSimpl in "Htab_inits".
           iDestruct "Htab_inits" as "[[_ Htabcontents] Htab_inits]".
@@ -2501,99 +2378,12 @@ Qed.
             iExists τf, (Some n0).
             iFrame "Hk". iSimpl. done. } 
 
-(*            (* iDestruct "Hcontent" as (cl) "(Hclown & %Hwfs & Hcl)". *)
-            iDestruct "Hcontent" as (cl) "(Hclown & Hcl)".
-            
-            iExists cl.
-            iFrame "Hclown".
-            destruct cl; last done.
-
-            assert (wfs !! (N.of_nat n0) = None) as Hnone.
-            2:{ rewrite Hnone.
-            { eapply Hdisj. done. (*rewrite Heqi;eauto.*) } 
-
-            
-            rewrite Hwfs. iFrame "Hcl". done.
-          } *)
           iExists (Tf [] []), None.
           iFrame "Hk".
         }
       } 
       
-(*
-          
-          apply module_inst_build_table_lookup_Some in Hlook as Heq.
 
-          destruct Heq as [-> | Hfunc].
-          { iExists (Tf [] []),None. iFrame "#". }
-
-          destruct Hfunc as [k' [moff [minit [fid [f [Hidx [-> [Hk [_ Hminit]]]]]]]]].
-          
-          destruct (decide (fid < (get_import_func_count m'))).
-          { (* the initialiser is imported *)
-            destruct Hprefunc as [decls Hfunceq]. simpl in Hfunceq.
-            rewrite Heqi /= Hfunceq in Hidx.
-
-            rewrite lookup_app_l in Hidx;cycle 1.
-            { rewrite Hlenir.
-              eassert (get_import_func_count m' = length _) as <-.
-              { eapply get_import_count_length;eauto. rewrite Heqm'. eauto. }
-              auto. }
-            assert (is_Some (ext_t_funcs t_imps !! fid)) as [ft Hft].
-            { apply lookup_lt_is_Some.
-              eassert (get_import_func_count m' = length _) as <-.
-              { eapply get_import_count_length;eauto. rewrite Heqm'. eauto. }
-              auto. }
-            specialize (import_funcs_lookup Hft Hidx Hftc Httc Hmtc Hgtc) as Hk'; eauto.
-            destruct Hk' as [k'' [Ht_imps [fm [Hv_imps Hfm]]]].
-            unfold func_typecheck in Hftc.
-            rewrite -> Forall2_lookup in Hftc.
-            specialize (Hftc k'').
-            rewrite Ht_imps Hv_imps in Hftc.
-            inversion Hftc; subst; clear Hftc.
-            rewrite Hfm in H2.
-            destruct H2 as [cl [Hwfs Heqft]].
-            unfold import_func_nainv.
-            iDestruct (big_sepM_lookup with "Hfinv") as "Hown" => //.
-            iDestruct (big_sepM_lookup with "Himps_val") as "Hcl" => //.
-            iExists _,_. iFrame "Hk". iSimpl.
-            iExists _. iFrame "Hown".
-            destruct cl;[|auto].
-            rewrite Hwfs. auto. }
-           { (* the initialiser is declared *)
-             destruct Hprefunc as [decls Hfunceq]. simpl in Hfunceq.
-            rewrite Heqi /= Hfunceq in Hidx.
-             eassert (drop (get_import_func_count m') inst_funcs !! (fid - (get_import_func_count m')) = Some f) as Hfid.
-             { rewrite lookup_app_r in Hidx;cycle 1.
-               { rewrite Hlenir.
-                 eassert (get_import_func_count m' = length (ext_t_funcs t_imps)) as Heq.
-                 { eapply get_import_count_length;eauto. rewrite Heqm'. eauto. }
-                 rewrite -Heq.
-                 clear -n0. lia. }
-               eassert (get_import_func_count m' = length _) as Heq.
-               { eapply get_import_count_length;eauto. rewrite Heqm'. eauto. }
-               rewrite Heq.
-               rewrite -Hlenir Hfunceq. rewrite drop_app. eauto. }
-             iDestruct (big_sepL2_length with "Hfr") as %Hfrlen.
-             apply lookup_lt_Some in Hfid as Hltfid.
-             rewrite -Hfrlen in Hltfid.
-             apply lookup_lt_is_Some in Hltfid as [fm Hfm].
-             rewrite Heqm' /= in Hfm.
-             eapply Forall2_lookup_l in Htypes as [mf [Hmf Hftyp]];[|eauto].
-             rewrite -Heqm' in Hfm.
-             iDestruct (big_sepL2_lookup with "Hfr") as "HH";[rewrite Heqm' /= -Heqm';eauto..|].
-             destruct mf,fm,modfunc_type;simpl in *.             
-             destruct Hftyp as [Hle [Hnth Hftyp]].             
-             revert Hnth; move/eqP => Hnth.
-             assert (wfs !! (N.of_nat f) = None) as Hnone.
-             { eapply Hdisj. rewrite Heqi;eauto. }
-             iExists _,_. iFrame "#". iSimpl.
-             iExists _. iFrame "#". iSimpl. rewrite  Hnone.
-             iPureIntro.
-             repeat split;auto. rewrite Htypeq Heqm' /= Hnth.
-             rewrite -/its -Heql app_nil_l in Hftyp. auto. }
-        }
-      } *)
       { (* the function table is imported *)
         rewrite /its in Heql.
         remember (ext_tab_addrs (map (λ mexp : module_export, modexp_desc mexp) v_imps)).
@@ -2793,12 +2583,10 @@ Qed.
           prefix (ext_glob_addrs v_imp_descs) inst.(inst_globs)) ->
      typeof_numerical <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->
 
-     (*    length tab_inits = length (mod_tables m) (* (drop (get_import_table_count m) inst.(inst_tab)) *) -> *)
      
      (∀ i fa, (drop (get_import_func_count m) (inst_funcs inst)) !! i = Some fa -> wfs !! (N.of_nat fa) = None) ->
 
 
-    (* tab_inits_valid tab_inits (mod_tables m) hl -∗ *)
              
              
        ([∗ map] _↦cl ∈ wfs, interp_closure hl (cl_type cl) cl)%I -∗ (* we must assume that the imported closures are valid *)
@@ -2814,7 +2602,7 @@ Qed.
    .
 
    Proof.
-     iIntros (C tab_inits wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals (* Htab_inits *) Hdisj) "#Himps_val #Htabs_val #Hmems_val #Hglobs_val #Hir Hmr".
+     iIntros (C tab_inits wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals Hdisj) "#Himps_val #Htabs_val #Hmems_val #Hglobs_val #Hir Hmr".
      subst C. 
      set (ifts := ext_t_funcs t_imps).
      set (its := ext_t_tabs t_imps).
@@ -2853,8 +2641,6 @@ Qed.
                tc_global := ((ext_t_globs t_imps) ++ gts)%list;
                tc_table := ((ext_t_tabs t_imps) ++ map (λ t : module_table, modtab_type t) (mod_tables m))%list;
                tc_memory := ((ext_t_mems t_imps) ++ (mod_mems m))%list;
-               (*              tc_segment := {| lim_min := 0; lim_max := None |} ; (* Is this correct? *)
-              tc_allocator := ALL_type; *)
                tc_local := [];
                tc_label := [];
                tc_return := None;
@@ -2872,7 +2658,6 @@ Qed.
           prefix (ext_tab_addrs v_imp_descs) inst.(inst_tab) /\
           prefix (ext_mem_addrs v_imp_descs) inst.(inst_memory) /\ 
           prefix (ext_glob_addrs v_imp_descs) inst.(inst_globs)) ->
-     (* module_init_values m inst tab_inits mem_inits glob_inits -> *)
      typeof_numerical <$> g_inits = tg_t ∘ modglob_type <$> mod_globals m ->
      
      ([∗ map] _↦cl ∈ wfs, interp_closure hl (cl_type cl) cl)%I -∗ (* we must assume that the imported closures are valid *)
@@ -2889,11 +2674,6 @@ Qed.
    (* it is useful to remember the exact values for each allocated invariant *).
    Proof. 
      iIntros (C tab_inits wts' mem_inits wms' glob_inits Hmod Himps_of_inst Hinit_vals) "#Himps_val #Htabs_val #Hmems_val #Hglobs_val Hir Hmr".
-     (*  subst C.
-    set (ifts := ext_t_funcs t_imps).
-    set (its := ext_t_tabs t_imps).
-    set (ims := ext_t_mems t_imps).
-    set (igs := ext_t_globs t_imps). *)
      
 
      iDestruct (module_res_imports_disj with "[Hir] [Hmr]") as %Hdisj => //.
@@ -2917,7 +2697,6 @@ Qed.
                          & Helem & Hdata & Hstart & Himps & Hexps). simpl. apply Hglobals. }
      1,2: eauto.
 
-(*     iDestruct (import_resources_wasm_typecheck_lengths with "Hir") as %(Hlenir&Hlenir0&Hlenir1&Hlenir2). *)
 
      iModIntro.
      iLöb as "IH". 

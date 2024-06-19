@@ -77,13 +77,12 @@ Section fundamental.
     
     iDestruct "Hall" as "(%fall & Hbl & Htoks)".
     iDestruct (gamma_agree with "Hw Hbl") as "%Hγ".
-(*    iDestruct (big_sepM_lookup_acc _ _ _ _ Hγ with "Htoks") as "[(%y & %Hy & Halloc & Htok) Htoks]". *)
     rewrite - (insert_delete _ _ _ Hγ).
 
     iDestruct (big_sepM_insert with "Htoks") as "[(%y & %Hy & Halloc & Htok) Htoks]";
       first by rewrite lookup_delete. 
     destruct y as [[base0 bound0]|] ; first iDestruct "Htok" as "(-> & -> & Htok)". 
-    2:{ (* destruct (_ && _); last done. iDestruct "Htok" as "->". *)
+    2:{ 
         iApply (wp_wand with "[Hf Halloc]").
         - iApply (wp_segfree_failure3 with "[$Hf $Halloc]").
           iIntros "!> Ha".

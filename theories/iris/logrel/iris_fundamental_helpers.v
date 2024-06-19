@@ -91,12 +91,6 @@ Section fundamental.
   Qed. 
     
   
-(*  Lemma interp_value_type_of v : (⊢ interp_value (Σ:=Σ) (typeof v) v)%I.
-  Proof.
-    unfold interp_value.
-    destruct v;simpl;eauto.
-  Qed. *)
-
   Lemma const_list_of_val vs :
     const_list (of_val (immV vs)).
   Proof.
@@ -996,28 +990,6 @@ Section fundamental.
 
   Global Instance lholed_inhabited : Inhabited (lholed).
   Proof. apply populate. exact (LH_base [] []). Qed.
-  (*
-    Notation WR := ((leibnizO value) -n> iPropO Σ).
-  Global Instance interp_value_handle_0_timeless (ivh: WR) v :
-    (forall v0, Timeless (ivh v0)) -> Timeless (interp_value_handle_0 ivh v).
-  Proof.
-    intros H. unfold interp_value_handle_0 => /=.
-    apply exist_timeless => h.
-    repeat (apply sep_timeless ; first apply _).
-    apply or_timeless; first apply _.
-    apply exist_timeless => γ.
-    apply exist_timeless => base'.
-    apply exist_timeless => bound'.
-    repeat (apply sep_timeless ; first apply _).
-
-
-  
-  Global Instance interp_val_timeless t v : Timeless (interp_val (Σ:=Σ) t v).
-  Proof. unfold interp_val. apply or_timeless;[apply _|].
-         apply exist_timeless =>vs.
-         apply sep_timeless;[apply _|].
-         apply big_sepL2_timeless =>n x1 x2.
-         destruct x2;apply _. Qed. *)
 
   Global Instance simple_valid_holed_inhabited : Inhabited (simple_valid_holed).
   Proof. apply populate. exact (SH_base [] []). Qed.
@@ -1379,7 +1351,7 @@ Section fundamental.
       destruct (decide (j = p)).
       { iApply (wp_wand with "[-]").
         { iApply (interp_br_step with "Hbr Hf Hfv Hall");[eauto|apply Hbase|apply Hsize|apply e]. }
-        iIntros (v0) "[[H|[H|[H|H]]] $]". (* "(%f1 & H1 & H2 & H3)]"; iSplitR "H1 H2 H3"; try by iExists _,_; iFrame. *)
+        iIntros (v0) "[[H|[H|[H|H]]] $]". 
         { iLeft. iFrame. }
         { iRight. iLeft. iNext. iFrame. }
         { iRight. iRight. iLeft. iFrame. }
@@ -1389,7 +1361,7 @@ Section fundamental.
         { iDestruct "Hc" as "[% [% [% _]]]". auto. }
         iApply (wp_wand with "[-]").
         { iApply (interp_br_stuck_push_later with "Hbr Hf Hfv");eauto. }
-        iIntros (v0) "[[H|[H|[H|H]]] $]". (* "(%f1 & H1 & H2 & H3)]"; iSplitR "H1 H2 H3"; try by iExists _,_; iFrame. *)
+        iIntros (v0) "[[H|[H|[H|H]]] $]". 
         { iLeft. iFrame. }
         { iRight. iLeft. iNext. iFrame. }
         { iRight. iRight. iLeft. iFrame. }
@@ -1397,7 +1369,7 @@ Section fundamental.
     }
     { iDestruct (interp_return_label with "Hv' Hf Hfv Hall") as "Hv'".
       iApply (wp_wand_ctx with "Hv'").
-      iIntros (v0) "[[H|[H|[H|H]]] $]". (* "(%f1 & H1 & H2 & H3)]"; iSplitR "H1 H2 H3"; try by iExists _,_; iFrame. *)
+      iIntros (v0) "[[H|[H|[H|H]]] $]". 
         { iLeft. iFrame. }
         { iRight. iLeft. iNext. iFrame. }
         { iRight. iRight. iLeft. iFrame. }
@@ -1723,7 +1695,7 @@ Section fundamental.
     revert vh' e.
     induction vh;intros vh' e.
     { cbn. revert l e l0 e. induction vh';simpl;intros l' e l0' e'.
-      all:intros Hbasic He Heq (* Hconst *).
+      all:intros Hbasic He Heq.
       all: assert (AI_call_host tf h ves ∉ e') as Hnin.
       1,3,5: apply const_list_elem_of;auto.
       { 

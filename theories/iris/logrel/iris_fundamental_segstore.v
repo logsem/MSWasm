@@ -480,10 +480,7 @@ Section fundamental.
             iIntros (addr) "%Haddr".
             (* We must show that knowning addr is handle-aligned, it either doesn't store
                a handle, or stores a valid one *)
-            (* destruct (handle_addr h + handle_size <=? base + addr)%N eqn:Hlo. *)
-            (* destruct (handle_addr h <=? base + addr - handle_size)%N eqn:Hlo. *)
             destruct (handle_addr h + N.of_nat (t_length T_handle) <=? addr + base')%N eqn:Hlo0.
-(*            destruct (handle_addr h - base + N.of_nat (t_length T_handle) <=? addr)%N eqn:Hlo.   *)
               
             -- (* Case 1: the place where we wrote to memory is before addr *)
               (* I.e. the previous invariant still holds *)

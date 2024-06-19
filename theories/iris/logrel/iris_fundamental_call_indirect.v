@@ -88,7 +88,7 @@ Section fundamental.
     (* the index may still be out of bounds *)
     destruct (decide (table_size <= (Wasm_int.nat_of_uint i32m z))).
     { iApply (wp_wand _ _ _ (λ x, (⌜ x = trapV ⌝ ∨ _) ∗ ∃ f0, ↪[frame]f0 ∗ ∃ all, _
-                                      )%I with "[-]"); last first. (* [iApply wp_val_can_trap_app'; iFrame; iSplitR|].   *)
+                                      )%I with "[-]"); last first. 
       { iIntros (v) "(H & %f0 & Hf & %all0 & Hrest)". rewrite -or_assoc.
         iSplitL "H"; first iExact "H". iExists f0, all0.  iFrame "Hf". iExact "Hrest". }
       iApply wp_val_can_trap_app'. iFrame.

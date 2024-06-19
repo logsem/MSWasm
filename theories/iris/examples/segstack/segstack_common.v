@@ -207,7 +207,6 @@ Qed.
 *)  
 Definition isStack (h: handle) (l : seq.seq i32) :=
   (let st_p := (N.of_nat (length l) * 4)%N in
-   (* ⌜ (two16 | v)%N ⌝ ∗ ⌜(0 ≤ v ≤ ffff0000)%N⌝ ∗  *)
    ⌜ offset h = 0%N ⌝ ∗ ⌜ bound h = 65536%N ⌝ ∗ ⌜ valid h = true ⌝ ∗
   ⌜ (N.of_nat (length l) < two14)%N ⌝ ∗
   id h ↣[allocated] Some (base h, bound h) ∗ 
@@ -222,7 +221,6 @@ Definition isStack (h: handle) (l : seq.seq i32) :=
 Definition stk : string := "STACK".
 Definition stkN : namespace := nroot .@ stk.
 
-(* stack module invariant *)
 
 Lemma N_divide_dec: ∀ a b : N, {(a | b)%N} + {¬ (a | b)%N}.
 Proof.
@@ -232,13 +230,6 @@ Proof.
     destruct Hcontr. exists (N.to_nat x). lia.
 Qed.
 
-(* Lemma Z_divide_dec: ∀ a b : Z, {(a | b)%Z} + {¬ (a | b)%Z}. *)
-(* Proof. *)
-(*   intros. destruct (decide ((Z.to_nat a) | (Z.to_nat b))). *)
-(*   - left. destruct d. exists (Z.of_nat x). lia. *)
-(*   - right. intros Hcontr. apply n. *)
-(*     destruct Hcontr. exists (N.to_nat x). lia. *)
-(* Qed. *)
 
 Inductive multiples_upto: N -> N -> list N -> Prop :=
 | mu_base_nil n: (n > 0)%N -> multiples_upto n 0 []
@@ -383,38 +374,12 @@ Definition stackModuleInv (isStack : N -> seq.seq i32 -> iPropI Σ) (nextStackAd
 
 
 
-(*Definition validate_stack (x: immediate) :=
-  [
-    BI_get_local x ;
-    i32const 65536 ;
-    BI_binop T_i32 (Binop_i (BOI_rem SX_U)) ;
-    BI_if (Tf [] []) [BI_unreachable] []
-  ]. *)
-
-
-  (*
-Lemma is_stack_divide (v : handle) s:
-  isStack v s ⊢
-  ⌜ Z.divide 65536 (Z.of_N (base v)) ⌝.
-Proof.
-  iIntros "Hstack".
-  unfold isStack.
-  iDestruct "Hstack" as "(_ & %Hdiv & _)".
-  iPureIntro.
-  destruct Hdiv as [a ->].
-  exists (Z.of_N a).
-  unfold two16.
-  lia.
-Qed.
-   *)
-
   
 Lemma stack_pure h s:
   isStack h s -∗ ⌜ offset h = 0%N ⌝ ∗
                   ⌜ bound h = 65536%N ⌝ ∗ 
                                 ⌜ valid h = true ⌝ ∗
                  ⌜ (N.of_nat (length s) < two14)%N ⌝.
-  (*⌜(two16 | base v)%N⌝ ∗ ⌜(0 <= base v <= ffff0000)%N⌝ ∗ ⌜(N.of_nat (length s) < two14)%N⌝ ∗ isStack v s *)
 Proof.
   iIntros "Hs".
   repeat iSplit => //; iDestruct "Hs" as "(% & % & % & % & ?)" => //.
@@ -424,284 +389,6 @@ Qed.
 Section proofs.
   Context `{ HHB : HandleBytes }.
 
-(*
-  
-Lemma is_stack_valid (v : handle) s f E x:
-    ⌜ (f_locs f) !! x = Some (value_of_handle v) ⌝ ∗ 
-    isStack v s ∗ ↪[frame] f ⊢ 
-    WP to_e_list (validate_stack x) @ E
-    {{ w, ⌜ w = immV [] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
-Proof.
-  iIntros "(%Hlocs & Hstack & Hf)".
-  simpl.
-  
-  rewrite separate1.
-  iApply wp_seq.
-  instantiate (1 := λ x, (⌜ x = immV [value_of_handle v] ⌝ ∗ ↪[frame] f)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hf"; first by iApply wp_get_local.
-  
-  iIntros (w) "(-> & Hf)" => /=.
-  rewrite separate3.
-  iApply wp_seq.
-  instantiate (1 := λ x, (⌜ x = immV [value_of_int 0] ⌝ ∗ isStack v s ∗ ↪[frame] f)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iDestruct (is_stack_divide with "Hstack") as "%Hdiv".
-  iFrame "Hstack".
-  iSplitL; first iApply (wp_binop with "Hf") => //.
-  { iIntros "!>".
-    iPureIntro => /=.
-    unfold value_of_int.
-    unfold Wasm_int.Int32.modu.
-    simpl.
-    repeat f_equal.
-    rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-    rewrite u32_modulus.
-    rewrite <- Znumtheory.Zmod_div_mod => //; last by apply Znumtheory.Zmod_divide => //.
-    destruct Hdiv as [a ->].
-    by apply Z_mod_mult.
-  }
-  
-  iIntros (w) "(-> & Hstack & Hf)".
-  iFrame "Hstack".
-  iApply (wp_if_false with "Hf") => //.
-  
-  iIntros "!> Hf".
-  replace ([AI_basic (BI_block (Tf [] []) [])]) with ([] ++ [AI_basic (BI_block (Tf [] []) [])]) => //.
-  iApply (wp_block with "Hf") => //.
-  
-  iIntros "!> Hf".
-  by iApply (wp_label_value with "Hf").
-Qed.
-
-Lemma check_stack_valid (v : N) (* s *) (* n *) f E x:
-    ⌜ (f_locs f) !! x = Some (value_of_uint v) ⌝ ∗ 
-     ↪[frame] f ⊢ 
-    WP to_e_list (validate_stack x) @ E
-    {{ w, (⌜ w = trapV ⌝ ∨ ⌜ w = immV [] ⌝ ∗ ⌜ (65536 | v)%N ⌝) ∗ ↪[frame] f }}.
-Proof.
-  iIntros "(%Hlocs & Hf)".
-  simpl.
-  
-  rewrite separate1.
-  iApply wp_seq.
-  instantiate (1 := λ x, (⌜ x = immV [value_of_uint v] ⌝ ∗ ↪[frame] f)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hf"; first by iApply wp_get_local.
-  
-  iIntros (w) "(-> & Hf)" => /=.
-  rewrite separate3.
-  (* case splitting *)
-  destruct (decide ((Z.of_N v `mod` 65536)%Z = 0%Z)).
-  - iApply wp_seq.
-    instantiate (1 := λ x, (⌜ x = immV [value_of_int 0] ⌝ ∗ ↪[frame] f)%I).
-    iSplitR; first by iIntros "(%H & _)".
-    iSplitL. iApply (wp_binop with "Hf") => //.
-    { iIntros "!>".
-      iPureIntro => /=.
-      unfold value_of_int.
-      unfold Wasm_int.Int32.modu.
-      simpl.
-      repeat f_equal.
-      rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-      rewrite u32_modulus.
-      rewrite <- Znumtheory.Zmod_div_mod => //.
-      by apply Znumtheory.Zmod_divide => //. 
-    }
-    
-    iIntros (w) "(-> & Hf)".
-    iApply (wp_if_false with "Hf") => //.
-    
-    iIntros "!> Hf".
-    replace ([AI_basic (BI_block (Tf [] []) [])]) with ([] ++ [AI_basic (BI_block (Tf [] []) [])]) => //.
-    iApply (wp_block with "Hf") => //.
-    
-    iIntros "!> Hf".
-    iApply (wp_label_value with "Hf");eauto.
-    iNext. iRight. iSplit;auto. iPureIntro.
-    apply N.mod_divide;[unfold page_size;lia|].
-    apply Z_of_N_inj.
-    rewrite N2Z.inj_mod;[|lia]. simpl. auto.
-    
-  - iApply wp_seq.
-    instantiate (1 := λ x, (⌜ x = immV [value_of_int _] ⌝ ∗ ↪[frame] f)%I).
-    iSplitR; first by (iIntros "[%H _]").
-    iSplitL. iApply (wp_binop with "Hf") => //.
-    
-    iIntros (w) "[-> Hf]".
-    iApply (wp_if_true with "Hf") => //.
-    { simpl.
-      repeat f_equal.
-      rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-      unfold Wasm_int.Int32.modulus, Wasm_int.Int32.wordsize, Integers.Wordsize_32.wordsize.
-      rewrite <- Znumtheory.Zmod_div_mod => //.
-      2: by apply Znumtheory.Zmod_divide => //.
-      intros Hcontr. inversion Hcontr.
-      rewrite Wasm_int.Int32.Z_mod_modulus_id in H0; [lia|].
-      unfold Wasm_int.Int32.modulus.
-      unfold two_power_nat. simpl.
-      pose proof (Z_mod_lt (Z.of_N v) 65536). lia. }
-    iNext. iIntros "Hf".
-    take_drop_app_rewrite 0. iApply (wp_block with "Hf") => //.
-    
-    iIntros "!> Hf /=".
-    build_ctx [AI_basic BI_unreachable].
-    iApply wp_label_bind.
-    iApply (wp_wand _ _ _ (λ v, ⌜v = trapV⌝ ∗ _)%I with "[Hf]").
-    iApply (wp_unreachable with "Hf");eauto.
-    
-    iIntros (w) "[-> Hf]".
-    deconstruct_ctx.
-    iApply (wp_label_trap with "Hf");auto.
-Qed.
-
-*)
-
-
-  (*
-Definition validate_stack_bound (x: immediate) :=
-  [
-    BI_get_local x ;
-    BI_segload T_i32 ;
-    BI_drop
-  ].
-
-Lemma is_stack_bound_valid (v : handle) s f E x:
-   ⌜ (f_locs f) !! x = Some (value_of_handle v) ⌝ ∗
-    isStack v s ∗ ↪[frame] f ⊢ 
-    WP to_e_list (validate_stack_bound x) @ E
-    {{ w, ⌜ w = immV [] ⌝ ∗ isStack v s ∗ ↪[frame] f }}.
-Proof.
-  iIntros "(%Hlocs & Hstack & Hf)".
-  simpl.
-  rewrite separate1.
-  iApply wp_seq.
-  instantiate (1 := λ x, (⌜ x = immV [value_of_handle v] ⌝ ∗ ↪[frame] f)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hf"; first by iApply wp_get_local.
-  
-  iIntros (w) "(-> & Hf)" => /=.
-  rewrite separate2.
-  iApply wp_seq.
-  iDestruct "Hstack" as "(%Hoff & %Hbound & %Hbase & %Hlen & Hs & Hrest)".
-  iSplitR; last iSplitL "Hv Hf".
-  2: { iApply wp_load => //; last first.
-       iFrame "Hf".
-       iDestruct (i32_wms with "Hv") as "Hv" => //=.
-       rewrite Wasm_int.Int32.Z_mod_modulus_eq.
-       iSplitR "Hv"; last first.
-       { rewrite Z.mod_small.
-         rewrite N2Z.id.
-         rewrite N.add_0_r.
-         instantiate (1 := VAL_int32 _) => /=.
-         by iFrame "Hv".
-         rewrite u32_modulus; unfold ffff0000 in Hvub; lia.
-       }
-       { by instantiate (1 := λ v, ⌜ v = immV [_] ⌝%I ). }
-       { done. }
-  }
-  { iIntros "((%Habs & _) & _)"; by inversion Habs. }
-  
-  iIntros (w) "((-> & Hv) & Hf)".
-  simpl.
-  rewrite N.add_0_r.
-  iDestruct (i32_wms with "Hv") as "Hv" => //=.
-  rewrite Wasm_int.Int32.Z_mod_modulus_eq Z.mod_small; last first.
-  { unfold ffff0000 in Hvub; rewrite u32_modulus; by lias. }
-  rewrite N2Z.id.
-  iFrame "Hs Hrest Hv".
-  iApply (wp_wand with "[Hf]"); first by iApply (wp_drop with "Hf"); instantiate (1 := λ v, ⌜ v = immV _ ⌝%I).
-  
-  iIntros (w) "(-> & Hf)".
-  by repeat iSplit => //.
-Qed.
-
-Lemma check_stack_bound_valid (v : N) n f E x len s :
-  let k := Wasm_int.N_of_uint i32m ((Wasm_int.int_of_Z i32m (Z.of_N v))) in
-   ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ ∗
-   ⌜ (f_locs f) !! x = Some (value_of_uint v) ⌝ ∗
-    ↪[frame] f ∗ N.of_nat n ↦[wmlength] len ∗ (⌜ (k < len)%N ⌝ -∗ isStack v s n) ⊢
-    WP to_e_list (validate_stack_bound x) @ E
-    {{ w, (⌜ w = trapV ⌝ ∨
-           ⌜ w = immV [] ⌝ ∗ ⌜ (k < len)%N ⌝ ∗ isStack v s n) ∗ N.of_nat n ↦[wmlength] len ∗ ↪[frame] f }}.
-Proof.
-  iIntros "(%Hinst & %Hlocs & Hf & Hlen & Hstack)".
-  simpl.
-  rewrite separate1.
-  (* case splitting *)
-  destruct (N_lt_dec len (Wasm_int.N_of_uint i32m ((Wasm_int.int_of_Z i32m (Z.of_N v))) + N.of_nat (t_length T_i32))%N).
-  - iApply wp_seq.
-    instantiate (1 := λ x, (⌜ x = immV [value_of_uint v] ⌝ ∗ ↪[frame] f)%I).
-    iSplitR; first by iIntros "(%H & _)".
-    iSplitL "Hf"; first by iApply wp_get_local.
-    iIntros (w) "(-> & Hf)" => /=.
-    rewrite separate2.
-    unfold value_of_int in Hlocs.
-    match goal with | |- context [ (WP ?e0 @ _; _ {{ _ }} )%I ] => set (e:=e0) end.
-    build_ctx e.
-    iApply wp_seq_can_trap_ctx.
-    instantiate (1:=(λ f', ⌜f = f'⌝ ∗ N.of_nat n ↦[wmlength] len)%I).
-    instantiate (1:=(λ v0, ⌜v0 = immV [xx 0]⌝ ∗ ⌜(_ < len)%N⌝)%I).
-    iSplitR;[by iIntros "[% _]"|].
-    instantiate (3:=f).
-    iSplitR. { iIntros (f') "[Hf [-> Hlen]]". iFrame. auto. }
-    iFrame "Hf".
-    iSplitL "Hlen".
-    { iIntros "Hf".
-      iApply (wp_wand _ _ _ (λ v, (⌜v = trapV⌝ ∗ _) ∗ _)%I with "[-]").
-      iApply (wp_load_failure with "[$Hf $Hlen]");eauto. lias.
-      iIntros (v0) "[[-> ?] ?]". iFrame. auto. }
-    iIntros (w f0) "[[-> %Hlen] [Hf [-> Hlen]]] /=".
-    iDestruct ("Hstack" $! Hlen) as "Hstack".
-    deconstruct_ctx.
-    iApply (wp_wand _ _ _ (λ v, ⌜v = immV []⌝ ∗ _)%I with "[Hf]").
-    iApply (wp_drop with "[$]");auto.
-    iIntros (v0) "[-> Hf]".
-    iFrame. iRight. iFrame. auto.
-  - simpl in *. iDestruct ("Hstack" with "[]") as "Hstack".
-    { iPureIntro. lias. }
-    iApply (wp_wand with "[-Hlen]").
-    iApply (is_stack_bound_valid with "[$Hf $Hstack]"); auto. iFrame.
-    iIntros (x0) "[? [? ?]]". iFrame. iRight. iFrame. iPureIntro. lias.
-Qed.
-
-Lemma fail_stack_bound_valid (v : N) n f E x len es :
-  let k := Wasm_int.N_of_uint i32m ((Wasm_int.int_of_Z i32m (Z.of_N v))) in
-   ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ ∗
-   ⌜ (f_locs f) !! x = Some (value_of_uint v) ⌝ ∗
-   ⌜ (k >= len)%N ⌝ ∗
-    ↪[frame] f ∗ N.of_nat n ↦[wmlength] len -∗
-    WP to_e_list (validate_stack_bound x) ++ es @ E
-    {{ w, ⌜ w = trapV ⌝ ∗ N.of_nat n ↦[wmlength] len ∗ ↪[frame] f }}.
-Proof.
-  iIntros "(%Hinst & %Hlocs & %Hlen & Hf & Hlen)".
-  simpl.
-  rewrite separate1.
-  iApply wp_seq.
-  instantiate (1 := λ x, (⌜ x = immV [value_of_uint v] ⌝ ∗ ↪[frame] f)%I).
-  iSplitR; first by iIntros "(%H & _)".
-  iSplitL "Hf"; first by iApply wp_get_local.
-  iIntros (w) "(-> & Hf)" => /=.
-  rewrite separate2.
-  unfold value_of_int in Hlocs.
-  match goal with | |- context [ (WP ?e0 ++ _ @ _; _ {{ _ }} )%I ] => set (e:=e0) end.
-  build_ctx e. take_drop_app_rewrite 2.
-  iApply wp_seq_can_trap_ctx.
-  instantiate (1:=(λ f', ⌜f = f'⌝ ∗ N.of_nat n ↦[wmlength] len)%I).
-  instantiate (1:=(λ v0, ⌜v0 = immV [xx 0]⌝ ∗ ⌜(Wasm_int.N_of_uint i32m (Wasm_int.int_of_Z i32m (Z.of_N v)) < len)%N⌝)%I).
-  iSplitR;[by iIntros "[% _]"|].
-  instantiate (1:=f).
-  iSplitR. { iIntros (f') "[Hf [-> Hlen]]". iFrame. auto. }
-  iFrame "Hf".
-  iSplitL "Hlen".
-  { iIntros "Hf".
-    iApply (wp_wand _ _ _ (λ v, (⌜v = trapV⌝ ∗ _) ∗ _)%I with "[-]").
-    iApply (wp_load_failure with "[$Hf $Hlen]");eauto. simpl t_length. lias.
-    iIntros (v0) "[[-> ?] ?]". iFrame. auto. }
-  iIntros (w f0) "[[-> %Hlen'] [Hf [-> Hlen]]] /=". lia.
-Qed.
-
-*)
 
   Lemma map_fst_map_pair { A B } (l: list A) (x : B) :
     map fst (map (fun y => (y, x)) l) = l.
@@ -852,7 +539,6 @@ Qed.
 
 Lemma stack_load_j_alt v s f E j k sv:
   ⌜ k = (length s * 4 - 4 * Z.of_N j)%Z ⌝ -∗
-(*  ⌜ k = (N.of_nat (length s) * 4 - 4 * j)%N ⌝ -∗ *)
   ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
   ⌜ (j < N.of_nat (length s))%N ⌝ -∗
   isStack v s -∗
@@ -955,22 +641,7 @@ Proof.
   iApply (stack_store_j with "[] [] [$] [$]"). done. done.
 Qed.
 
-(*
-Lemma stack_store_j_alt v (s: list i32) n f E j k sv (v0: i32):
-  ⌜ f.(f_inst).(inst_memory) !! 0 = Some n ⌝ -∗
-  ⌜ k = (v + N.of_nat (length s) * 4 - 4 * j)%N ⌝ -∗
-  ⌜ s !! (N.to_nat j) = Some sv ⌝ -∗
-  ⌜ (0 <= j < N.of_nat (length s))%N ⌝ -∗
-  isStack v s n -∗
-  ↪[frame] f -∗
-  WP [AI_basic (BI_const (value_of_uint k)); AI_basic (BI_const (VAL_int32 v0)); AI_basic (BI_store T_i32 None N.zero N.zero)] @ E
-  {{ w, ⌜ w = immV [] ⌝ ∗ isStack v (<[ N.to_nat j := v0 ]> s) n ∗ ↪[frame] f }}.
-Proof.
-  iIntros "%Hinstmem %Hsv %Hjbound Hs Hf" => /=.
-  subst k.
-  by iApply (stack_store_j with "[] [] [$] [$]").
-Qed.
-*)
+
   
 Lemma positive_add a b :
   a + b = ssrnat.NatTrec.add a b.

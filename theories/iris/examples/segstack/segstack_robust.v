@@ -158,7 +158,7 @@ Section Client_main.
   Context `{HHB: HandleBytes, !wasmG Σ, !logrel_na_invs Σ, cancelg : cancelG Σ, !cinvG Σ }.
 
   Lemma main_spec C k idt locs es f a i idf0 l0 f0 idf4 l4 f4 idf5 l5 f5 idf6 l6 f6
-        istack isStack (* newStackAddrIs *) stacktab all :
+        istack isStack stacktab all :
     (tc_label C) = [] ∧ (tc_return C) = None ->
 
     f.(f_inst).(inst_globs) !! 0 = Some k ->
@@ -175,14 +175,12 @@ Section Client_main.
     ⊢ {{{ ↪[frame] f ∗ interp_allocator all 
          ∗ na_own logrel_nais ⊤
          ∗ na_inv logrel_nais (wfN (N.of_nat a)) ((N.of_nat a) ↦[wf] (FC_func_native i (Tf [T_i32] [T_i32]) locs es))
-(*         ∗  interp_closure_native i [T_i32] [T_i32] locs
-         (to_e_list es) []  *)
         ∗ interp_instance C [] i  
          ∗ (∃ gv, N.of_nat k ↦[wg] {| g_mut := MUT_mut; g_val := gv |})
          (* new stack *)
          ∗  na_inv logrel_nais (wfN (N.of_nat idf0))
          (N.of_nat idf0 ↦[wf]FC_func_native istack (Tf [] [T_handle]) l0 f0)
-         ∗ spec0_new_stack idf0 istack l0 f0 isStack (* newStackAddrIs *) ⊤
+         ∗ spec0_new_stack idf0 istack l0 f0 isStack ⊤
          (* push *)
          ∗  na_inv logrel_nais (wfN (N.of_nat idf4))
          (N.of_nat idf4↦[wf]FC_func_native istack (Tf [T_handle; T_i32] []) l4 f4)
@@ -198,9 +196,6 @@ Section Client_main.
          (* table *)
          ∗  na_inv logrel_nais (wtN (N.of_nat idt) 0) (N.of_nat idt↦[wt][0%N]Some a)
 
-(*         (N.of_nat idt↦[wtblock]table_init_replace_single stacktab (nat_of_int (Wasm_int.Int32.repr 0)) [Some a]) *)
-         (* new stack predicate *)
-(*         ∗ newStackAddrIs 0 *)
       }}}
       to_e_list main
       {{{ w, (⌜w = trapV⌝ ∨ (⌜w = immV []⌝ ∗ (N.of_nat k) ↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |}
@@ -317,9 +312,7 @@ Section Client_main.
       rewrite Hflocs. iSimpl in "Hf".
       iApply (wp_seq _ _ _ (λ v, ⌜v = immV _⌝ ∗ _)%I).
       iSplitR;[|iSplitL "Hf"];[by iIntros "[%Hcontr _]"|..].
-      { (* take_drop_app_rewrite 1. *)
-        (* iApply wp_val. iSplitR;[by iIntros "[%Hcontr _]"|]. *)
-        iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
+      { iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
       iIntros (w) "[-> Hf]".
       iSimpl.
       (* push *)
@@ -351,9 +344,7 @@ Section Client_main.
       take_drop_app_rewrite 1.
       iApply (wp_seq _ _ _ (λ v, ⌜v = immV _⌝ ∗ _)%I).
       iSplitR;[|iSplitL "Hf"];[by iIntros "[%Hcontr _]"|..].
-      { (* take_drop_app_rewrite 1. *)
-        (* iApply wp_val. iSplitR;[by iIntros "[%Hcontr _]"|]. *)
-        iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
+      { iApply (wp_get_local with "[] [$Hf]");simpl;eauto. }
       iIntros (w) "[-> Hf]".
       iSimpl.
       (* push *)
@@ -387,22 +378,10 @@ Section Client_main.
       iIntros (w) "[-> Hf]".
       iSimpl.
       (* map *)
-(*      iApply fupd_wp.
-      iMod (na_inv_acc with "Hidt Hown") as "(>Ht & Hown & Hclst)"; [by solve_ndisj| by solve_ndisj|..].
-      iModIntro. *)
-(*       iDestruct "Hidt" as "[Ht _]". iSimpl in "Ht". *)
       destruct (length (table_data stacktab));[lia|].
-      (* rewrite firstn_cons. iDestruct "Ht" as "[Ht _]". *)
-      
       take_drop_app_rewrite 3.
       iApply (wp_wand with "[-HΦ]").
       { 
-
-(*        iApply fupd_wp.
-        iMod (na_inv_acc with "Hidf5 Hown") as "(>Hf5 & Hown & Hcls5)"; [by solve_ndisj| by solve_ndisj|..].
-        iModIntro. *)
-
-
         iApply wp_wasm_empty_ctx.
         iApply wp_seq_can_trap_ctx. iFrame "Hf".
         instantiate (2 := λ f', (⌜ f' = {|
@@ -412,7 +391,7 @@ Section Client_main.
                                         |}⌝ ∗ ∃ all, interp_allocator all)%I).
         
         iSplitR;[|iSplitR];cycle 2.
-        iSplitL "HisStack Hown Hall". (* removed Ht *)
+        iSplitL "HisStack Hown Hall".
         { iIntros "Hf". iApply (wp_wand with "[-]").
           { take_drop_app_rewrite_twice 2 0.
             iApply wp_wasm_empty_ctx.
@@ -426,9 +405,6 @@ Section Client_main.
             
             iDestruct (be_fundamental_local _ _ [] _ (T_i32 :: locs) with "Hi") as "Hl";eauto.
             unfold interp_expression_closure.
-
-(*            iApply fupd_wp.
-            iMod (na_inv_alloc logrel_nais _ (wtN (N.of_nat idt) (N.of_nat 0)) with "Ht") as "#Ht". *)
             iApply ("Hmap" with "[] [] [$HisStack $Hf $Hidf5 Hidt $Hown Hadv $Hall]");[iPureIntro;solve_ndisj|iPureIntro;solve_ndisj|..].
             { iSimpl. iFrame "Hidt".
               instantiate (2:=(λ _, True)%I).
@@ -481,7 +457,7 @@ Section Client_main.
             }
 
             } 
-            { (* iModIntro. *) iIntros (w) "(H & Hown & Hf & Hall)".
+            { iIntros (w) "(H & Hown & Hf & Hall)".
               iCombine "H Hown Hall " as "H". instantiate (1:=(λ vs, _ ∗ ↪[frame] _)%I).
               iFrame "Hf". iExact "H". }
           }
@@ -754,7 +730,6 @@ Section Client_instantiation.
     iDestruct "Hadv_exports" as "[Hn _]".
     edestruct module_typing_body_eq as [Heq _]. 
     apply Heq in Htyp.
-(*    revert Htyp. rewrite module_typing_body_eq => Htyp. *)
     destruct Htyp as [fts [gts Htyp]].
     assert (Hmod:=Htyp).
     remember adv_module as advm.
@@ -1120,8 +1095,7 @@ Section Client_instantiation.
     (* Since at this point the stack module's table contains the adversary function, we need to know that the adversary function is safe *)
     (* Hence circularity -> we need to do a Löb induction *)
     (* Let us use iAssert to focus on proving the desired module safety (interp_instance) and function safety (module_inst_resources_invs) *)
-    iAssert ( |={⊤}=> (* interp_closure_native inst_adv [T_i32] [T_i32] modfunc_locals
-        (to_e_list modfunc_body) [] ∗ *)
+    iAssert ( |={⊤}=>
         interp_instance
               {|
                 tc_types_t := inst_types inst_adv;
@@ -1155,124 +1129,6 @@ Section Client_instantiation.
                    (module_inst_global_init
                       (module_inst_build_globals (datatypes.mod_globals stack_module)) [])
 )%I  with "[Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hrest Hresm Hresg Hresf]" as "Hi".
-(*    iAssert ( |={⊤}=> interp_instance
-                       {|
-                         tc_types_t := inst_types inst_adv;
-                         tc_func_t := (ext_t_funcs (ET_func <$> func_types) ++ fts)%list;
-                         tc_global := (ext_t_globs (ET_func <$> func_types) ++ gts)%list;
-                         tc_table :=
-                           (ext_t_tabs (ET_func <$> func_types) ++
-                              map (λ t : module_table, modtab_type t) mod_tables
-                           )%list;
-                         tc_memory :=
-                           (ext_t_mems (ET_func <$> func_types) ++
-                              mod_mems
-                           )%list;
-                         tc_local := [];
-                         tc_label := [];
-                         tc_return := None
-                       |} [] inst_adv
-                       ∗ module_inst_resources_wasm_invs advm
-                       inst_adv gts
-                       (module_inst_build_tables
-                          advm
-                          inst_adv)
-              (module_inst_build_mems
-                 advm
-                 inst_adv)
-              (module_inst_global_init
-                 (module_inst_build_globals mod_globals
-                 ) g_adv_inits)
-              ∗ interp_instance
-                {|
-                  tc_types_t := mod_types stack_module;
-                  tc_func_t := (ext_t_funcs [] ++ func_types)%list;
-                  tc_global := (ext_t_globs [] ++ [])%list;
-                  tc_table :=
-                    (ext_t_tabs [] ++
-                     map (λ t : module_table, modtab_type t) (datatypes.mod_tables stack_module))%list;
-                  tc_memory := (ext_t_mems [] ++ datatypes.mod_mems stack_module)%list;
-                  tc_local := [];
-                  tc_label := [];
-                  tc_return := None
-                |} [] (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-  ∗ ((⌜Tf [] [T_handle] = Tf [] [T_handle]⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt) []
-                         [T_handle] [T_handle]
-                         [AI_basic (i32const 65536); AI_basic BI_segalloc;
-                         AI_basic (BI_tee_local 0); AI_basic BI_isdummy;
-                         AI_basic
-                           (BI_if (Tf [] [T_handle]) [BI_get_local 0]
-                              [BI_get_local 0; i32const 0; BI_segstore T_i32; BI_get_local 0])]
-                         []) ∗
-                  (⌜Tf [T_handle] [T_i32] = Tf [T_handle] [T_i32]⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-                         [T_handle] [T_i32] []
-                         [AI_basic (i32const 0); AI_basic (BI_get_local 0);
-                         AI_basic (BI_segload T_i32); AI_basic (BI_relop T_i32 (Relop_i ROI_eq))]
-                         []) ∗
-                  (⌜Tf [T_handle] [T_i32] = Tf [T_handle] [T_i32]⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-                         [T_handle] [T_i32] []
-                         [AI_basic (i32const 65531); AI_basic (BI_get_local 0);
-                         AI_basic (BI_segload T_i32);
-                         AI_basic (BI_relop T_i32 (Relop_i (ROI_lt SX_U)))] []) ∗
-                  (⌜Tf [T_handle] [T_i32] = Tf [T_handle] [T_i32]⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-                         [T_handle] [T_i32] [T_i32]
-                         [AI_basic (i32const 0); AI_basic (BI_get_local 0);
-                         AI_basic (BI_segload T_i32); AI_basic (BI_relop T_i32 (Relop_i ROI_eq));
-                         AI_basic (BI_if (Tf [] []) [BI_unreachable] []);
-                         AI_basic (BI_get_local 0); AI_basic (BI_segload T_i32);
-                         AI_basic (BI_tee_local 1); AI_basic (BI_get_local 0);
-                         AI_basic BI_handleadd; AI_basic (BI_segload T_i32);
-                         AI_basic (BI_get_local 0); AI_basic (BI_get_local 1);
-                         AI_basic (i32const 4); AI_basic (BI_binop T_i32 (Binop_i BOI_sub));
-                         AI_basic (BI_segstore T_i32)] []) ∗
-                  (⌜Tf [T_handle; T_i32] [] = Tf [T_handle; T_i32] []⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-                         [T_handle; T_i32] [] [T_i32]
-                         [AI_basic (i32const 65531); AI_basic (BI_get_local 0);
-                         AI_basic (BI_segload T_i32);
-                         AI_basic (BI_relop T_i32 (Relop_i (ROI_lt SX_U)));
-                         AI_basic (BI_if (Tf [] []) [BI_unreachable] []);
-                         AI_basic (BI_get_local 0); AI_basic (BI_segload T_i32);
-                         AI_basic (i32const 4); AI_basic (BI_binop T_i32 (Binop_i BOI_add));
-                         AI_basic (BI_tee_local 2); AI_basic (BI_get_local 0);
-                         AI_basic BI_handleadd; AI_basic (BI_get_local 1);
-                         AI_basic (BI_segstore T_i32); AI_basic (BI_get_local 0);
-                         AI_basic (BI_get_local 2); AI_basic (BI_segstore T_i32)] []) ∗
-                  (⌜Tf [T_handle; T_i32] [] = Tf [T_handle; T_i32] []⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-                         [T_handle; T_i32] [] [T_handle; T_i32]
-                         [AI_basic (BI_get_local 0); AI_basic (BI_segload T_i32);
-                         AI_basic (BI_set_local 3); AI_basic (BI_get_local 0);
-                         AI_basic (BI_set_local 2);
-                         AI_basic (BI_block (Tf [] []) [BI_loop (Tf [] []) map_loop_body])] []) ∗
-                  (⌜Tf [T_handle] [T_i32] = Tf [T_handle] [T_i32]⌝ ∗
-                   □ ▷ interp_closure_native
-                         (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt)
-                         [T_handle] [T_i32] []
-                         [AI_basic (BI_get_local 0); AI_basic (BI_segload T_i32);
-                         AI_basic (i32const 4);
-                         AI_basic (BI_binop T_i32 (Binop_i (BOI_div SX_U)))] []) ∗ emp)
-  ∗ module_inst_resources_wasm_invs stack_module
-                   (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt) []
-                   [table_init_replace_single stacktab (nat_of_int (Wasm_int.Int32.repr 0))
-                      [Some advf]]
-                   (module_inst_build_mems stack_module
-                      (segstack_instance [idf0; idf1; idf2; idf3; idf4; idf5; idf6] idt))
-                   (module_inst_global_init
-                      (module_inst_build_globals (datatypes.mod_globals stack_module)) [])
-
-
-            )%I with "[Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Htabr Hrest Hresm Hresg Hresf]" as "Hi". *)
     {
 
       (* We rephrase our resources in the terms used by the TFLR *)
@@ -1434,7 +1290,6 @@ Section Client_instantiation.
         iDestruct (big_sepL2_lookup with "Hfinvs") as "H".
         by subst advm. done. iFrame "H". 
         iSimpl. iClear "H". erewrite nth_error_nth; last done. iSimpl. iSplit; first done.
-(*        iDestruct "IH" as "[Hi _]". *)
         iIntros "!> !>".
         unfold interp_closure_native.
         iIntros (vcs f0 all0) "Hvcs Hown Hf Hall".
@@ -1461,37 +1316,13 @@ Section Client_instantiation.
     
 
     
-(*    unfold interp_instance. unfold interp_instance'.
-    iSimpl in "Histack". 
-    subst istack. iSimpl in "Histack".
-    iDestruct "Histack" as "(_ & Hfuncsafe & Htabsafe & Hmemsafe & Hglobsafe)".
-    unfold module_inst_resources_wasm_invs.
-   iDestruct "Hinvsstack" as "(Hinvsfunc & Hinvstab & Hinvsmem & Hinvsglobs)".
-    unfold stack_module.       
-    unfold get_import_func_count.
-    iSimpl in "Hinvsfunc".
-    rewrite drop_0.
-    unfold module_inst_resources_func_invs.
-    iDestruct "Hfuncsafe" as "(Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & Hf6 & _)".
-    iSimpl in "Hinvsfunc".
-    iDestruct "Hinvsfunc" as "(Hf0' & Hf1' & Hf2' & Hf3' & Hf4' & Hf5' & Hf6' & _)".
-    iDestruct "Hf0" as (cl0) "[Hf0 Hcl0]".
-    iDestruct "Hf1" as (cl1) "[Hf1 Hcl1]".
-    iDestruct "Hf2" as (cl2) "[Hf2 Hcl2]".
-    iDestruct "Hf3" as (cl3) "[Hf3 Hcl3]".
-    iDestruct "Hf4" as (cl4) "[Hf4 Hcl4]".
-    iDestruct "Hf5" as (cl5) "[Hf5 Hcl5]".
-    iDestruct "Hf6" as (cl6) "[Hf6 Hcl6]". *)
-
     unfold interp_module_funcs. subst istack. iSimpl in "Hstackfuncs".
     
     iDestruct "Hstackfuncs" as "([_ Hstackfunc0] & [_ Hstackfunc1] & [_ Hstackfunc2] & [_ Hstackfunc3] & [_ Hstackfunc4] & [_ Hstackfunc5] & [_ Hstackfunc6] & _)".
             
 
     iDestruct (interp_instance_alloc_core with "[] [] [] [] [] [] []") as "[Hi _]";
-(*    iMod (interp_instance_alloc_invs with "[] [] [] [] [] [Hrest Hresm Hresg Hresf]") as "(#Hi & _ & #Hires)"; *)
       [apply Htyp|repeat split;eauto|eauto|..].
-    (* 2,3,4,5: by instantiate (1:=∅). *)
     by subst advm. 
     { destruct Hglob_inits_vals as [? ?];eauto. }
     
@@ -1548,14 +1379,13 @@ Section Client_instantiation.
 
     2,3,4: by instantiate (1 := ∅).
     2:{ 
-(*      iDestruct "Hinvsstack" as "(Hinvsfunc & Hinvstab & Hinvsmem & Hinvsglob)". *)
       iSplit.
       unfold import_func_wasm_check_invs.
       unfold module_inst_resources_func_invs.
       iSplit. unfold import_func_nainv.
       subst mtmp0. iSimpl.
-      unfold stack_module. iSimpl in "Hstackfinvs". (* iSimpl in "Hinvsfunc". *)
-      iDestruct "Hstackfinvs" (* "Hinvsfunc" *) as "(Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & Hf6 & _)".
+      unfold stack_module. iSimpl in "Hstackfinvs". 
+      iDestruct "Hstackfinvs" as "(Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & Hf6 & _)".
 
       iApply big_sepM_insert.
       by repeat rewrite lookup_insert_ne => //.
@@ -1602,38 +1432,6 @@ Section Client_instantiation.
       unfold import_glob_wasm_check_invs. iSplit.
       unfold import_glob_nainv. done.
       iPureIntro. split => //=. repeat constructor => //. } 
-(*      unfold module_inst_resources_tab_invs. 
-      unfold module_import_init_tabs. iSimpl. 
-      eexists. split. rewrite lookup_insert. done. done.
-      constructor. 
-      
-      iExact "Hinvsstack".  iSplit. iExact "Hinvsfunc". repeat iSplit => //. rewrite irwt_nodup_equiv.
-      2:{ rewrite fmap_app in Hnodup.
-        apply NoDup_app in Hnodup as (Hnodup & _ & _).
-        done. }
-      repeat iSplit;auto.
-      subst mtmp0. iPureIntro. Transparent list_to_map. Transparent zip_with. simpl.
-      clear. 
-      set_solver. 
-      rewrite module_import_init_tabs_dom. auto.
-      rewrite module_import_init_mems_dom. auto.
-      iSimpl.
-      iSplitL "Himpfcl0".
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      iSplitL "Himpfcl1".
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      iSplitL "Himpfcl2".
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      iSplitL "Himpfcl3".
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      iSplitL "Himpfcl4".
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      iSplitL "Himpfcl5".
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      iSplitL.
-      iExists _; iFrame; iPureIntro; split => //; subst mtmp0; simpl; by repeat (rewrite lookup_insert_ne; last done); rewrite lookup_insert.
-      done.
-    } *)
     2:{
       subst advm. 
       rewrite /module_inst_resources_wasm_invs /=
@@ -1649,7 +1447,7 @@ Section Client_instantiation.
        repeat split => //.
        by subst advm.
        done. subst advm. 
-       (* iDestruct "IH" as "[$ _]".  *) iFrame "IH".
+       iFrame "IH".
        subst mtmp0. iSimpl.
        iApply big_sepM_insert.
        by repeat (rewrite lookup_insert_ne; last done).
@@ -1734,38 +1532,8 @@ Section Client_instantiation.
        
 
     subst advm. iFrame "Hi".
-    (*"Hstackfinvs Hstacktinvs".
-    iSplit.
-     {  rewrite /module_inst_resources_wasm_invs /=
-         Himpfunccount
-         Himpglobcount
-         Himptabcount
-         Himpmemcount
-        !drop_0.
-       iFrame "Hfinvs Htinvs Hminvs Hginvs".  }
-    repeat iSplit; try by iPureIntro.
-    unfold module_inst_resources_mem_invs. done.
-    unfold module_inst_resources_glob_invs. done.
-    *)
    } 
-    (*
 
-    
-    iFrame "Hi Histack Hstackfinvs Hstacktinvs Hstackfunc0 Hstackfunc1 Hstackfunc2 Hstackfunc3 Hstackfunc4 Hstackfunc5 Hstackfunc6". 
-    iSplit.
-    {  rewrite /module_inst_resources_wasm_invs /=
-         Himpfunccount
-         Himpglobcount
-         Himptabcount
-         Himpmemcount
-        !drop_0.
-       iFrame "Hfinvs Htinvs Hminvs Hginvs".  }
-    repeat iSplit; try by iPureIntro.
-    unfold module_inst_resources_mem_invs.
-    done.
-    unfold module_inst_resources_glob_invs.
-    done.
-    } *)
 
     iApply weakestpre.fupd_wp.
     iMod "Hi" as "(#Hi & #Hires & #Hinvsstack)".
@@ -1798,9 +1566,9 @@ Section Client_instantiation.
     iApply wp_label_push_nil.
     iApply wp_ctx_bind;[simpl;auto|]. repeat erewrite app_nil_l.
 
-    iApply (wp_wand with "[Hf Hgret Hown Hall]"). (* removed Htabr *)
+    iApply (wp_wand with "[Hf Hgret Hown Hall]"). 
     { 
-      iApply (main_spec with "[$Hi $Hf $Hown Hgret Hall]"). (* removed Htabr *)
+      iApply (main_spec with "[$Hi $Hf $Hown Hgret Hall]"). 
       { simpl. auto. }
       { simpl. rewrite Heq6. simpl. eauto. }
       { simpl. rewrite Heq3. simpl. eauto. }

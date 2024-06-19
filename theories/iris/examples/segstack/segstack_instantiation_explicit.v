@@ -173,9 +173,6 @@ Proof.
     
     iDestruct "Hwf" as "(Hf & Hf0 & Hf1 & Hf2 & Hf3 & Hf4 & Hf5 & _)".
     iDestruct "Hwt" as "(Ht & _)".
-    (*iDestruct "Hwm" as "(Hm & _)".
-
-    iDestruct "Hm" as "(Hmem & Hmemlength & Hmlim)". *)
     
     iSplitL "Hf Hf0 Hf1 Hf2 Hf3 Hf4 Hf5 Ht".
     + unfold import_resources_wasm_typecheck_sepL2.
@@ -215,7 +212,6 @@ Proof.
         iSplitR; first by iPureIntro => /=; lia.
         iSplitR; first done.
         
-        (* iSplitL "Hmemlength" ; first done. *)
         
         (* Proving the parametric spec of each function in the post condition *)
         repeat iSplitR.
@@ -263,7 +259,7 @@ Proof.
                                           inst_memory := [];
                                           inst_globs := []
                                         |} (Tf [] [T_handle]) [T_handle] new_stack ∗  ↪[frame]f6)%I).
-              (*              instantiate (1 := (λ v, ((⌜ v = immV _ ⌝)%I ∨ ((∃ k, ⌜ v = immV [value_of_uint k]⌝ ∗ ⌜ (0 <= k <= ffff0000)%N⌝ ∗ isStack k [] m ∗ N.of_nat m↦[wmlength](N.of_nat addr + page_size)%N))) ∗ N.of_nat f↦[wf] _ ∗ ↪[frame] f6 )%I). *)
+
               iApply wp_value => //. iFrame.
               iDestruct "H" as "[ -> | (%h & -> & H)]"; first by iLeft.
               iDestruct (stack_pure with "H") as "(% & % & %Hvalid & %)".
@@ -321,8 +317,6 @@ Proof.
               iApply (spec_is_empty with "[Hlen Hf]").
               iFrame.
               repeat iSplit ; iPureIntro => //=.
-              (*        lia.
-        lia. *)
               iIntros (w) "H".
               iDestruct "H" as (k) "(-> & H & %Hk & Hf)" => /=.
               iApply (wp_wand_ctx with "[H Hf Hf0]").
@@ -650,7 +644,7 @@ Proof.
                  iFrame.
                  instantiate (1 :=  (λ v, ⌜ v = immV [] ⌝ ∗
                                                   ( ∃ s', isStack v0 s' ∗ stackAll2 s0 s' Ψ) ∗
-                                                  (* N.of_nat f4↦[wf] _ ∗ *) ↪[frame] _)%I).
+                                                  ↪[frame] _)%I).
                  iSimpl.
                  iFrame.
                  done.
@@ -661,8 +655,7 @@ Proof.
                  iSimpl.         
                  iApply (wp_frame_value with "Hf0") => //.
                  iNext. iRight.
-                 instantiate (1 :=  (( ∃ s', isStack v0 s' ∗ stackAll2 s0 s' Ψ) (* ∗
-                                       N.of_nat f4↦[wf] _ *) )%I).
+                 instantiate (1 :=  (( ∃ s', isStack v0 s' ∗ stackAll2 s0 s' Ψ))%I).
                  iSimpl. iSplitR;[done|].
                  iFrame. 
 

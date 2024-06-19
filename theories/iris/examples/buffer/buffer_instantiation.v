@@ -378,8 +378,6 @@ Section Buffer_instantiation.
 
     destruct (inst_globs inst) eqn:Hglobs => //.
     { inversion Hextglob. done. }
-(*    destruct l => //.
-    { inversion Hextglob. done. } *)
     inversion Hextglob. inversion H0; subst g. 
 
 

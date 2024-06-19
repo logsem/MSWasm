@@ -51,9 +51,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
       BI_set_global global_result (* In order to later observe the return value, we store it in a global variable that the host code can examine *)
     ].
 
-(**   (* Place the buffer code in the environment in which functions are executed *)
-  Definition buffer_function f :=
-    [ AI_local 0 f [ AI_basic (BI_block (Tf [] []) buffer_program) ] ]. *)
 
 
   (* Spec for the buffer example's code. Most premises will be provided later by instantiation *) 
@@ -84,14 +81,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
   Proof.
     iIntros (HC Hglob0 Hfunc Hlocs Hes Φ) "!> (Hf & Hall & Hown & #Hfinv & #Hi & Hg) HΦ".
 
-(*    iApply (wp_frame_bind with "Hf"); first done.
-    iIntros "Hf". 
-    rewrite - (app_nil_l [AI_basic _]).
-    iApply (wp_block with "Hf") => //.
-    iIntros "!> Hf".
-    iApply wp_wasm_empty_ctx.
-    iApply wp_label_push_nil.
-    iApply wp_ctx_bind. done.  *)
     
     iSimpl.
     rewrite (separate2 (AI_basic _)).
@@ -380,10 +369,6 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSplit; [done | iExact "H"].
     2: by iIntros "[[% _] _]".
     iIntros (w) "[(-> & Ha & Hs) Hf]". iSimpl.
-(*     rewrite (separate2 (AI_basic _)).
-    iApply wp_seq.
-    iSplitR; last first.
-    iSplitL "Hf Hg".  *)
     fold_const.
     iApply (wp_wand with "[Hf Hg]").
     iApply (wp_set_global with "[] Hf Hg").
@@ -393,7 +378,7 @@ Notation "{{{ P }}} es {{{ v , Q }}}" :=
     iSplitL "Hf"; first by iExists _. iRight. iSplit; first done.
     iDestruct "Ha" as "[Ha Ha']". 
     iAssert (∃ all1, interp_allocator all1)%I with "[Ha' Htok Hrestore Hbl]" as "Hall".
-    { iExists all0. (* {| allocated := <[ id h := None ]> (allocated all0); next_free := next_free all0 |}. *)
+    { iExists all0. 
       iExists _. iFrame.
       iApply (big_sepM_insert with "[Ha' Htok $Hrestore]"); first by rewrite lookup_delete.
       iSimpl.

@@ -71,10 +71,6 @@ Section adequacy.
       iMod (ghost_map_alloc (∅ : gmap N (byte * btag))) as (γseg) "[Hseg_ctx _]".
       apply (@gen_heapGpreS_heap) in all_preg as all_heapg.
       iMod (ghost_map_alloc (∅ : gmap N allocator_info)) as (γall) "[Hall_ctx _]".
-(*      iMod (gen_heap_init (∅: gmap N (N * N))) as (all_heapg) "[Hall_ctx _]".
-      iMod (gen_heap_init (∅: gmap N (byte * btag))) as (seg_heapg) "[Hseg_ctx _]". *)
-    (*  iMod (gen_heap_init (<[():=seg_length {| segl_data := [] |}]> ∅: gmap unit N)) as (segsize_heapg) "[Hsegsize_ctx _]".
-      iMod (@gen_heap_init _ _ _ _ _ seglimit_preg (<[ () := None ]> ∅: gmap unit (option N))) as (seglimit_heapg) "[Hseglimit_ctx _]". *)
       iMod (gen_heap_init (∅:gmap N global)) as (global_heapg) "[Hglobal_ctx _]".
       
       apply (@gen_heapGpreS_heap) in locs_preg as frame_heapg.

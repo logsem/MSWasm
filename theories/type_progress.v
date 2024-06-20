@@ -420,13 +420,6 @@ Proof.
   by [].
 Qed.
 
-(*
-Lemma to_e_list_cat: forall l1 l2,
-    to_e_list (l1 ++ l2) = to_e_list l1 ++ to_e_list l2.
-Proof.
-    by apply properties.to_e_list_cat.
-Qed.
-*)
 
 Ltac split_et_composition:=
   lazymatch goal with
@@ -1071,7 +1064,6 @@ Proof.
     destruct H5 as [ts3 [ts3' [H7 [H8 H9]]]]. subst.
     unfold plop2 in H8. move/eqP in H8.
     rewrite HN in H8. inversion H8. subst.
-(*    apply et_to_bet in H3; last by apply const_list_is_basic. *)
     apply const_es_exists in H.
     destruct H as [vs' H]. subst.
     apply Const_list_typing in H3. simpl in H3.
@@ -1124,7 +1116,6 @@ Proof.
     eapply Return_typing in H5; eauto.
     destruct H5 as [ts2 [ts2' [H7 H8]]]. subst.
     rewrite HN in H8. inversion H8. subst.
-    (* apply et_to_bet in H3; last by apply const_list_is_basic. *)
     apply const_es_exists in H.
     destruct H as [vs' H]. subst.
     apply Const_list_typing in H3. simpl in H3.

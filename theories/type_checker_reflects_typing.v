@@ -405,7 +405,6 @@ Ltac auto_rewrite_cond:=
          | |- context C [size (_ ++ _)%list] => rewrite size_cat => //=
          | |- context C [?x + ?n - ?n] => replace (x + n - n) with x; last by lias => //=
          | |- context C [match ?f with | (Tf _ _) => _ end ] => destruct f => //=
-(*         | |- context C [type_update _ _] => unfold type_update => //=*)
          | H: match ?expr with | _ => _ end = CT_type _ |- _ => let Hexpr := fresh "Hexpr" in destruct expr eqn: Hexpr => //=
          | H: match ?expr with | _ => _ end = CT_top_type _ |- _ => let Hexpr := fresh "Hexpr" in destruct expr eqn: Hexpr => //=
          | H: option_map _ _ = _ |- _ => unfold option_map in H
@@ -1859,8 +1858,6 @@ Proof with auto_rewrite_cond.
       exists (tn' ++ [::T_handle]); split => //.
       apply bet_weakening.
       apply bet_segload => //.
-(*      by destruct C.(tc_segment).
-      by destruct C.(tc_allocator). *)
     + replace ([::CTA_some T_i32; CTA_some v]) with (to_ct_list [::T_i32; v]) in Hct2 => //.
       apply consume_type_agree in Hct2.
       exists (tm ++ [::T_i32; v]); split => //.
@@ -1870,8 +1867,7 @@ Proof with auto_rewrite_cond.
       apply consume_type_agree in Hct2.
       exists (tm ++ [::T_handle;v]); split => //.
       apply bet_weakening_empty_2.
-      apply bet_segstore => //. (* by destruct C.(tc_segment) => //=.
-      by destruct C.(tc_allocator) => //. *)
+      apply bet_segstore => //. 
     + replace [:: CTA_some T_handle; CTA_some T_i32 ; CTA_some T_i32] with
         (to_ct_list [::T_handle; T_i32; T_i32]) in Hct2 => //.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
@@ -1882,8 +1878,7 @@ Proof with auto_rewrite_cond.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet) ; subst.
       exists (tn' ++ [::T_i32]); split => //.
       apply bet_weakening.
-      apply bet_segalloc => //. (* by destruct C.(tc_segment).
-      by destruct C.(tc_allocator). *)
+      apply bet_segalloc => //. 
     + replace [::CTA_some T_i32; CTA_some T_handle] with (to_ct_list [::T_i32; T_handle]) in Hct2 => //.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
       exists (tn' ++ [::T_i32; T_handle]); split => //.
@@ -1892,7 +1887,6 @@ Proof with auto_rewrite_cond.
       apply consume_type_agree in Hct2. 
       exists (tm ++ [::T_handle]); split => //.
       apply bet_weakening_empty_2. apply bet_segfree => //.
-    (* by destruct C.(tc_segment). by destruct C.(tc_allocator). *)
     + replace [::CTA_some T_handle] with (to_ct_list [::T_handle]) in Hct2 => //.
       apply type_update_type_agree in Hct2 as (tn' & Hct & bet); subst.
       exists (tn' ++ [::T_handle]); split => //.

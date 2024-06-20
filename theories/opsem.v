@@ -18,7 +18,7 @@ Section Opsem.
 
 (** unop **)
   | rs_unop : forall v op t,
-    reduce_simple [::AI_const v; AI_basic (BI_unop t op)] [::AI_const (@app_unop op v)] (* comment *)
+    reduce_simple [::AI_const v; AI_basic (BI_unop t op)] [::AI_const (@app_unop op v)] 
 
 (** binop **)
   | rs_binop_success : forall v1 v2 v op t,
@@ -26,7 +26,7 @@ Section Opsem.
     reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_const v]
   | rs_binop_failure : forall v1 v2 op t,
     app_binop op v1 v2 = None ->
-    reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_trap] (* MAXIME: should this produce memory-event trap? I'd argue not, no usage of memory here *)
+    reduce_simple [::AI_const v1; AI_const v2; AI_basic (BI_binop t op)] [::AI_trap] 
 
   (** testops **)
   | rs_testop_i32 :
@@ -116,7 +116,7 @@ Section Opsem.
       forall n i,
         n <> Wasm_int.int_zero i32m ->
         reduce_simple [::AI_const (VAL_int32 n); AI_basic (BI_br_if i)] [::AI_basic (BI_br i)]
-  | rs_br_table : (* ??? *)
+  | rs_br_table : 
       forall iss c i j,
         length iss > Wasm_int.nat_of_uint i32m c ->
         List.nth_error iss (Wasm_int.nat_of_uint i32m c) = Some j ->
@@ -133,7 +133,7 @@ Section Opsem.
   | rs_local_trap :
       forall n f,
         reduce_simple [::AI_local n f [::AI_trap]] [::AI_trap]
-  | rs_return : (* ??? *)
+  | rs_return : 
       forall n i vs es lh f,
         const_list vs ->
         length vs = n ->

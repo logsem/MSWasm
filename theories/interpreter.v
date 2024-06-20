@@ -6,7 +6,7 @@ From Coq Require Import ZArith.BinInt BinNat.
 From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
 From ExtLib Require Import Structures.Monad.
 From ITree Require Import ITree ITreeFacts.
-From Wasm Require Export operations segment_list (* host *) handle.
+From Wasm Require Export operations segment_list handle.
 
 Import Monads.
 Import MonadNotation.
@@ -21,15 +21,6 @@ Unset Printing Implicit Defensive.
 
 
 
-(* Let executable_host := executable_host host_function. *)
-(* Variable executable_host_instance : executable_host.
-Let host_event := host_event executable_host_instance.
-
-
-Let host_monad : Monad host_event := host_monad executable_host_instance.
-Let host_apply : store_record -> function_type -> host_function -> seq value ->
-                 host_event (option (store_record * result)) :=
-  @host_apply _ executable_host_instance. *)
 
 Section ITreeExtract.
 (** Some helper functions to extract an interactive tree to a simple-to-interact-with function,
@@ -44,22 +35,13 @@ Definition option_of_itree_void {A} (t : itree void1 A) : option A :=
 
 Context {R : Type}.
 (** We assume an interpreter, as defined by the end of this file. **)
-(* Variable run : forall (eff : Type -> Type),
-  host_event -< eff -> depth -> instance -> config_tuple -> itree eff R. *)
 
 Variable M : Type -> Type.
 Hypothesis FM : Functor.Functor M.
 Hypothesis MM : Monad M.
 Hypothesis IM : MonadIter M.
-(* Variable convert : host_event ~> M. *)
 
-(* Definition from_event_monad : itree host_event ~> M :=
-  interp convert. *)
 
-(** This function instantiates the interpreter [run] to a function that does not
-  manipulate interaction trees, making it easier to link it to the OCaml shim. **)
-(* Definition run_extraction d i cfg : M R :=
-  from_event_monad (run _ d i cfg). *)
 
 End ITreeExtract.
 
@@ -82,9 +64,6 @@ Definition eqresP : Equality.axiom res_eqb :=
 Canonical Structure res_eqMixin := EqMixin eqresP.
 Canonical Structure res_eqType := Eval hnf in EqType res res_eqMixin.
 
-(*Let ret res_step := res_step host_function.*)
-(* Let res_tuple := res_tuple host_function.
-Let config_one_tuple_without_e := config_one_tuple_without_e host_function. *)
 
 Definition crash_error : res_step := RS_crash C_error.
 
@@ -265,15 +244,12 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
     else ret (s, f, crash_error)
 
   | AI_basic (BI_call j) =>
-    (*    if sfunc s f.(f_inst) j is Some sfunc_i_j then*)
     if List.nth_error f.(f_inst).(inst_funcs) j is Some a then
       ret (s, f, RS_normal (vs_to_es ves ++ [::AI_invoke a]))
     else ret (s, f, crash_error)
 
   | AI_basic (BI_call_indirect j) =>
     if ves is VAL_numeric (NVAL_int32 c) :: ves' then
-(*      match stab s f.(f_inst) (Wasm_int.nat_of_uint i32m c) with
-      | Some cl =>*)
       match stab_addr s f (Wasm_int.nat_of_uint i32m c) with
       | Some a =>
         match List.nth_error s.(s_funcs) a with
@@ -340,8 +316,6 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
 
 
   | AI_basic (BI_load t (Some (tp, sx)) a off) =>
-(*      if t is T_handle then
-              ret (s, f, crash_error) else *)
       if ves is VAL_numeric (NVAL_int32 k) :: ves' then
         expect
           (smem_ind s f.(f_inst))
@@ -488,7 +462,7 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
       else ret (s, f, crash_error)
 
 
-  | AI_basic (BI_const v) => ret (s, f, crash_error) (* ret (s, f, RS_normal ((vs_to_es ves) ++ AI_const (VAL_numeric v) :: [::])) *)
+  | AI_basic (BI_const v) => ret (s, f, crash_error) 
     | AI_handle _ => ret (s, f, crash_error)
 
     | AI_invoke i =>
@@ -512,16 +486,6 @@ Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
                 then
                   let: (ves', ves'') := split_n ves n in
                   ret (s, f, RS_call_host (Tf t1s t2s) h (rev ves'))
-(*                r <- trigger (host_apply s (Tf t1s t2s) h (rev ves')) ;;
-                match r with
-                | Some (s', r) =>
-                    if result_types_agree t2s r
-                    then
-                    let: rves := result_to_stack r in
-                    ret (s', f, RS_normal (vs_to_es ves'' ++ rves))
-                    else ret (s (* FIXME: Why not [s']? *), f, crash_error)
-                | None => ret (s, f, RS_normal (vs_to_es ves'' ++ [::AI_trap]))
-                end *)
                 else ret (s, f, crash_error)
             end
         | None => ret (s, f, crash_error)
@@ -639,8 +603,6 @@ Definition run_v : depth -> instance -> config_tuple -> itree eff (store_record 
 
 End Run.
 
-(* Definition run_step_extraction_eqType := run_extraction (@run_step).
-Definition run_v_extraction_eqType := run_extraction (@run_v). *)
 
 
 
@@ -660,21 +622,18 @@ Print Assumptions run_step.
   the same monad [host_event].
   We thus assume another monad with the right assumption.
   Again, this module type is designed to extract nicely to OCaml. **)
-(* Module Type TargetMonad (EH : Executable_Host). *)
 
 Parameter monad : Type -> Type.
 Parameter monad_ret : forall t : Type, t -> monad t.
 Parameter monad_bind : forall t u : Type, monad t -> (t -> monad u) -> monad u.
 Parameter monad_iter : forall R I : Type, (I -> monad (I + R)%type) -> I -> monad R.
 
-(* Parameter convert : EH.host_event ~> monad. *)
+
 
 
 
 (** The following module converts the module type above into a proper Coq monad. **)
 (* Module convert_target_monad (EH : Executable_Host) (M : TargetMonad EH). *)
-
-(* Export M. *)
 
 Definition monad_monad : Monad monad := {|
     ret := monad_ret ;
@@ -685,37 +644,5 @@ Definition monad_Iter : MonadIter monad := monad_iter.
 
 Definition monad_functor := Functor_Monad (M := monad_monad).
 
-(* End convert_target_monad. *)
 
-(* Module Interpreter (EH : Executable_Host) (TM : TargetMonad EH).
-
-Module Exec := convert_to_executable_host EH.
-Import Exec.
-
-Module Target := convert_target_monad EH TM.
-Import Target.
-
-Definition run_step
-  : depth -> instance -> config_tuple -> monad res_tuple :=
-  @run_step_extraction_eqType host_function executable_host_instance
-    monad monad_functor monad_monad monad_Iter convert.
-Definition run_v
-  : depth -> instance -> config_tuple -> monad (store_record * res) :=
-  @run_v_extraction_eqType host_function executable_host_instance
-    monad monad_functor monad_monad monad_Iter convert.
-
-(** State whether a list of administrative instruction is a final value. **)
-Definition is_const_list : list administrative_instruction -> option (list value) :=
-  @those_const_list.
-
-(** A useful definition for converting [itree] to [option] without executing anything,
-  assuming a way to remove events.
-  Warning: this breaks the semantics of [itree]s by mapping any event to [None].
-  The function [tr] has an unusual type [forall T A, E T -> A] instead of [E ~> void1],
-  otherwise it is simply and brutally removed in the extraction process. **)
-Definition itree_to_option (E : Type -> Type) (tr : forall T A, E T -> A) :
-    forall R, itree E R -> option R :=
-  fun _ tree => option_of_itree_void (translate (fun T => tr T _) tree).
-
-End Interpreter. *)
 

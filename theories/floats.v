@@ -2,7 +2,6 @@ From Flocq Require Import Bits.
 Require Import Byte.
 Require Import BinNums ZArith.BinInt.
 
-(* TODO: this to circumvent Flocq's "binary" representation of floats *)
 
 Definition Z_of_byte (b : byte) : Z :=
   let '(b1, (b2, (b3, (b4, (b5, (b6, (b7, b8))))))) := Byte.to_bits b in

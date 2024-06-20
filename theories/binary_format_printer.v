@@ -14,7 +14,7 @@ Definition binary_of_value_type (t : value_type) : byte :=
   | T_i32 => x7f
   | T_i64 => x7e
   | T_f32 => x7d
-  | T_f64 => x7c (* MAXIME: Added a bunch of binaries to be the unused xci and xdi *)
+  | T_f64 => x7c 
   | T_handle => xd1
   end.
 
@@ -22,13 +22,13 @@ Definition binary_of_block_type_aux (bt : list value_type) : list byte :=
   match bt with
   | nil => x40 :: nil
   | cons t nil => binary_of_value_type t :: nil
-  | _ => (* TODO: this should never occur *) nil
+  | _ =>(* This should never occur *)  nil
   end.
 
 Definition binary_of_block_type (ft : function_type) : list byte :=
   match ft with
   | Tf nil rt => binary_of_block_type_aux rt
-  | _ => (* TODO: should never happen *) nil
+  | _ => (* This should never happen *) nil
   end.
 
 Definition binary_of_u32_nat (n : nat) : list byte :=
@@ -105,7 +105,6 @@ Fixpoint binary_of_be (be : basic_instruction) : list byte :=
   | BI_load T_i64 (Some (Tp_i16, SX_U)) a o => x33 :: binary_of_memarg a o
   | BI_load T_i64 (Some (Tp_i32, SX_S)) a o => x34 :: binary_of_memarg a o
   | BI_load T_i64 (Some (Tp_i32, SX_U)) a o => x35 :: binary_of_memarg a o
-  (* MAXIME: added all these xc *)
   | BI_load T_handle (Some _) _ _  => dummy
   | BI_load T_handle None a o => xc0 :: binary_of_memarg a o
   | BI_segload T_i32 => xc1 :: x00 :: nil
@@ -267,8 +266,7 @@ Fixpoint binary_of_be (be : basic_instruction) : list byte :=
   | BI_binop T_f64 (Binop_f BOF_copysign) => xa6 :: nil
   | BI_binop T_i32 (Binop_f _) => dummy
   | BI_binop T_i64 (Binop_f _) => dummy
-  (* TODO: I am really not sure whether the cases below are right :-s *)
-  | BI_cvtop T_i32 CVO_convert T_i64 (Some SX_U) (* TODO: is this correct? *) => xa7 :: nil
+  | BI_cvtop T_i32 CVO_convert T_i64 (Some SX_U)  => xa7 :: nil
   | BI_cvtop T_i32 CVO_convert T_i64 _ => dummy
   | BI_cvtop T_i32 CVO_convert T_f32 (Some SX_S) => xa8 :: nil
   | BI_cvtop T_i32 CVO_convert T_f32 (Some SX_U) => xa9 :: nil
@@ -404,11 +402,6 @@ Definition binary_of_global_type (g_ty : global_type) : list byte :=
 Definition binary_of_memory_type (m : memory_type) : list byte :=
   binary_of_limits m.
 
-(* Definition binary_of_segment_type (m : segment_type) : list byte :=
-  binary_of_limits m. 
-
-Definition binary_of_allocator_type (m : allocator_type) : list byte :=
-  [:: xd6]. *)
 
 Definition binary_of_import_desc (imp_desc : import_desc) : list byte :=
   match imp_desc with
@@ -438,11 +431,6 @@ Definition binary_of_tablesec (ts : list module_table) : list byte :=
 Definition binary_of_memsec (ms : list memory_type) : list byte :=
   x05 :: with_length (binary_of_vec binary_of_memory_type ms).
 
-(*Definition binary_of_segsec (ms : list segment_type) : list byte :=
-  xd3 :: with_length (binary_of_vec binary_of_segment_type ms).
-
-Definition binary_of_allsec (ms : list allocator_type) : list byte :=
-  xd4 :: with_length (binary_of_vec binary_of_allocator_type ms). *)
 
 Definition binary_of_module_glob (g : module_glob) : list byte :=
   binary_of_global_type g.(modglob_type) ++

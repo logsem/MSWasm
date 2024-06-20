@@ -82,8 +82,6 @@ The limits constrain the minimum and optionally the maximum size of a memory. Th
 [https://webassembly.github.io/spec/core/syntax/types.html#memory-types]
 *)
 Definition memory_type := limits.
-(* Definition segment_type := limits.
-Inductive allocator_type : Type := ALL_type : allocator_type. *)
 
 (** std-doc:
 Value types classify the individual values that WebAssembly code can compute with and the values that a variable accepts.
@@ -199,8 +197,6 @@ Record t_context : Type := {
   tc_global : list global_type;
   tc_table : list table_type;
     tc_memory : list memory_type;
-(*    tc_segment : segment_type;
-    tc_allocator : allocator_type; *)
   tc_local : list value_type;
   tc_label : list (list value_type);
     tc_return : option (list value_type);
@@ -213,8 +209,6 @@ Definition empty_t_context :=
     tc_global := [::];
     tc_table := [::];
     tc_memory := [::];
-(*    tc_segment := {| lim_min := 0 ; lim_max := None |} ;
-    tc_allocator := ALL_type ; *)
     tc_local := [::];
     tc_label := nil;
     tc_return := None;

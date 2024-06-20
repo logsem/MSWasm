@@ -875,16 +875,9 @@ Definition ixor : T -> T -> T := xor.
 
 (** Return the result of shifting left the first number by the second. **)
 Definition ishl (i1 i2 : T) : T :=
-(* TODO: We would like to better the specification here.  Something like:
-[[
-  let: k := (unsigned i1 mod wordsize)%Z in
-  shl k i2.
-]]
-*)
   shl i1 i2.
 
 (** Return the result of shifting right the first number by the second. **)
-(* TODO: Make it match better the specification. *)
 Definition ishr_u : T -> T -> T := shru.
 
 
@@ -908,7 +901,7 @@ Definition Tmixin : mixin_of T := {|
      int_xor := ixor ;
      int_shl := ishl ;
      int_shr_u := ishr_u ;
-     int_shr_s := shr (*TODO: ishr_s*) ;
+     int_shr_s := shr ;
      int_rotl := rol ;
      int_rotr := ror ;
      (** Equalities **)
@@ -1505,7 +1498,7 @@ Lemma BofZ_normalise : forall i, BofZ i = normalise i 0.
 Proof.
   rewrite /BofZ /IEEE754_extra.BofZ /normalise => i.
   f_equal; apply: Logic.Eqdep_dec.eq_proofs_unicity_on;
-    move=> c; case: c; by [ left | right ]. (* LATER: Remove this bruteforce. *)
+    move=> c; case: c; by [ left | right ]. 
 Qed.
 
 (** We can then define versions of these operators directly from float to float,

@@ -43,15 +43,6 @@ Canonical Structure checker_type_eqType := Eval hnf in EqType checker_type check
 Definition to_ct_list (ts : seq value_type) : seq checker_type_aux :=
   map CTA_some ts.
 
-(**
-Fixpoint ct_suffix (ts ts' : seq checker_type_aux) : bool :=
-  (ts == ts')
-  ||
-  match ts' with
-  | [::] => false
-  | _ :: ts'' => ct_suffix ts ts''
-  end.
-**)
 
 Definition ct_compat (t1 t2: checker_type_aux) : bool :=
   match t1 with
@@ -134,7 +125,7 @@ Definition type_update_select (t : checker_type) : checker_type :=
                     (select_return_top ts ts_at_2 ts_at_3)
                 (* UPD: this is now the correct verified version *)
                     
-      | _, _ => CT_bot (* TODO: is that OK? *)
+      | _, _ => CT_bot 
       end
     end
   | CT_bot => CT_bot
@@ -148,8 +139,7 @@ Fixpoint same_lab_h (iss : seq nat) (lab_c : seq (seq value_type)) (ts : seq val
     then None
     else
       match List.nth_error lab_c i with
-      | None => None (* TODO *)
-                  (* See comment to the same_lab predicate below in the same place. *)
+      | None => None 
       | Some xx =>
         if xx == ts then same_lab_h iss' lab_c xx
         else None
@@ -169,11 +159,7 @@ Definition same_lab (iss : seq nat) (lab_c : seq (seq value_type)) : option (seq
     else
       match List.nth_error lab_c i with
       | Some xx => same_lab_h iss' lab_c xx
-      | None => None (* TODO: ??? *)
-                  (* I think this case will never happen, since we've already
-                       checked the length. Or we can remove the previous if. *)
-                  (* We have to stick with line-by-line correspondance,
-                    even if it means checking things twice. *)
+      | None => None 
       end
   end.
 
@@ -295,12 +281,7 @@ in
     then
       match List.nth_error (tc_label C) i with
       | Some xx => type_update ts (to_ct_list xx) (CT_top_type [::])
-      | None => CT_bot (* Isa mismatch *)
-                  (* There are many cases of this 'Isa mismatch'. What does it 
-                       mean exactly? I checked and in each of this cases there's a 
-                       length comparison immediately before and a call to
-                       List.nth_error, which would never give None since we've already
-                       checked the length. Maybe this is the reason for the comment? *)
+      | None => CT_bot 
       end
     else CT_bot
   | BI_br_if i =>
@@ -308,7 +289,7 @@ in
     then
       match List.nth_error (tc_label C) i with
       | Some xx => type_update ts (to_ct_list (xx ++ [::T_i32])) (CT_type xx)
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       end
     else CT_bot
   | BI_br_table iss i =>
@@ -325,7 +306,7 @@ in
     if i < length (tc_func_t C)
     then
       match List.nth_error (tc_func_t C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some (Tf tn tm) =>
         type_update ts (to_ct_list tn) (CT_type tm)
       end
@@ -334,7 +315,7 @@ in
     if (1 <= length C.(tc_table)) && (i < length C.(tc_types_t))
     then
       match List.nth_error (tc_types_t C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some (Tf tn tm) =>
         type_update ts (to_ct_list (tn ++ [::T_i32])) (CT_type tm)
       end
@@ -343,7 +324,7 @@ in
     if i < length (tc_local C)
     then
       match List.nth_error (tc_local C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some xx => type_update ts [::] (CT_type [::xx])
       end
     else CT_bot
@@ -351,7 +332,7 @@ in
     if i < length (tc_local C)
     then
       match List.nth_error (tc_local C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some xx => type_update ts [::CTA_some xx] (CT_type [::])
       end
     else CT_bot
@@ -359,7 +340,7 @@ in
     if i < length (tc_local C)
     then
       match List.nth_error (tc_local C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some xx => type_update ts [::CTA_some xx] (CT_type [::xx])
       end
     else CT_bot
@@ -367,7 +348,7 @@ in
     if i < length (tc_global C)
     then
       match List.nth_error (tc_global C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some xx => type_update ts [::] (CT_type [::tg_t xx])
       end
     else CT_bot
@@ -375,7 +356,7 @@ in
     if i < length (tc_global C)
     then
       match List.nth_error (tc_global C) i with
-      | None => CT_bot (* Isa mismatch *)
+      | None => CT_bot 
       | Some xx =>
         if is_mut xx
         then type_update ts [::CTA_some (tg_t xx)] (CT_type [::])
@@ -430,49 +411,6 @@ Definition b_e_type_checker (C : t_context) (es : list basic_instruction) (tf : 
   c_types_agree (List.fold_left (check_single C) es (CT_type tn)) tm  .
 
 End Check.
-(* TODO: This definition is kind of a duplication of inst_typing, to avoid more dependent definitions becoming Prop downstream *)
 
-(* UPD: This in fact makes the soundness proof extremely tedious and dependent on the type_checker reflecting typing.
-  I have edited the later functions to avoid using these. *)
-(*
-Definition inst_type_check (s : store_record) (i : instance) : t_context := {|
-  (* TODO: ported this from option to list, but not too sure it's right *)
-  tc_types_t := i_types i;
-  tc_func_t := collect_at_inds (map cl_type (s_funcs s)) (i_funcs i);
-  tc_global :=
-    collect_at_inds
-      (map (fun glob => {| tg_mut := glob.(g_mut); tg_t := typeof glob.(g_val) |}) s.(s_globals))
-      i.(i_globs);
-  tc_table :=
-    collect_at_inds
-      (map
-        (fun t =>
-          (* TODO: this is probably wrong? *)
-          {| tt_limits := {| lim_min := 0; lim_max := Some (List.length t.(table_data)) |}; tt_elem_type := ELT_funcref |})
-          s.(s_tables))
-      i.(i_tab);
-  tc_memory :=
-    collect_at_inds
-      (map
-        (fun m =>
-          (* TODO: this is probably wrong? *)
-          {| lim_min := 0; lim_max := Some (List.length m.(mem_data)) |})
-        s.(s_mems))
-      i.(i_memory);
-  tc_local := nil;
-  tc_label := nil;
-  tc_return := None;
-|}.
-
-Definition cl_type_check (s : store_record) (cl : function_closure) : bool :=
-  match cl with
-  | Func_native i tf ts es =>
-    let '(Tf t1s t2s) := tf in
-    let C := inst_type_check s i in
-    let C' := upd_local_label_return C (app (tc_local C) (app t1s ts)) (app [::t2s] (tc_label  C)) (Some t2s) in
-    b_e_type_checker C' es (Tf [::] t2s)
-  | Func_host tf h => true
-  end.
-*)
 
 

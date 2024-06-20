@@ -68,7 +68,6 @@ Fixpoint string_of_uint (i : uint) : string :=
   end.
 
 Definition pp_immediate (i : immediate) : string :=
-  (* TODO: it's not clear that's the right way to print it, but hey *)
   string_of_uint (Nat.to_uint i).
 
 Definition pp_i32 i :=
@@ -77,8 +76,7 @@ Definition pp_i32 i :=
 Definition pp_i64 i :=
   pp_immediate (BinIntDef.Z.to_nat (Wasm_int.Int64.unsigned i)).
 
-(* TODO: all this printing of floats business is highly dubious,
-   and completely untested *)
+
 Fixpoint bool_list_of_pos (acc : list bool) (p : BinNums.positive) :=
   match p with
   | BinNums.xI p' => bool_list_of_pos (true :: acc) p'
@@ -89,7 +87,6 @@ Fixpoint bool_list_of_pos (acc : list bool) (p : BinNums.positive) :=
 Open Scope list.
 
 Fixpoint pp_bools (acc : list Byte.byte) (bools : list bool) : list Byte.byte :=
-  (* TODO: I am ashamed I wrote this *)
   match bools with
   | nil => acc
   | b1 :: b2 :: b3 :: b4 :: b5 :: b6 :: b7 :: b8 :: bools' =>
@@ -339,7 +336,7 @@ Fixpoint pp_basic_instruction (i : indentation) (be : basic_instruction) : strin
       indent i (pp_value_type vt ++ "." ++ pp_rel_op_f rof ++ newline)
   | BI_relop vt (Relop_h roh) =>
       indent i (pp_value_type vt ++ "." ++ pp_rel_op_h roh ++ newline)
-  | BI_cvtop vt1 cvtop vt2 sxo => "?" ++ newline (* TODO: ??? *)
+  | BI_cvtop vt1 cvtop vt2 sxo => "?" ++ newline 
   end.
 
 Definition pp_basic_instructions n bes :=
@@ -353,7 +350,6 @@ Definition pp_hostfuncidx (i : hostfuncidx) : string :=
 Definition pp_function_closure (n : indentation) (fc : function_closure) : string :=
   match fc with
   | FC_func_native i ft vs bes =>
-    (* TODO: show instance? *)
     indent n ("native " ++ pp_function_type ft ++ newline) ++
     indent n ("value types " ++ pp_value_types vs ++ newline) ++
     indent n ("body" ++ newline) ++
@@ -378,7 +374,6 @@ Fixpoint pp_administrative_instruction (n : indentation) (e : administrative_ins
   | AI_trap => indent n (with_fg ae_style "trap" ++ newline)
   | AI_invoke a =>
     indent n (with_fg ae_style "invoke" ++ string_of_nat a ++ newline)
-  (*    pp_function_closure (n.+1) fc*)
            
   | AI_label k es1 es2 =>
     indent n (with_fg ae_style "label " ++ string_of_nat k ++ newline) ++
@@ -388,7 +383,7 @@ Fixpoint pp_administrative_instruction (n : indentation) (e : administrative_ins
     indent n (with_fg ae_style "end label" ++ newline)
   | AI_local n f es =>
     indent n (with_fg ae_style "local " ++ string_of_nat n ++ newline) ++
-    (* TODO: inst? *)
+
     indent n (with_fg ae_style "with values " ++ pp_values_hint_empty f.(f_locs) ++ newline) ++
     pp_administrative_instructions (n.+1) es ++
     indent n (with_fg ae_style "end local" ++ newline)
@@ -450,28 +445,5 @@ Definition pp_res_tuple_except_store (res_cfg : res_tuple) : string :=
 
 
 
-(** As-is, [eqType] tends not to extract well.
-  This section provides alternative definitions for better extraction. **)
-(* Module PP (EH : Executable_Host).
 
-Module Exec := convert_to_executable_host EH.
-Import Exec. 
-
-Section Show.
-
-(*Variable show_host_function : EH.host_function -> string.*)
-
-Definition pp_values : list value -> string := pp_values.
-
-Definition pp_store : nat -> store_record -> string := pp_store _.
-
-Definition pp_res_tuple_except_store : res_tuple -> string :=
-  pp_res_tuple_except_store _.
-
-Definition pp_config_tuple_except_store : config_tuple -> string :=
-  pp_config_tuple_except_store _.
-
-End Show.
-
-End PP. *)
 

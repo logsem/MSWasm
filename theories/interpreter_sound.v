@@ -12,41 +12,6 @@ Unset Printing Implicit Defensive.
 
 From Wasm Require Import operations opsem interpreter properties.
 
-(*
-Let store_record := store_record host_function.
-(*Let administrative_instruction := administrative_instruction host_function.*)
-Let config_tuple := config_tuple host_function.
-Let config_one_tuple_without_e := config_one_tuple_without_e host_function.
-Let res_tuple := res_tuple host_function.
-
-(*Let const_list := @const_list host_function.
-Let v_to_e_list := @v_to_e_list host_function.
-Let lfilledInd := @lfilledInd host_function.*)
-
-Variable host_instance : host.
-
-Let executable_host := executable_host host_function.
-Variable executable_host_instance : executable_host.
-Let host_event := host_event executable_host_instance.
-
-Let host_state := host_state host_instance.
-
-Context {eff : Type -> Type}.
-Context {eff_has_host_event : host_event -< eff}.
-
-Let run_step_fuel : config_tuple -> nat := @run_step_fuel host_function.
-(* FIXME: Do we need these instances?
-Let run_step_base : fuel -> depth -> instance -> config_tuple -> host_monad res_tuple :=
-  run_step_base executable_host_instance.
-Let run_one_step : fuel -> depth -> instance -> config_one_tuple_without_e ->
-                   administrative_instruction -> host_monad res_tuple :=
-  run_one_step executable_host_instance.
- *)
-
-(* TODO: fix this definition and the remaining
-
-Let run_v : depth -> instance -> config_tuple -> itree eff (store_record * res)%type :=
-  @run_v _ executable_host_instance _ eff_has_host_event. *) *)
 
 Global Hint Constructors reduce_simple : core.
 Global Hint Constructors reduce : core.
@@ -54,12 +19,6 @@ Global Hint Constructors reduce : core.
 Section interpreter_sound.
   Context `{HHB: HandleBytes}.
 
-(*
-Let reduce_simple : seq administrative_instruction -> seq administrative_instruction -> Prop :=
-  @reduce_simple _.
-Let reduce : host_state -> store_record -> seq value -> seq administrative_instruction -> instance ->
-             host_state -> store_record -> seq value -> seq administrative_instruction -> Prop :=
-  @reduce _ _. *)
 
 (** The lemmas [r_eliml] and [r_elimr] are the fundamental framing lemmas.
   They enable to focus on parts of the stack, ignoring the context. **)

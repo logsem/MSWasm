@@ -41,21 +41,6 @@ Definition eqresP : Equality.axiom res_eqb :=
 Canonical Structure res_eqMixin := EqMixin eqresP.
 Canonical Structure res_eqType := Eval hnf in EqType res res_eqMixin.
 
-(* Section Host_func.
-
-Variable host_instance : host.
-
-(*Let store_record := store_record host_function. *)
-(*Let administrative_instruction := administrative_instruction host_function.*)
-Let host_state := host_state host_instance.
-
-(*Let vs_to_es : seq value -> seq administrative_instruction := @vs_to_es _.*)
-
-Variable host_application_impl : host_state -> store_record -> function_type -> host_function -> seq value ->
-                       (host_state * option (store_record * result)).
-
-Hypothesis host_application_impl_correct :
-  (forall hs s ft hf vs hs' hres, (host_application_impl hs s ft hf vs = (hs', hres)) -> host_application hs s ft hf vs hs' hres). *)
 
 Inductive res_step : Type :=
 | RS_crash : res_crash -> res_step
@@ -85,55 +70,6 @@ Definition config_tuple := ((store_record * frame * list administrative_instruct
 Definition config_one_tuple_without_e := (store_record * frame * list value)%type.
 
 Definition res_tuple := (store_record * frame * res_step)%type.
-(*
-Fixpoint split_vals (es : list basic_instruction) : ((list value) * (list basic_instruction))%type :=
-  match es with
-  | (EConst v) :: es' =>
-    let: (vs', es'') := split_vals es' in
-    (v :: vs', es'')
-  | _ => ([::], es)
-  end.
-
-(** [split_vals_e es]: takes the maximum initial segment of [es] whose elements
-    are all of the form [AI_basic (EConst v)];
-    returns a pair of lists [(ves, es')] where [ves] are those [v]'s in that initial
-    segment and [es] is the remainder of the original [es]. **)
-Fixpoint split_vals_e (es : list administrative_instruction) : ((list value) * (list administrative_instruction))%type :=
-  match es with
-  | (AI_basic (EConst v)) :: es' =>
-    let: (vs', es'') := split_vals_e es' in
-    (v :: vs', es'')
-  | _ => ([::], es)
-  end.
-
-Fixpoint split_n (es : list value) (n : nat) : ((list value) * (list value))%type :=
-  match (es, n) with
-  | ([::], _) => ([::], [::])
-  | (_, 0) => ([::], es)
-  | (e :: esX, n.+1) =>
-    let: (es', es'') := split_n esX n in
-    (e :: es', es'')
-  end.
-
-Definition expect {A B : Type} (ao : option A) (f : A -> B) (b : B) : B :=
-  match ao with
-  | Some a => f a
-  | None => b
-  end.
-
-Definition vs_to_es (vs : list value) : list administrative_instruction :=
-  v_to_e_list (rev vs).
-
-Definition e_is_trap (e : administrative_instruction) : bool :=
-  match e with
-  | AI_trap => true
-  | _ => false
-  end.
-
-Lemma e_is_trapP : forall e, reflect (e = AI_trap) (e_is_trap e).
-Proof.
-  case => //= >; by [ apply: ReflectF | apply: ReflectT ].
-Qed.
 
 (** [es_is_trap es] is equivalent to [es == [:: AI_trap]]. **)
 Definition es_is_trap (es : list administrative_instruction) : bool :=
@@ -226,7 +162,6 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
         then (s, f, RS_normal (vs_to_es (wasm_deserialise (bits v) t2 :: ves')))
         else (s, f, crash_error)
       else (s, f, crash_error)
-    (**)
     | AI_basic BI_unreachable => (s, f, RS_normal ((vs_to_es ves) ++ [::AI_trap]))
     | AI_basic BI_nop => (s, f, RS_normal (vs_to_es ves))
     | AI_basic BI_drop =>
@@ -342,14 +277,6 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
 
     | AI_basic (BI_segload T_handle) =>
       if ves is VAL_handle h :: ves' then
-(*        expect
-          (sseg_ind s f.(f_inst))
-          (fun j =>
-             expect
-               (sall_ind s f.(f_inst))
-               (fun j' =>
-                  if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
                       if h.(valid) && (N.leb (offset h + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segload s.(s_segs) h (t_length T_handle))
@@ -359,22 +286,10 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                                 else (s, f, crash_error))
                              ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-(*                    else (s, f, crash_error)
-                  else (s, f, crash_error))
-               ((s, f, crash_error)))
-          ((s, f, crash_error)) *)
       else (s, f, crash_error)
 
  | AI_basic (BI_segstore T_handle) =>
       if ves is v :: VAL_handle h :: ves' then
-(*        expect
-          (sseg_ind s f.(f_inst))
-          (fun j =>
-             expect
-               (sall_ind s f.(f_inst))
-               (fun j' =>
-                  if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
                       if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
@@ -382,45 +297,21 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                                 ((upd_s_seg s seg', f, RS_normal (vs_to_es ves'))))
                              ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-(*                    else (s, f, crash_error)
-                  else (s, f, crash_error))
-               ((s, f, crash_error)))
-          ((s, f, crash_error)) *)
       else (s, f, crash_error)
 
 
   | AI_basic (BI_segload t) =>
       if ves is VAL_handle h :: ves' then
-(*        expect
-          (sseg_ind s f.(f_inst))
-          (fun j =>
-             expect
-               (sall_ind s f.(f_inst))
-               (fun j' =>
-                  if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
                       if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
                              (segload s.(s_segs) h (t_length t))
                              (fun bs => (s, f, RS_normal (vs_to_es (wasm_deserialise (List.map fst bs) t :: ves'))))
                              ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-(*                    else (s, f, crash_error)
-                  else (s, f, crash_error))
-               ((s, f, crash_error)))
-          ((s, f, crash_error)) *)
       else (s, f, crash_error)
 
   | AI_basic (BI_segstore t) =>
       if ves is v :: VAL_handle h :: ves' then
-(*        expect
-          (sseg_ind s f.(f_inst))
-          (fun j =>
-             expect
-               (sall_ind s f.(f_inst))
-               (fun j' =>
-                  if List.nth_error s.(s_segs) j is Some seg_s_j then
-                    if List.nth_error s.(s_alls) j' is Some all_s_j' then *)
                       if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
                       then expect
                              (segstore s.(s_segs) h (List.map (fun x => (x, Numeric)) (bits v)) (t_length t))
@@ -428,10 +319,6 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
                                 ((upd_s_seg s seg', f, RS_normal (vs_to_es ves'))))
                              ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
                       else ((s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
-(*                    else (s, f, crash_error)
-                  else (s, f, crash_error))
-               ((s, f, crash_error)))
-          ((s, f, crash_error)) *)
       else (s, f, crash_error)
 
                 (** slice **)
@@ -458,9 +345,6 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
 
     | AI_basic (BI_load t (Some (tp, sx)) a off) =>
-(*        if t is T_handle
-          then (s, f, crash_error)
-        else  *)
       if ves is VAL_numeric (NVAL_int32 k) :: ves' then
         expect
           (smem_ind s f.(f_inst))
@@ -555,7 +439,7 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
       else (s, f, crash_error)
 
 
-    | AI_basic (BI_const v) => (s, f, crash_error) (* RS_normal ((vs_to_es ves) ++ [:: AI_const (VAL_numeric v)])) *)
+    | AI_basic (BI_const v) => (s, f, crash_error) 
     | AI_handle _ => (s, f, crash_error)
     | AI_invoke a =>
       match List.nth_error s.(s_funcs) a with
@@ -578,11 +462,6 @@ with run_one_step (fuel : fuel) (d : depth) (cfg : config_one_tuple_without_e) (
             then
               let: (ves', ves'') := split_n ves n in
               (s, f, RS_call_host (Tf t1s t2s) cl' (rev ves'))
-            (* match host_application_impl hs s (Tf t1s t2s) cl' (rev ves') with
-            | (hs', Some (s', rves)) =>
-                (hs', s', f, RS_normal (vs_to_es ves'' ++ (result_to_stack rves)))
-            | (hs', None) => (hs', s, f, RS_normal (vs_to_es ves ++ [::AI_invoke a]))
-            end *)
             else (s, f, crash_error)
         end
       | None => (s, f, crash_error)

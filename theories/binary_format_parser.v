@@ -34,25 +34,21 @@ Definition exact_byte (b : byte) {n} : byte_parser byte n :=
       else None)
     anyTok.
 
-(* TODO: need to make sure these do the right thing *)
+
 
 Definition parse_u32_as_N {n} : byte_parser N n :=
   extract parse_unsigned n.
 
 Definition parse_u32_as_int32 {n} : byte_parser Wasm_int.Int32.int n :=
-  (* TODO: limit size *)
   (fun x => Wasm_int.Int32.repr (BinIntDef.Z.of_N x)) <$> (extract parse_unsigned n).
 
 Definition parse_u32_zero_as_int32 {n} : byte_parser Wasm_int.Int32.int n :=
-  (* TODO: limit size *)
   exact_byte x00 $> Wasm_int.Int32.zero.
 
 Definition parse_s32 {n} : byte_parser Wasm_int.Int32.int n :=
-  (* TODO: limit size *)
   (fun x => Wasm_int.Int32.repr x) <$> (extract parse_signed n).
 
 Definition parse_s64 {n} : byte_parser Wasm_int.Int64.int n :=
-  (* TODO: limit size *)
   (fun x => Wasm_int.Int64.repr x) <$> (extract parse_signed n).
 
 
@@ -79,13 +75,12 @@ Definition parse_vec_length {n} : byte_parser nat n :=
 Fixpoint parse_vec_aux {B} {n} (f : byte_parser B n) (k : nat)
   : byte_parser (list B) n :=
   match k with
-  | 0 => (fun x => cons x nil) <$> f (* TODO: this is wrong in general, but OK with `vec`?!? *)
+  | 0 => (fun x => cons x nil) <$> f 
   | S 0 => (fun x => cons x nil) <$> f
   | S k' => (cons <$> f) <*> parse_vec_aux f k'
   end.
 
 Definition parse_vec {B} {n} (f : byte_parser B n) : byte_parser (list B) n :=
-  (* TODO: this is vomit-inducingly bad, but I have no clue how to avoid this :-( *)
   (parse_u32_zero_as_int32 $> nil) <|>
   (parse_vec_length >>= (fun k => parse_vec_aux f k)).
 
@@ -403,7 +398,6 @@ Definition parse_f64_const {n} : be_parser n :=
   exact_byte x44 &> ((fun x => BI_const (NVAL_float64 x)) <$> parse_f64).
 
 
-(* :-( *)
 Definition parse_numeric_instruction {n} : be_parser n :=
   parse_i32_const <|>
   parse_i64_const <|>
@@ -518,7 +512,7 @@ Definition parse_numeric_instruction {n} : be_parser n :=
   exact_byte xa5 $> BI_binop T_f64 (Binop_f BOF_max) <|>
   exact_byte xa6 $> BI_binop T_f64 (Binop_f BOF_copysign) <|>
 
-  (* TODO: I am really not sure whether this is right :-s *)
+
   exact_byte xa7 $> BI_cvtop T_i32 CVO_convert T_i64 (Some SX_U) <|>
   exact_byte xa8 $> BI_cvtop T_i32 CVO_convert T_f32 (Some SX_S) <|>
   exact_byte xa9 $> BI_cvtop T_i32 CVO_convert T_f32 (Some SX_U) <|>
@@ -604,7 +598,6 @@ Definition parse_be : [ byte_parser basic_instruction ] := fun n => _be n (langu
 Definition parse_bes_end_with_x0b : [ byte_parser (list basic_instruction) ] := fun n => _bes_end_with_x0b n (language n).
 
 Definition parse_expr {n} : byte_parser (list basic_instruction) n :=
-  (* TODO: is that right? *)
   parse_bes_end_with_x0b n.
 
 Definition parse_function_type {n} : byte_parser function_type n :=
@@ -622,13 +615,6 @@ Definition parse_table_type {n} : byte_parser table_type n :=
 
 Definition parse_memory_type {n} : byte_parser memory_type n :=
   (fun lim => lim) <$> parse_limits.
-
-(*Definition parse_segment_type {n} : byte_parser segment_type n :=
-  (fun lim => lim) <$> parse_limits. *)
-
-(*Definition parse_allocator_type {n} : byte_parser allocator_type n :=
-  exact_byte xd6 $> ALL_type. *)
-
 
 
 Definition parse_mut {n} : byte_parser mutability n :=
@@ -681,8 +667,7 @@ Definition parse_code {n} : byte_parser code_func n :=
   guardM
     (fun sf =>
       match sf with
-      (* TODO: we are supposed to check that the size matches *)
-      | (s, f) => (* if Nat.eqb s (func_size f) then *) Some f (* else None *)
+      | (s, f) => Some f
       end)
     (parse_u32_as_nat <&> parse_func).
 
@@ -776,7 +761,7 @@ Definition merge_parsing_modules (m1 m2 : parsing_module) : parsing_module := {|
   pmod_start :=
     match (m1.(pmod_start), m2.(pmod_start)) with
     | (None, Some st) => Some st
-    | (Some st, _) => Some st (* we break the tie *)
+    | (Some st, _) => Some st 
     | (None, None) => None
     end;
   pmod_imports := List.app m1.(pmod_imports) m2.(pmod_imports);
@@ -1027,7 +1012,6 @@ Definition parse_typesec_onwards {n} : byte_parser parsing_module n :=
 Definition module_of_parsing_module (m : parsing_module) : module := {|
   mod_types := m.(pmod_types);
   mod_funcs :=
-    (* TODO: what if these lists are of different length? *)
     List.map
       (fun '(a, b) =>
         {| modfunc_type := a; modfunc_locals := b.(fc_locals); modfunc_body := b.(fc_expr) |})

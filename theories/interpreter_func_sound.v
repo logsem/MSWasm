@@ -16,54 +16,11 @@ Require Import operations properties opsem interpreter_func properties stdpp_aux
 Global Hint Constructors reduce_simple : core.
 Global Hint Constructors reduce : core.
 
-(* Variable host_function : eqType.
-Let store_record := store_record host_function.
-Let function_closure := function_closure host_function.
-(*Let administrative_instruction := administrative_instruction host_function.
-
-Let to_e_list : seq basic_instruction -> seq administrative_instruction := @to_e_list _.
-Let to_b_list : seq administrative_instruction -> seq basic_instruction := @to_b_list _.*)
-Let e_typing : store_record -> t_context -> seq administrative_instruction -> function_type -> Prop :=
-  @e_typing _.
-Let inst_typing : store_record -> instance -> t_context -> bool := @inst_typing _.
-(*Let reduce_simple : seq administrative_instruction -> seq administrative_instruction -> Prop :=
-  @reduce_simple _.
-Let const_list : seq administrative_instruction -> bool := @const_list _.
-Let lholed := lholed host_function.
-Let lfilled : depth -> lholed -> seq administrative_instruction -> seq administrative_instruction -> bool :=
-  @lfilled _.
-Let lfilledInd : depth -> lholed -> seq administrative_instruction -> seq administrative_instruction -> Prop :=
-  @lfilledInd _.
-Let es_is_basic : seq administrative_instruction -> Prop := @es_is_basic _.*)
-
-Let host := host host_function. *)
-
-(*Let run_one_step_fuel := @run_one_step_fuel host_function.*)
 
 Local Definition RS_crash := interpreter_func.RS_crash.
 Local Definition RS_break := interpreter_func.RS_break.
 Local Definition RS_return := interpreter_func.RS_return.
 Local Definition RS_normal := interpreter_func.RS_normal.
-
-(* Variable host_instance : host.
-
-Let run_step_fuel := @run_step_fuel host_function host_instance.
-
-Let host_state := host_state host_instance.
-
-Let reduce : host_state -> store_record -> frame -> seq administrative_instruction ->
-             host_state -> store_record -> frame -> seq administrative_instruction -> Prop
-  := @reduce _ _.
-
-Variable host_application_impl : host_state -> store_record -> function_type -> host_function -> seq value ->
-                       (host_state * option (store_record * result)).
-
-Hypothesis host_application_impl_correct :
-  (forall hs s ft hf vs hs' hres, (host_application_impl hs s ft hf vs = (hs', hres)) -> host_application hs s ft hf vs hs' hres).
-
-Let run_one_step := @run_one_step host_function host_instance host_application_impl.
-Let run_step := @run_step host_function host_instance host_application_impl.
-Let run_step_with_fuel := @run_step_with_fuel host_function host_instance host_application_impl. *)
 
 
 Section interpreter_func_sound.
@@ -407,14 +364,6 @@ Ltac explode_and_simplify :=
 (** If the goal is on the form [c1 = c2 -> property] where [c1] and [c2] are two configurations,
   then invert it. **)
 Ltac pattern_match := let H := fresh "H" in intro H ; inversion H.
-(*Ltac pattern_match :=
-  let go _ :=
-    lazymatch goal with
-    | |- (_, _, _, _) = (_, _, _, _) -> _ =>
-      let H := fresh in
-      move=> H; inversion H; subst; clear H
-    end in
-  go tt || (simpl; go tt). *)
 
 (** Eliminate the stack frame, by applying [r_elimr] and [r_eliml] according to some heuristics. **)
 Ltac stack_frame :=
@@ -641,12 +590,10 @@ Proof.
       by inversion H1; subst.
   - by pattern_match.
   - simpl. explode_and_simplify; try pattern_match => //.
-  (*    destruct explode_and_simplify; by pattern_match. *)
   - simpl. explode_and_simplify; try pattern_match => //.
   - rename l0 into es2.
     set fu := (run_one_step_fuel (AI_label n l es2)) .-1.
     simpl in fu.
- (*   match goal with |- context [ run_step_with_fuel ?fuel _ _ _ ] => set f := fuel end.*)
     assert ((run_step_fuel (tt_s, tt_f, es2)) <= fu).
     {
       rewrite/fu /=.
@@ -667,11 +614,9 @@ Proof.
       rewrite E2.
       by destruct r'' as [|[|]| | | ] => //; explode_and_simplify; pattern_match.
     + by [].
-  - (* LATER: This proof might be factorised somehow. *)
-    rename l into es. (* rename l0 into es.*)
+  - rename l into es. 
     set fu := (run_one_step_fuel (AI_local n f es)) .-1.
     simpl in fu.
-    (* match goal with |- context [ run_step_with_fuel ?fuel _ _ _ ] => set f := fuel end.*)
     assert (run_step_fuel (tt_s, f, es) <= fu).
     {
       apply/leP. rewrite/fu /=.
@@ -1131,7 +1076,7 @@ Proof.
     - rewrite/operations.lfilled/operations.lfill. rewrite v_to_e_is_const_list. show_list_equality.
   }
   destruct fuel as [|fuel] => //. destruct e as [b| | |cl|n es1 es2|n f0 ess|].
-    { (** [AI_basic b] **) (* TODO: Separate this case as a lemma. *)
+    { (** [AI_basic b] **) 
       destruct b.
       - (** [AI_basic Unreachable] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
@@ -1205,11 +1150,6 @@ Proof.
         done.
         by repeat econstructor.
 
-
- (*       + (** [Select_true] **)
-          by auto_frame.
-        + (** [Select_false] **)
-          by frame_out (v_to_e_list (rev l)) les'.*)
 
       - (** [AI_basic Block] **)
         simpl. explode_and_simplify; pattern_match; auto_frame.
@@ -1581,7 +1521,7 @@ Proof.
           destruct (_ && _ && _ && _) eqn:Hb => //.
           * do 3 (move/andP in Hb; destruct Hb as [Hb ?]).
             destruct (segload _ _ _) eqn:Hsegload => //.
-            --  simpl. (* destruct (wasm_deserialise (List.map fst bs) _) eqn:Hdeserialise => //. *)
+            --  simpl. 
                 intro Htuple; inversion Htuple; subst.
                 split; last by subst. exists (ME_read T_handle h).
                 apply rev_move in Hlconst.
@@ -2589,20 +2529,6 @@ Proof.
         apply: rm_silent; apply: r_invoke_native => //=; eauto.
         simplify_lists. rewrite subKn => //.
         apply Compare_dec.leb_complete in if_expr0.  lias. }
-(*      - (** [Func_host] **)
-        destruct host_application_impl eqn:HHost; explode_and_simplify; try pattern_match; try frame_cat.
-        + auto_frame.
-          apply host_application_impl_correct in HHost.
-          eapply r_invoke_host_success => //=; eauto.
-          simplify_lists. by rewrite subKn.
-        + simplify_lists.
-          apply host_application_impl_correct in HHost.
-          repeat rewrite catA.
-          apply r_elimr.
-          rewrite (v_to_e_take_drop_split lconst (size lconst - size r)); rewrite -catA;
-          apply: r_eliml; try apply: v_to_e_is_const_list.
-          eapply r_invoke_host_diverge; eauto => //=.
-          { explode_and_simplify. by rewrite subKn. } *)
 
     { (** [Label] **)
       simpl. explode_and_simplify; try (pattern_match; auto_frame).

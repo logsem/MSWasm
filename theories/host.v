@@ -26,7 +26,7 @@ Section Predicate.
 Record host := {
     host_state : eqType (** For the relation-based version, we assume some kind of host state. **) ;
     host_application : host_state -> store_record -> function_type -> hostfuncidx -> seq value ->
-                       host_state -> option (store_record * result) -> Prop
+                       host_state -> option (store_record * result) -> Prop;
                        (** An application of the host function. **)
 
     host_application_extension : forall s t st h vs s' st' r,

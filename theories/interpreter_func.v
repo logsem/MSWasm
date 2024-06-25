@@ -78,14 +78,6 @@ Definition es_is_trap (es : list administrative_instruction) : bool :=
   | _ => false
   end.
 
-Lemma es_is_trapP : forall l, reflect (l = [::AI_trap]) (es_is_trap l).
-Proof.
-  case; first by apply: ReflectF.
-  move=> // a l. case l => //=.
-  - apply: (iffP (e_is_trapP _)); first by elim.
-    by inversion 1.
-  - move=> >. by apply: ReflectF.
-Qed.*)
 
 Section interpreter_func.
   Context `{HHB: HandleBytes}.

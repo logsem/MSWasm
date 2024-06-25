@@ -2539,8 +2539,11 @@ Proof.
         unfold lfilled, lfill.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ]) => //=.
-        subst.
-        by repeat econstructor.
+
+        econstructor. econstructor. 
+        unfold interpreter_func.es_is_trap in if_expr0.
+        destruct es2 => //.
+        destruct es2 => //. destruct a => //. 
         split; last by subst. exists ME_empty.
          eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.
@@ -2604,7 +2607,8 @@ Proof.
         rewrite v_to_e_is_const_list => /=.
         instantiate (1 := [:: _ ]) => //=.
         subst.
-        by repeat econstructor.
+        do 2 econstructor.
+        destruct ess => //. destruct ess, a => //. 
         split; last by subst. exists ME_empty.
          eapply (rm_label (k := 0) (lh := LH_base (v_to_e_list _) _)) ; last first.
         unfold lfilled, lfill.

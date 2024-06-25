@@ -343,7 +343,7 @@ free h
     rewrite (separate2 (AI_handle _)).
 
 
-    { (* Case 1: the second allocation failed *) *)
+    { (* Case 1: the second allocation failed *) 
       iApply (wp_wand_ctx with "[-HΦ]").
       iApply (wp_seq_can_trap_ctx with "[-]").
       iSplitR; last first.
@@ -485,7 +485,7 @@ free h
     
     iApply "HΦ". 
     iRight. iSplit; first done. iFrame. iExists _. iFrame.
-    iPureIntro. by right. 
+    iPureIntro. by right. } 
   Qed. 
 
     

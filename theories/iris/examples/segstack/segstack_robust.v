@@ -544,7 +544,7 @@ Section Client_instantiation.
     (□ ∀ Φ, P -∗ (∀ v, Q v -∗ Φ v) -∗ WP (es : host_expr) @ NotStuck ; ⊤ {{ v, Φ v }})%I (at level 50).
 
 
-  Definition stack_adv_client_instantiate (exp_addrs: list N) (stack_mod_addr adv_mod_addr client_mod_addr: N) :=
+  Definition stack_adv_client_instantiate (exp_addrs: list N) (stack_mod_addr adv_mod_addr client_mod_addr: N) g_ret :=
     [ ID_instantiate (take 8 exp_addrs) stack_mod_addr [] ;
 
       
@@ -554,7 +554,9 @@ Section Client_instantiation.
       ID_instantiate [(exp_addrs !!! 8)] adv_mod_addr (take 7 exp_addrs);
 
       
-      ID_instantiate [] client_mod_addr exp_addrs ].
+      ID_instantiate [] client_mod_addr exp_addrs;
+      H_get_global g_ret
+    ].
 
   Lemma wp_wand_host s E (e : host_expr) (Φ Ψ : language.val wasm_host_lang -> iProp Σ) :
     WP e @ s; E {{ Φ }} -∗ (∀ v, Φ v -∗ Ψ v) -∗ WP e @ s; E {{ Ψ }}.
@@ -581,8 +583,8 @@ Section Client_instantiation.
           (∃ vs, (exp_addrs !!! 8) ↪[vis] vs) ∗
           ↪[frame] empty_frame ∗ interp_allocator all
       }}}
-        ((stack_adv_client_instantiate exp_addrs stack_mod_addr adv_mod_addr client_mod_addr ,[]) : host_expr) 
-      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ g_ret ↦[wg] {| g_mut := MUT_mut; g_val := xxv 2 |} }}} .
+        ((stack_adv_client_instantiate exp_addrs stack_mod_addr adv_mod_addr client_mod_addr (N.to_nat g_ret) ,[]) : host_expr) 
+      {{{ λ v: language.val wasm_host_lang, ⌜v = (trapHV : host_val)⌝ ∨ ⌜ v = (immHV [xxv 2]) ⌝ }}}. 
   Proof.
     iIntros (Hexpaddrlen Htyp Hnostart Hrestrict Hboundst Hboundsm Hgrettyp).
     do 11 (destruct exp_addrs => //); clear Hexpaddrlen.
@@ -949,8 +951,8 @@ Section Client_instantiation.
                                 (FC_func_native inst_adv (Tf [T_i32] [T_i32]) modfunc_locals modfunc_body)]): gmap N function_closure) as mtmp.
 
 
-    
-    iApply (instantiation_spec_operational_start with "[$Hemptyframe] [Hmod_lse Hvis0 Hvis1 Hvis2 Hvis3 Hvis4 Hvis5 Hvis6 Hvist Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hadvf Htab Hn Hgret Hvisglob]")
+
+    iApply (instantiation_spec_operational_start_seq with "[$Hemptyframe] [Hmod_lse Hvis0 Hvis1 Hvis2 Hvis3 Hvis4 Hvis5 Hvis6 Hvist Himpfcl0 Himpfcl1 Himpfcl2 Himpfcl3 Himpfcl4 Himpfcl5 Himpfcl6 Hadvf Htab Hn Hgret Hvisglob]")
     ; try exact client_module_typing;[eauto|..].
     { unfold module_restrictions.
       simpl.
@@ -1601,9 +1603,9 @@ Section Client_instantiation.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = trapV⌝ ∗ _)%I with "[Hf]").
       { iApply (wp_frame_trap with "Hf"). iNext. auto. }
       iIntros (v) "[-> Hf]". iFrame.
-      iApply weakestpre.wp_value. apply language.of_to_val. eauto.
-      by iLeft. }
-    { iDestruct "Hres" as "[-> Hgret]".
+      iApply wp_get_global_trap_host. iLeft. iPureIntro. done.
+    } 
+    { iDestruct "Hres" as "(-> & Hgret & Hown)".
       iSimpl. iApply (wp_val_return with "Hf");[auto..|].
       iIntros "Hf".
       iSimpl. iApply iris_wp.wp_value;[eapply iris.of_to_val;eauto|].
@@ -1612,9 +1614,9 @@ Section Client_instantiation.
       iApply (wp_wand _ _ _ (λ vs, ⌜vs = immV []⌝ ∗ _)%I with "[Hf]").
       { iApply (wp_frame_value with "Hf");[eauto|auto|..].
         iNext. auto. }
-      iIntros (v) "[-> Hf]". iFrame.
-      iApply weakestpre.wp_value. apply language.of_to_val. eauto.
-      iRight. rewrite N2Nat.id. iDestruct "Hgret" as "[$ Hown]".
+      iIntros (v) "[-> Hf]". iFrame. 
+      iApply (wp_get_global_host with "Hgret").
+      iIntros "!> Hgret". iRight. done. 
     }
   Qed.
   

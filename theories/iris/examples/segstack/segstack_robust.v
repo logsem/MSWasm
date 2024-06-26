@@ -35,7 +35,7 @@ Section Client.
       BI_call 5 ;
       BI_get_local 0 ;
       BI_call 6 ;
-      BI_set_global 0
+      BI_set_global 0 (* In order to observe the result, we place it in a global variable *)
     ].
 
   Definition client_module :=

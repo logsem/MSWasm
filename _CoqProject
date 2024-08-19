@@ -2,6 +2,23 @@
 -arg -w -arg -notation-overridden
 -arg -w -arg -abstract-large-number
 -arg -w -arg -extraction-reserved-identifier
+-arg -w -arg -ambiguous-paths
 
--R _build/default/theories Wasm
-
+-R _build/default/theories/mswasmcert MSWasm
+-R _build/default/theories/irismswasm/examples/buffer MSWasm.iris.examples.buffer
+-R _build/default/theories/irismswasm/examples/linstack MSWasm.iris.examples.linstack
+-R _build/default/theories/irismswasm/examples/linstack/function MSWasm.iris.examples.linstack.function
+-R _build/default/theories/irismswasm/examples/plainWasm MSWasm.iris.examples.plainWasm
+-R _build/default/theories/irismswasm/examples/segment MSWasm.iris.examples.segment
+-R _build/default/theories/irismswasm/examples/segstack MSWasm.iris.examples.segstack
+-R _build/default/theories/irismswasm/examples/segstack/function MSWasm.iris.examples.segstack.function
+-R _build/default/theories/irismswasm/helpers MSWasm.iris.helpers
+-R _build/default/theories/irismswasm/helpers/lfill_prelude MSWasm.iris.helpers.lfill_prelude
+-R _build/default/theories/irismswasm/helpers/prelude MSWasm.iris.helpers.prelude
+-R _build/default/theories/irismswasm/helpers/reduce_det MSWasm.iris.helpers.reduce_det
+-R _build/default/theories/irismswasm/host MSWasm.iris.host
+-R _build/default/theories/irismswasm/instantiation MSWasm.iris.instantiation
+-R _build/default/theories/irismswasm/language MSWasm.iris.language
+-R _build/default/theories/irismswasm/language/iris MSWasm.iris.language.iris
+-R _build/default/theories/irismswasm/logrel MSWasm.iris.logrel
+-R _build/default/theories/irismswasm/rules MSWasm.iris.rules

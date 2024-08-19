@@ -1,0 +1,648 @@
+(** MSWasm interpreter **)
+(* adapted from (C) J. Pichon, M. Bodin *)
+
+From MSWasm Require Import common.
+From Coq Require Import ZArith.BinInt BinNat.
+From mathcomp Require Import ssreflect ssrfun ssrnat ssrbool eqtype seq.
+From ExtLib Require Import Structures.Monad.
+From ITree Require Import ITree ITreeFacts.
+From MSWasm Require Export operations segment_list handle.
+
+Import Monads.
+Import MonadNotation.
+
+Open Scope monad_scope.
+
+Set Implicit Arguments.
+Unset Strict Implicit.
+
+Unset Printing Implicit Defensive.
+
+
+
+
+
+Section ITreeExtract.
+(** Some helper functions to extract an interactive tree to a simple-to-interact-with function,
+  in order to reduce the shim. **)
+
+Definition option_of_itree_void {A} (t : itree void1 A) : option A :=
+  match observe t with
+  | RetF r => Some r (** We got a return. **)
+  | TauF i => None (** Exhaustion. **)
+  | VisF _ a _ => match a with end (** Void, by definition. **)
+  end.
+
+Context {R : Type}.
+(** We assume an interpreter, as defined by the end of this file. **)
+
+Variable M : Type -> Type.
+Hypothesis FM : Functor.Functor M.
+Hypothesis MM : Monad M.
+Hypothesis IM : MonadIter M.
+
+
+
+End ITreeExtract.
+
+
+(** * Types used by the interpreter **)
+
+Inductive res : Type :=
+  | R_crash : res_crash -> res
+  | R_trap : res
+  | R_value : seq value -> res
+  .
+
+Definition res_eq_dec : forall r1 r2 : res, {r1 = r2} + {r1 <> r2}.
+Proof. decidable_equality. Defined.
+
+Definition res_eqb (r1 r2 : res) : bool := res_eq_dec r1 r2.
+Definition eqresP : Equality.axiom res_eqb :=
+  eq_dec_Equality_axiom res_eq_dec.
+
+Canonical Structure res_eqMixin := EqMixin eqresP.
+Canonical Structure res_eqType := Eval hnf in EqType res res_eqMixin.
+
+
+Definition crash_error : res_step := RS_crash C_error.
+
+
+(** * The interpreter itself. **)
+
+(** An inductive for the [mrec] fixed-point combinator, expressing the signature of the
+   functions [run_step_base] and [run_one_step]. **)
+Inductive run_stepE : Type -> Type :=
+  | call_run_step_base :
+    depth -> config_tuple ->
+    run_stepE res_tuple
+  | call_run_one_step :
+    depth -> config_one_tuple_without_e -> administrative_instruction ->
+    run_stepE res_tuple
+  .
+
+Section RunStep.
+
+(** See ITree/tutorial/Imp.v: these commands are used to enable other events to be mangled in. **)
+  Context {eff : Type -> Type}.
+  Context `{HandleBytes}.
+
+Definition run_step_base (call : run_stepE ~> itree (run_stepE +' eff))
+    (d : depth) (cgf : config_tuple)
+  : itree (run_stepE +' eff) res_tuple :=
+  let: (s, f, es) := cgf in
+  let: (ves, es') := split_vals_e es in (** Framing out constants. **)
+  match es' with
+  | [::] => ret (s, f, crash_error)
+  | e :: es'' =>
+    if e_is_trap e
+    then
+      if (es'' != [::]) || (ves != [::])
+      then ret (s, f, RS_normal [::AI_trap])
+      else ret (s, f, crash_error)
+    else
+      '(s', f', r) <- call _ (call_run_one_step d (s, f, (rev ves)) e) ;;
+      if r is RS_normal res
+      then ret (s', f', RS_normal (res ++ es''))
+      else ret (s', f', r)
+  end.
+
+Definition run_one_step (call : run_stepE ~> itree (run_stepE +' eff))
+      (d : depth) (cgf : config_one_tuple_without_e) (e : administrative_instruction)
+    : itree (run_stepE +' eff) res_tuple :=
+  let: (s, f, ves) := cgf in
+  match e with
+
+  (** unop **)
+  | AI_basic (BI_unop t op) =>
+    if ves is v :: ves' then
+      ret (s, f, RS_normal (vs_to_es ((app_unop op v) :: ves')))
+    else ret (s, f, crash_error)
+
+  (** binop **)
+  | AI_basic (BI_binop t op) =>
+    if ves is v2 :: v1 :: ves' then
+      expect (app_binop op v1 v2)
+             (fun v => ret (s, f, RS_normal (vs_to_es (v :: ves'))))
+             (ret (s, f, RS_normal ((vs_to_es ves') ++ [::AI_trap])))
+    else ret (s, f, crash_error)
+
+  (** slice **)
+  | AI_basic BI_slice =>
+      if ves is VAL_numeric (NVAL_int32 c2) :: VAL_numeric (NVAL_int32 c1) :: VAL_handle h :: ves' then
+        if slice_handle h (Wasm_int.N_of_uint i32m c1) (Wasm_int.N_of_uint i32m c2) is Some h' then
+          (ret (s, f, RS_normal (vs_to_es (VAL_handle h' :: ves'))))
+        else (ret (s, f, RS_normal ((vs_to_es ves') ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+
+  | AI_basic BI_handleadd =>
+      if ves is VAL_handle h :: VAL_numeric (NVAL_int32 c) :: ves' then
+        expect (handle_add h (Wasm_int.Z_of_sint i32m c))
+          (fun v => (ret (s, f, RS_normal (vs_to_es (VAL_handle v :: ves')))))
+          (ret (s, f, RS_normal ((vs_to_es ves') ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+
+  | AI_basic BI_getoffset =>
+      if ves is VAL_handle h :: ves' then
+        ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_N (offset h))) :: ves' )))
+      else ret (s, f, crash_error)
+
+  | AI_basic BI_isdummy =>
+      if ves is VAL_handle h :: ves' then
+        if is_dummy h then ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 1) :: ves'))) else ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.Int32.repr 0) :: ves')))
+      else ret (s, f, crash_error)
+
+  (** testops **)
+  | AI_basic (BI_testop T_i32 testop) =>
+    if ves is (VAL_numeric (NVAL_int32 c)) :: ves' then
+      ret (s, f, RS_normal (vs_to_es ((VAL_int32 (wasm_bool (@app_testop_i i32t testop c))) :: ves')))
+    else ret (s, f, crash_error)
+  | AI_basic (BI_testop T_i64 testop) =>
+    if ves is (VAL_numeric (NVAL_int64 c)) :: ves' then
+      ret (s, f, RS_normal (vs_to_es ((VAL_int32 (wasm_bool (@app_testop_i i64t testop c))) :: ves')))
+    else ret (s, f, crash_error)
+  | AI_basic (BI_testop _ _) => ret (s, f, crash_error)
+
+  (** relops **)
+  | AI_basic (BI_relop t op) =>
+    if ves is v2 :: v1 :: ves' then
+      ret (s, f, RS_normal (vs_to_es (VAL_int32 (wasm_bool (app_relop op v1 v2)) :: ves')))
+    else ret (s, f, crash_error)
+
+  (** convert and reinterpret **)
+  | AI_basic (BI_cvtop t2 CVO_convert t1 sx) =>
+    if ves is v :: ves' then
+      if types_agree t1 v
+      then
+        expect (cvt t2 sx v) (fun v' =>
+             ret (s, f, RS_normal (vs_to_es (v' :: ves'))))
+          (ret (s, f, RS_normal ((vs_to_es ves') ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+    else ret (s, f, crash_error)
+  | AI_basic (BI_cvtop t2 _CVO_Reinterpret t1 sx) =>
+    if ves is v :: ves' then
+      if types_agree t1 v && (t1 != T_handle) && (t2 != T_handle) && (sx == None)
+      then ret (s, f, RS_normal (vs_to_es (wasm_deserialise (bits v) t2 :: ves')))
+      else ret (s, f, crash_error)
+    else ret (s, f, crash_error)
+
+  (** control-flow instructions **)
+  | AI_basic BI_unreachable => ret (s, f, RS_normal ((vs_to_es ves) ++ [::AI_trap]))
+  | AI_basic BI_nop => ret (s, f, RS_normal (vs_to_es ves))
+  | AI_basic BI_drop =>
+    if ves is v :: ves' then
+      ret (s, f, RS_normal (vs_to_es ves'))
+    else ret (s, f, crash_error)
+
+  | AI_basic BI_select =>
+    if ves is (VAL_numeric (NVAL_int32 c)) :: v2 :: v1 :: ves' then
+      if c == Wasm_int.int_zero i32m
+      then ret (s, f, RS_normal (vs_to_es (v2 :: ves')))
+      else ret (s, f, RS_normal (vs_to_es (v1 :: ves')))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_block (Tf t1s t2s) es) =>
+    if length ves >= length t1s
+    then
+      let: (ves', ves'')  := split_n ves (length t1s) in
+      ret (s, f, RS_normal (vs_to_es ves''
+                            ++ [::AI_label (length t2s) [::] (vs_to_es ves' ++ to_e_list es)]))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_loop (Tf t1s t2s) es) =>
+    if length ves >= length t1s
+    then
+      let: (ves', ves'') := split_n ves (length t1s) in
+      ret (s, f, RS_normal (vs_to_es ves''
+                            ++ [::AI_label (length t1s) [::AI_basic (BI_loop (Tf t1s t2s) es)]
+                                    (vs_to_es ves' ++ to_e_list es)]))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_if tf es1 es2) =>
+    if ves is VAL_numeric (NVAL_int32 c) :: ves' then
+      if c == Wasm_int.int_zero i32m
+      then ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_block tf es2)]))
+      else ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_block tf es1)]))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_br j) => ret (s, f, RS_break j ves)
+  | AI_basic (BI_br_if j) =>
+    if ves is VAL_numeric (NVAL_int32 c) :: ves' then
+      if c == Wasm_int.int_zero i32m
+      then ret (s, f, RS_normal (vs_to_es ves'))
+      else ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_br j)]))
+    else ret (s, f, crash_error)
+  | AI_basic (BI_br_table js j) =>
+    if ves is VAL_numeric (NVAL_int32 c) :: ves' then
+      let: k := Wasm_int.nat_of_uint i32m c in
+      if k < length js
+      then
+        expect (List.nth_error js k) (fun js_at_k =>
+            ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_br js_at_k)])))
+          (ret (s, f, crash_error))
+      else ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_basic (BI_br j)]))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_call j) =>
+    if List.nth_error f.(f_inst).(inst_funcs) j is Some a then
+      ret (s, f, RS_normal (vs_to_es ves ++ [::AI_invoke a]))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_call_indirect j) =>
+    if ves is VAL_numeric (NVAL_int32 c) :: ves' then
+      match stab_addr s f (Wasm_int.nat_of_uint i32m c) with
+      | Some a =>
+        match List.nth_error s.(s_funcs) a with
+        | Some cl =>
+          if stypes s f.(f_inst) j == Some (cl_type cl)
+          then ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_invoke a]))
+          else ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap]))
+     (* Not Trap because this is not supposed to happen after validation *)
+        | None => ret (s, f, crash_error)
+        end
+      | None => ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap]))
+      end
+    else ret (s, f, crash_error)
+
+  | AI_basic BI_return => ret (s, f, RS_return ves)
+
+  | AI_basic (BI_get_local j) =>
+    if j < length f.(f_locs)
+    then
+      expect (List.nth_error f.(f_locs) j) (fun vs_at_j =>
+          ret (s, f, RS_normal (vs_to_es (vs_at_j :: ves))))
+        (ret (s, f, crash_error))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_set_local j) =>
+    if ves is v :: ves' then
+      if j < length f.(f_locs)
+      then ret (s, Build_frame (update_list_at f.(f_locs) j v) f.(f_inst), RS_normal (vs_to_es ves'))
+      else ret (s, f, crash_error)
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_tee_local j) =>
+    if ves is v :: ves' then
+      ret (s, f, RS_normal (vs_to_es (v :: ves) ++ [::AI_basic (BI_set_local j)]))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_get_global j) =>
+    if sglob_val s f.(f_inst) j is Some xx
+    then ret (s, f, RS_normal (vs_to_es (xx :: ves)))
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_set_global j) =>
+    if ves is v :: ves' then
+      if supdate_glob s f.(f_inst) j v is Some xx
+      then ret (xx, f, RS_normal (vs_to_es ves'))
+      else ret (s, f, crash_error)
+    else ret (s, f, crash_error)
+
+  | AI_basic (BI_load t None a off) =>
+      if t is T_handle then
+      ret (s, f, crash_error) else
+      if ves is VAL_numeric (NVAL_int32 k) :: ves' then
+        expect
+          (smem_ind s f.(f_inst))
+          (fun j =>
+             if List.nth_error s.(s_mems) j is Some mem_s_j then
+               expect
+                 (load (mem_s_j) (Wasm_int.N_of_uint i32m k) off (t_length t))
+                 (fun bs => ret (s, f, RS_normal (vs_to_es (wasm_deserialise bs t :: ves'))))
+                 (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+             else ret (s, f, crash_error))
+          (ret (s, f, crash_error))
+      else ret (s, f, crash_error)
+
+
+  | AI_basic (BI_load t (Some (tp, sx)) a off) =>
+      if ves is VAL_numeric (NVAL_int32 k) :: ves' then
+        expect
+          (smem_ind s f.(f_inst))
+          (fun j =>
+             if List.nth_error s.(s_mems) j is Some mem_s_j then
+               expect
+                 (load_packed sx (mem_s_j) (Wasm_int.N_of_uint i32m k) off (tp_length tp) (t_length t))
+                 (fun bs => ret (s, f, RS_normal (vs_to_es (wasm_deserialise bs t :: ves'))))
+                 (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+             else ret (s, f, crash_error))
+          (ret (s, f, crash_error))
+      else ret (s, f, crash_error)
+
+
+
+  | AI_basic (BI_segload T_handle) =>
+      if ves is VAL_handle h :: ves' then
+        if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+        then expect
+               (segload s.(s_segs) h (t_length T_handle))
+               (fun bs =>
+                  if wasm_deserialise (List.map fst bs) T_handle is VAL_handle hmem then
+                    ret (s, f, RS_normal (vs_to_es (VAL_handle (upd_handle_validity hmem (List.forallb (fun x => match x with Handle => true | _ => false end) (List.map snd bs))) :: ves')))
+                  else ret (s, f, crash_error))
+               (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+        else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+
+ | AI_basic (BI_segstore T_handle) =>
+      if ves is v :: VAL_handle h :: ves' then
+                      if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length T_handle)) h.(bound)) && isAllocb h.(id) s.(s_alls) && (N.eqb (N.modulo (handle_addr h) (N.of_nat (t_length T_handle))) (N.of_nat 0))
+                      then expect
+                             (segstore s.(s_segs) h (List.map (fun x => (x, Handle)) (bits v)) (t_length T_handle))
+                             (fun seg' =>
+                                (ret (upd_s_seg s seg', f, RS_normal (vs_to_es ves'))))
+                             (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+                      else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+
+  | AI_basic (BI_segload t) =>
+      if ves is VAL_handle h :: ves' then
+                      if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
+                      then expect
+                             (segload s.(s_segs) h (t_length t))
+                             (fun bs => ret (s, f, RS_normal (vs_to_es (wasm_deserialise (List.map fst bs) t :: ves'))))
+                             (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+                      else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+
+  | AI_basic (BI_segstore t) =>
+      if ves is v :: VAL_handle h :: ves' then
+                      if h.(valid) && (N.leb (h.(offset) + N.of_nat (t_length t)) h.(bound)) && isAllocb h.(id) s.(s_alls)
+                      then expect
+                             (segstore s.(s_segs) h (List.map (fun x => (x, Numeric)) (bits v)) (t_length t))
+                             (fun seg' =>
+                                (ret (upd_s_seg s seg', f, RS_normal (vs_to_es ves'))))
+                             (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+                      else (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+      else ret (s, f, crash_error)
+
+    | AI_basic (BI_store t None a off) =>
+      if ves is v :: VAL_numeric (NVAL_int32 k) :: ves' then
+        if types_agree t v
+        then
+          expect
+            (smem_ind s f.(f_inst))
+            (fun j =>
+               if List.nth_error s.(s_mems) j is Some mem_s_j then
+                 expect
+                   (store mem_s_j (Wasm_int.N_of_uint i32m k) off (bits v) (t_length t))
+                   (fun mem' =>
+                      (ret (upd_s_mem s (update_list_at s.(s_mems) j mem'), f, RS_normal (vs_to_es ves'))))
+                   (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+               else ret (s, f, crash_error))
+            (ret (s, f, crash_error))
+        else ret (s, f, crash_error)
+      else ret (s, f, crash_error)
+
+    | AI_basic (BI_store t (Some tp) a off) =>
+      if ves is v :: VAL_numeric (NVAL_int32 k) :: ves' then
+        if types_agree t v
+        then
+          expect
+            (smem_ind s f.(f_inst))
+            (fun j =>
+               if List.nth_error s.(s_mems) j is Some mem_s_j then
+                 expect
+                   (store_packed mem_s_j (Wasm_int.N_of_uint i32m k) off (bits v) (tp_length tp))
+                   (fun mem' =>
+                      (ret (upd_s_mem s (update_list_at s.(s_mems) j mem'), f, RS_normal (vs_to_es ves'))))
+                   (ret (s, f, RS_normal (vs_to_es ves' ++ [::AI_trap])))
+               else ret (s, f, crash_error))
+            (ret (s, f, crash_error))
+        else ret (s, f, crash_error)
+      else ret (s, f, crash_error)
+
+    | AI_basic BI_current_memory =>
+      expect
+        (smem_ind s f.(f_inst))
+        (fun j =>
+           if List.nth_error s.(s_mems) j is Some s_mem_s_j then
+             (ret (s, f, RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat (mem_size s_mem_s_j))) :: ves))))
+           else ret (s, f, crash_error))
+        (ret (s, f, crash_error))
+
+    | AI_basic BI_grow_memory =>
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
+        expect
+          (smem_ind s f.(f_inst))
+          (fun j =>
+            if List.nth_error s.(s_mems) j is Some s_mem_s_j then
+              let: l := mem_size s_mem_s_j in
+              let: mem' := mem_grow s_mem_s_j (Wasm_int.N_of_uint i32m c) in
+              if mem' is Some mem'' then
+                ret (upd_s_mem s (update_list_at s.(s_mems) j mem''), f,
+                     RS_normal (vs_to_es (VAL_int32 (Wasm_int.int_of_Z i32m (Z.of_nat l)) :: ves')))
+              else ret (s, f, crash_error)
+            else ret (s, f, crash_error))
+          (ret (s, f, crash_error))
+      else ret (s, f, crash_error)
+
+  | AI_basic BI_segalloc =>
+      if ves is VAL_numeric (NVAL_int32 c) :: ves' then
+        let: l := operations.seg_length s.(s_segs) in
+        let: seg' := operations.seg_grow s.(s_segs) (Wasm_int.N_of_uint i32m c) in
+        if seg' is Some seg'' then
+          let: fsh := next_free s.(s_alls) in
+          ret (upd_s_seg (upd_s_all s ({| allocated := base.insert fsh (Some (l, Wasm_int.N_of_uint i32m c)) (allocated s.(s_alls)); next_free := fsh + 1 |})) seg'', f,
+              RS_normal (vs_to_es (VAL_handle (new_handle l (Wasm_int.N_of_uint i32m c) fsh) :: ves')))
+        else ret (s, f, crash_error)
+      else ret (s, f, crash_error)
+
+  | AI_basic BI_segfree =>
+      if ves is VAL_handle h :: ves' then
+        if h.(valid) && (h.(offset) == N.zero)%N then
+          expect
+            (find_and_remove h.(id) s.(s_alls).(allocated))
+            (fun '(l, a, n) =>
+               if ((a == h.(base)) && (n == h.(bound)) )%N then
+                 ret (upd_s_all s {| allocated := l; next_free := next_free s.(s_alls) |}, f, RS_normal (vs_to_es ves'))
+               else ret (s, f, crash_error))
+            (ret (s, f, crash_error))
+        else ret (s, f, crash_error)
+      else ret (s, f, crash_error)
+
+
+  | AI_basic (BI_const v) => ret (s, f, crash_error) 
+    | AI_handle _ => ret (s, f, crash_error)
+
+    | AI_invoke i =>
+      match List.nth_error s.(s_funcs) i with
+        | Some cl =>
+            match cl with
+            | FC_func_native i (Tf t1s t2s) ts es =>
+                let: n := length t1s in
+                let: m := length t2s in
+                if length ves >= n
+                then
+                let: (ves', ves'') := split_n ves n in
+                let: zs := n_zeros ts in
+                ret (s, f, RS_normal (vs_to_es ves''
+                                ++ [::AI_local m (Build_frame (rev ves' ++ zs) i) [::AI_basic (BI_block (Tf [::] t2s) es)]]))
+                else ret (s, f, crash_error)
+            | FC_func_host (Tf t1s t2s) h =>
+                let: n := length t1s in
+                let: m := length t2s in
+                if length ves >= n
+                then
+                  let: (ves', ves'') := split_n ves n in
+                  ret (s, f, RS_call_host (Tf t1s t2s) h (rev ves'))
+                else ret (s, f, crash_error)
+            end
+        | None => ret (s, f, crash_error)
+      end
+
+  | AI_call_host tf h vcs => ret (s , f , RS_call_host tf h vcs)
+
+  | AI_label ln les es =>
+    if es_is_trap es
+    then ret (s, f, RS_normal (vs_to_es ves ++ [::AI_trap]))
+    else
+      if const_list es
+      then ret (s, f, RS_normal (vs_to_es ves ++ es))
+      else
+      '(s', f', res) <- call _ (call_run_step_base d (s, f, es)) ;;
+      match res with
+      | RS_break 0 bvs =>
+        if length bvs >= ln
+        then ret (s', f', RS_normal ((vs_to_es ((take ln bvs) ++ ves)) ++ les))
+        else ret (s', f', crash_error)
+      | RS_break (n.+1) bvs => ret (s', f', RS_break n bvs)
+      | RS_return rvs => ret (s', f', RS_return rvs)
+      | RS_normal es' =>
+        ret (s', f', RS_normal (vs_to_es ves ++ [::AI_label ln les es']))
+      | RS_crash error => ret (s', f', RS_crash error)
+      | RS_call_host tf h vcs => ret (s', f', RS_call_host tf h vcs)
+      end
+
+  | AI_local ln f es =>
+    if es_is_trap es
+    then ret (s, f, RS_normal (vs_to_es ves ++ [::AI_trap]))
+    else
+      if const_list es
+      then
+        if length es == ln
+        then ret (s, f, RS_normal (vs_to_es ves ++ es))
+        else ret (s, f, crash_error)
+      else
+        '(s', f', res) <- call _ (call_run_step_base d (s, f, es)) ;;
+        match res return itree (run_stepE +' eff) res_tuple with
+        | RS_return rvs =>
+          if length rvs >= ln
+          then ret (s', f, RS_normal (vs_to_es (take ln rvs ++ ves)))
+          else ret (s', f, crash_error)
+        | RS_normal es' =>
+          ret (s', f, RS_normal (vs_to_es ves ++ [::AI_local ln f' es']))
+        | RS_crash error => ret (s', f, RS_crash error)
+        | RS_break _ _ => ret (s', f, crash_error)
+        | RS_call_host tf h vcs => ret (s', f', RS_call_host tf h vcs)
+        end
+
+  | AI_trap => ret (s, f, crash_error)
+  end.
+
+Definition run_step_call : run_stepE ~> itree eff :=
+  mrec (fun T (f : run_stepE T) =>
+    let call _ f := trigger f in
+    match f with
+    | call_run_step_base d cgf =>
+      run_step_base call d cgf
+    | call_run_one_step d cgf e =>
+      run_one_step call d cgf e
+    end).
+
+(** Enough fuel so that [run_one_step] does not run out of exhaustion. **)
+Definition run_one_step_fuel : administrative_instruction -> nat.
+Proof.
+  move=> es. induction es using administrative_instruction_rect';
+    let rec aux v :=
+      lazymatch goal with
+      | F : TProp.Forall _ _ |- _ =>
+        apply TProp.max in F;
+        move: F;
+        let n := fresh "n" in
+        move=> n;
+        aux (n + v)
+      | |- _ => exact (v.+1)
+      end in
+    aux (1 : nat).
+Defined.
+
+(** Enough fuel so that [run_step] does not run out of exhaustion. **)
+Definition run_step_fuel (cfg : config_tuple) : nat :=
+  let: (s, vs, es) := cfg in
+  1 + List.fold_left max (List.map run_one_step_fuel es) 0.
+
+(** [run_step] is defined by calling [run_step_base], whilst burning enough fuel
+   for it to be fully computed. **)
+Definition run_step (d : depth) (inst : instance) (cfg : config_tuple) : itree eff res_tuple :=
+  burn (run_step_fuel cfg) (run_step_call (call_run_step_base d cfg)).
+
+End RunStep.
+
+Section Run.
+
+  Context {eff : Type -> Type}.
+  Context `{HandleBytes}.
+
+Definition run_v : depth -> instance -> config_tuple -> itree eff (store_record * res) :=
+  let run_v :=
+    rec-fix run_v (d, i, (s, vs, es)) :=
+      if es_is_trap es
+      then ret (s, R_trap)
+      else
+      if const_list es
+      then ret (s, R_value (fst (split_vals_e es)))
+        else
+          '(s', vs', r) <- run_step d i (s, vs, es) ;;
+          match r with
+          | RS_normal es' => run_v (d, i, (s', vs', es'))
+          | RS_crash error => ret (s, R_crash error)
+          | _ => ret (s, R_crash C_error)
+          end in
+  fun d i cfg => run_v (d, i, cfg).
+
+End Run.
+
+
+
+
+(* Our current assumptions consist of the classical axiom [Classical_Prop.classic],
+  as well as Flocq's axioms.
+  The classical axiom comes from our definitions of [f32] and [f64] in numerics.v,
+  that use functions (like [Binary.binary_normalize]) based on this axiom.
+[[
+Print Assumptions run_step.
+]]
+*)
+
+
+(** The following module is designed to fit OCaml’s types, and thus to better extract. **)
+
+(** First, due to universe inconsistencies, we are not allowed to extract directly to
+  the same monad [host_event].
+  We thus assume another monad with the right assumption.
+  Again, this module type is designed to extract nicely to OCaml. **)
+
+Parameter monad : Type -> Type.
+Parameter monad_ret : forall t : Type, t -> monad t.
+Parameter monad_bind : forall t u : Type, monad t -> (t -> monad u) -> monad u.
+Parameter monad_iter : forall R I : Type, (I -> monad (I + R)%type) -> I -> monad R.
+
+
+
+
+
+(** The following module converts the module type above into a proper Coq monad. **)
+(* Module convert_target_monad (EH : Executable_Host) (M : TargetMonad EH). *)
+
+Definition monad_monad : Monad monad := {|
+    ret := monad_ret ;
+    bind := monad_bind
+  |}.
+
+Definition monad_Iter : MonadIter monad := monad_iter.
+
+Definition monad_functor := Functor_Monad (M := monad_monad).
+
+
+

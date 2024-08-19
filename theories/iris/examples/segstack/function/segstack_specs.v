@@ -1,1 +1,0 @@
-Require Export new_segstack segstack_is_empty segstack_is_full segstack_pop segstack_push segstack_length segstack_map segstack_map_trap.

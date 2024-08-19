@@ -1,0 +1,5 @@
+(coq.theory
+  (name MSWasm.iris.examples.linstack)
+  (package coq-mswasm)
+  (flags -w -notation-overridden -w -abstract-large-number -w -extraction-reserved-identifier -w -ambiguous-paths)
+    (theories MSWasm MSWasm.iris.logrel MSWasm.iris.examples.plainWasm MSWasm.iris.rules MSWasm.iris.host))

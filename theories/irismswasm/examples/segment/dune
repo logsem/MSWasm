@@ -1,0 +1,5 @@
+(coq.theory
+  (name MSWasm.iris.examples.segment)
+  (package coq-mswasm)
+  (flags -w -notation-overridden -w -abstract-large-number -w -extraction-reserved-identifier -w -ambiguous-paths)
+    (theories MSWasm MSWasm.iris.language MSWasm.iris.language.iris MSWasm.iris.helpers MSWasm.iris.host MSWasm.iris.rules MSWasm.iris.examples.plainWasm))
